@@ -1,17 +1,6 @@
-[package]
-name = "sub-meta-decoder"
-version = "0.1.0"
-authors = ["Andrew Plaza <aplaza@liquidthink.net>"]
-edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-codec = { version = "1.1.0", package = "parity-scale-codec" }
-serde = { version = "1.0", features = ["derive"] }
-runtime-metadata = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", branch = "polkadot-master" }
-failure = "0.1.6"
-
-[features]
-substrate = []
-polkadot = []
+[workspace]
+members = [
+	"cli",
+	"core",
+	"extras",
+]

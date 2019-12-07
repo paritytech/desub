@@ -1,0 +1,13 @@
+[package]
+name = "desub-extras"
+version = "0.0.1"
+authors = [ "Andrew Plaza <andrew.plaza@parity.io>" ]
+edition = "2018"
+
+[dependencies]
+polkadot-runtime = { git = "https://github.com/paritytech/polkadot", package = "polkadot-runtime", branch = "master" }
+
+[features]
+substrate = []
+polkadot = []
+node_runtime = []
