@@ -1,9 +1,8 @@
-use std::collections::HashMap;
-use codec::{Encode, Decode, FullCodec, Input};
-use serde::Serialize;
-use runtime_metadata::RuntimeMetadataPrefixed;
-use std::rc::Rc;
 use crate::{error::Error, types::Decodable};
+use codec::{Decode, Encode, FullCodec, Input};
+use runtime_metadata::RuntimeMetadataPrefixed;
+use serde::Serialize;
+use std::{any::Any, collections::HashMap, rc::Rc};
 
 pub struct Decoder<Ty: FullCodec> {
     types: HashMap<String, Box<dyn Decodable<T = Box<Ty>>>>,
@@ -14,12 +13,13 @@ impl<Ty: FullCodec> Decoder<Ty> {
     pub fn new(/*_meta: RuntimeMetadataPrefixed*/) -> Self {
         Self {
             // meta,
-            types: HashMap::new()
+            types: HashMap::new(),
         }
     }
 
-    pub fn register_type<R>(&mut self, name: &str, ty: R) where
-        R: Decodable<T = Box<Ty>> + 'static
+    pub fn register_type<R>(&mut self, name: &str, ty: R)
+    where
+        R: Decodable<T = Box<Ty>> + 'static,
     {
         self.types.insert(name.to_string(), Box::new(ty));
     }
@@ -33,41 +33,50 @@ impl<Ty: FullCodec> Decoder<Ty> {
     }
 }
 
-pub trait NodeTrait {
+pub trait NodeTrait: Any {
     fn next(&self) -> Option<Rc<Box<dyn NodeTrait>>>;
+    fn down(&self) -> Box<dyn Any>;
 }
 
 pub struct Node<T: FullCodec> {
     inner: T,
-    list: Option<Box<dyn NodeTrait>>
+    list: Option<Box<dyn NodeTrait>>,
 }
 
-impl<T> NodeTrait for Node<T> where T: FullCodec {
+impl<T> NodeTrait for Node<T>
+where
+    T: FullCodec + 'static,
+{
     fn next(&self) -> Option<Rc<Box<dyn NodeTrait>>> {
         self.list.as_ref().map(|l| l.next()).flatten()
     }
 }
 
-impl<T> Node<T> where T: FullCodec {
+impl<T> Node<T>
+where
+    T: FullCodec,
+{
     pub fn new(typedef: T) -> Self {
         Self {
             inner: typedef,
-            list: None
+            list: None,
         }
     }
 
     pub fn append(&mut self, next: Box<dyn NodeTrait>) {
-        self.list = next;
+        self.list = Some(next);
     }
+}
+
+pub struct TypeList {
+    head: Box<dyn NodeTrait>,
 }
 
 #[cfg(test)]
 mod tests {
 
     #[test]
-    fn add_types() {
-        Decoder
-    }
+    fn add_types() {}
 
     #[test]
     #[should_panic]
