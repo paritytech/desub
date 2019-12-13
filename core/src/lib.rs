@@ -1,7 +1,8 @@
 pub mod decoder;
-mod types;
 mod error;
 
+#[cfg(test)]
+extern crate alloc;
 
 #[cfg(test)]
 mod tests {

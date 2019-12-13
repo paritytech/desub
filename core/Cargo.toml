@@ -9,10 +9,13 @@ failure = "0.1.6"
 codec = { version = "1.1.0", package = "parity-scale-codec" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
-type-metadata = { git = "https://github.com/type-metadata/type-metadata", package = "type-metadata" }
 runtime-metadata = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", branch = "polkadot-master" }
 
-
+[dependencies.type-metadata]
+git = "https://github.com/type-metadata/type-metadata"
+package = "type-metadata"
+default-features = false
+features = ["std", "derive"]
 
 # [features]
 # substrate = []
