@@ -2,8 +2,7 @@ use runtime_metadata::RuntimeMetadataPrefixed;
 use std::collections::HashMap;
 use type_metadata::{
     form::{CompactForm, Form, MetaForm},
-    Metadata, IntoCompact,
-    Namespace, Registry
+    IntoCompact, Metadata, Namespace, Registry,
 };
 
 pub struct Decoder {
@@ -25,11 +24,12 @@ impl Decoder {
     where
         T: Metadata,
     {
-        self.types.insert(name.into(), SubstrateMetaType::with_name_str::<T>(name).into_compact(&mut self.registry));
+        self.types.insert(
+            name.into(),
+            SubstrateMetaType::with_name_str::<T>(name).into_compact(&mut self.registry),
+        );
     }
 }
-
-
 
 /// A type from substrate metadata.
 ///
@@ -81,9 +81,8 @@ impl SubstrateMetaType {
     pub fn with_name_segs<T, S>(segments: S) -> Self
     where
         T: Metadata,
-        S: IntoIterator<Item = <MetaForm as Form>::String>
+        S: IntoIterator<Item = <MetaForm as Form>::String>,
     {
-
         Self {
             ty: T::meta_type(),
             display_name: Namespace::new(segments).expect("display name is invalid"),
@@ -107,7 +106,7 @@ impl IntoCompact for SubstrateMetaType {
     fn into_compact(self, registry: &mut Registry) -> Self::Output {
         SubstrateMetaType {
             ty: registry.register_type(&self.ty),
-            display_name: self.display_name.into_compact(registry)
+            display_name: self.display_name.into_compact(registry),
         }
     }
 }
@@ -128,7 +127,7 @@ mod tests {
     pub struct TestType2 {
         super_simple_type: u8,
         some_kind_of_name: String,
-        first_test_struct: TestType
+        first_test_struct: TestType,
     }
 
     #[test]
@@ -139,7 +138,8 @@ mod tests {
         println!("{:?}", t);
         println!("================");
 
-        let x: SubstrateMetaType<CompactForm> = SubstrateMetaType::with_name_str::<TestType2>("TestType").into_compact(&mut reg);
+        let x: SubstrateMetaType<CompactForm> =
+            SubstrateMetaType::with_name_str::<TestType2>("TestType").into_compact(&mut reg);
         println!("PRELUDE: {:?}", Namespace::prelude());
         println!("{:#?}\n\n", x);
         println!("{:#?}", reg);
