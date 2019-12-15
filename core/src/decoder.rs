@@ -67,6 +67,16 @@ pub struct SubstrateMetaEntry {
     runtime_entry: Rc<ModuleMetadata>,
 }
 
+/// The type of Entry
+///
+/// NOTE: not entirely sure if necessary as of yet
+/// however, used for the purpose for narrowing down the context a type is being used in
+pub enum Entry {
+    Storage,
+    Event,
+    Constant
+}
+
 impl Decoder {
     /// Create a new instance of Decoder
     ///
@@ -81,7 +91,11 @@ impl Decoder {
 
     /// register a version that this application will support
     ///
-    /// All versions should be registered before registering any types, lest desub will panic
+    /// register versions to associate exported metadata with a specific runtime
+    /// ensuring that type definitions do not co-mingle with other runtime versions,
+    /// if they are different
+    ///
+    /// NOTE: All versions should be registered before registering any types, lest desub will panic
     pub fn register_version(&mut self, metadata: RuntimeMetadataPrefixed, version: RuntimeVersion) {
         self.insert_version(SubstrateMetadata {
             version,
@@ -106,7 +120,7 @@ impl Decoder {
         T: Metadata,
     {
         let runtime_entry = self.get_version_metadata(&version).module(&module).unwrap();
-        let mut type_map = self.types.get_mut(&version.spec_version).unwrap();
+        let type_map = self.types.get_mut(&version.spec_version).unwrap();
 
         if let Some(entry) = type_map.get_mut(&module) {
             entry.types.push(
@@ -127,6 +141,8 @@ impl Decoder {
         self
     }
 
+    /// Internal API to insert a Metadata with Version attached into a sorted array
+    /// NOTE: all version inserts should be done before any call to `get_version_metadata`
     fn insert_version(&mut self, sub_meta: SubstrateMetadata) {
         match self
             .versions
@@ -138,9 +154,14 @@ impl Decoder {
         }
     }
 
-    /// [PANICS]
     /// internal api to get runtime version
-    /// panics if a verison is not found
+    /// panics if a version is not found
+    ///
+    /// get runtime version in less than linear time with binary search
+    ///
+    /// # Panics
+    ///
+    /// panics if the given version does not exist
     fn get_version_metadata(&self, version: &RuntimeVersion) -> &RawSubstrateMetadata {
         match self
             .versions
@@ -158,9 +179,14 @@ impl Decoder {
     }
 
     /// dynamically Decode a SCALE-encoded byte string into it's concrete rust types
-    pub fn decode(module: Module, byte_string: Vec<u8>) {
+    pub fn decode(entry: Entry, module: String, ty: String, spec: u32, byte_array: Vec<u8>) {
         // check if the concrete types are already included in RuntimeMetadataPrefixed
         // if not, fall back to type-metadata exported types
+        unimplemented!()
+    }
+
+    /// Decode an extrinsic
+    pub fn decode_extrinsic(spec: u32, byte_array: Vec<u8>) {
         unimplemented!()
     }
 }
