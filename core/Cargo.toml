@@ -10,9 +10,13 @@ codec = { version = "1.1.0", package = "parity-scale-codec" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
 runtime-metadata = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", branch = "polkadot-master" }
+runtime-version = { git = "https://github.com/paritytech/substrate/", package = "sp-version", branch = "polkadot-master" }
+substrate-primitives = { git = "https://github.com/paritytech/substrate/", package = "sp-core", branch = "polkadot-master" }
+derive_more = "0.99.2"
 
 [dependencies.type-metadata]
-git = "https://github.com/type-metadata/type-metadata"
+git = "https://github.com/insipx/type-metadata"
+branch = "insipx/deseralize-registry"
 package = "type-metadata"
 default-features = false
 features = ["std", "derive"]

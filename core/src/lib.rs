@@ -1,5 +1,6 @@
 pub mod decoder;
 mod error;
+mod metadata;
 
 #[cfg(test)]
 extern crate alloc;
