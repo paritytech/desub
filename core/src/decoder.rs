@@ -16,13 +16,13 @@
 
 //! A serializable/deserializable Decoder used to encode/decode substrate types
 //! from compact SCALE encoded byte arrays
-//! with special attention paid to generic types in runtime module trait definitions
-//! if serialized, can be deserialized. This allows for portability by not needing to
-//! import differently-versioned runtimes
+//! with special attention paid to generic types in runtime module trait
+//! definitions if serialized, can be deserialized. This allows for portability
+//! by not needing to import differently-versioned runtimes
 //! as long as all the types of the runtime are registered within the decoder
 //!
-//! Theoretically, one could upload the deserialized decoder JSON to distribute to different
-//! applications that need the type data
+//! Theoretically, one could upload the deserialized decoder JSON to distribute
+//! to different applications that need the type data
 
 use super::metadata::{Metadata as RawSubstrateMetadata, ModuleMetadata};
 use runtime_metadata::{RuntimeMetadata, RuntimeMetadataPrefixed};
@@ -39,7 +39,9 @@ type SpecVersion = u32;
 /// Decoder for substrate types
 ///
 /// hold information about the Runtime Metadata
-/// and maps types inside the runtime metadata to self-describing types in type-metadata
+/// and maps types inside the runtime metadata to self-describing types in
+/// type-metadata
+#[derive(Debug)]
 pub struct Decoder {
     // reference to an item in 'versions' vector
     types: HashMap<SpecVersion, HashMap<String, SubstrateMetaEntry>>,
@@ -52,6 +54,7 @@ pub struct Decoder {
 /// holds one unit of metadata
 /// the version of the metadata
 /// and the metadata itself
+#[derive(Debug)]
 pub struct SubstrateMetadata {
     version: RuntimeVersion,
     metadata: RawSubstrateMetadata,
@@ -60,6 +63,7 @@ pub struct SubstrateMetadata {
 /// One entry of the substrate metadata
 /// augmented with type-metadata in the case of generic type definitions
 /// not totally handled by substrate
+#[derive(Debug)]
 pub struct SubstrateMetaEntry {
     /// vector holding generic type definitions of the runtime
     types: Vec<SubstrateMetaType<CompactForm>>,
@@ -70,17 +74,17 @@ pub struct SubstrateMetaEntry {
 /// The type of Entry
 ///
 /// NOTE: not entirely sure if necessary as of yet
-/// however, used for the purpose for narrowing down the context a type is being used in
+/// however, used for the purpose for narrowing down the context a type is being
+/// used in
+#[derive(Debug)]
 pub enum Entry {
     Storage,
     Event,
-    Constant
+    Constant,
 }
 
 impl Decoder {
     /// Create a new instance of Decoder
-    ///
-    /// Runtime metadata is passed in for ease of querying
     pub fn new() -> Self {
         Self {
             types: HashMap::new(),
@@ -92,11 +96,14 @@ impl Decoder {
     /// register a version that this application will support
     ///
     /// register versions to associate exported metadata with a specific runtime
-    /// ensuring that type definitions do not co-mingle with other runtime versions,
-    /// if they are different
+    /// ensuring that type definitions do not co-mingle with other runtime
+    /// versions, if they are different
     ///
-    /// NOTE: All versions should be registered before registering any types, lest desub will panic
-    pub fn register_version(&mut self, metadata: RuntimeMetadataPrefixed, version: RuntimeVersion) {
+    /// NOTE: All versions should be registered before registering any types,
+    /// lest desub will panic
+    pub fn register_version(
+        &mut self, metadata: RuntimeMetadataPrefixed, version: RuntimeVersion,
+    ) {
         self.insert_version(SubstrateMetadata {
             version,
             metadata: RawSubstrateMetadata::try_from(metadata).unwrap(),
@@ -111,10 +118,7 @@ impl Decoder {
     /// so that their definitions can be decoded during runtime with
     /// SCALE codec
     pub fn register<T>(
-        mut self,
-        version: RuntimeVersion,
-        module: String,
-        type_name: &'static str,
+        mut self, version: RuntimeVersion, module: String, type_name: &'static str,
     ) -> Self
     where
         T: Metadata,
@@ -124,12 +128,14 @@ impl Decoder {
 
         if let Some(entry) = type_map.get_mut(&module) {
             entry.types.push(
-                SubstrateMetaType::with_name_str::<T>(type_name).into_compact(&mut self.registry),
+                SubstrateMetaType::with_name_str::<T>(type_name)
+                    .into_compact(&mut self.registry),
             )
         } else {
             let mut types = Vec::new();
             types.push(
-                SubstrateMetaType::with_name_str::<T>(type_name).into_compact(&mut self.registry),
+                SubstrateMetaType::with_name_str::<T>(type_name)
+                    .into_compact(&mut self.registry),
             );
 
             let entry = SubstrateMetaEntry {
@@ -141,14 +147,16 @@ impl Decoder {
         self
     }
 
-    /// Internal API to insert a Metadata with Version attached into a sorted array
-    /// NOTE: all version inserts should be done before any call to `get_version_metadata`
+    /// Internal API to insert a Metadata with Version attached into a sorted
+    /// array NOTE: all version inserts should be done before any call to
+    /// `get_version_metadata`
     fn insert_version(&mut self, sub_meta: SubstrateMetadata) {
         match self
             .versions
             .as_slice()
-            .binary_search_by_key(&sub_meta.version.spec_version, |s| s.version.spec_version)
-        {
+            .binary_search_by_key(&sub_meta.version.spec_version, |s| {
+                s.version.spec_version
+            }) {
             Ok(_) => (),
             Err(i) => self.versions.insert(i, sub_meta),
         }
@@ -173,15 +181,19 @@ impl Decoder {
         }
     }
 
-    /// Verifies if all generic types of 'RuntimeMetadata' are present in
+    /// Verifies if all generic types of 'RuntimeMetadata' are present
     fn verify(&self) -> bool {
         unimplemented!()
     }
 
-    /// dynamically Decode a SCALE-encoded byte string into it's concrete rust types
-    pub fn decode(entry: Entry, module: String, ty: String, spec: u32, byte_array: Vec<u8>) {
-        // check if the concrete types are already included in RuntimeMetadataPrefixed
-        // if not, fall back to type-metadata exported types
+    /// dynamically Decode a SCALE-encoded byte string into it's concrete rust
+    /// types
+    pub fn decode(
+        entry: Entry, module: String, ty: String, spec: u32, byte_array: Vec<u8>,
+    ) {
+        // check if the concrete types are already included in
+        // RuntimeMetadataPrefixed if not, fall back to type-metadata
+        // exported types
         unimplemented!()
     }
 
@@ -197,8 +209,8 @@ impl Decoder {
 /// known displayed representation of the type. This is useful for cases
 /// where the type is used through a type alias in order to provide
 /// information about the alias name.
-/// The name of the type from substrates Metadata, however similar to `display_name`
-/// is not optional
+/// The name of the type from substrates Metadata, however similar to
+/// `display_name` is not optional
 #[derive(Debug)]
 pub struct SubstrateMetaType<F: Form = MetaForm> {
     ty: F::TypeId,
@@ -274,6 +286,8 @@ impl IntoCompact for SubstrateMetaType {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::metadata::tests;
+    use crate::test_suite;
 
     #[derive(Metadata)]
     #[allow(dead_code)]
@@ -294,17 +308,37 @@ mod tests {
     fn add_types() {
         let mut reg = Registry::new();
 
-        let t: SubstrateMetaType<_> = SubstrateMetaType::with_name_str::<TestType>("TestType");
+        let t: SubstrateMetaType<_> =
+            SubstrateMetaType::with_name_str::<TestType>("TestType");
         println!("{:?}", t);
         println!("================");
 
         let x: SubstrateMetaType<CompactForm> =
-            SubstrateMetaType::with_name_str::<TestType2>("TestType").into_compact(&mut reg);
+            SubstrateMetaType::with_name_str::<TestType2>("TestType")
+                .into_compact(&mut reg);
         println!("PRELUDE: {:?}", Namespace::prelude());
         println!("{:#?}\n\n", x);
         println!("{:#?}", reg);
         println!("JSON\n\n");
         let serialized = serde_json::to_string_pretty(&reg).unwrap();
         println!("{}", serialized);
+    }
+
+    #[test]
+    fn should_register_types() {
+        let mut decoder = Decoder::new();
+        decoder.insert_version(SubstrateMetadata {
+            version: test_suite::mock_runtime(0),
+            metadata: tests::test_metadata(),
+        });
+        decoder.insert_version(SubstrateMetadata {
+            version: test_suite::mock_runtime(1),
+            metadata: tests::test_metadata(),
+        });
+        decoder.insert_version(SubstrateMetadata {
+            version: test_suite::mock_runtime(2),
+            metadata: tests::test_metadata()
+        });
+        println!("{:#?}", decoder);
     }
 }
