@@ -25,7 +25,7 @@
 //! to different applications that need the type data
 
 use super::metadata::{Metadata as RawSubstrateMetadata, ModuleMetadata};
-use runtime_metadata::{RuntimeMetadata, RuntimeMetadataPrefixed};
+use runtime_metadata::RuntimeMetadataPrefixed;
 use runtime_version::RuntimeVersion;
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -73,7 +73,9 @@ pub struct SubstrateMetaEntry {
 
 /// The type of Entry
 ///
-/// NOTE: not entirely sure if necessary as of yet
+/// # Note
+///
+/// not entirely sure if necessary as of yet
 /// however, used for the purpose for narrowing down the context a type is being
 /// used in
 #[derive(Debug)]
@@ -99,13 +101,16 @@ impl Decoder {
     /// ensuring that type definitions do not co-mingle with other runtime
     /// versions, if they are different
     ///
-    /// NOTE: All versions should be registered before registering any types,
+    /// # Note
+    ///
+    /// All versions should be registered before registering any types,
     /// lest desub will panic
     pub fn register_version(
         &mut self, metadata: RuntimeMetadataPrefixed, version: RuntimeVersion,
     ) {
         self.insert_version(SubstrateMetadata {
             version,
+            // TODO: remove unwrap()
             metadata: RawSubstrateMetadata::try_from(metadata).unwrap(),
         });
     }
@@ -117,14 +122,29 @@ impl Decoder {
     /// Type definitions are matched against RuntimeMetadataPrefixed
     /// so that their definitions can be decoded during runtime with
     /// SCALE codec
-    pub fn register<T>(
-        mut self, version: RuntimeVersion, module: String, type_name: &'static str,
-    ) -> Self
-    where
+    ///
+    /// # Panics
+    ///
+    /// panics when metadata coinciding with runtime version cannot be found
+    pub fn register<T, S>(
+        &mut self, version: &RuntimeVersion, module: S, type_name: &'static str,
+    ) where
+        S: Into<String>,
         T: Metadata,
     {
-        let runtime_entry = self.get_version_metadata(&version).module(&module).unwrap();
-        let type_map = self.types.get_mut(&version.spec_version).unwrap();
+        let module: String = module.into();
+        let runtime_entry = self.get_version_metadata(version).module(&module).unwrap();
+
+        let type_map = match self.types.get_mut(&version.spec_version) {
+            Some(m) => m,
+            None => {
+                self.types
+                    .insert(version.spec_version.clone(), HashMap::new());
+                self.types
+                    .get_mut(&version.spec_version)
+                    .expect("Inserted and immediately read")
+            }
+        };
 
         if let Some(entry) = type_map.get_mut(&module) {
             entry.types.push(
@@ -142,13 +162,16 @@ impl Decoder {
                 types,
                 runtime_entry,
             };
-            type_map.insert(module, entry);
+            type_map.insert(module.into(), entry);
         }
-        self
     }
 
     /// Internal API to insert a Metadata with Version attached into a sorted
-    /// array NOTE: all version inserts should be done before any call to
+    /// array
+    ///
+    /// # Note
+    ///
+    /// all version inserts should be done before any call to
     /// `get_version_metadata`
     fn insert_version(&mut self, sub_meta: SubstrateMetadata) {
         match self
@@ -177,19 +200,21 @@ impl Decoder {
             .binary_search_by_key(&version.spec_version, |s| s.version.spec_version)
         {
             Ok(v) => &self.versions[v].metadata,
-            Err(e) => panic!("such a version does not exist"),
+            Err(_) => panic!("such a version does not exist"),
         }
     }
 
+    #[allow(dead_code)]
     /// Verifies if all generic types of 'RuntimeMetadata' are present
     fn verify(&self) -> bool {
+        // TODO: implement
         unimplemented!()
     }
 
     /// dynamically Decode a SCALE-encoded byte string into it's concrete rust
     /// types
     pub fn decode(
-        entry: Entry, module: String, ty: String, spec: u32, byte_array: Vec<u8>,
+        _entry: Entry, _module: String, _ty: String, _spec: u32, _byte_array: Vec<u8>,
     ) {
         // check if the concrete types are already included in
         // RuntimeMetadataPrefixed if not, fall back to type-metadata
@@ -198,7 +223,7 @@ impl Decoder {
     }
 
     /// Decode an extrinsic
-    pub fn decode_extrinsic(spec: u32, byte_array: Vec<u8>) {
+    pub fn decode_extrinsic(_spec: u32, _byte_array: Vec<u8>) {
         unimplemented!()
     }
 }
@@ -325,7 +350,7 @@ mod tests {
     }
 
     #[test]
-    fn should_register_types() {
+    fn should_insert_metadata() {
         let mut decoder = Decoder::new();
         decoder.insert_version(SubstrateMetadata {
             version: test_suite::mock_runtime(0),
@@ -337,8 +362,59 @@ mod tests {
         });
         decoder.insert_version(SubstrateMetadata {
             version: test_suite::mock_runtime(2),
-            metadata: tests::test_metadata()
+            metadata: tests::test_metadata(),
         });
         println!("{:#?}", decoder);
+    }
+
+    trait TestTrait {
+        type Moment: Copy + Clone + Default;
+    }
+
+    struct TestTraitImpl;
+    impl TestTrait for TestTraitImpl {
+        type Moment = u32;
+    }
+
+    trait TestTrait2 {
+        type Precision: Copy + Clone + Default;
+    }
+
+    struct TestTraitImpl2;
+    impl TestTrait2 for TestTraitImpl2 {
+        type Precision = i128;
+    }
+
+    #[test]
+    fn should_get_version_metadata() {
+        let mut decoder = Decoder::new();
+        let rt_version = test_suite::mock_runtime(0);
+        let meta = tests::test_metadata();
+        decoder.insert_version(SubstrateMetadata {
+            version: rt_version.clone(),
+            metadata: meta.clone(),
+        });
+        let _other_meta = decoder.get_version_metadata(&rt_version);
+        assert_eq!(meta, _other_meta.clone())
+    }
+
+    #[test]
+    fn should_register_types() {
+        let mut decoder = Decoder::new();
+        let rt_version = test_suite::mock_runtime(0);
+        decoder.insert_version(SubstrateMetadata {
+            version: rt_version.clone(),
+            metadata: tests::test_metadata(),
+        });
+        decoder.register::<<TestTraitImpl as TestTrait>::Moment, _>(
+            &rt_version,
+            "TestModule0",
+            "T::Moment",
+        );
+        decoder.register::<<TestTraitImpl2 as TestTrait2>::Precision, _>(
+            &rt_version,
+            "TestModule0",
+            "F::Precision"
+        )
     }
 }

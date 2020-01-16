@@ -32,6 +32,7 @@ use std::{
 };
 use substrate_primitives::storage::StorageKey;
 
+/// Newtype struct around a Vec<u8> (vector of bytes)
 #[derive(Clone)]
 pub struct Encoded(pub Vec<u8>);
 
@@ -57,7 +58,7 @@ pub enum MetadataError {
     MapValueTypeError,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Metadata {
     modules: HashMap<String, Rc<ModuleMetadata>>,
     modules_by_event_index: HashMap<u8, String>,
@@ -143,7 +144,7 @@ impl Metadata {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ModuleMetadata {
     /// index of the module within StorageMetadata 'Entries'
     index: u8,
@@ -162,6 +163,7 @@ impl ModuleMetadata {
         &self.name
     }
 
+    /// return the SCALE-encoded Call with parameters appended and parameters
     pub fn call<T: Encode>(
         &self, function: &'static str, params: T,
     ) -> Result<Encoded, MetadataError> {
@@ -175,25 +177,30 @@ impl ModuleMetadata {
         Ok(Encoded(bytes))
     }
 
+    /// Return a storage entry by its key
     pub fn storage(&self, key: &'static str) -> Result<&StorageMetadata, MetadataError> {
         self.storage
             .get(key)
             .ok_or(MetadataError::StorageNotFound(key))
     }
 
+    /// an iterator over all possible events for this module
     pub fn events(&self) -> impl Iterator<Item = &ModuleEventMetadata> {
         self.events.values()
     }
 
     // TODO Transfer to Subxt
+    /// iterator over all possible calls in this module
     pub fn calls(&self) -> impl Iterator<Item = (&String, &Vec<u8>)> {
         self.calls.iter()
     }
 
+    /// iterator over all storage keys in this module
     pub fn storage_keys(&self) -> impl Iterator<Item = (&String, &StorageMetadata)> {
         self.storage.iter()
     }
 
+    /// get an event by its index in the module
     pub fn event(&self, index: u8) -> Result<&ModuleEventMetadata, MetadataError> {
         self.events
             .get(&index)
@@ -201,7 +208,7 @@ impl ModuleMetadata {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct StorageMetadata {
     prefix: String,
     modifier: StorageEntryModifier,
@@ -266,7 +273,7 @@ impl<K: Encode, V: Decode + Clone> StorageMap<K, V> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ModuleEventMetadata {
     pub name: String,
     pub(crate) arguments: HashSet<EventArg>,
@@ -462,6 +469,7 @@ fn convert_entry(
 #[cfg(test)]
 pub mod tests {
     use super::*;
+
     type DecodeDifferentStr = DecodeDifferent<&'static str, String>;
 
     pub fn test_metadata() -> Metadata {
@@ -514,6 +522,9 @@ pub mod tests {
         let mut map = HashMap::new();
         let moment = DecodeDifferentStr::Decoded("T::Moment".to_string());
         let usize_t = DecodeDifferentStr::Decoded("usize".to_string());
+        // TODO supposed to be float type but type-metadata does not support
+        // floats yet
+        let precision = DecodeDifferentStr::Decoded("F::Precision".to_string());
 
         map.insert(
             "TestStorage0".to_string(),
@@ -546,6 +557,17 @@ pub mod tests {
                 default: vec![0, 0, 0, 0, 0, 0, 0, 0],
                 documentation: vec!["Some Kind of docs 2".to_string()],
             },
+        );
+
+        map.insert(
+            "TestStorage3".to_string(),
+            StorageMetadata {
+                prefix: "TestStorage3".to_string(),
+                modifier: StorageEntryModifier::Optional,
+                ty: StorageEntryType::Plain(precision),
+                default: vec![0, 0, 0, 0, 0, 0, 0, 0],
+                documentation: vec!["Some Kind of docs 3".to_string()],
+            }
         );
         map
     }

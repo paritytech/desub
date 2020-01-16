@@ -16,6 +16,7 @@
 
 pub mod decoder;
 mod error;
+#[allow(unused, dead_code)] // TODO: refactor to not need this attribute
 mod metadata;
 
 #[cfg(test)]
