@@ -17,9 +17,12 @@
 // taken directly and modified from substrate-subxt:
 // https://github.com/paritytech/substrate-subxt
 
+/// Different metadata versions
+mod versions;
+
 use codec::{Decode, Encode, EncodeAsRef, HasCompact};
 use failure::Fail;
-use runtime_metadata::{
+use runtime_metadata_latest::{
     DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier,
     StorageEntryType, StorageHasher, META_RESERVED,
 };
@@ -59,7 +62,9 @@ pub enum MetadataError {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// Metadata struct encompassing calls, storage, and events
 pub struct Metadata {
+    /// Hashmap of Modules (name -> module-specific metadata)
     modules: HashMap<String, Rc<ModuleMetadata>>,
     modules_by_event_index: HashMap<u8, String>,
 }
@@ -80,6 +85,14 @@ impl Metadata {
             .get(&name)
             .ok_or(MetadataError::ModuleNotFound(name))
             .map(|m| (*m).clone())
+    }
+
+    pub fn module_exists<S>(&self, name: S) -> bool
+    where
+        S: ToString,
+    {
+        let name = name.to_string();
+        self.modules.get(&name).is_some()
     }
 
     /// get the name of a module given it's event index
@@ -401,7 +414,7 @@ fn convert<B: 'static, O: 'static>(dd: DecodeDifferent<B, O>) -> Result<O, Error
 }
 
 fn convert_module(
-    index: usize, module: runtime_metadata::ModuleMetadata,
+    index: usize, module: runtime_metadata_latest::ModuleMetadata,
 ) -> Result<ModuleMetadata, Error> {
     let mut storage_map = HashMap::new();
     if let Some(storage) = module.storage {
@@ -438,7 +451,7 @@ fn convert_module(
 }
 
 fn convert_event(
-    event: runtime_metadata::EventMetadata,
+    event: runtime_metadata_latest::EventMetadata,
 ) -> Result<ModuleEventMetadata, Error> {
     let name = convert(event.name)?;
     let mut arguments = HashSet::new();
@@ -450,7 +463,7 @@ fn convert_event(
 }
 
 fn convert_entry(
-    prefix: String, entry: runtime_metadata::StorageEntryMetadata,
+    prefix: String, entry: runtime_metadata_latest::StorageEntryMetadata,
 ) -> Result<StorageMetadata, Error> {
     let default = convert(entry.default)?;
     let documentation = convert(entry.documentation)?;
@@ -567,7 +580,7 @@ pub mod tests {
                 ty: StorageEntryType::Plain(precision),
                 default: vec![0, 0, 0, 0, 0, 0, 0, 0],
                 documentation: vec!["Some Kind of docs 3".to_string()],
-            }
+            },
         );
         map
     }
