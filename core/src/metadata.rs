@@ -14,11 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-// taken directly and modified from substrate-subxt: https://github.com/paritytech/substrate-subxt
+// taken directly and modified from substrate-subxt:
+// https://github.com/paritytech/substrate-subxt
+
+/// Different metadata versions
+mod versions;
 
 use codec::{Decode, Encode, EncodeAsRef, HasCompact};
 use failure::Fail;
-use runtime_metadata::{
+use runtime_metadata_latest::{
     DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier,
     StorageEntryType, StorageHasher, META_RESERVED,
 };
@@ -31,6 +35,7 @@ use std::{
 };
 use substrate_primitives::storage::StorageKey;
 
+/// Newtype struct around a Vec<u8> (vector of bytes)
 #[derive(Clone)]
 pub struct Encoded(pub Vec<u8>);
 
@@ -41,7 +46,8 @@ impl Encode for Encoded {
 }
 
 pub fn compact<T: HasCompact>(t: T) -> Encoded {
-    let encodable: <<T as HasCompact>::Type as EncodeAsRef<'_, T>>::RefType = From::from(&t);
+    let encodable: <<T as HasCompact>::Type as EncodeAsRef<'_, T>>::RefType =
+        From::from(&t);
     Encoded(encodable.encode())
 }
 
@@ -55,8 +61,10 @@ pub enum MetadataError {
     MapValueTypeError,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
+/// Metadata struct encompassing calls, storage, and events
 pub struct Metadata {
+    /// Hashmap of Modules (name -> module-specific metadata)
     modules: HashMap<String, Rc<ModuleMetadata>>,
     modules_by_event_index: HashMap<u8, String>,
 }
@@ -79,6 +87,14 @@ impl Metadata {
             .map(|m| (*m).clone())
     }
 
+    pub fn module_exists<S>(&self, name: S) -> bool
+    where
+        S: ToString,
+    {
+        let name = name.to_string();
+        self.modules.get(&name).is_some()
+    }
+
     /// get the name of a module given it's event index
     pub fn module_name(&self, module_index: u8) -> Result<String, MetadataError> {
         self.modules_by_event_index
@@ -87,7 +103,8 @@ impl Metadata {
             .ok_or(MetadataError::EventNotFound(module_index))
     }
 
-    /// print out a detailed but human readable description of the module metadata
+    /// print out a detailed but human readable description of the module
+    /// metadata
     pub fn detailed_pretty(&self) -> String {
         let mut string = String::new();
         for (name, module) in &self.modules {
@@ -140,7 +157,7 @@ impl Metadata {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ModuleMetadata {
     /// index of the module within StorageMetadata 'Entries'
     index: u8,
@@ -159,10 +176,9 @@ impl ModuleMetadata {
         &self.name
     }
 
+    /// return the SCALE-encoded Call with parameters appended and parameters
     pub fn call<T: Encode>(
-        &self,
-        function: &'static str,
-        params: T,
+        &self, function: &'static str, params: T,
     ) -> Result<Encoded, MetadataError> {
         let fn_bytes = self
             .calls
@@ -174,25 +190,30 @@ impl ModuleMetadata {
         Ok(Encoded(bytes))
     }
 
+    /// Return a storage entry by its key
     pub fn storage(&self, key: &'static str) -> Result<&StorageMetadata, MetadataError> {
         self.storage
             .get(key)
             .ok_or(MetadataError::StorageNotFound(key))
     }
 
+    /// an iterator over all possible events for this module
     pub fn events(&self) -> impl Iterator<Item = &ModuleEventMetadata> {
         self.events.values()
     }
 
     // TODO Transfer to Subxt
+    /// iterator over all possible calls in this module
     pub fn calls(&self) -> impl Iterator<Item = (&String, &Vec<u8>)> {
         self.calls.iter()
     }
 
+    /// iterator over all storage keys in this module
     pub fn storage_keys(&self) -> impl Iterator<Item = (&String, &StorageMetadata)> {
         self.storage.iter()
     }
 
+    /// get an event by its index in the module
     pub fn event(&self, index: u8) -> Result<&ModuleEventMetadata, MetadataError> {
         self.events
             .get(&index)
@@ -200,7 +221,7 @@ impl ModuleMetadata {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct StorageMetadata {
     prefix: String,
     modifier: StorageEntryModifier,
@@ -210,7 +231,9 @@ pub struct StorageMetadata {
 }
 
 impl StorageMetadata {
-    pub fn get_map<K: Encode, V: Decode + Clone>(&self) -> Result<StorageMap<K, V>, MetadataError> {
+    pub fn get_map<K: Encode, V: Decode + Clone>(
+        &self,
+    ) -> Result<StorageMap<K, V>, MetadataError> {
         match &self.ty {
             StorageEntryType::Map { hasher, .. } => {
                 let prefix = self.prefix.as_bytes().to_vec();
@@ -242,8 +265,15 @@ impl<K: Encode, V: Decode + Clone> StorageMap<K, V> {
         let mut bytes = self.prefix.clone();
         bytes.extend(key.encode());
         let hash = match self.hasher {
-            StorageHasher::Blake2_128 => substrate_primitives::blake2_128(&bytes).to_vec(),
-            StorageHasher::Blake2_256 => substrate_primitives::blake2_256(&bytes).to_vec(),
+            StorageHasher::Blake2_128 => {
+                substrate_primitives::blake2_128(&bytes).to_vec()
+            }
+            StorageHasher::Blake2_256 => {
+                substrate_primitives::blake2_256(&bytes).to_vec()
+            }
+            StorageHasher::Blake2_128Concat => {
+                substrate_primitives::blake2_128(&bytes).to_vec()
+            }
             StorageHasher::Twox128 => substrate_primitives::twox_128(&bytes).to_vec(),
             StorageHasher::Twox256 => substrate_primitives::twox_256(&bytes).to_vec(),
             StorageHasher::Twox64Concat => substrate_primitives::twox_64(&bytes).to_vec(),
@@ -256,10 +286,10 @@ impl<K: Encode, V: Decode + Clone> StorageMap<K, V> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ModuleEventMetadata {
     pub name: String,
-    arguments: HashSet<EventArg>,
+    pub(crate) arguments: HashSet<EventArg>,
 }
 
 impl ModuleEventMetadata {
@@ -268,11 +298,13 @@ impl ModuleEventMetadata {
     }
 }
 
-/// Naive representation of event argument types, supports current set of substrate EventArg types.
-/// If and when Substrate uses `type-metadata`, this can be replaced.
+/// Naive representation of event argument types, supports current set of
+/// substrate EventArg types. If and when Substrate uses `type-metadata`, this
+/// can be replaced.
 ///
-/// Used to calculate the size of a instance of an event variant without having the concrete type,
-/// so the raw bytes can be extracted from the encoded `Vec<EventRecord<E>>` (without `E` defined).
+/// Used to calculate the size of a instance of an event variant without having
+/// the concrete type, so the raw bytes can be extracted from the encoded
+/// `Vec<EventRecord<E>>` (without `E` defined).
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum EventArg {
     Primitive(String),
@@ -286,7 +318,7 @@ impl FromStr for EventArg {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.starts_with("Vec<") {
             if s.ends_with('>') {
-                Ok(EventArg::Vec(Box::new(s[4..s.len() - 1].parse()?)))
+                Ok(EventArg::Vec(Box::new(s[4 .. s.len() - 1].parse()?)))
             } else {
                 Err(Error::InvalidEventArg(
                     s.to_string(),
@@ -296,7 +328,7 @@ impl FromStr for EventArg {
         } else if s.starts_with("(") {
             if s.ends_with(")") {
                 let mut args = Vec::new();
-                for arg in s[1..s.len() - 1].split(',') {
+                for arg in s[1 .. s.len() - 1].split(',') {
                     let arg = arg.trim().parse()?;
                     args.push(arg)
                 }
@@ -350,7 +382,7 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
             Err(Error::InvalidPrefix)?;
         }
         let meta = match metadata.1 {
-            RuntimeMetadata::V9(meta) => meta,
+            RuntimeMetadata::V10(meta) => meta,
             _ => Err(Error::InvalidVersion)?,
         };
         let mut modules = HashMap::new();
@@ -359,7 +391,8 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
         for (i, module) in convert(meta.modules)?.into_iter().enumerate() {
             let module_name = convert(module.name.clone())?;
             let module_metadata = convert_module(i, module)?;
-            // modules with no events have no corresponding definition in the top level enum
+            // modules with no events have no corresponding definition in the
+            // top level enum
             if !module_metadata.events.is_empty() {
                 modules_by_event_index.insert(event_index, module_name.clone());
                 event_index = event_index + 1;
@@ -381,8 +414,7 @@ fn convert<B: 'static, O: 'static>(dd: DecodeDifferent<B, O>) -> Result<O, Error
 }
 
 fn convert_module(
-    index: usize,
-    module: runtime_metadata::ModuleMetadata,
+    index: usize, module: runtime_metadata_latest::ModuleMetadata,
 ) -> Result<ModuleMetadata, Error> {
     let mut storage_map = HashMap::new();
     if let Some(storage) = module.storage {
@@ -418,7 +450,9 @@ fn convert_module(
     })
 }
 
-fn convert_event(event: runtime_metadata::EventMetadata) -> Result<ModuleEventMetadata, Error> {
+fn convert_event(
+    event: runtime_metadata_latest::EventMetadata,
+) -> Result<ModuleEventMetadata, Error> {
     let name = convert(event.name)?;
     let mut arguments = HashSet::new();
     for arg in convert(event.arguments)? {
@@ -429,8 +463,7 @@ fn convert_event(event: runtime_metadata::EventMetadata) -> Result<ModuleEventMe
 }
 
 fn convert_entry(
-    prefix: String,
-    entry: runtime_metadata::StorageEntryMetadata,
+    prefix: String, entry: runtime_metadata_latest::StorageEntryMetadata,
 ) -> Result<StorageMetadata, Error> {
     let default = convert(entry.default)?;
     let documentation = convert(entry.documentation)?;
@@ -444,4 +477,146 @@ fn convert_entry(
             .map(|s| s.to_string())
             .collect::<Vec<String>>(),
     })
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    type DecodeDifferentStr = DecodeDifferent<&'static str, String>;
+
+    pub fn test_metadata() -> Metadata {
+        Metadata {
+            modules: module_metadata_mock(),
+            modules_by_event_index: HashMap::new(), // not testing this
+        }
+    }
+
+    fn module_metadata_mock() -> HashMap<String, Rc<ModuleMetadata>> {
+        let mut map = HashMap::new();
+
+        map.insert(
+            "TestModule0".to_string(),
+            Rc::new(ModuleMetadata {
+                index: 0,
+                name: "TestModule0".to_string(),
+                storage: storage_mock(),
+                calls: call_mock(),
+                events: event_mock(),
+            }),
+        );
+
+        map.insert(
+            "TestModule1".to_string(),
+            Rc::new(ModuleMetadata {
+                index: 1,
+                name: "TestModule1".to_string(),
+                storage: storage_mock(),
+                calls: call_mock(),
+                events: event_mock(),
+            }),
+        );
+
+        map.insert(
+            "TestModule2".to_string(),
+            Rc::new(ModuleMetadata {
+                index: 2,
+                name: "TestModule2".to_string(),
+                storage: storage_mock(),
+                calls: call_mock(),
+                events: event_mock(),
+            }),
+        );
+
+        map
+    }
+
+    fn storage_mock() -> HashMap<String, StorageMetadata> {
+        let mut map = HashMap::new();
+        let moment = DecodeDifferentStr::Decoded("T::Moment".to_string());
+        let usize_t = DecodeDifferentStr::Decoded("usize".to_string());
+        // TODO supposed to be float type but type-metadata does not support
+        // floats yet
+        let precision = DecodeDifferentStr::Decoded("F::Precision".to_string());
+
+        map.insert(
+            "TestStorage0".to_string(),
+            StorageMetadata {
+                prefix: "TestStorage0".to_string(),
+                modifier: StorageEntryModifier::Default,
+                ty: StorageEntryType::Plain(moment.clone()),
+                default: vec![112, 23, 0, 0, 0, 0, 0, 0],
+                documentation: vec!["Some Kind of docs".to_string()],
+            },
+        );
+
+        map.insert(
+            "TestStorage1".to_string(),
+            StorageMetadata {
+                prefix: "TestStorage1".to_string(),
+                modifier: StorageEntryModifier::Default,
+                ty: StorageEntryType::Plain(usize_t),
+                default: vec![0, 0, 0, 0, 0, 0, 0, 0],
+                documentation: vec!["Some Kind of docs 2".to_string()],
+            },
+        );
+
+        map.insert(
+            "TestStorage2".to_string(),
+            StorageMetadata {
+                prefix: "TestStorage2".to_string(),
+                modifier: StorageEntryModifier::Optional,
+                ty: StorageEntryType::Plain(moment),
+                default: vec![0, 0, 0, 0, 0, 0, 0, 0],
+                documentation: vec!["Some Kind of docs 2".to_string()],
+            },
+        );
+
+        map.insert(
+            "TestStorage3".to_string(),
+            StorageMetadata {
+                prefix: "TestStorage3".to_string(),
+                modifier: StorageEntryModifier::Optional,
+                ty: StorageEntryType::Plain(precision),
+                default: vec![0, 0, 0, 0, 0, 0, 0, 0],
+                documentation: vec!["Some Kind of docs 3".to_string()],
+            },
+        );
+        map
+    }
+
+    fn call_mock() -> HashMap<String, Vec<u8>> {
+        let mut map = HashMap::new();
+        map.insert("TestCall0".to_string(), vec![01, 02, 03, 04, 05]);
+        map.insert("TestCall1".to_string(), vec![11, 12, 13, 14, 15, 16, 17]);
+        map.insert(
+            "TestCall2".to_string(),
+            vec![21, 22, 23, 24, 25, 26, 27, 28, 29],
+        );
+        map.insert(
+            "TestCall3".to_string(),
+            vec![31, 32, 33, 34, 35, 36, 37, 38, 39],
+        );
+        map
+    }
+
+    fn event_mock() -> HashMap<u8, ModuleEventMetadata> {
+        let mut map = HashMap::new();
+
+        let event_arg_0 = EventArg::Primitive("TestEvent0".to_string());
+        let event_arg_1 = EventArg::Primitive("TestEvent1".to_string());
+        let event_arg_2 = EventArg::Primitive("TestEvent2".to_string());
+
+        let mut arguments = HashSet::new();
+        arguments.insert(event_arg_0);
+        arguments.insert(event_arg_1);
+        arguments.insert(event_arg_2);
+        let module_event_metadata = ModuleEventMetadata {
+            name: "TestEvent0".to_string(),
+            arguments,
+        };
+
+        map.insert(0, module_event_metadata);
+        map
+    }
 }

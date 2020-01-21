@@ -14,21 +14,17 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-pub mod decoder;
-mod error;
-#[allow(unused, dead_code)] // TODO: refactor to not need this attribute
-mod metadata;
+use crate::metadata::tests::test_metadata;
+use runtime_version::RuntimeVersion;
+use std::borrow::Cow;
 
-#[cfg(test)]
-mod test_suite;
-
-#[cfg(test)]
-extern crate alloc;
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
+pub fn mock_runtime(num: u32) -> RuntimeVersion {
+    RuntimeVersion {
+        spec_name: Cow::from("test-runtime"),
+        impl_name: Cow::from("test-runtime-impl"),
+        authoring_version: num,
+        spec_version: num,
+        impl_version: num,
+        apis: Cow::from(Vec::new()),
     }
 }

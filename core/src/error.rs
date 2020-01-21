@@ -1,10 +1,10 @@
-use failure::Fail;
 use codec::Error as CodecError;
+use failure::Fail;
 
 #[derive(Debug, Fail)]
 pub enum Error {
     #[fail(display = "Codec {:?}", _0)]
-    Codec(#[fail(cause)] CodecError)
+    Codec(#[fail(cause)] CodecError),
 }
 
 impl From<CodecError> for Error {
