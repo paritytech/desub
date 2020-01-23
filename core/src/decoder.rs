@@ -142,8 +142,6 @@ impl Decoder {
             .module(&module)
             .expect("metatadata not found"); // TODO remove panic
 
-
-
         let type_map = match self.types.get_mut(&version.spec_version) {
             Some(m) => m,
             None => {
@@ -403,9 +401,8 @@ mod tests {
     #[derive(Metadata)]
     struct TestEvent {
         some_str: String,
-        some_num: u32
+        some_num: u32,
     }
-
 
     #[test]
     fn should_get_version_metadata() {
@@ -438,11 +435,7 @@ mod tests {
             "TestModule0",
             "F::Precision",
         );
-        decoder.register::<TestEvent, _>(
-            &rt_version,
-            "TestModule0",
-            "TestEvent0"
-        );
+        decoder.register::<TestEvent, _>(&rt_version, "TestModule0", "TestEvent0");
         dbg!(&decoder);
     }
 
