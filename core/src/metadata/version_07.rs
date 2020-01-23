@@ -20,11 +20,12 @@
 use super::{
     Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata, StorageMetadata,
 };
-use runtime_metadata08::{
+use runtime_metadata07::{
     DecodeDifferent, EventMetadata, RuntimeMetadata, RuntimeMetadataPrefixed,
     StorageEntryMetadata, StorageEntryModifier, StorageEntryType, StorageHasher,
     META_RESERVED,
 };
+
 use std::{
     collections::{HashMap, HashSet},
     convert::TryFrom,
@@ -44,7 +45,7 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
             Err(Error::InvalidPrefix)?;
         }
         let meta = match metadata.1 {
-            RuntimeMetadata::V8(meta) => meta,
+            RuntimeMetadata::V7(meta) => meta,
             _ => Err(Error::InvalidVersion)?,
         };
         let mut modules = HashMap::new();
@@ -76,7 +77,7 @@ fn convert<B: 'static, O: 'static>(dd: DecodeDifferent<B, O>) -> Result<O, Error
 }
 
 fn convert_module(
-    index: usize, module: runtime_metadata08::ModuleMetadata,
+    index: usize, module: runtime_metadata07::ModuleMetadata,
 ) -> Result<ModuleMetadata, Error> {
     let mut storage_map = HashMap::new();
     if let Some(storage) = module.storage {
@@ -114,7 +115,7 @@ fn convert_module(
 }
 
 fn convert_event(
-    event: runtime_metadata08::EventMetadata,
+    event: runtime_metadata07::EventMetadata,
 ) -> Result<ModuleEventMetadata, Error> {
     let name = convert(event.name)?;
     let mut arguments = HashSet::new();
@@ -126,7 +127,7 @@ fn convert_event(
 }
 
 fn convert_entry(
-    prefix: String, entry: runtime_metadata08::StorageEntryMetadata,
+    prefix: String, entry: runtime_metadata07::StorageEntryMetadata,
 ) -> Result<StorageMetadata, Error> {
     let default = convert(entry.default)?;
     let documentation = convert(entry.documentation)?;

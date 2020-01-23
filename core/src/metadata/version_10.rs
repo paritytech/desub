@@ -14,16 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{Metadata, ModuleMetadata, EventArg, ModuleEventMetadata, StorageMetadata, Error};
-use std::{rc::Rc, collections::{HashMap, HashSet}, convert::TryFrom};
-use runtime_metadata_latest::{DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier,
-                              StorageEntryType, StorageHasher, META_RESERVED};
+use super::{
+    Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata, StorageMetadata,
+};
+use runtime_metadata_latest::{
+    DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier,
+    StorageEntryType, StorageHasher, META_RESERVED,
+};
+use std::{
+    collections::{HashMap, HashSet},
+    convert::TryFrom,
+    rc::Rc,
+};
 
 impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
     type Error = Error;
 
     fn try_from(metadata: RuntimeMetadataPrefixed) -> Result<Self, Self::Error> {
-        if metadata.0 != META_RESERVED { // 'meta' warn endiannes
+        if metadata.0 != META_RESERVED {
+            // 'meta' warn endiannes
             Err(Error::InvalidPrefix)?;
         }
         let meta = match metadata.1 {
@@ -59,9 +68,9 @@ fn convert<B: 'static, O: 'static>(dd: DecodeDifferent<B, O>) -> Result<O, Error
 }
 
 fn convert_module(
-    index: usize, module: runtime_metadata_latest::ModuleMetadata
+    index: usize, module: runtime_metadata_latest::ModuleMetadata,
 ) -> Result<ModuleMetadata, Error> {
-     let mut storage_map = HashMap::new();
+    let mut storage_map = HashMap::new();
     if let Some(storage) = module.storage {
         let storage = convert(storage)?;
         let prefix = convert(storage.prefix)?;

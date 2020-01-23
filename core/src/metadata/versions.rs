@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-
 /// A generic trait that all metadata version must implement
 /// in order to be converted to the "Metadata" struct
 use super::{Metadata, ModuleMetadata};
@@ -27,4 +26,3 @@ use runtime_metadata_latest::{
 pub trait MetadataConversion {
     fn convert(&self) -> Metadata;
 }
-

@@ -17,10 +17,12 @@
 // taken directly and modified from substrate-subxt:
 // https://github.com/paritytech/substrate-subxt
 
+mod version_07;
+mod version_08;
+mod version_09;
+mod version_10;
 /// Different metadata versions
 mod versions;
-mod version_10;
-mod version_09;
 
 use codec::{Decode, Encode, EncodeAsRef, HasCompact};
 use failure::Fail;
@@ -375,7 +377,7 @@ pub enum Error {
     #[fail(display = "Invalid Event {}:{}", _0, _1)]
     InvalidEventArg(String, &'static str),
     #[fail(display = "Deserialize: {}", _0)]
-    Serde(#[fail(cause)] serde_json::Error)
+    Serde(#[fail(cause)] serde_json::Error),
 }
 
 impl From<serde_json::Error> for Error {
