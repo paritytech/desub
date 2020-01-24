@@ -33,6 +33,9 @@ package = "type-metadata"
 default-features = false
 features = ["std", "derive"]
 
+[dev-dependencies]
+# sp-runtime = { git = "https://github.com/paritytech/substrate", package = "sp-runtime", branch = "polkadot-master" }
+
 # [features]
 # substrate = []
 # polkadot = []

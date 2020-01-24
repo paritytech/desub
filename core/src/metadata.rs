@@ -432,6 +432,9 @@ pub mod tests {
     fn should_create_metadata() {
         let meta = test_suite::runtime_v9();
         let meta: Metadata = Metadata::new(meta.as_slice());
+
+        let meta = test_suite::runtime_v9_block6();
+        let meta: Metadata = Metadata::new(meta.as_slice());
     }
 }
 

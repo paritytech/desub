@@ -16,6 +16,7 @@
 
 use crate::metadata::test_suite::test_metadata;
 use runtime_version::RuntimeVersion;
+
 use std::{
     borrow::Cow,
     io::{self, prelude::*},
@@ -25,8 +26,8 @@ use std::{
 
 pub fn mock_runtime(num: u32) -> RuntimeVersion {
     RuntimeVersion {
-        spec_name: Cow::from("test-runtime"),
-        impl_name: Cow::from("test-runtime-impl"),
+        spec_name: "test-runtime".into(),
+        impl_name: "test-runtime-impl".into(),
         authoring_version: num,
         spec_version: num,
         impl_version: num,
@@ -41,6 +42,18 @@ pub fn mock_runtime(num: u32) -> RuntimeVersion {
 /// Panics on std::io::Error
 pub fn runtime_v9() -> Vec<u8> {
     let mut f = File::open("./test/metadata_v9.bin").expect("Opening file failed");
+    let mut buffer = Vec::new();
+    f.read_to_end(&mut buffer).expect("Reading file failed");
+    buffer
+}
+
+/// Get some runtime metadata from KusamaCC3 at block 6
+/// Block hash 0xb5ee550d20a55b76adeba7149516d367ac7cbdd95cd0864a8753d6b5dd02d3bb
+///
+/// # Panics
+/// Panics on std::io::Error
+pub fn runtime_v9_block6() -> Vec<u8> {
+    let mut f = File::open("./test/metadata_v9_block6.bin").expect("Opening file failed");
     let mut buffer = Vec::new();
     f.read_to_end(&mut buffer).expect("Reading file failed");
     buffer
