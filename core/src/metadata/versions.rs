@@ -18,11 +18,10 @@
 /// in order to be converted to the "Metadata" struct
 use super::{Metadata, ModuleMetadata};
 
+use codec::Decode;
 use runtime_metadata_latest::{
     DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier,
     StorageEntryType, StorageHasher, META_RESERVED,
 };
 
-pub trait MetadataConversion {
-    fn convert(&self) -> Metadata;
-}
+pub trait Convert {}

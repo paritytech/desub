@@ -532,6 +532,7 @@ dependencies = [
  "failure",
  "frame-metadata 2.0.0 (git+https://github.com/paritytech/substrate/?branch=polkadot-master)",
  "frame-metadata 2.0.0 (git+https://github.com/paritytech/substrate/?rev=a512dcdd3931aa571c92c8550a0e079d5b27239a)",
+ "parity-codec",
  "parity-scale-codec",
  "serde",
  "serde_json",

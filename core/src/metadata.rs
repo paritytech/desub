@@ -17,14 +17,16 @@
 // taken directly and modified from substrate-subxt:
 // https://github.com/paritytech/substrate-subxt
 
+#[cfg(test)]
+pub mod test_suite;
 mod version_07;
 mod version_08;
 mod version_09;
 mod version_10;
-/// Different metadata versions
 mod versions;
 
 use codec::{Decode, Encode, EncodeAsRef, HasCompact};
+use codec411::Decode as OldDecode;
 use failure::Fail;
 use runtime_metadata_latest::{
     DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier,
@@ -33,6 +35,7 @@ use runtime_metadata_latest::{
 
 use std::{
     collections::{HashMap, HashSet},
+    convert::{TryFrom, TryInto},
     marker::PhantomData,
     rc::Rc,
     str::FromStr,
@@ -74,6 +77,48 @@ pub struct Metadata {
 }
 
 impl Metadata {
+    /// Create a new Metadata type from raw encoded bytes
+    ///
+    /// # Panics
+    /// Panics is the metadata version is not supported,
+    /// or the version is invalid
+    ///
+    /// Panics if decoding into metadata prefixed fails
+    pub fn new(bytes: &[u8]) -> Self {
+        // Runtime metadata is a tuple struct with the following fields:
+        // RuntimeMetadataPrefixed(u32, RuntimeMetadata)
+        // this means when it's SCALE encoded, the first four bytes
+        // are the 'u32' prefix, and since `RuntimeMetadata` is an enum,
+        // the first byte is an index of the enum item.
+        // Since RuntimeMetadata is versioned starting from 0, this also corresponds to
+        // the Metadata version
+        let version = bytes[4];
+
+        match version {
+            0x07 => {
+                let meta: runtime_metadata07::RuntimeMetadataPrefixed =
+                    OldDecode::decode(&mut &bytes[..]).expect("Decode failed");
+                meta.try_into().expect("Conversion failed")
+            }
+            0x08 => {
+                let meta: runtime_metadata08::RuntimeMetadataPrefixed =
+                    Decode::decode(&mut &bytes[..]).expect("Decode failed");
+                meta.try_into().expect("Conversion failed")
+            }
+            0x09 => {
+                let meta: runtime_metadata09::RuntimeMetadataPrefixed =
+                    Decode::decode(&mut &bytes[..]).expect("Decode failed");
+                meta.try_into().expect("Conversion failed")
+            }
+            0x10 => {
+                let meta: runtime_metadata_latest::RuntimeMetadataPrefixed =
+                    Decode::decode(&mut &bytes[..]).expect("Decode failed");
+                meta.try_into().expect("Conversion failed")
+            }
+            e @ _ => panic!("version {} is unknown, invalid or unsupported", e), /* todo remove panic */
+        }
+    }
+
     /// returns an iterate over all Modules
     pub fn modules(&self) -> impl Iterator<Item = &Rc<ModuleMetadata>> {
         self.modules.values()
@@ -376,154 +421,17 @@ pub enum Error {
     ExpectedDecoded,
     #[fail(display = "Invalid Event {}:{}", _0, _1)]
     InvalidEventArg(String, &'static str),
-    #[fail(display = "Deserialize: {}", _0)]
-    Serde(#[fail(cause)] serde_json::Error),
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(err: serde_json::Error) -> Error {
-        Error::Serde(err)
-    }
 }
 
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use crate::test_suite;
 
-    type DecodeDifferentStr = DecodeDifferent<&'static str, String>;
-
-    pub fn test_metadata() -> Metadata {
-        Metadata {
-            modules: module_metadata_mock(),
-            modules_by_event_index: HashMap::new(), // not testing this
-        }
-    }
-
-    fn module_metadata_mock() -> HashMap<String, Rc<ModuleMetadata>> {
-        let mut map = HashMap::new();
-
-        map.insert(
-            "TestModule0".to_string(),
-            Rc::new(ModuleMetadata {
-                index: 0,
-                name: "TestModule0".to_string(),
-                storage: storage_mock(),
-                calls: call_mock(),
-                events: event_mock(),
-            }),
-        );
-
-        map.insert(
-            "TestModule1".to_string(),
-            Rc::new(ModuleMetadata {
-                index: 1,
-                name: "TestModule1".to_string(),
-                storage: storage_mock(),
-                calls: call_mock(),
-                events: event_mock(),
-            }),
-        );
-
-        map.insert(
-            "TestModule2".to_string(),
-            Rc::new(ModuleMetadata {
-                index: 2,
-                name: "TestModule2".to_string(),
-                storage: storage_mock(),
-                calls: call_mock(),
-                events: event_mock(),
-            }),
-        );
-
-        map
-    }
-
-    fn storage_mock() -> HashMap<String, StorageMetadata> {
-        let mut map = HashMap::new();
-        let moment = DecodeDifferentStr::Decoded("T::Moment".to_string());
-        let usize_t = DecodeDifferentStr::Decoded("usize".to_string());
-        // TODO supposed to be float type but type-metadata does not support
-        // floats yet
-        let precision = DecodeDifferentStr::Decoded("F::Precision".to_string());
-
-        map.insert(
-            "TestStorage0".to_string(),
-            StorageMetadata {
-                prefix: "TestStorage0".to_string(),
-                modifier: StorageEntryModifier::Default,
-                ty: StorageEntryType::Plain(moment.clone()),
-                default: vec![112, 23, 0, 0, 0, 0, 0, 0],
-                documentation: vec!["Some Kind of docs".to_string()],
-            },
-        );
-
-        map.insert(
-            "TestStorage1".to_string(),
-            StorageMetadata {
-                prefix: "TestStorage1".to_string(),
-                modifier: StorageEntryModifier::Default,
-                ty: StorageEntryType::Plain(usize_t),
-                default: vec![0, 0, 0, 0, 0, 0, 0, 0],
-                documentation: vec!["Some Kind of docs 2".to_string()],
-            },
-        );
-
-        map.insert(
-            "TestStorage2".to_string(),
-            StorageMetadata {
-                prefix: "TestStorage2".to_string(),
-                modifier: StorageEntryModifier::Optional,
-                ty: StorageEntryType::Plain(moment),
-                default: vec![0, 0, 0, 0, 0, 0, 0, 0],
-                documentation: vec!["Some Kind of docs 2".to_string()],
-            },
-        );
-
-        map.insert(
-            "TestStorage3".to_string(),
-            StorageMetadata {
-                prefix: "TestStorage3".to_string(),
-                modifier: StorageEntryModifier::Optional,
-                ty: StorageEntryType::Plain(precision),
-                default: vec![0, 0, 0, 0, 0, 0, 0, 0],
-                documentation: vec!["Some Kind of docs 3".to_string()],
-            },
-        );
-        map
-    }
-
-    fn call_mock() -> HashMap<String, Vec<u8>> {
-        let mut map = HashMap::new();
-        map.insert("TestCall0".to_string(), vec![01, 02, 03, 04, 05]);
-        map.insert("TestCall1".to_string(), vec![11, 12, 13, 14, 15, 16, 17]);
-        map.insert(
-            "TestCall2".to_string(),
-            vec![21, 22, 23, 24, 25, 26, 27, 28, 29],
-        );
-        map.insert(
-            "TestCall3".to_string(),
-            vec![31, 32, 33, 34, 35, 36, 37, 38, 39],
-        );
-        map
-    }
-
-    fn event_mock() -> HashMap<u8, ModuleEventMetadata> {
-        let mut map = HashMap::new();
-
-        let event_arg_0 = EventArg::Primitive("TestEvent0".to_string());
-        let event_arg_1 = EventArg::Primitive("TestEvent1".to_string());
-        let event_arg_2 = EventArg::Primitive("TestEvent2".to_string());
-
-        let mut arguments = HashSet::new();
-        arguments.insert(event_arg_0);
-        arguments.insert(event_arg_1);
-        arguments.insert(event_arg_2);
-        let module_event_metadata = ModuleEventMetadata {
-            name: "TestEvent0".to_string(),
-            arguments,
-        };
-
-        map.insert(0, module_event_metadata);
-        map
+    #[test]
+    fn should_create_metadata() {
+        let meta = test_suite::runtime_v9();
+        let meta: Metadata = Metadata::new(meta.as_slice());
     }
 }
+

@@ -324,7 +324,7 @@ impl IntoCompact for SubstrateMetaType {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::metadata::tests;
+    use crate::metadata::test_suite as meta_test_suite;
     use crate::test_suite;
 
     #[derive(Metadata)]
@@ -367,15 +367,15 @@ mod tests {
         let mut decoder = Decoder::new();
         decoder.insert_version(SubstrateMetadata {
             version: test_suite::mock_runtime(0),
-            metadata: tests::test_metadata(),
+            metadata: meta_test_suite::test_metadata(),
         });
         decoder.insert_version(SubstrateMetadata {
             version: test_suite::mock_runtime(1),
-            metadata: tests::test_metadata(),
+            metadata: meta_test_suite::test_metadata(),
         });
         decoder.insert_version(SubstrateMetadata {
             version: test_suite::mock_runtime(2),
-            metadata: tests::test_metadata(),
+            metadata: meta_test_suite::test_metadata(),
         });
         println!("{:#?}", decoder);
     }
@@ -408,7 +408,7 @@ mod tests {
     fn should_get_version_metadata() {
         let mut decoder = Decoder::new();
         let rt_version = test_suite::mock_runtime(0);
-        let meta = tests::test_metadata();
+        let meta = meta_test_suite::test_metadata();
         decoder.insert_version(SubstrateMetadata {
             version: rt_version.clone(),
             metadata: meta.clone(),
@@ -423,7 +423,7 @@ mod tests {
         let rt_version = test_suite::mock_runtime(0);
         decoder.insert_version(SubstrateMetadata {
             version: rt_version.clone(),
-            metadata: tests::test_metadata(),
+            metadata: meta_test_suite::test_metadata(),
         });
         decoder.register::<<TestTraitImpl as TestTrait>::Moment, _>(
             &rt_version,
@@ -441,12 +441,14 @@ mod tests {
 
     #[test]
     #[should_panic]
+    #[ignore] // not a feature yet
+    // TODO: Make this a feature
     fn should_panic_on_nonexistant_type() {
         let mut decoder = Decoder::new();
         let rt_version = test_suite::mock_runtime(0);
         decoder.insert_version(SubstrateMetadata {
             version: rt_version.clone(),
-            metadata: tests::test_metadata(),
+            metadata: meta_test_suite::test_metadata(),
         });
 
         decoder.register::<u32, _>(&rt_version, "TestModule0", "R::IDontExist");
@@ -459,7 +461,7 @@ mod tests {
         let rt_version = test_suite::mock_runtime(0);
         decoder.insert_version(SubstrateMetadata {
             version: rt_version.clone(),
-            metadata: tests::test_metadata(),
+            metadata: meta_test_suite::test_metadata(),
         });
 
         decoder.register::<u32, _>(&rt_version, "IDontExist", "T::Moment");
