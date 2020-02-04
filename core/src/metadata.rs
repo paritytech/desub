@@ -23,6 +23,7 @@ mod version_07;
 mod version_08;
 mod version_09;
 mod version_10;
+mod version_11;
 mod versions;
 
 use codec::{Decode, Encode, EncodeAsRef, HasCompact};
@@ -89,7 +90,7 @@ impl Metadata {
         // RuntimeMetadataPrefixed(u32, RuntimeMetadata)
         // this means when it's SCALE encoded, the first four bytes
         // are the 'u32' prefix, and since `RuntimeMetadata` is an enum,
-        // the first byte is an index of the enum item.
+        // the first byte is the index of the enum item.
         // Since RuntimeMetadata is versioned starting from 0, this also corresponds to
         // the Metadata version
         let version = bytes[4];
@@ -110,12 +111,17 @@ impl Metadata {
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
                 meta.try_into().expect("Conversion failed")
             }
-            0x10 => {
+            0xA => {
+                let meta: runtime_metadata10::RuntimeMetadataPrefixed =
+                    Decode::decode(&mut &bytes[..]).expect("Decode failed");
+                meta.try_into().expect("Conversion failed")
+            },
+            0xB => {
                 let meta: runtime_metadata_latest::RuntimeMetadataPrefixed =
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
                 meta.try_into().expect("Conversion failed")
             }
-            e @ _ => panic!("version {} is unknown, invalid or unsupported", e), /* todo remove panic */
+            e @ _ => panic!("version {} is unknown, invalid or unsupported", e), /* TODO remove panic */
         }
     }
 

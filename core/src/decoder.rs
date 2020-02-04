@@ -25,10 +25,8 @@
 //! to different applications that need the type data
 
 use super::metadata::{Metadata as RawSubstrateMetadata, ModuleMetadata};
-use runtime_metadata_latest::RuntimeMetadataPrefixed;
 use runtime_version::RuntimeVersion;
 use std::collections::HashMap;
-use std::convert::TryFrom;
 use std::rc::Rc;
 use type_metadata::{
     form::{CompactForm, Form, MetaForm},
@@ -108,12 +106,10 @@ impl Decoder {
     /// All versions should be registered before registering any types,
     /// lest desub will panic
     pub fn register_version(
-        &mut self, metadata: RuntimeMetadataPrefixed, version: RuntimeVersion,
+        &mut self, metadata: RawSubstrateMetadata, version: RuntimeVersion,
     ) {
         self.insert_version(SubstrateMetadata {
-            version,
-            // TODO: remove unwrap()
-            metadata: RawSubstrateMetadata::try_from(metadata).unwrap(),
+            version, metadata,
         });
     }
 
@@ -121,7 +117,7 @@ impl Decoder {
     /// only types that are defined within runtime module trait definitions
     /// and types that are custom structs need be included
     ///
-    /// Type definitions are matched against RuntimeMetadataPrefixed
+    /// Type definitions are matched against RawSubstrateMetadata
     /// so that their definitions can be decoded during runtime with
     /// SCALE codec
     ///
@@ -227,16 +223,21 @@ impl Decoder {
     /// dynamically Decode a SCALE-encoded byte string into it's concrete rust
     /// types
     pub fn decode(
-        &self, _entry: Entry, _module: String, _ty: String, _spec: u32, _data: Vec<u8>,
+        &self, spec: SpecVersion, module: String, ty: String, data: Vec<u8>,
     ) {
+        // have to go to registry and get by TypeId
+        let types = self.types.get(&spec).expect("Spec does not exist");
+        let types = types.get(&module).expect("Module not found");
+
+        log::debug!("Types: {:?}", types);
+        log::debug!("Type: {}", ty);
         // check if the concrete types are already included in
-        // RuntimeMetadataPrefixed if not, fall back to type-metadata
+        // RawSubstrateMetadata if not, fall back to type-metadata
         // exported types
-        unimplemented!();
     }
 
     /// Decode an extrinsic
-    pub fn decode_extrinsic(_ty: String, _spec: u32, _data: Vec<u8>) {
+    pub fn decode_extrinsic(_ty: String, _spec: SpecVersion, _data: Vec<u8>) {
         unimplemented!()
     }
 }
@@ -258,6 +259,18 @@ pub struct SubstrateMetaType<F: Form = MetaForm> {
 // copied from ink!
 // https://github.com/paritytech/ink/blob/master/abi/src/specs.rs#L596
 impl SubstrateMetaType {
+
+    /// Creates a new type specification without a display name.
+    pub fn new<T>() -> Self
+    where
+        T: Metadata,
+    {
+        Self {
+            ty: T::meta_type(),
+            display_name: Namespace::prelude(),
+        }
+    }
+
     /// Creates a new type specification with a display name.
     ///
     /// The name is any valid Rust identifier or path.
@@ -296,17 +309,6 @@ impl SubstrateMetaType {
         Self {
             ty: T::meta_type(),
             display_name: Namespace::new(segments).expect("display name is invalid"),
-        }
-    }
-
-    /// Creates a new type specification without a display name.
-    pub fn new<T>() -> Self
-    where
-        T: Metadata,
-    {
-        Self {
-            ty: T::meta_type(),
-            display_name: Namespace::prelude(),
         }
     }
 }
@@ -379,6 +381,7 @@ mod tests {
         });
         println!("{:#?}", decoder);
     }
+
 
     trait TestTrait {
         type Moment: Copy + Clone + Default;

@@ -1,6 +1,7 @@
+extern crate alloc;
 
-#[cfg(polkadot)]
-mod polkadot;
+#[cfg(feature = "polkadot")]
+pub mod polkadot;
 
-#[cfg(node_runtime)]
-mod node_runtime;
+#[cfg(feature = "substrate_dev")]
+pub mod substrate_dev;

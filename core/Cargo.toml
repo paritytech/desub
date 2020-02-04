@@ -5,6 +5,7 @@ authors = [ "Andrew Plaza <andrew.plaza@parity.io>" ]
 edition = "2018"
 
 [dependencies]
+log = "0.4"
 failure = "0.1.6"
 codec = { version = "1.1.0", package = "parity-scale-codec" }
 codec411 = { version = "4.1.1", package = "parity-codec", features = ["derive"] } # for backwards compatibility with v 7
@@ -12,6 +13,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
 
 runtime-metadata-latest = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", branch = "polkadot-master" }
+runtime-metadata10 = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", rev = "e931f9e5c2ae165658587f04d075c59a338061fb"}
 runtime-metadata09 = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", rev = "a512dcdd3931aa571c92c8550a0e079d5b27239a" }
 runtime-metadata08 = { git = "https://github.com/paritytech/substrate/", package = "srml-metadata", rev = "ac11c330a95827211e1999781b5f691e72387c9e" }
 runtime-metadata07 = { git = "https://github.com/paritytech/substrate/", package = "srml-metadata",  rev = "7c8bd73cef8c6afd60fec837d8f5e732a39a5615" } # meta version is before Kusama
@@ -28,7 +30,7 @@ derive_more = "0.99.2"
 
 [dependencies.type-metadata]
 git = "https://github.com/insipx/type-metadata"
-branch = "insipx/deseralize-registry"
+branch = "insipx/deserialize-registry-merge"
 package = "type-metadata"
 default-features = false
 features = ["std", "derive"]

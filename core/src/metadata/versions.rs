@@ -23,5 +23,3 @@ use runtime_metadata_latest::{
     DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier,
     StorageEntryType, StorageHasher, META_RESERVED,
 };
-
-pub trait Convert {}

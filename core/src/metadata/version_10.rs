@@ -17,7 +17,7 @@
 use super::{
     Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata, StorageMetadata,
 };
-use runtime_metadata_latest::{
+use runtime_metadata10::{
     DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier,
     StorageEntryType, StorageHasher, META_RESERVED,
 };
@@ -26,6 +26,10 @@ use std::{
     convert::TryFrom,
     rc::Rc,
 };
+
+type DecodeDifferentStr = DecodeDifferent<&'static str, String>;
+type LatestDecodeDifferentStr =
+    runtime_metadata_latest::DecodeDifferent<&'static str, String>;
 
 impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
     type Error = Error;
@@ -68,7 +72,7 @@ fn convert<B: 'static, O: 'static>(dd: DecodeDifferent<B, O>) -> Result<O, Error
 }
 
 fn convert_module(
-    index: usize, module: runtime_metadata_latest::ModuleMetadata,
+    index: usize, module: runtime_metadata10::ModuleMetadata,
 ) -> Result<ModuleMetadata, Error> {
     let mut storage_map = HashMap::new();
     if let Some(storage) = module.storage {
@@ -106,7 +110,7 @@ fn convert_module(
 }
 
 fn convert_event(
-    event: runtime_metadata_latest::EventMetadata,
+    event: runtime_metadata10::EventMetadata,
 ) -> Result<ModuleEventMetadata, Error> {
     let name = convert(event.name)?;
     let mut arguments = HashSet::new();
@@ -118,18 +122,119 @@ fn convert_event(
 }
 
 fn convert_entry(
-    prefix: String, entry: runtime_metadata_latest::StorageEntryMetadata,
+    prefix: String, entry: runtime_metadata10::StorageEntryMetadata,
 ) -> Result<StorageMetadata, Error> {
     let default = convert(entry.default)?;
     let documentation = convert(entry.documentation)?;
     Ok(StorageMetadata {
         prefix,
-        modifier: entry.modifier,
-        ty: entry.ty,
+        modifier: StorageEntryModifierTemp(entry.modifier).into(),
+        ty: StorageEntryTypeTemp(entry.ty).into(),
         default,
         documentation: documentation
             .iter()
             .map(|s| s.to_string())
             .collect::<Vec<String>>(),
     })
+}
+
+/// Temporary struct for converting between `StorageEntryModifier`
+/// and `runtime_metadata_latest::StorageEntryModifier`
+struct StorageEntryModifierTemp(StorageEntryModifier);
+impl From<StorageEntryModifierTemp> for runtime_metadata_latest::StorageEntryModifier {
+    fn from(
+        entry: StorageEntryModifierTemp,
+    ) -> runtime_metadata_latest::StorageEntryModifier {
+        let entry = entry.0;
+        match entry {
+            StorageEntryModifier::Optional => {
+                runtime_metadata_latest::StorageEntryModifier::Optional
+            }
+            StorageEntryModifier::Default => {
+                runtime_metadata_latest::StorageEntryModifier::Default
+            }
+        }
+    }
+}
+
+/// Temporary struct for converting between `StorageEntryType`
+/// and `runtime_metadata_latest::StorageEntryType`
+struct StorageEntryTypeTemp(StorageEntryType);
+impl From<StorageEntryTypeTemp> for runtime_metadata_latest::StorageEntryType {
+    fn from(entry: StorageEntryTypeTemp) -> runtime_metadata_latest::StorageEntryType {
+        let entry = entry.0;
+        match entry {
+            StorageEntryType::Plain(d) => {
+                runtime_metadata_latest::StorageEntryType::Plain(
+                    TempDecodeDifferentStr(d).into(),
+                )
+            }
+            StorageEntryType::Map {
+                hasher,
+                key,
+                value,
+                is_linked,
+            } => runtime_metadata_latest::StorageEntryType::Map {
+                hasher: TempStorageHasher(hasher).into(),
+                key: TempDecodeDifferentStr(key).into(),
+                value: TempDecodeDifferentStr(value).into(),
+                is_linked,
+            },
+            StorageEntryType::DoubleMap {
+                hasher,
+                key1,
+                key2,
+                value,
+                key2_hasher,
+            } => runtime_metadata_latest::StorageEntryType::DoubleMap {
+                hasher: TempStorageHasher(hasher).into(),
+                key1: TempDecodeDifferentStr(key1).into(),
+                key2: TempDecodeDifferentStr(key2).into(),
+                value: TempDecodeDifferentStr(value).into(),
+                key2_hasher: TempStorageHasher(key2_hasher).into(),
+            },
+        }
+    }
+}
+
+/// Temprorary struct for converting between `StorageHasher` and
+/// `runtime_metadata_latest::StorageHasher`
+struct TempStorageHasher(StorageHasher);
+impl From<TempStorageHasher> for runtime_metadata_latest::StorageHasher {
+    fn from(hasher: TempStorageHasher) -> runtime_metadata_latest::StorageHasher {
+        let hasher = hasher.0;
+        match hasher {
+            StorageHasher::Blake2_128 => {
+                runtime_metadata_latest::StorageHasher::Blake2_128
+            },
+            StorageHasher::Blake2_128Concat => {
+                runtime_metadata_latest::StorageHasher::Blake2_128
+            },
+            StorageHasher::Blake2_256 => {
+                runtime_metadata_latest::StorageHasher::Blake2_256
+            }
+            StorageHasher::Twox128 => runtime_metadata_latest::StorageHasher::Twox128,
+            StorageHasher::Twox256 => runtime_metadata_latest::StorageHasher::Twox256,
+            StorageHasher::Twox64Concat => {
+                runtime_metadata_latest::StorageHasher::Twox64Concat
+            }
+        }
+    }
+}
+
+/// Temporary struct for converting between `DecodeDifferentStr` and
+/// `DecodeDifferentStrLatest`
+struct TempDecodeDifferentStr(DecodeDifferentStr);
+impl From<TempDecodeDifferentStr> for LatestDecodeDifferentStr {
+    fn from(decode_str: TempDecodeDifferentStr) -> LatestDecodeDifferentStr {
+        let decode_str = decode_str.0;
+        match decode_str {
+            DecodeDifferent::Encode(b) => {
+                runtime_metadata_latest::DecodeDifferent::Encode(b)
+            }
+            DecodeDifferent::Decoded(o) => {
+                runtime_metadata_latest::DecodeDifferent::Decoded(o)
+            }
+        }
+    }
 }
