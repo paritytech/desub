@@ -24,20 +24,22 @@ pub fn register() -> Decoder {
     env_logger::init();
     let mut decoder = Decoder::new();
     let meta = RawMetadata::new(&RuntimeLatest::metadata().encode());
+    println!("{}", meta.detailed_pretty());
     decoder.register_version(meta, VERSION_LATEST);
-    system(&mut decoder);
-    println!("\n{:?}", decoder);
+
+//     system(&mut decoder);
+//     println!("\n{:?}", decoder);
     decoder
 }
 
 fn system(decoder: &mut Decoder) {
-
+/*
     decoder.register::<TempOrigin,_>(
         &VERSION_LATEST,
         "System",
         "T::Origin"
     );
-
+*/
     /*decoder.register::<node_runtime::Call, _>(
         &VERSION_LATEST,
         "System",
