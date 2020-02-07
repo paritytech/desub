@@ -19,5 +19,9 @@ use polkadot_runtime::{Runtime as RuntimeLatest, RuntimeVersion as RuntimeVersio
 
 pub fn register() -> Decoder {
     let mut decoder = Decoder::new();
-   
+}
+
+
+pub struct Types {
+    pub types: HashMap<String, String>
 }

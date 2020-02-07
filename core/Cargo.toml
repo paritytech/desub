@@ -11,6 +11,7 @@ codec = { version = "1.1.0", package = "parity-scale-codec" }
 codec411 = { version = "4.1.1", package = "parity-codec", features = ["derive"] } # for backwards compatibility with v 7
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
+num = "0.2"
 
 runtime-metadata-latest = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", branch = "polkadot-master" }
 runtime-metadata10 = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", rev = "e931f9e5c2ae165658587f04d075c59a338061fb"}
