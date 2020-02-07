@@ -1,0 +1,75 @@
+[
+    {
+        "versions": {
+            "min": "0.5",
+            "max": "0.6.3"
+        },
+        "signature": "Option<(Address, AnySignature, SignedExtra)>",
+        "function": "Call",
+        "Address": {
+            "type": "enum",
+            "named": "true",
+            "types": {
+                "id": "AccountId",
+                "Index": "AccountIndex"
+            }
+        },
+        "AccountIndex": "u32",
+        "AccountId": {
+            "type": "array",
+            "items": "32",
+            "item_type": "u8"
+        },
+        "AnySignature": {
+            "type": "struct",
+            "fields": {
+                "0": "H512"
+            }
+        },
+        "SignedExtra": {
+            "type": "tuple",
+            "named": "false",
+            "fields": [
+                "OnlyStakingAndClaims",
+                "system::CheckVersion<Runtime>",
+                "system::CheckGenesis<Runtime>",
+                "system::CheckEra<Runtime>",
+                "system::CheckNonce<Runtime>",
+                "system::CheckWeight<Runtime>",
+                "balances::TakeFees<Runtime>"
+            ]
+        }
+    },
+    {
+        "versions": {
+            "min": "0.6.4",
+            "max": "latest"
+        },
+        "signature": "Option<(Address, MultiSignature, SignedExtra>)",
+        "function": "Call",
+        "Address": {
+            "type": "enum",
+            "named": "true",
+            "types": {
+                "id": "AccountId",
+                "Index": "AccountIndex"
+            }
+        },
+        "AccountIndex": "u32",
+        "AccountId": "GenericAccountId",
+        "SignedExtra": {
+            "type": "tuple",
+            "named": "false",
+            "fields": [
+                "OnlyStakingAndClaims",
+	            "system::CheckVersion<Runtime>",
+                "system::CheckGenesis<Runtime>",
+                "system::CheckEra<Runtime>",
+                "system::CheckNonce<Runtime>",
+                "system::CheckWeight<Runtime>",
+                "transaction_payment::ChargeTransactionPayment::<Runtime>",
+                "registrar::LimitParathreadCommits<Runtime>"
+            ]
+        }
+    }
+]

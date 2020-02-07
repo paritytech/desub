@@ -1,0 +1,81 @@
+{
+  "__esModule": true,
+  "TYPES_MODULES": {
+    "contracts": {
+      "StorageKey": "ContractStorageKey"
+    },
+    "identity": {
+      "Judgement": "IdentityJudgement"
+    },
+    "society": {
+      "Judgement": "SocietyJudgement",
+      "Vote": "SocietyVote"
+    },
+    "treasury": {
+      "Proposal": "TreasuryProposal"
+    }
+  },
+  "TYPES_CHAIN": {},
+  "TYPES_META": [
+    {
+      "minmax": [
+        0,
+        4
+      ],
+      "types": {
+        "BlockNumber": "u64",
+        "Index": "u64",
+        "EventRecord": "EventRecordTo76",
+        "ValidatorPrefs": "ValidatorPrefsTo145"
+      }
+    }
+  ],
+  "TYPES_SPEC": {
+    "kusama": [
+      {
+        "minmax": [
+          1019,
+          1031
+        ],
+        "types": {
+          "BalanceLock": "BalanceLockTo212",
+          "DispatchError": "DispatchErrorTo198",
+          "Keys": "SessionKeys5",
+          "SlashingSpans": "SlashingSpansTo204"
+        }
+      },
+      {
+        "minmax": [
+          1032,
+          1042
+        ],
+        "types": {
+          "BalanceLock": "BalanceLockTo212",
+          "Keys": "SessionKeys5",
+          "SlashingSpans": "SlashingSpansTo204"
+        }
+      },
+      {
+        "minmax": [
+          1043,
+          null
+        ],
+        "types": {
+          "BalanceLock": "BalanceLockTo212",
+          "Keys": "SessionKeys5"
+        }
+      }
+    ],
+    "polkadot": [
+      {
+        "minmax": [
+          1000,
+          null
+        ],
+        "types": {
+          "Keys": "SessionKeys5"
+        }
+      }
+    ]
+  }
+}
