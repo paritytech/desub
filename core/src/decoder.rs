@@ -28,10 +28,6 @@ use super::metadata::{Metadata as SubstrateMetadata, ModuleMetadata};
 use runtime_version::RuntimeVersion;
 use std::collections::HashMap;
 use std::rc::Rc;
-use type_metadata::{
-    form::{CompactForm, Form, MetaForm},
-    IntoCompact, Metadata, Namespace, Registry,
-};
 
 type SpecVersion = u32;
 /// Decoder for substrate types
@@ -44,8 +40,6 @@ pub struct Decoder {
     // reference to an item in 'versions' vector
     // NOTE: possibly a concurrent HashMap
     versions: HashMap<SpecVersion, SubstrateMetadata>,
-    /// the type registry cache
-    registry: Registry,
 }
 
 /// The type of Entry
@@ -68,7 +62,6 @@ impl Decoder {
     pub fn new() -> Self {
         Self {
             versions: HashMap::new(),
-            registry: Registry::new(),
         }
     }
 
@@ -124,14 +117,12 @@ mod tests {
     use crate::metadata::test_suite as meta_test_suite;
     use crate::test_suite;
 
-    #[derive(Metadata)]
     #[allow(dead_code)]
     pub struct TestType {
         foo: u8,
         name: String,
     }
 
-    #[derive(Metadata)]
     #[allow(dead_code)]
     pub struct TestType2 {
         super_simple_type: u8,
@@ -176,7 +167,6 @@ mod tests {
         type Precision = i128;
     }
 
-    #[derive(Metadata)]
     struct TestEvent {
         some_str: String,
         some_num: u32,

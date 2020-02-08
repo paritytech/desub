@@ -14,14 +14,47 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use core::decoder::Decoder;
-use polkadot_runtime::{Runtime as RuntimeLatest, RuntimeVersion as RuntimeVersionLatest};
+use core::{RustTypeMarker, decoder::Decoder};
+use std::{marker::PhantomData, collections::HashMap};
+use serde::de::{Deserialize, Deserializer, Visitor, MapAccess};
 
-pub fn register() -> Decoder {
-    let mut decoder = Decoder::new();
+
+// TODO: open this file or pass it via CLI to reduce binary size
+const DEFS: &'static str = include_str!("./definitions/definitions.json");
+
+pub fn register() {
+    let decoder = Decoder::new();
+    let decoded: PolkadotTypes = serde_json::from_str(DEFS)
+        .expect("Deserialization is infallible");
 }
 
 
-pub struct Types {
-    pub types: HashMap<String, String>
+pub struct PolkadotTypes {
+    // module name -> Type Map of module
+    pub modules: HashMap<String, ModuleTypes>
+}
+
+pub struct ModuleTypes {
+    // Type Name -> Type
+    pub types: HashMap<String, RustTypeMarker>
+}
+
+impl<'de> Deserialize<'de> for PolkadotTypes {
+
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>
+    {
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn should_deserialize() {
+        register()
+    }
 }

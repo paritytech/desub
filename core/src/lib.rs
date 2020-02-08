@@ -22,6 +22,8 @@ pub mod metadata;
 #[cfg(test)]
 mod test_suite;
 
+use serde::{Serialize, Deserialize};
+
 pub trait TypeDetective {
     fn get(ty: &str) -> &Decodable;
 }
@@ -42,24 +44,28 @@ pub trait Decodable {
 }
 
 // tuples may be represented as anonymous structs
-
+#[derive(Serialize, Deserialize)]
 pub struct GenericStruct {
     name: String,
     fields: Vec<StructOrPrimitive>
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct PrimitiveField {
     name: Option<String>,
-    field: RustType
+    field: RustTypeMarker
 }
 
+#[derive(Serialize, Deserialize)]
 enum StructOrPrimitive {
     Struct(GenericStruct),
     Primitive(PrimitiveField)
 }
 
-pub enum RustType {
-    Enum,
+#[derive(Serialize, Deserialize)]
+pub enum RustTypeMarker {
+    Struct(GenericStruct),
+    Enum(GenericStruct),
     Array {
         size: usize,
         ty: String

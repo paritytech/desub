@@ -6,22 +6,21 @@ edition = "2018"
 
 
 [dependencies]
-polkadot-runtime = { git = "https://github.com/paritytech/polkadot", package = "polkadot-runtime", branch = "master", optional = true }
-node-runtime = { git = "https://github.com/paritytech/substrate", package = "node-runtime", branch = "polkadot-master", optional = true }
-node-primitives = { git = "https://github.com/paritytech/substrate", package = "node-primitives", branch = "polkadot-master", optional = true }
 core = { path = "../core", package = "desub-core" }
 codec = { version = "1.1", features = ["derive"], package = "parity-scale-codec" }
 log = { version = "0.4" }
 env_logger = "0.7"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1.0" }
 
-[dependencies.type-metadata]
-git = "https://github.com/insipx/type-metadata"
-branch = "insipx/deserialize-registry-merge"
-package = "type-metadata"
-default-features = false
-features = ["std", "derive"]
+# [dependencies.type-metadata]
+# git = "https://github.com/insipx/type-metadata"
+# branch = "insipx/deserialize-registry-merge"
+# package = "type-metadata"
+# default-features = false
+# features = ["std", "derive"]
 
 [features]
 default = []
-substrate_dev = ["node-runtime", "node-primitives"]
-polkadot = ["polkadot-runtime"]
+# substrate_dev = ["node-runtime", "node-primitives"]
+polkadot = []
