@@ -12,6 +12,7 @@ log = { version = "0.4" }
 env_logger = "0.7"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1.0" }
+regex = {version = "1", optional = true }
 
 # [dependencies.type-metadata]
 # git = "https://github.com/insipx/type-metadata"
@@ -23,4 +24,5 @@ serde_json = { version = "1.0" }
 [features]
 default = []
 # substrate_dev = ["node-runtime", "node-primitives"]
-polkadot = []
+polkadot = ["regex", "regular_expressions"]
+regular_expressions = ["regex"]

@@ -318,6 +318,7 @@ dependencies = [
  "env_logger",
  "log",
  "parity-scale-codec",
+ "regex",
  "serde",
  "serde_json",
 ]
