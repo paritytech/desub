@@ -64,27 +64,46 @@ enum StructOrPrimitive {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum RustTypeMarker {
+    /// name of a type
+    Pointer(String),
+    /// Some Struct
     Struct(GenericStruct),
+    /// Some Enum
     Enum(GenericStruct),
+    /// A sized array
     Array {
         size: usize,
         ty: String
     },
-
+    /// primitive unsigned 8 bit integer
     U8,
+    /// primtiive unsigned 16 bit integer
     U16,
+    /// primitive unsigned 32 bit integer
     U32,
+    /// primitive unsigned 64 bit integer
     U64,
+    /// primitive unsigned 128 bit integer
     U128,
+    /// primitive unsigned word-sized integer
     USize,
 
+    /// primitive signed 8 bit integer
     I8,
+    /// primitive signed 16 bit integer
     I16,
+    /// primitive signed 32 bit integer
     I32,
+    /// primitive signed 64 bit integer
     I64,
+    /// primitive signed 128 bit integer
     I128,
+    /// primitive signed word-sized integer
+    ISize,
 
+    /// primitive IEEE-spec 32-bit floating-point number
     F32,
+    /// primitive IEEE-spec 64-bit floating-point number
     F64,
 }
 
