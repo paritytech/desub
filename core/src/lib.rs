@@ -44,25 +44,25 @@ pub trait Decodable {
 }
 
 // tuples may be represented as anonymous structs
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GenericStruct {
     name: String,
     fields: Vec<StructOrPrimitive>
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PrimitiveField {
     name: Option<String>,
     field: RustTypeMarker
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 enum StructOrPrimitive {
     Struct(GenericStruct),
     Primitive(PrimitiveField)
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum RustTypeMarker {
     Struct(GenericStruct),
     Enum(GenericStruct),
