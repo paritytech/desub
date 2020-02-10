@@ -16,6 +16,7 @@
 
 use regex::Regex;
 
+/// Match a rust array
 fn rust_array_decl() -> Regex {
     // width of number and unsigned/signed are all in their own capture group
     // size of array is in the last capture group
@@ -23,14 +24,31 @@ fn rust_array_decl() -> Regex {
         .expect("Regex expression invalid")
 }
 
+/// Match a rust vector
+/// allowed to be nested within, or have other (ie Option<>) nested within
 fn rust_vec_decl() -> Regex {
-    Regex::new(r"Vec<([\w]+)>")
-        .expect("Regex expression invalid")
+    Regex::new(r"Vec<([\w><]+)>")
+        .expect("Regex expression should be infallible; qed")
 }
 
+/// Match a Rust Option
+/// Allowed to be nested within another type, or have other (ie Vec<>) nested within
+fn rust_option_decl() -> Regex {
+    Regex::new(r"Option<([\w><]+)>")
+        .expect("Regex expression should be infallible; qed")
+}
+
+/// Match a Rust Generic Type Declaration
+fn rust_generic_decl() -> Regex {
+    Regex::new(r"([\w]+)<([\w><]+)>")
+        .expect("Regex expressions should be infallible; qed")
+}
+
+/// Only captures text within the tuples,
+/// need to use 'Matches' (ie `find_iter`) iterator to get all matches
 fn rust_tuple_decl() -> Regex {
-    Regex::new(r"(:?([\w><]+),? *)*")
-        .expect("Regex expression invalid")
+    Regex::new(r"[\w><]+")
+        .expect("Regex expression should be infallible; qed")
 }
 
 #[cfg(test)]
@@ -127,6 +145,41 @@ mod tests {
     }
 
     #[test]
+    fn should_parse_options() {
+        let re = rust_option_decl();
+        assert!(re.is_match("Option<RuntimeVersionApi>"));
+        assert!(re.is_match("Option<BlockNumber>"));
+        assert!(re.is_match("Option<SomeStruct>"));
+        assert!(re.is_match("Option<Vec<SomeStruct>>"));
+    }
+
+    #[test]
+    fn should_get_type_of_option() {
+        let re = rust_option_decl();
+        let caps = caps_to_vec_str(re.captures("Option<RuntimeVersionApi>").unwrap());
+        // first capture group is always entire expression
+        assert!(caps[1] == Some("RuntimeVersionApi"));
+
+        let re = rust_option_decl();
+        let caps = caps_to_vec_str(re.captures("Option<Vec<RuntimeVersionApi>>").unwrap());
+        assert!(caps[1] == Some("Vec<RuntimeVersionApi>"));
+    }
+
+    #[test]
+    fn should_match_arbitrary_types() {
+        let re = rust_generic_decl();
+        assert!(re.is_match("GenericOuterType<GenericInnerType>"));
+        assert!(re.is_match("GenericOutT<GenericOutInT<InnerT>>"));
+    }
+
+    #[test]
+    fn should_get_arbitrary_type() {
+        let re = rust_generic_decl();
+        let caps = caps_to_vec_str(re.captures("GenericOuterType<GenericInnerType>").unwrap());
+        assert_eq!(vec![Some("GenericOuterType<GenericInnerType>"), Some("GenericOuterType"), Some("GenericInnerType")], caps);
+    }
+
+    #[test]
     fn should_parse_tuples() {
         let re = rust_tuple_decl();
         assert!(re.is_match("(StorageKey, Option<StorageData>)"));
@@ -137,8 +190,11 @@ mod tests {
     #[test]
     fn should_get_types_in_tuple() {
         let re = rust_tuple_decl();
-        let caps = caps_to_vec_str(re.captures("(StorageKey, Option<StorageData>)").unwrap());
-        assert_eq!(vec![Some("(StorageKey, Option<StorageData>)"), Some("StorageKey"), Some("Option<StorageData>")], caps);
-       
+        let match_str = "(StorageKey, Option<StorageData>)";
+        let types = re.find_iter(match_str)
+          .map(|m| {
+              match_str[m.start() .. m.end()].to_string()
+          }).collect::<Vec<String>>();
+        assert_eq!(vec!["StorageKey".to_string(), "Option<StorageData>".to_string()], types);
     }
 }
