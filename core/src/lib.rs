@@ -32,7 +32,7 @@ pub trait Decodable {
     fn as_string(&self) -> String;
     fn as_str(&self) -> &str;
     fn as_generic_struct(&self) -> GenericStruct;
-    fn as_primitive(&self) -> PrimitiveField;
+    fn as_primitive(&self) -> RustTypeMarker;
     fn as_bytes(&self) -> Vec<u8>;
     fn as_encoded_bytes(&self) -> Vec<u8>;
 
@@ -46,35 +46,38 @@ pub trait Decodable {
 // tuples may be represented as anonymous structs
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GenericStruct {
-    name: String,
-    fields: Vec<StructOrPrimitive>
+    // Field name => Field tpye
+    fields: Vec<(String, RustTypeMarker)>
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PrimitiveField {
-    name: Option<String>,
-    field: RustTypeMarker
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-enum StructOrPrimitive {
-    Struct(GenericStruct),
-    Primitive(PrimitiveField)
+pub enum RustEnum {
+    Unit(Vec<String>),
+    Struct(Vec<(String, RustTypeMarker)>)
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum RustTypeMarker {
-    /// name of a type
-    Pointer(String),
+
+    /// name of a type.
+    TypePointer(String),
+
     /// Some Struct
-    Struct(GenericStruct),
+    /// Field Name -> Field Type
+    Struct (Vec<(String, RustTypeMarker)>),
+
+    // A C-Like Enum
+    Set(Vec<(String, usize)>),
+
     /// Some Enum
-    Enum(GenericStruct),
+    Enum(RustEnum),
+
     /// A sized array
     Array {
         size: usize,
         ty: String
     },
+
     /// primitive unsigned 8 bit integer
     U8,
     /// primtiive unsigned 16 bit integer
