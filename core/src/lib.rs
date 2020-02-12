@@ -43,10 +43,10 @@ pub trait Decodable {
     fn is_primitive(&self) -> bool;
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StructField {
-    name: String,
-    ty: RustTypeMarker
+    pub name: String,
+    pub ty: RustTypeMarker
 }
 
 impl StructField {
@@ -57,10 +57,10 @@ impl StructField {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SetField {
-    name: String,
-    num: usize
+    pub name: String,
+    pub num: usize
 }
 
 impl SetField {
@@ -71,20 +71,20 @@ impl SetField {
 }
 
 // tuples may be represented as anonymous structs
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GenericStruct {
     // Field name => Field tpye
     fields: Vec<StructField>
 }
 
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum RustEnum {
     Unit(Vec<String>),
     Struct(Vec<StructField>)
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum RustTypeMarker {
 
     /// name of a type.
@@ -136,6 +136,8 @@ pub enum RustTypeMarker {
     F32,
     /// primitive IEEE-spec 64-bit floating-point number
     F64,
+
+    Bool,
 }
 
 #[cfg(test)]

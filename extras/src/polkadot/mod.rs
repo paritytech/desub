@@ -30,13 +30,13 @@ pub fn definitions(raw_json: &str) -> Result<PolkadotTypes, Error> {
     Ok(types)
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq, Eq)]
 pub struct PolkadotTypes {
     // module name -> Type Map of module
     pub modules: HashMap<String, ModuleTypes>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct ModuleTypes {
     // Type Name -> Type
     pub types: HashMap<String, RustTypeMarker>,
@@ -222,6 +222,8 @@ fn parse_type(t: &str) -> RustTypeMarker {
 
         "f32" => RustTypeMarker::F32,
         "f64" => RustTypeMarker::F64,
+        "bool" => RustTypeMarker::Bool,
+
         _ => RustTypeMarker::TypePointer(t.to_string()),
     }
 }
@@ -282,8 +284,57 @@ const RAW_JSON: &'static str = r#"
 
     #[test]
     fn should_deserialize_correctly() -> Result<() ,Error> {
-        let types = definitions(RAW_JSON)?;
-        dbg!(&types);
+        let deser_dot_types = definitions(RAW_JSON)?;
+        let mut modules = HashMap::new();
+        let mut types = HashMap::new();
+        types.insert("Extrinsic".to_string(), RustTypeMarker::TypePointer("GenericExtrinsic".to_string()));
+        types.insert("hash".to_string(), RustTypeMarker::TypePointer("H512".to_string()));
+        types.insert("BlockNumber".to_string(), RustTypeMarker::U64);
+        types.insert("ChangesTrieConfiguration".to_string(),
+                     RustTypeMarker::Struct(vec![
+                         StructField{name: "digestInterval".to_string(), ty: RustTypeMarker::U32},
+                         StructField{name: "digestLevels".to_string(), ty: RustTypeMarker::U32},
+                     ]));
+        types.insert("DispatchInfo".to_string(),
+                     RustTypeMarker::Struct(vec![
+                         StructField{name: "weight".to_string(),
+                                     ty: RustTypeMarker::TypePointer("Weight".to_string())},
+                         StructField{name: "class".to_string(),
+                                     ty: RustTypeMarker::TypePointer("DispatchClass".to_string())},
+                         StructField{name: "paysFee".to_string(), ty: RustTypeMarker::Bool}
+                     ]));
+        types.insert("MultiSignature".to_string(),
+                     RustTypeMarker::Enum(RustEnum::Struct(vec![
+                         StructField{name: "Ed25519".to_string(),
+                                     ty: RustTypeMarker::TypePointer("Ed25519Signature".to_string())},
+                         StructField{name: "Sr25519".to_string(),
+                                     ty: RustTypeMarker::TypePointer("Sr25519Signature".to_string())},
+                         StructField{name:"Ecdsa".to_string(),
+                                     ty: RustTypeMarker::TypePointer("EcdsaSignature".to_string())},
+                     ])));
+        types.insert("Reasons".to_string(),
+                     RustTypeMarker::Enum(RustEnum::Unit(vec![
+                         "Fee".to_string(),
+                         "Misc".to_string(),
+                         "All".to_string(),
+                     ])));
+        types.insert("WithdrawReasons".to_string(),
+                     RustTypeMarker::Set(vec![
+                         SetField{name: "TransactionPayment".to_string(), num: 1},
+                         SetField{name: "Transfer".to_string(), num: 2},
+                         SetField{name: "Reserve".to_string(), num: 4},
+                         SetField{name: "Fee".to_string(), num: 8},
+                         SetField{name: "Tip".to_string(), num: 16}
+                     ]));
+
+        for (key, val) in types.iter() {
+            assert_eq!(val, &deser_dot_types.modules["runtime"].types[key]);
+        }
+
+        let mod_types = ModuleTypes { types };
+        modules.insert("runtime".to_string(), mod_types);
+        let dot_types = PolkadotTypes { modules };
+        assert_eq!(dot_types, deser_dot_types);
         Ok(())
     }
 }

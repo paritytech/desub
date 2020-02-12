@@ -648,6 +648,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "indexmap"
+version = "1.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "076f042c5b7b98f31d205f1249267e12a6518c1481e9dae9764af19b707d2292"
+dependencies = [
+ "autocfg 1.0.0",
+]
+
+[[package]]
 name = "integer-sqrt"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1482,6 +1491,7 @@ version = "1.0.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "21b01d7f0288608a01dca632cf1df859df6fd6ffa885300fc275ce2ba6221953"
 dependencies = [
+ "indexmap",
  "itoa",
  "ryu",
  "serde",
