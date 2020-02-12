@@ -104,7 +104,7 @@ pub enum RustTypeMarker {
         /// size of the array
         size: usize,
         /// type of array
-        ty: String,
+        ty: Box<RustTypeMarker>,
     },
 
     /// primitive unsigned 8 bit integer

@@ -17,7 +17,7 @@
 use regex::{Regex, RegexSet};
 
 /// Match a rust array
-fn rust_array_decl() -> Regex {
+pub fn rust_array_decl() -> Regex {
     // width of number and unsigned/signed are all in their own capture group
     // size of array is in the last capture group
     Regex::new(r"^\[(?P<type>[uif]{1})(?P<bit8>8)?(?P<bit16>16)?(?P<bit32>32)?(?P<bit64>64)?(?P<bit128>128)?;\s?(?P<size>[\d]*)]$")
@@ -26,30 +26,30 @@ fn rust_array_decl() -> Regex {
 
 /// Match a rust vector
 /// allowed to be nested within, or have other (ie Option<>) nested within
-fn rust_vec_decl() -> Regex {
+pub fn rust_vec_decl() -> Regex {
     Regex::new(r"Vec<(?P<type>[\w><]+)>").expect("Regex expression should be infallible; qed")
 }
 
 /// Match a Rust Option
 /// Allowed to be nested within another type, or have other (ie Vec<>) nested
 /// within
-fn rust_option_decl() -> Regex {
+pub fn rust_option_decl() -> Regex {
     Regex::new(r"Option<(?P<type>[\w><]+)>").expect("Regex expression should be infallible; qed")
 }
 
 /// Match a Rust Generic Type Declaration
-fn rust_generic_decl() -> Regex {
+pub fn rust_generic_decl() -> Regex {
     Regex::new(r"(?P<outer_type>[\w]+)<(?P<inner_type>[\w><]+)>")
         .expect("Regex expressions should be infallible; qed")
 }
 
 /// Only captures text within the tuples,
 /// need to use 'Matches' (ie `find_iter`) iterator to get all matches
-fn rust_tuple_decl() -> Regex {
+pub fn rust_tuple_decl() -> Regex {
     Regex::new(r"[\w><]+").expect("Regex expression should be infallible; qed")
 }
 
-fn rust_regex_set() -> RegexSet {
+pub fn rust_regex_set() -> RegexSet {
     RegexSet::new(&[
         rust_array_decl().as_str(),
         rust_vec_decl().as_str(),
@@ -384,5 +384,24 @@ mod tests {
             vec!["StorageKey".to_string(), "Option<StorageData>".to_string()],
             types
         );
+    }
+
+    #[test]
+    fn should_match_with_regex_set() {
+        let set = rust_regex_set();
+        assert!(set.is_match("(StorageKey, Option<StorageData>)"));
+        assert!(set.is_match("GenericOuterType<GenericInnerType>"));
+        assert!(set.is_match("[u8; 16]"));
+        assert!(set.is_match("Vec<InnerType>"));
+        assert!(set.is_match("Option<InnerType>"));
+    }
+
+    #[test]
+    fn should_get_all_matches() {
+        let set = rust_regex_set();
+        let matches: Vec<_> = set.matches("[u8; 16]").into_iter().collect();
+        // matches array decl and tuple type (tuple type will match on anything, should not be trusted)
+        // TODO: create better regex for tuple type
+        assert_eq!(vec![0, 4], matches);
     }
 }
