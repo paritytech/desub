@@ -115,7 +115,7 @@ impl Metadata {
                 let meta: runtime_metadata10::RuntimeMetadataPrefixed =
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
                 meta.try_into().expect("Conversion failed")
-            },
+            }
             0xB => {
                 let meta: runtime_metadata_latest::RuntimeMetadataPrefixed =
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
@@ -233,7 +233,9 @@ impl ModuleMetadata {
 
     /// return the SCALE-encoded Call with parameters appended and parameters
     pub fn call<T: Encode>(
-        &self, function: &'static str, params: T,
+        &self,
+        function: &'static str,
+        params: T,
     ) -> Result<Encoded, MetadataError> {
         let fn_bytes = self
             .calls
@@ -443,4 +445,3 @@ pub mod tests {
         let meta: Metadata = Metadata::new(meta.as_slice());
     }
 }
-

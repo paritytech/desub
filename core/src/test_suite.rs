@@ -19,10 +19,9 @@ use runtime_version::RuntimeVersion;
 
 use std::{
     borrow::Cow,
+    fs::File,
     io::{self, prelude::*},
-    fs::File
 };
-
 
 pub fn mock_runtime(num: u32) -> RuntimeVersion {
     RuntimeVersion {
@@ -36,7 +35,8 @@ pub fn mock_runtime(num: u32) -> RuntimeVersion {
 }
 
 /// Get some runtime metadata from KusamaCC3 around block 361,0000
-/// Block hash 0x627a6a8e7698dd360bd44e7816e7f8c5321fa31e0a3f39324d93ec5716a57fb5
+/// Block hash
+/// 0x627a6a8e7698dd360bd44e7816e7f8c5321fa31e0a3f39324d93ec5716a57fb5
 ///
 /// # Panics
 /// Panics on std::io::Error
@@ -48,7 +48,8 @@ pub fn runtime_v9() -> Vec<u8> {
 }
 
 /// Get some runtime metadata from KusamaCC3 at block 6
-/// Block hash 0xb5ee550d20a55b76adeba7149516d367ac7cbdd95cd0864a8753d6b5dd02d3bb
+/// Block hash
+/// 0xb5ee550d20a55b76adeba7149516d367ac7cbdd95cd0864a8753d6b5dd02d3bb
 ///
 /// # Panics
 /// Panics on std::io::Error

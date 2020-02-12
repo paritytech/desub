@@ -67,7 +67,11 @@ impl Decoder {
 
     /// Insert a Metadata with Version attached
     /// If version exists, it's corresponding metadata will be updated
-    pub fn register_version(&mut self, version: SpecVersion, metadata: SubstrateMetadata) {
+    pub fn register_version(
+        &mut self,
+        version: SpecVersion,
+        metadata: SubstrateMetadata,
+    ) {
         self.versions.insert(version, metadata);
     }
 
@@ -91,9 +95,7 @@ impl Decoder {
 
     /// dynamically Decode a SCALE-encoded byte string into it's concrete rust
     /// types
-    pub fn decode(
-        &self, spec: SpecVersion, module: String, ty: String, data: Vec<u8>,
-    ) {
+    pub fn decode(&self, spec: SpecVersion, module: String, ty: String, data: Vec<u8>) {
         // have to go to registry and get by TypeId
         let meta = self.versions.get(&spec).expect("Spec does not exist");
         // let types = types.get(&module).expect("Module not found");
@@ -147,7 +149,6 @@ mod tests {
         });
         println!("{:#?}", decoder);
     }
-
 
     trait TestTrait {
         type Moment: Copy + Clone + Default;

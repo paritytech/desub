@@ -72,7 +72,8 @@ fn convert<B: 'static, O: 'static>(dd: DecodeDifferent<B, O>) -> Result<O, Error
 }
 
 fn convert_module(
-    index: usize, module: runtime_metadata10::ModuleMetadata,
+    index: usize,
+    module: runtime_metadata10::ModuleMetadata,
 ) -> Result<ModuleMetadata, Error> {
     let mut storage_map = HashMap::new();
     if let Some(storage) = module.storage {
@@ -122,7 +123,8 @@ fn convert_event(
 }
 
 fn convert_entry(
-    prefix: String, entry: runtime_metadata10::StorageEntryMetadata,
+    prefix: String,
+    entry: runtime_metadata10::StorageEntryMetadata,
 ) -> Result<StorageMetadata, Error> {
     let default = convert(entry.default)?;
     let documentation = convert(entry.documentation)?;
@@ -206,10 +208,10 @@ impl From<TempStorageHasher> for runtime_metadata_latest::StorageHasher {
         match hasher {
             StorageHasher::Blake2_128 => {
                 runtime_metadata_latest::StorageHasher::Blake2_128
-            },
+            }
             StorageHasher::Blake2_128Concat => {
                 runtime_metadata_latest::StorageHasher::Blake2_128
-            },
+            }
             StorageHasher::Blake2_256 => {
                 runtime_metadata_latest::StorageHasher::Blake2_256
             }

@@ -84,7 +84,8 @@ fn convert<B: 'static, O: 'static>(dd: DecodeDifferent<B, O>) -> Result<O, Error
 }
 
 fn convert_module(
-    index: usize, module: runtime_metadata_latest::ModuleMetadata,
+    index: usize,
+    module: runtime_metadata_latest::ModuleMetadata,
 ) -> Result<ModuleMetadata, Error> {
     let mut storage_map = HashMap::new();
     if let Some(storage) = module.storage {
@@ -134,7 +135,8 @@ fn convert_event(
 }
 
 fn convert_entry(
-    prefix: String, entry: runtime_metadata_latest::StorageEntryMetadata,
+    prefix: String,
+    entry: runtime_metadata_latest::StorageEntryMetadata,
 ) -> Result<StorageMetadata, Error> {
     let default = convert(entry.default)?;
     let documentation = convert(entry.documentation)?;

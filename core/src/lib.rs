@@ -22,7 +22,7 @@ pub mod metadata;
 #[cfg(test)]
 mod test_suite;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 pub trait TypeDetective {
     fn get(ty: &str) -> &Decodable;
@@ -36,7 +36,6 @@ pub trait Decodable {
     fn as_bytes(&self) -> Vec<u8>;
     fn as_encoded_bytes(&self) -> Vec<u8>;
 
-
     fn is_str(&self) -> bool;
     fn is_bytes(&self) -> bool;
     fn is_generic_struct(&self) -> bool;
@@ -46,11 +45,10 @@ pub trait Decodable {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StructField {
     pub name: String,
-    pub ty: RustTypeMarker
+    pub ty: RustTypeMarker,
 }
 
 impl StructField {
-
     pub fn new<S: Into<String>>(name: S, ty: RustTypeMarker) -> Self {
         let name = name.into();
         Self { name, ty }
@@ -60,13 +58,16 @@ impl StructField {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SetField {
     pub name: String,
-    pub num: usize
+    pub num: usize,
 }
 
 impl SetField {
     pub fn new<S: Into<String>, N: Into<u64>>(name: S, num: N) -> Self {
         let (name, num) = (name.into(), num.into());
-        Self { name, num: num as usize }
+        Self {
+            name,
+            num: num as usize,
+        }
     }
 }
 
@@ -74,25 +75,23 @@ impl SetField {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GenericStruct {
     // Field name => Field tpye
-    fields: Vec<StructField>
+    fields: Vec<StructField>,
 }
-
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum RustEnum {
     Unit(Vec<String>),
-    Struct(Vec<StructField>)
+    Struct(Vec<StructField>),
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum RustTypeMarker {
-
     /// name of a type.
     TypePointer(String),
 
     /// Some Struct
     /// Field Name -> Field Type
-    Struct (Vec<StructField>),
+    Struct(Vec<StructField>),
 
     // A C-Like Enum
     Set(Vec<SetField>),
@@ -103,7 +102,7 @@ pub enum RustTypeMarker {
     /// A sized array
     Array {
         size: usize,
-        ty: String
+        ty: String,
     },
 
     /// primitive unsigned 8 bit integer

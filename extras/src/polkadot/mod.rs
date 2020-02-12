@@ -12,10 +12,10 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use core::{decoder::Decoder, RustEnum, RustTypeMarker, StructField, SetField};
+use super::error::Error;
+use core::{decoder::Decoder, RustEnum, RustTypeMarker, SetField, StructField};
 use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
 use std::{collections::HashMap, fmt, marker::PhantomData};
-use super::error::Error;
 
 // TODO: open this file or pass it via CLI to reduce binary size
 const DEFS: &'static str = include_str!("./definitions/definitions.json");
@@ -111,7 +111,7 @@ impl<'de> Visitor<'de> for ModuleTypeVisitor {
                         parse_mod_types(&mut module_types, key, val);
                     }
                 }
-                _ => panic!("Received key that should not exist")
+                _ => panic!("Received key that should not exist"),
             }
         }
         Ok(ModuleTypes {
@@ -129,7 +129,7 @@ fn parse_mod_types(
     if val.is_string() {
         module_types.insert(
             key.to_string(),
-            parse_type(val.as_str().expect("Checked; qed"))
+            parse_type(val.as_str().expect("Checked; qed")),
         );
     } else if val.is_object() {
         let obj = val
@@ -231,7 +231,7 @@ fn parse_type(t: &str) -> RustTypeMarker {
 #[cfg(test)]
 mod tests {
     use super::*;
-const RAW_JSON: &'static str = r#"
+    const RAW_JSON: &'static str = r#"
 {
 	"runtime": {
 		"types": {
@@ -283,49 +283,99 @@ const RAW_JSON: &'static str = r#"
     }
 
     #[test]
-    fn should_deserialize_correctly() -> Result<() ,Error> {
+    fn should_deserialize_correctly() -> Result<(), Error> {
         let deser_dot_types = definitions(RAW_JSON)?;
         let mut modules = HashMap::new();
         let mut types = HashMap::new();
-        types.insert("Extrinsic".to_string(), RustTypeMarker::TypePointer("GenericExtrinsic".to_string()));
-        types.insert("hash".to_string(), RustTypeMarker::TypePointer("H512".to_string()));
+        types.insert(
+            "Extrinsic".to_string(),
+            RustTypeMarker::TypePointer("GenericExtrinsic".to_string()),
+        );
+        types.insert(
+            "hash".to_string(),
+            RustTypeMarker::TypePointer("H512".to_string()),
+        );
         types.insert("BlockNumber".to_string(), RustTypeMarker::U64);
-        types.insert("ChangesTrieConfiguration".to_string(),
-                     RustTypeMarker::Struct(vec![
-                         StructField{name: "digestInterval".to_string(), ty: RustTypeMarker::U32},
-                         StructField{name: "digestLevels".to_string(), ty: RustTypeMarker::U32},
-                     ]));
-        types.insert("DispatchInfo".to_string(),
-                     RustTypeMarker::Struct(vec![
-                         StructField{name: "weight".to_string(),
-                                     ty: RustTypeMarker::TypePointer("Weight".to_string())},
-                         StructField{name: "class".to_string(),
-                                     ty: RustTypeMarker::TypePointer("DispatchClass".to_string())},
-                         StructField{name: "paysFee".to_string(), ty: RustTypeMarker::Bool}
-                     ]));
-        types.insert("MultiSignature".to_string(),
-                     RustTypeMarker::Enum(RustEnum::Struct(vec![
-                         StructField{name: "Ed25519".to_string(),
-                                     ty: RustTypeMarker::TypePointer("Ed25519Signature".to_string())},
-                         StructField{name: "Sr25519".to_string(),
-                                     ty: RustTypeMarker::TypePointer("Sr25519Signature".to_string())},
-                         StructField{name:"Ecdsa".to_string(),
-                                     ty: RustTypeMarker::TypePointer("EcdsaSignature".to_string())},
-                     ])));
-        types.insert("Reasons".to_string(),
-                     RustTypeMarker::Enum(RustEnum::Unit(vec![
-                         "Fee".to_string(),
-                         "Misc".to_string(),
-                         "All".to_string(),
-                     ])));
-        types.insert("WithdrawReasons".to_string(),
-                     RustTypeMarker::Set(vec![
-                         SetField{name: "TransactionPayment".to_string(), num: 1},
-                         SetField{name: "Transfer".to_string(), num: 2},
-                         SetField{name: "Reserve".to_string(), num: 4},
-                         SetField{name: "Fee".to_string(), num: 8},
-                         SetField{name: "Tip".to_string(), num: 16}
-                     ]));
+        types.insert(
+            "ChangesTrieConfiguration".to_string(),
+            RustTypeMarker::Struct(vec![
+                StructField {
+                    name: "digestInterval".to_string(),
+                    ty: RustTypeMarker::U32,
+                },
+                StructField {
+                    name: "digestLevels".to_string(),
+                    ty: RustTypeMarker::U32,
+                },
+            ]),
+        );
+        types.insert(
+            "DispatchInfo".to_string(),
+            RustTypeMarker::Struct(vec![
+                StructField {
+                    name: "weight".to_string(),
+                    ty: RustTypeMarker::TypePointer("Weight".to_string()),
+                },
+                StructField {
+                    name: "class".to_string(),
+                    ty: RustTypeMarker::TypePointer("DispatchClass".to_string()),
+                },
+                StructField {
+                    name: "paysFee".to_string(),
+                    ty: RustTypeMarker::Bool,
+                },
+            ]),
+        );
+        types.insert(
+            "MultiSignature".to_string(),
+            RustTypeMarker::Enum(RustEnum::Struct(vec![
+                StructField {
+                    name: "Ed25519".to_string(),
+                    ty: RustTypeMarker::TypePointer("Ed25519Signature".to_string()),
+                },
+                StructField {
+                    name: "Sr25519".to_string(),
+                    ty: RustTypeMarker::TypePointer("Sr25519Signature".to_string()),
+                },
+                StructField {
+                    name: "Ecdsa".to_string(),
+                    ty: RustTypeMarker::TypePointer("EcdsaSignature".to_string()),
+                },
+            ])),
+        );
+        types.insert(
+            "Reasons".to_string(),
+            RustTypeMarker::Enum(RustEnum::Unit(vec![
+                "Fee".to_string(),
+                "Misc".to_string(),
+                "All".to_string(),
+            ])),
+        );
+        types.insert(
+            "WithdrawReasons".to_string(),
+            RustTypeMarker::Set(vec![
+                SetField {
+                    name: "TransactionPayment".to_string(),
+                    num: 1,
+                },
+                SetField {
+                    name: "Transfer".to_string(),
+                    num: 2,
+                },
+                SetField {
+                    name: "Reserve".to_string(),
+                    num: 4,
+                },
+                SetField {
+                    name: "Fee".to_string(),
+                    num: 8,
+                },
+                SetField {
+                    name: "Tip".to_string(),
+                    num: 16,
+                },
+            ]),
+        );
 
         for (key, val) in types.iter() {
             assert_eq!(val, &deser_dot_types.modules["runtime"].types[key]);

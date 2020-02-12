@@ -19,9 +19,8 @@ use failure::Fail;
 #[derive(Debug, Fail)]
 pub enum Error {
     #[fail(display = "Decode {}", _0)]
-    Decode(#[fail(cause)] serde_json::Error)
+    Decode(#[fail(cause)] serde_json::Error),
 }
-
 
 impl From<serde_json::Error> for Error {
     fn from(err: serde_json::Error) -> Error {
