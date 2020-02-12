@@ -11,6 +11,5 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
-mod definitions;
-mod extrinsics;
-mod overrides;
+
+const EXTRINSICS: &'static str = include_str!("./dot_definitions/extrinsics.json");
