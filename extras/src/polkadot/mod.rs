@@ -25,6 +25,7 @@ pub fn register() {
     let decoder = Decoder::new();
     let decoded: PolkadotTypes =
         serde_json::from_str(DEFS).expect("Deserialization is infallible");
+    dbg!(decoded);
     //    let decoded: serde_json::Value = serde_json::from_str(DEFS)
     //        .expect("Deserialization is infallible");
     //    dbg!(decoded);
@@ -60,7 +61,7 @@ impl<'de> Deserialize<'de> for PolkadotTypes {
             where
                 V: MapAccess<'de>,
             {
-                let modules: HashMap<String, ModuleTypes> = HashMap::new();
+                let mut modules: HashMap<String, ModuleTypes> = HashMap::new();
                 while let Some(key) = map.next_key::<&str>()? {
                     // this key are all modules, IE
                     // "runtime", "metadata", "rpc", etc
@@ -68,23 +69,14 @@ impl<'de> Deserialize<'de> for PolkadotTypes {
                     match key {
                         _ => {
                             let val: ModuleTypes = map.next_value()?;
-                            // dbg!(&key);
+                            modules.insert(key.to_string(), val);
                         }
                     }
                 }
-                Ok(PolkadotTypes::default())
-            }
-
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                dbg!(v);
-                Ok(PolkadotTypes::default())
+                Ok(PolkadotTypes { modules })
             }
         }
-        deserializer.deserialize_map(PolkadotTypesVisitor);
-        Ok(PolkadotTypes::default())
+        deserializer.deserialize_map(PolkadotTypesVisitor)
     }
 }
 
@@ -93,8 +85,7 @@ impl<'de> Deserialize<'de> for ModuleTypes {
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_map(ModuleTypeVisitor);
-        Ok(ModuleTypes::default())
+        deserializer.deserialize_map(ModuleTypeVisitor)
     }
 }
 
@@ -118,43 +109,51 @@ impl<'de> Visitor<'de> for ModuleTypeVisitor {
                 // skip over "types" key, this encapsulates the types we actually care
                 // about
                 "types" => {
-                    let val: ModuleTypes = map.next_value()?;
-                }
-                _ => {
-                    let mut t: Option<RustTypeMarker> = None;
                     let val: serde_json::Value = map.next_value()?;
-                    if val.is_string() {
-                        module_types.insert(
-                            key.to_string(),
-                            RustTypeMarker::TypePointer(
-                                val.as_str().expect("Checked; qed").to_string(),
-                            ),
-                        );
-                    } else if val.is_object() {
-                        let obj = val
-                            .as_object()
-                            .expect("checked for object before unwrap; qed");
-                        let mut fields: Option<Vec<RustTypeMarker>> = None;
-                        if obj.contains_key("_enum") {
-                            module_types.insert(key.to_string(), parse_enum(&obj["_enum"]));
-                        } else if obj.contains_key("_set") {
-                            let obj = obj["_set"].as_object().expect("_set is a map");
-                            module_types.insert(key.to_string(), parse_set(obj));
-                        } else {
-                            let mut fields = Vec::new();
-                            for (key, val) in obj.iter() {
-                                fields.push((key.to_string(), parse_type(&val_to_str(val))));
-                            }
-                            let t = RustTypeMarker::Struct(fields);
-                            module_types.insert(key.to_string(), t);
-                        }
+                    let val = val.as_object().expect("Types must refer to an object");
+                    for (key, val) in val.iter() {
+                        parse_mod_types(&mut module_types, key, val);
                     }
-                    // dbg!(&key);
-                    // dbg!(&val);
                 }
+                _ => panic!("Received key that should not exist")
             }
         }
-        Ok(ModuleTypes::default())
+        Ok(ModuleTypes {
+            types: module_types,
+        })
+    }
+}
+
+fn parse_mod_types(
+    module_types: &mut HashMap<String, RustTypeMarker>,
+    key: &str,
+    val: &serde_json::Value,
+) {
+    let mut t: Option<RustTypeMarker> = None;
+    if val.is_string() {
+        module_types.insert(
+            key.to_string(),
+            RustTypeMarker::TypePointer(val.as_str().expect("Checked; qed").to_string()),
+        );
+    } else if val.is_object() {
+        let obj = val
+            .as_object()
+            .expect("checked for object before unwrap; qed");
+
+        let mut fields: Option<Vec<RustTypeMarker>> = None;
+        if obj.contains_key("_enum") {
+            module_types.insert(key.to_string(), parse_enum(&obj["_enum"]));
+        } else if obj.contains_key("_set") {
+            let obj = obj["_set"].as_object().expect("_set is a map");
+            module_types.insert(key.to_string(), parse_set(obj));
+        } else {
+            let mut fields = Vec::new();
+            for (key, val) in obj.iter() {
+                fields.push((key.to_string(), parse_type(&val_to_str(val))));
+            }
+            let t = RustTypeMarker::Struct(fields);
+            module_types.insert(key.to_string(), t);
+        }
     }
 }
 
@@ -166,12 +165,13 @@ fn val_to_str(v: &serde_json::Value) -> String {
     v.as_str().expect("will be string").to_string()
 }
 
-fn parse_set(
-    obj: &serde_json::map::Map<String, serde_json::Value>,
-) -> RustTypeMarker {
+fn parse_set(obj: &serde_json::map::Map<String, serde_json::Value>) -> RustTypeMarker {
     let mut set_vec = Vec::new();
     for (key, value) in obj.iter() {
-        set_vec.push((key.to_string(), value.as_u64().expect("will not be 0") as usize))
+        set_vec.push((
+            key.to_string(),
+            value.as_u64().expect("will not be 0") as usize,
+        ))
     }
     RustTypeMarker::Set(set_vec)
 }
@@ -193,12 +193,12 @@ fn parse_enum(obj: &serde_json::Value) -> RustTypeMarker {
         let obj = obj.as_object().expect("Checked before casting; qed");
         let mut rust_enum = Vec::new();
         for (key, value) in obj.iter() {
-            dbg!(&key);
-            dbg!(&value);
-            rust_enum.push((
-                key.to_string(),
-                parse_type(value.as_str().expect("Will be str; qed")),
-            ))
+            let value = if value.is_null() {
+                "null"
+            } else {
+                value.as_str().expect("will be str; qed")
+            };
+            rust_enum.push((key.to_string(), parse_type(value)))
         }
         RustTypeMarker::Enum(RustEnum::Struct(rust_enum))
     // if enum is an object, it's an enum with tuples defined as structs
@@ -226,7 +226,6 @@ fn parse_type(t: &str) -> RustTypeMarker {
 
         "f32" => RustTypeMarker::F32,
         "f64" => RustTypeMarker::F64,
-
         _ => RustTypeMarker::TypePointer(t.to_string()),
     }
 }

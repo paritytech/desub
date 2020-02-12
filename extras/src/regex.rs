@@ -27,15 +27,14 @@ fn rust_array_decl() -> Regex {
 /// Match a rust vector
 /// allowed to be nested within, or have other (ie Option<>) nested within
 fn rust_vec_decl() -> Regex {
-    Regex::new(r"Vec<([\w><]+)>")
-        .expect("Regex expression should be infallible; qed")
+    Regex::new(r"Vec<([\w><]+)>").expect("Regex expression should be infallible; qed")
 }
 
 /// Match a Rust Option
-/// Allowed to be nested within another type, or have other (ie Vec<>) nested within
+/// Allowed to be nested within another type, or have other (ie Vec<>) nested
+/// within
 fn rust_option_decl() -> Regex {
-    Regex::new(r"Option<([\w><]+)>")
-        .expect("Regex expression should be infallible; qed")
+    Regex::new(r"Option<([\w><]+)>").expect("Regex expression should be infallible; qed")
 }
 
 /// Match a Rust Generic Type Declaration
@@ -47,8 +46,7 @@ fn rust_generic_decl() -> Regex {
 /// Only captures text within the tuples,
 /// need to use 'Matches' (ie `find_iter`) iterator to get all matches
 fn rust_tuple_decl() -> Regex {
-    Regex::new(r"[\w><]+")
-        .expect("Regex expression should be infallible; qed")
+    Regex::new(r"[\w><]+").expect("Regex expression should be infallible; qed")
 }
 
 #[cfg(test)]
@@ -84,48 +82,216 @@ mod tests {
     #[test]
     fn should_seperate_args_in_capture_groups() {
         let re = rust_array_decl();
-       
+
         let caps = caps_to_vec_str(re.captures("[u8; 16]").unwrap());
-        assert_eq!(vec![Some("[u8; 16]"), Some("u"), Some("8"), None, None, None, None, Some("16")], caps);
+        assert_eq!(
+            vec![
+                Some("[u8; 16]"),
+                Some("u"),
+                Some("8"),
+                None,
+                None,
+                None,
+                None,
+                Some("16")
+            ],
+            caps
+        );
 
         let caps = caps_to_vec_str(re.captures("[i8; 16]").unwrap());
-        assert_eq!(vec![Some("[i8; 16]"), Some("i"), Some("8"), None, None, None, None, Some("16")], caps);
+        assert_eq!(
+            vec![
+                Some("[i8; 16]"),
+                Some("i"),
+                Some("8"),
+                None,
+                None,
+                None,
+                None,
+                Some("16")
+            ],
+            caps
+        );
 
         let caps = caps_to_vec_str(re.captures("[u16; 16]").unwrap());
-        assert_eq!(vec![Some("[u16; 16]"), Some("u"), None, Some("16"), None, None, None, Some("16")], caps);
+        assert_eq!(
+            vec![
+                Some("[u16; 16]"),
+                Some("u"),
+                None,
+                Some("16"),
+                None,
+                None,
+                None,
+                Some("16")
+            ],
+            caps
+        );
 
         let caps = caps_to_vec_str(re.captures("[i16; 16]").unwrap());
-        assert_eq!(vec![Some("[i16; 16]"), Some("i"), None, Some("16"), None, None, None, Some("16")], caps);
+        assert_eq!(
+            vec![
+                Some("[i16; 16]"),
+                Some("i"),
+                None,
+                Some("16"),
+                None,
+                None,
+                None,
+                Some("16")
+            ],
+            caps
+        );
 
         let caps = caps_to_vec_str(re.captures("[u32; 16]").unwrap());
-        assert_eq!(vec![Some("[u32; 16]"), Some("u"), None, None, Some("32"), None, None, Some("16")], caps);
+        assert_eq!(
+            vec![
+                Some("[u32; 16]"),
+                Some("u"),
+                None,
+                None,
+                Some("32"),
+                None,
+                None,
+                Some("16")
+            ],
+            caps
+        );
 
         let caps = caps_to_vec_str(re.captures("[i32; 16]").unwrap());
-        assert_eq!(vec![Some("[i32; 16]"), Some("i"), None, None, Some("32"), None, None, Some("16")], caps);
+        assert_eq!(
+            vec![
+                Some("[i32; 16]"),
+                Some("i"),
+                None,
+                None,
+                Some("32"),
+                None,
+                None,
+                Some("16")
+            ],
+            caps
+        );
 
         let caps = caps_to_vec_str(re.captures("[u64; 16]").unwrap());
-        assert_eq!(vec![Some("[u64; 16]"), Some("u"), None, None, None, Some("64"), None, Some("16")], caps);
+        assert_eq!(
+            vec![
+                Some("[u64; 16]"),
+                Some("u"),
+                None,
+                None,
+                None,
+                Some("64"),
+                None,
+                Some("16")
+            ],
+            caps
+        );
 
         let caps = caps_to_vec_str(re.captures("[i64; 16]").unwrap());
-        assert_eq!(vec![Some("[i64; 16]"), Some("i"), None, None, None, Some("64"), None, Some("16")], caps);
+        assert_eq!(
+            vec![
+                Some("[i64; 16]"),
+                Some("i"),
+                None,
+                None,
+                None,
+                Some("64"),
+                None,
+                Some("16")
+            ],
+            caps
+        );
 
         let caps = caps_to_vec_str(re.captures("[u128; 16]").unwrap());
-        assert_eq!(vec![Some("[u128; 16]"), Some("u"), None, None, None, None, Some("128"), Some("16")], caps);
+        assert_eq!(
+            vec![
+                Some("[u128; 16]"),
+                Some("u"),
+                None,
+                None,
+                None,
+                None,
+                Some("128"),
+                Some("16")
+            ],
+            caps
+        );
 
         let caps = caps_to_vec_str(re.captures("[i128; 16]").unwrap());
-        assert_eq!(vec![Some("[i128; 16]"), Some("i"), None, None, None, None, Some("128"), Some("16")], caps);
+        assert_eq!(
+            vec![
+                Some("[i128; 16]"),
+                Some("i"),
+                None,
+                None,
+                None,
+                None,
+                Some("128"),
+                Some("16")
+            ],
+            caps
+        );
 
         let caps = caps_to_vec_str(re.captures("[f32; 16]").unwrap());
-        assert_eq!(vec![Some("[f32; 16]"), Some("f"), None, None, Some("32"), None, None, Some("16")], caps);
+        assert_eq!(
+            vec![
+                Some("[f32; 16]"),
+                Some("f"),
+                None,
+                None,
+                Some("32"),
+                None,
+                None,
+                Some("16")
+            ],
+            caps
+        );
 
         let caps = caps_to_vec_str(re.captures("[f64; 16]").unwrap());
-        assert_eq!(vec![Some("[f64; 16]"), Some("f"), None, None, None, Some("64"), None, Some("16")], caps);
+        assert_eq!(
+            vec![
+                Some("[f64; 16]"),
+                Some("f"),
+                None,
+                None,
+                None,
+                Some("64"),
+                None,
+                Some("16")
+            ],
+            caps
+        );
 
         let caps = caps_to_vec_str(re.captures("[i128; 9999]").unwrap());
-        assert_eq!(vec![Some("[i128; 9999]"), Some("i"), None, None, None, None, Some("128"), Some("9999")], caps);
+        assert_eq!(
+            vec![
+                Some("[i128; 9999]"),
+                Some("i"),
+                None,
+                None,
+                None,
+                None,
+                Some("128"),
+                Some("9999")
+            ],
+            caps
+        );
 
         let caps = caps_to_vec_str(re.captures("[u128; 9999]").unwrap());
-        assert_eq!(vec![Some("[u128; 9999]"), Some("u"), None, None, None, None, Some("128"), Some("9999")], caps);
+        assert_eq!(
+            vec![
+                Some("[u128; 9999]"),
+                Some("u"),
+                None,
+                None,
+                None,
+                None,
+                Some("128"),
+                Some("9999")
+            ],
+            caps
+        );
     }
 
     #[test]
@@ -161,7 +327,8 @@ mod tests {
         assert!(caps[1] == Some("RuntimeVersionApi"));
 
         let re = rust_option_decl();
-        let caps = caps_to_vec_str(re.captures("Option<Vec<RuntimeVersionApi>>").unwrap());
+        let caps =
+            caps_to_vec_str(re.captures("Option<Vec<RuntimeVersionApi>>").unwrap());
         assert!(caps[1] == Some("Vec<RuntimeVersionApi>"));
     }
 
@@ -175,8 +342,16 @@ mod tests {
     #[test]
     fn should_get_arbitrary_type() {
         let re = rust_generic_decl();
-        let caps = caps_to_vec_str(re.captures("GenericOuterType<GenericInnerType>").unwrap());
-        assert_eq!(vec![Some("GenericOuterType<GenericInnerType>"), Some("GenericOuterType"), Some("GenericInnerType")], caps);
+        let caps =
+            caps_to_vec_str(re.captures("GenericOuterType<GenericInnerType>").unwrap());
+        assert_eq!(
+            vec![
+                Some("GenericOuterType<GenericInnerType>"),
+                Some("GenericOuterType"),
+                Some("GenericInnerType")
+            ],
+            caps
+        );
     }
 
     #[test]
@@ -191,10 +366,13 @@ mod tests {
     fn should_get_types_in_tuple() {
         let re = rust_tuple_decl();
         let match_str = "(StorageKey, Option<StorageData>)";
-        let types = re.find_iter(match_str)
-          .map(|m| {
-              match_str[m.start() .. m.end()].to_string()
-          }).collect::<Vec<String>>();
-        assert_eq!(vec!["StorageKey".to_string(), "Option<StorageData>".to_string()], types);
+        let types = re
+            .find_iter(match_str)
+            .map(|m| match_str[m.start() .. m.end()].to_string())
+            .collect::<Vec<String>>();
+        assert_eq!(
+            vec!["StorageKey".to_string(), "Option<StorageData>".to_string()],
+            types
+        );
     }
 }
