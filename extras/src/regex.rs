@@ -14,32 +14,32 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use regex::Regex;
+use regex::{Regex, RegexSet};
 
 /// Match a rust array
 fn rust_array_decl() -> Regex {
     // width of number and unsigned/signed are all in their own capture group
     // size of array is in the last capture group
-    Regex::new(r"^\[([uif]{1})(8)?(16)?(32)?(64)?(128)?;\s?([\d]*)]$")
+    Regex::new(r"^\[(?P<type>[uif]{1})(?P<bit8>8)?(?P<bit16>16)?(?P<bit32>32)?(?P<bit64>64)?(?P<bit128>128)?;\s?(?P<size>[\d]*)]$")
         .expect("Regex expression invalid")
 }
 
 /// Match a rust vector
 /// allowed to be nested within, or have other (ie Option<>) nested within
 fn rust_vec_decl() -> Regex {
-    Regex::new(r"Vec<([\w><]+)>").expect("Regex expression should be infallible; qed")
+    Regex::new(r"Vec<(?P<type>[\w><]+)>").expect("Regex expression should be infallible; qed")
 }
 
 /// Match a Rust Option
 /// Allowed to be nested within another type, or have other (ie Vec<>) nested
 /// within
 fn rust_option_decl() -> Regex {
-    Regex::new(r"Option<([\w><]+)>").expect("Regex expression should be infallible; qed")
+    Regex::new(r"Option<(?P<type>[\w><]+)>").expect("Regex expression should be infallible; qed")
 }
 
 /// Match a Rust Generic Type Declaration
 fn rust_generic_decl() -> Regex {
-    Regex::new(r"([\w]+)<([\w><]+)>")
+    Regex::new(r"(?P<outer_type>[\w]+)<(?P<inner_type>[\w><]+)>")
         .expect("Regex expressions should be infallible; qed")
 }
 
@@ -47,6 +47,16 @@ fn rust_generic_decl() -> Regex {
 /// need to use 'Matches' (ie `find_iter`) iterator to get all matches
 fn rust_tuple_decl() -> Regex {
     Regex::new(r"[\w><]+").expect("Regex expression should be infallible; qed")
+}
+
+fn rust_regex_set() -> RegexSet {
+    RegexSet::new(&[
+        rust_array_decl().as_str(),
+        rust_vec_decl().as_str(),
+        rust_option_decl().as_str(),
+        rust_generic_decl().as_str(),
+        rust_tuple_decl().as_str(),
+    ]).expect("Regex expression should be infallible; qed")
 }
 
 #[cfg(test)]

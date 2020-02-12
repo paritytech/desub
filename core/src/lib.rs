@@ -86,7 +86,7 @@ pub enum RustEnum {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum RustTypeMarker {
-    /// name of a type.
+    /// name of a type that exists elsewhere in type declarations
     TypePointer(String),
 
     /// Some Struct
@@ -101,7 +101,9 @@ pub enum RustTypeMarker {
 
     /// A sized array
     Array {
+        /// size of the array
         size: usize,
+        /// type of array
         ty: String,
     },
 
@@ -136,6 +138,7 @@ pub enum RustTypeMarker {
     /// primitive IEEE-spec 64-bit floating-point number
     F64,
 
+    /// Boolean true/false type
     Bool,
 }
 
