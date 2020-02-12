@@ -25,25 +25,27 @@ mod test_suite;
 use serde::{Deserialize, Serialize};
 
 pub trait TypeDetective {
-    fn get(&self, module: &str, ty: &str) -> RustTypeMarker;
+    type Error;
+    fn get(&self, module: &str, ty: &str) -> Result<&dyn Decodable, Self::Error>;
 }
 
 pub trait Decodable {
-    // fn get(&self, ty: &str) -> &Self;
-    fn as_string(&self) -> String;
-    fn as_str(&self) -> &str;
-    fn as_generic_struct(&self) -> GenericStruct;
-    fn as_type(&self) -> RustTypeMarker;
-    fn as_bytes(&self) -> Vec<u8>;
-    fn as_encoded_bytes(&self) -> Vec<u8>;
+    fn as_type_pointer(&self) -> Option<&str>;
+    fn as_type_pointer_owned(&self) -> Option<String>;
+    fn as_struct(&self) -> Option<&GenericStruct>;
+    fn as_enum(&self) -> Option<&RustEnum>;
+    fn as_set(&self) -> Option<&Vec<SetField>>;
+    fn as_type(&self) -> &RustTypeMarker;
+    fn as_type_owned(&self) -> RustTypeMarker;
 
     fn is_str(&self) -> bool;
-    fn is_bytes(&self) -> bool;
-    fn is_generic_struct(&self) -> bool;
+    fn is_struct(&self) -> bool;
+    fn is_enum(&self) -> bool;
+    fn is_set(&self) -> bool;
     fn is_primitive(&self) -> bool;
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct StructField {
     pub name: String,
     pub ty: RustTypeMarker,
@@ -56,7 +58,7 @@ impl StructField {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct SetField {
     pub name: String,
     pub num: usize,
@@ -74,13 +76,13 @@ impl SetField {
 
 type GenericStruct = Vec<StructField>;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum RustEnum {
     Unit(Vec<String>),
     Struct(Vec<StructField>),
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum RustTypeMarker {
     /// name of a type that exists elsewhere in type declarations
     TypePointer(String),
@@ -136,6 +138,104 @@ pub enum RustTypeMarker {
 
     /// Boolean true/false type
     Bool,
+}
+
+impl Decodable for RustTypeMarker {
+
+    fn as_type_pointer(&self) -> Option<&str> {
+        match self {
+            RustTypeMarker::TypePointer(s) => Some(s),
+            _ => None,
+        }
+    }
+
+    fn as_type_pointer_owned(&self) -> Option<String> {
+        match self {
+            RustTypeMarker::TypePointer(s) => Some(s.clone()),
+            _ => None
+        }
+    }
+
+    fn as_struct(&self) -> Option<&GenericStruct> {
+        match self {
+            RustTypeMarker::Struct(ref s) => Some(s),
+            _ => None
+        }
+    }
+
+    fn as_enum(&self) -> Option<&RustEnum> {
+        match self {
+            RustTypeMarker::Enum(ref e) => Some(e),
+            _ => None
+        }
+    }
+
+    fn as_set(&self) -> Option<&Vec<SetField>> {
+        match self {
+            RustTypeMarker::Set(ref s) => Some(s),
+            _ => None
+        }
+    }
+
+    fn as_type(&self) -> &RustTypeMarker {
+        self
+    }
+
+    fn as_type_owned(&self) -> RustTypeMarker {
+        self.clone()
+    }
+
+    fn is_str(&self) -> bool {
+        match self {
+            RustTypeMarker::TypePointer(_) => true,
+            _ => false
+        }
+    }
+
+    fn is_struct(&self) -> bool {
+        match self {
+            RustTypeMarker::Struct(_) => true,
+            _ => false
+        }
+    }
+
+    fn is_enum(&self) -> bool {
+        match self {
+            RustTypeMarker::Enum(_) => true,
+            _ => false
+        }
+    }
+
+    fn is_set(&self) -> bool {
+        match self {
+            RustTypeMarker::Set(_) => true,
+            _ => false
+        }
+    }
+
+    fn is_primitive(&self) -> bool {
+        match self {
+            RustTypeMarker::U8 => true,
+            RustTypeMarker::U16 => true,
+            RustTypeMarker::U32 => true,
+            RustTypeMarker::U64 => true,
+            RustTypeMarker::U128 => true,
+            RustTypeMarker::USize => true,
+
+            RustTypeMarker::I8 => true,
+            RustTypeMarker::I16 => true,
+            RustTypeMarker::I32 => true,
+            RustTypeMarker::I64 => true,
+            RustTypeMarker::I128 => true,
+            RustTypeMarker::ISize => true,
+
+            RustTypeMarker::F32 => true,
+            RustTypeMarker::F64 => true,
+
+            RustTypeMarker::Bool => true,
+            _ => false
+        }
+    }
 }
 
 #[cfg(test)]

@@ -18,23 +18,23 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 // TODO: open this file or pass it via CLI to reduce binary size
-const OVERRIDES: &'static str = include_str!("./dot_definitions/overrides.json");
+pub const OVERRIDES: &'static str = include_str!("./dot_definitions/overrides.json");
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
 #[serde(transparent)]
 pub struct TypesModule {
     /// Module -> Types
     types: HashMap<String, ModuleTypes>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
 pub struct TypesSpec {
     /// Network -> overrides
     #[serde(flatten)]
     spec: HashMap<String, Vec<SingleOverride>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
 pub struct SingleOverride {
     /// the spec these overrides are relevant for
     #[serde(rename = "minmax")]
@@ -44,7 +44,7 @@ pub struct SingleOverride {
     types: ModuleTypes,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
 pub struct Overrides {
     #[serde(rename = "TYPES_MODULES")]
     types_modules: TypesModule,
@@ -89,7 +89,6 @@ mod tests {
         let single_override: SingleOverride = serde_json::from_str(json).unwrap();
         dbg!(single_override);
     }
-
     #[test]
     fn should_deserialize_into_spec() {
         let json = r#"

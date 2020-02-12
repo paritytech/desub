@@ -13,39 +13,39 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{error::Error, regex};
-use super::{PolkadotTypes, ModuleTypes};
+use super::{Modules, ModuleTypes};
 use core::{decoder::Decoder, RustEnum, RustTypeMarker, SetField, StructField};
 use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
 use std::{collections::HashMap, fmt, marker::PhantomData};
 
 // TODO: open this file or pass it via CLI to reduce binary size
-const DEFS: &'static str = include_str!("./dot_definitions/definitions.json");
+pub const DEFS: &'static str = include_str!("./dot_definitions/definitions.json");
 
 pub fn register() -> Result<(), Error> {
     let decoder = Decoder::new();
     Ok(())
 }
 
-pub fn definitions(raw_json: &str) -> Result<PolkadotTypes, Error> {
-    let types: PolkadotTypes = serde_json::from_str(raw_json)?;
+pub fn definitions(raw_json: &str) -> Result<Modules, Error> {
+    let types: Modules = serde_json::from_str(raw_json)?;
     Ok(types)
 }
 
-impl<'de> Deserialize<'de> for PolkadotTypes {
+impl<'de> Deserialize<'de> for Modules {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        struct PolkadotTypesVisitor;
+        struct ModulesVisitor;
 
-        impl<'de> Visitor<'de> for PolkadotTypesVisitor {
-            type Value = PolkadotTypes;
+        impl<'de> Visitor<'de> for ModulesVisitor {
+            type Value = Modules;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("map types")
             }
 
-            fn visit_map<V>(self, mut map: V) -> Result<PolkadotTypes, V::Error>
+            fn visit_map<V>(self, mut map: V) -> Result<Modules, V::Error>
             where
                 V: MapAccess<'de>,
             {
@@ -58,10 +58,10 @@ impl<'de> Deserialize<'de> for PolkadotTypes {
                         }
                     }
                 }
-                Ok(PolkadotTypes { modules })
+                Ok(Modules { modules })
             }
         }
-        deserializer.deserialize_map(PolkadotTypesVisitor)
+        deserializer.deserialize_map(ModulesVisitor)
     }
 }
 
@@ -438,7 +438,7 @@ mod tests {
 
         let mod_types = ModuleTypes { types };
         modules.insert("runtime".to_string(), mod_types);
-        let dot_types = PolkadotTypes { modules };
+        let dot_types = Modules { modules };
         assert_eq!(dot_types, deser_dot_types);
         Ok(())
     }

@@ -14,12 +14,31 @@
 mod definitions;
 mod overrides;
 
-use core::{RustTypeMarker, Decodable};
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 
-#[derive(Serialize, Default, Debug, PartialEq, Eq)]
+use crate::error::Error;
+use core::{RustTypeMarker, Decodable, TypeDetective};
+
+use self::overrides::Overrides;
+
+#[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq)]
 pub struct PolkadotTypes {
+    pub mods: Modules,
+    pub overrides: Overrides
+}
+
+impl PolkadotTypes {
+    pub fn new() -> Result<Self, Error> {
+        Ok(PolkadotTypes {
+            mods:  definitions::definitions(definitions::DEFS)?,
+            overrides: overrides::overrides(overrides::OVERRIDES)?
+        })
+    }
+}
+
+#[derive(Serialize, Default, Debug, PartialEq, Eq)]
+pub struct Modules {
     // module name -> Type Map of module
     pub modules: HashMap<String, ModuleTypes>,
 }
@@ -31,7 +50,22 @@ pub struct ModuleTypes {
 }
 
 impl TypeDetective for PolkadotTypes {
-    fn get(&self, module: &str, ty: &str) -> Result<RustTypeMarker, Error> {
-       self.modules.get(module)
+    type Error = Error;
+    fn get(&self, module: &str, ty: &str) -> Result<&dyn Decodable, Error> {
+        Ok(self.mods.modules
+           .get(module)
+           .ok_or(Error::NotFound(format!("Module {}", module)))?
+           .types
+           .get(ty)
+           .ok_or(Error::NotFound(format!("Type {}", ty)))?)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn should_get_type() {
     }
 }
