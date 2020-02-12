@@ -12,5 +12,161 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
+use super::ModuleTypes;
+use crate::error::Error;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
 // TODO: open this file or pass it via CLI to reduce binary size
 const OVERRIDES: &'static str = include_str!("./dot_definitions/overrides.json");
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct TypesModule {
+    /// Module -> Types
+    types: HashMap<String, ModuleTypes>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TypesSpec {
+    /// Network -> overrides
+    #[serde(flatten)]
+    spec: HashMap<String, Vec<SingleOverride>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SingleOverride {
+    /// the spec these overrides are relevant for
+    #[serde(rename = "minmax")]
+    min_max: [Option<usize>; 2],
+    /// types that are being overriden
+    /// points to the types that should be used instead in definitions.json
+    types: ModuleTypes,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Overrides {
+    #[serde(rename = "TYPES_MODULES")]
+    types_modules: TypesModule,
+    #[serde(rename = "TYPES_META")]
+    types_meta: Vec<SingleOverride>,
+    #[serde(rename = "TYPES_SPEC")]
+    types_spec: TypesSpec,
+}
+
+pub fn overrides(raw_json: &str) -> Result<Overrides, Error> {
+    let types: Overrides = serde_json::from_str(raw_json)?;
+    Ok(types)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn should_deserialize_overrides() {
+        let overrides = overrides(OVERRIDES).unwrap();
+        dbg!(overrides);
+    }
+
+    #[test]
+    fn should_deserialize_into_single_override() {
+        let json = r#"
+        {
+            "minmax": [
+                1020,
+                1031
+            ],
+            "types": {
+                "BalanceLock": "BalanceLockTo212",
+                "DispatchError": "DispatchErrorTo198",
+                "Keys": "SessionKeys5",
+                "SlashingSpans": "SlashingSpansTo204"
+            }
+        }
+        "#;
+
+        let single_override: SingleOverride = serde_json::from_str(json).unwrap();
+        dbg!(single_override);
+    }
+
+    #[test]
+    fn should_deserialize_into_spec() {
+        let json = r#"
+        {
+        "kusama": [
+            {
+                "minmax": [
+                1019,
+                1031
+                ],
+                "types": {
+                "BalanceLock": "BalanceLockTo212",
+                "DispatchError": "DispatchErrorTo198",
+                "Keys": "SessionKeys5",
+                "SlashingSpans": "SlashingSpansTo204"
+                }
+            },
+            {
+                "minmax": [
+                1032,
+                1042
+                ],
+                "types": {
+                "BalanceLock": "BalanceLockTo212",
+                "Keys": "SessionKeys5",
+                "SlashingSpans": "SlashingSpansTo204"
+                }
+            },
+            {
+                "minmax": [
+                1043,
+                null
+                ],
+                "types": {
+                "BalanceLock": "BalanceLockTo212",
+                "Keys": "SessionKeys5"
+                }
+            }
+            ],
+            "polkadot": [
+            {
+                "minmax": [
+                1000,
+                null
+                ],
+                "types": {
+                "Keys": "SessionKeys5"
+                }
+            }
+            ]
+        }
+        "#;
+
+        let types_spec: TypesSpec = serde_json::from_str(json).unwrap();
+        dbg!(types_spec);
+    }
+
+    #[test]
+    fn should_deserialize_types_meta() {
+        let json = r#"
+        [
+            {
+            "minmax": [
+                0,
+                4
+            ],
+            "types": {
+                "BlockNumber": "u64",
+                "Index": "u64",
+                "EventRecord": "EventRecordTo76",
+                "ValidatorPrefs": "ValidatorPrefsTo145"
+            }
+            }
+        ]
+        "#;
+        let types_meta: Vec<SingleOverride> = serde_json::from_str(json).unwrap();
+        dbg!(types_meta);
+
+    }
+}

@@ -12,5 +12,20 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 mod definitions;
-mod extrinsics;
 mod overrides;
+
+use core::RustTypeMarker;
+use std::collections::HashMap;
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Default, Debug, PartialEq, Eq)]
+pub struct PolkadotTypes {
+    // module name -> Type Map of module
+    pub modules: HashMap<String, ModuleTypes>,
+}
+
+#[derive(Serialize, Debug, Default, PartialEq, Eq)]
+pub struct ModuleTypes {
+    // Type Name -> Type
+    pub types: HashMap<String, RustTypeMarker>,
+}

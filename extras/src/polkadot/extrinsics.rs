@@ -13,4 +13,20 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 // TODO: open this file or pass it via CLI to reduce binary size
+use serde::{Deserialize, Serialize};
 const EXTRINSICS: &'static str = include_str!("./dot_definitions/extrinsics.json");
+
+
+pub struct Versions {
+    min: f32,
+    max: f32
+}
+
+pub type Signature = String;
+pub type Function = String;
+
+pub struct Address {
+    ty: String,
+    named: bool,
+    types: HashMap<String, RustTypeMarker>
+}

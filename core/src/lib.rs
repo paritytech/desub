@@ -32,7 +32,7 @@ pub trait Decodable {
     fn as_string(&self) -> String;
     fn as_str(&self) -> &str;
     fn as_generic_struct(&self) -> GenericStruct;
-    fn as_primitive(&self) -> RustTypeMarker;
+    fn as_type(&self) -> RustTypeMarker;
     fn as_bytes(&self) -> Vec<u8>;
     fn as_encoded_bytes(&self) -> Vec<u8>;
 
@@ -71,12 +71,7 @@ impl SetField {
     }
 }
 
-// tuples may be represented as anonymous structs
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct GenericStruct {
-    // Field name => Field tpye
-    fields: Vec<StructField>,
-}
+type GenericStruct = Vec<StructField>;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum RustEnum {

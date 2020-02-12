@@ -13,6 +13,7 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{error::Error, regex};
+use super::{PolkadotTypes, ModuleTypes};
 use core::{decoder::Decoder, RustEnum, RustTypeMarker, SetField, StructField};
 use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
 use std::{collections::HashMap, fmt, marker::PhantomData};
@@ -28,18 +29,6 @@ pub fn register() -> Result<(), Error> {
 pub fn definitions(raw_json: &str) -> Result<PolkadotTypes, Error> {
     let types: PolkadotTypes = serde_json::from_str(raw_json)?;
     Ok(types)
-}
-
-#[derive(Default, Debug, PartialEq, Eq)]
-pub struct PolkadotTypes {
-    // module name -> Type Map of module
-    pub modules: HashMap<String, ModuleTypes>,
-}
-
-#[derive(Debug, Default, PartialEq, Eq)]
-pub struct ModuleTypes {
-    // Type Name -> Type
-    pub types: HashMap<String, RustTypeMarker>,
 }
 
 impl<'de> Deserialize<'de> for PolkadotTypes {
@@ -111,7 +100,11 @@ impl<'de> Visitor<'de> for ModuleTypeVisitor {
                         parse_mod_types(&mut module_types, key, val);
                     }
                 }
-                _ => panic!("Received key that should not exist"),
+                m @ _ => {
+                    let val: serde_json::Value = map.next_value()?;
+                    //let val = val.as_object().expect("Types must refer to an object");
+                    parse_mod_types(&mut module_types, m, &val);
+                }
             }
         }
         Ok(ModuleTypes {
@@ -229,56 +222,64 @@ fn parse_type(t: &str) -> RustTypeMarker {
             if re.is_match(s) {
                 let caps = re.captures(s).expect("checked for array declaration; ");
 
-                let t = caps.name("type").expect("type match should always exist").as_str();
+                let t = caps
+                    .name("type")
+                    .expect("type match should always exist")
+                    .as_str();
                 let size = caps.name("size").expect("name match should always exist");
-                let caps = caps.iter().map(|c| c.map(|c| c.as_str()))
-                           .collect::<Vec<Option<&str>>>();
+                let caps = caps
+                    .iter()
+                    .map(|c| c.map(|c| c.as_str()))
+                    .collect::<Vec<Option<&str>>>();
 
                 let ty = if caps[2].is_some() {
                     match t {
                         "u" => RustTypeMarker::U8,
                         "i" => RustTypeMarker::I8,
                         "f" => panic!("type does not exist 'f8'"),
-                        _ => panic!("impossible match encountered")
+                        _ => panic!("impossible match encountered"),
                     }
                 } else if caps[3].is_some() {
                     match t {
                         "u" => RustTypeMarker::U16,
                         "i" => RustTypeMarker::I16,
                         "f" => panic!("type does not exist 'f16'"),
-                        _ => panic!("impossible match encountered")
+                        _ => panic!("impossible match encountered"),
                     }
                 } else if caps[4].is_some() {
                     match t {
                         "u" => RustTypeMarker::U32,
                         "i" => RustTypeMarker::I32,
                         "f" => RustTypeMarker::F32,
-                        _ => panic!("impossible match encountered")
+                        _ => panic!("impossible match encountered"),
                     }
                 } else if caps[5].is_some() {
                     match t {
                         "u" => RustTypeMarker::U64,
                         "i" => RustTypeMarker::I64,
                         "f" => RustTypeMarker::F64,
-                        _ => panic!("impossible match encountered")
+                        _ => panic!("impossible match encountered"),
                     }
                 } else if caps[6].is_some() {
                     match t {
                         "u" => RustTypeMarker::U128,
                         "i" => RustTypeMarker::I128,
                         "f" => panic!("type does not exist: 'f128'"),
-                        _ => panic!("impossible match encountered")
+                        _ => panic!("impossible match encountered"),
                     }
                 } else {
                     panic!("Couldn't determine size of array");
                 };
                 let ty = Box::new(ty);
-                let size = size.as_str().parse::<usize>().expect("Should always be number");
+                let size = size
+                    .as_str()
+                    .parse::<usize>()
+                    .expect("Should always be number");
                 RustTypeMarker::Array { size, ty }
             } else {
                 RustTypeMarker::TypePointer(t.to_string())
             }
-        },
+        }
     }
 }
 
