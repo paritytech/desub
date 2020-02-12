@@ -24,10 +24,8 @@
 //! Theoretically, one could upload the deserialized decoder JSON to distribute
 //! to different applications that need the type data
 
-use super::metadata::{Metadata as SubstrateMetadata, ModuleMetadata};
-use runtime_version::RuntimeVersion;
+use super::metadata::{Metadata as SubstrateMetadata};
 use std::collections::HashMap;
-use std::rc::Rc;
 
 type SpecVersion = u32;
 /// Decoder for substrate types
@@ -178,10 +176,7 @@ mod tests {
         let mut decoder = Decoder::new();
         let rt_version = test_suite::mock_runtime(0);
         let meta = meta_test_suite::test_metadata();
-        decoder.register_version(SubstrateMetadata {
-            version: rt_version.clone(),
-            metadata: meta.clone(),
-        });
+        decoder.register_version(rt_version.spec_version.clone(), meta.clone());
         let _other_meta = decoder.get_version_metadata(&rt_version);
         assert_eq!(Some(meta), _other_meta.clone())
     }

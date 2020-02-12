@@ -14,7 +14,7 @@
 mod definitions;
 mod overrides;
 
-use core::RustTypeMarker;
+use core::{RustTypeMarker, Decodable};
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 
@@ -28,4 +28,10 @@ pub struct PolkadotTypes {
 pub struct ModuleTypes {
     // Type Name -> Type
     pub types: HashMap<String, RustTypeMarker>,
+}
+
+impl TypeDetective for PolkadotTypes {
+    fn get(&self, module: &str, ty: &str) -> Result<RustTypeMarker, Error> {
+       self.modules.get(module)
+    }
 }

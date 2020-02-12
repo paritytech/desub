@@ -25,10 +25,11 @@ mod test_suite;
 use serde::{Deserialize, Serialize};
 
 pub trait TypeDetective {
-    fn get(ty: &str) -> &Decodable;
+    fn get(&self, module: &str, ty: &str) -> RustTypeMarker;
 }
 
 pub trait Decodable {
+    // fn get(&self, ty: &str) -> &Self;
     fn as_string(&self) -> String;
     fn as_str(&self) -> &str;
     fn as_generic_struct(&self) -> GenericStruct;
