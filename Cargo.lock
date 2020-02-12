@@ -316,6 +316,7 @@ version = "0.0.1"
 dependencies = [
  "desub-core",
  "env_logger",
+ "failure",
  "log",
  "parity-scale-codec",
  "regex",

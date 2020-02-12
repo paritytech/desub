@@ -43,17 +43,45 @@ pub trait Decodable {
     fn is_primitive(&self) -> bool;
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StructField {
+    name: String,
+    ty: RustTypeMarker
+}
+
+impl StructField {
+
+    pub fn new<S: Into<String>>(name: S, ty: RustTypeMarker) -> Self {
+        let name = name.into();
+        Self { name, ty }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SetField {
+    name: String,
+    num: usize
+}
+
+impl SetField {
+    pub fn new<S: Into<String>, N: Into<u64>>(name: S, num: N) -> Self {
+        let (name, num) = (name.into(), num.into());
+        Self { name, num: num as usize }
+    }
+}
+
 // tuples may be represented as anonymous structs
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GenericStruct {
     // Field name => Field tpye
-    fields: Vec<(String, RustTypeMarker)>
+    fields: Vec<StructField>
 }
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum RustEnum {
     Unit(Vec<String>),
-    Struct(Vec<(String, RustTypeMarker)>)
+    Struct(Vec<StructField>)
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -64,10 +92,10 @@ pub enum RustTypeMarker {
 
     /// Some Struct
     /// Field Name -> Field Type
-    Struct (Vec<(String, RustTypeMarker)>),
+    Struct (Vec<StructField>),
 
     // A C-Like Enum
-    Set(Vec<(String, usize)>),
+    Set(Vec<SetField>),
 
     /// Some Enum
     Enum(RustEnum),

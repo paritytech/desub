@@ -5,3 +5,5 @@ pub mod polkadot;
 
 #[cfg(feature = "regular_expressions")]
 pub mod regex;
+
+pub mod error;

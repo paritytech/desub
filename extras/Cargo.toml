@@ -6,6 +6,7 @@ edition = "2018"
 
 
 [dependencies]
+failure = "0.1"
 core = { path = "../core", package = "desub-core" }
 codec = { version = "1.1", features = ["derive"], package = "parity-scale-codec" }
 log = { version = "0.4" }

@@ -1,6 +1,4 @@
 // Copyright 2019 Parity Technologies (UK) Ltd.
-// This file is part of substrate-desub.
-//
 // substrate-desub is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -14,21 +12,22 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use core::{decoder::Decoder, RustEnum, RustTypeMarker};
+use core::{decoder::Decoder, RustEnum, RustTypeMarker, StructField, SetField};
 use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
 use std::{collections::HashMap, fmt, marker::PhantomData};
+use super::error::Error;
 
 // TODO: open this file or pass it via CLI to reduce binary size
 const DEFS: &'static str = include_str!("./definitions/definitions.json");
 
-pub fn register() {
+pub fn register() -> Result<(), Error> {
     let decoder = Decoder::new();
-    let decoded: PolkadotTypes =
-        serde_json::from_str(DEFS).expect("Deserialization is infallible");
-    dbg!(decoded);
-    //    let decoded: serde_json::Value = serde_json::from_str(DEFS)
-    //        .expect("Deserialization is infallible");
-    //    dbg!(decoded);
+    Ok(())
+}
+
+pub fn definitions(raw_json: &str) -> Result<PolkadotTypes, Error> {
+    let types: PolkadotTypes = serde_json::from_str(raw_json)?;
+    Ok(types)
 }
 
 #[derive(Default, Debug)]
@@ -54,7 +53,7 @@ impl<'de> Deserialize<'de> for PolkadotTypes {
             type Value = PolkadotTypes;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("Map types")
+                formatter.write_str("map types")
             }
 
             fn visit_map<V>(self, mut map: V) -> Result<PolkadotTypes, V::Error>
@@ -63,9 +62,6 @@ impl<'de> Deserialize<'de> for PolkadotTypes {
             {
                 let mut modules: HashMap<String, ModuleTypes> = HashMap::new();
                 while let Some(key) = map.next_key::<&str>()? {
-                    // this key are all modules, IE
-                    // "runtime", "metadata", "rpc", etc
-                    // and then it goes "types": { string: string / string : object /  }
                     match key {
                         _ => {
                             let val: ModuleTypes = map.next_value()?;
@@ -133,7 +129,7 @@ fn parse_mod_types(
     if val.is_string() {
         module_types.insert(
             key.to_string(),
-            RustTypeMarker::TypePointer(val.as_str().expect("Checked; qed").to_string()),
+            parse_type(val.as_str().expect("Checked; qed"))
         );
     } else if val.is_object() {
         let obj = val
@@ -149,7 +145,8 @@ fn parse_mod_types(
         } else {
             let mut fields = Vec::new();
             for (key, val) in obj.iter() {
-                fields.push((key.to_string(), parse_type(&val_to_str(val))));
+                let field = StructField::new(key, parse_type(&val_to_str(val)));
+                fields.push(field);
             }
             let t = RustTypeMarker::Struct(fields);
             module_types.insert(key.to_string(), t);
@@ -168,10 +165,8 @@ fn val_to_str(v: &serde_json::Value) -> String {
 fn parse_set(obj: &serde_json::map::Map<String, serde_json::Value>) -> RustTypeMarker {
     let mut set_vec = Vec::new();
     for (key, value) in obj.iter() {
-        set_vec.push((
-            key.to_string(),
-            value.as_u64().expect("will not be 0") as usize,
-        ))
+        let set_field = SetField::new(key, value.as_u64().expect("will not be negative"));
+        set_vec.push(set_field)
     }
     RustTypeMarker::Set(set_vec)
 }
@@ -198,7 +193,8 @@ fn parse_enum(obj: &serde_json::Value) -> RustTypeMarker {
             } else {
                 value.as_str().expect("will be str; qed")
             };
-            rust_enum.push((key.to_string(), parse_type(value)))
+            let field = StructField::new(key, parse_type(value));
+            rust_enum.push(field);
         }
         RustTypeMarker::Enum(RustEnum::Struct(rust_enum))
     // if enum is an object, it's an enum with tuples defined as structs
@@ -233,9 +229,61 @@ fn parse_type(t: &str) -> RustTypeMarker {
 #[cfg(test)]
 mod tests {
     use super::*;
+const RAW_JSON: &'static str = r#"
+{
+	"runtime": {
+		"types": {
+			"Extrinsic": "GenericExtrinsic",
+			"hash": "H512",
+			"BlockNumber": "u64",
+			"ChangesTrieConfiguration": {
+				"digestInterval": "u32",
+				"digestLevels": "u32"
+			},
+			"DispatchInfo": {
+				"weight": "Weight",
+				"class": "DispatchClass",
+				"paysFee": "bool"
+			},
+			"MultiSignature": {
+				"_enum": {
+					"Ed25519": "Ed25519Signature",
+					"Sr25519": "Sr25519Signature",
+					"Ecdsa": "EcdsaSignature"
+				}
+			},
+			"Reasons": {
+				"_enum": [
+					"Fee",
+					"Misc",
+					"All"
+				]
+			},
+			"WithdrawReasons": {
+				"_set": {
+					"TransactionPayment": 1,
+					"Transfer": 2,
+					"Reserve": 4,
+					"Fee": 8,
+					"Tip": 16
+				}
+			}
+		}
+	}
+}
+"#;
 
     #[test]
-    fn should_deserialize() {
-        register()
+    fn should_deserialize() -> Result<(), Error> {
+        let types = definitions(DEFS)?;
+        dbg!(&types);
+        Ok(())
+    }
+
+    #[test]
+    fn should_deserialize_correctly() -> Result<() ,Error> {
+        let types = definitions(RAW_JSON)?;
+        dbg!(&types);
+        Ok(())
     }
 }
