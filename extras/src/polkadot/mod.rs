@@ -75,7 +75,7 @@ impl PolkadotTypes {
     }
 
     /// try to resolve a type pointer
-    pub fn resolve(ty: RustTypeMarker) -> RustTypeMarker {
+    pub fn resolve(_ty: RustTypeMarker) -> RustTypeMarker {
         unimplemented!()
     }
 }
@@ -110,7 +110,7 @@ impl TypeDetective for PolkadotTypes {
         chain: &str,
     ) -> Result<&dyn Decodable, Error> {
         let module = module.to_ascii_lowercase();
-        let chain = module.to_ascii_lowercase();
+        let chain = chain.to_ascii_lowercase();
         let decodable =
             self.get(&module, ty, spec, &chain)
                 .ok_or(Error::NotFound(format!(

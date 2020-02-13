@@ -80,7 +80,7 @@ impl Decoder {
     ///
     /// # Note
     /// Returns None if version is nonexistant
-    fn get_version_metadata(&self, version: &SpecVersion) -> Option<&SubstrateMetadata> {
+    pub fn get_version_metadata(&self, version: &SpecVersion) -> Option<&SubstrateMetadata> {
         self.versions.get(version)
     }
 
@@ -93,7 +93,7 @@ impl Decoder {
 
     /// dynamically Decode a SCALE-encoded byte string into it's concrete rust
     /// types
-    pub fn decode(&self, spec: SpecVersion, module: String, ty: String, data: Vec<u8>) {
+    pub fn decode(&self, spec: SpecVersion, _module: String, _ty: String, _data: Vec<u8>) {
         // have to go to registry and get by TypeId
         let meta = self.versions.get(&spec).expect("Spec does not exist");
         // let types = types.get(&module).expect("Module not found");

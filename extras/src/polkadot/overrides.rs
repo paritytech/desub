@@ -58,7 +58,7 @@ impl Overrides {
     /// get a module types based upon spec
     pub fn get_chain_types(&self, chain: &str, spec: usize) -> Option<&ModuleTypes> {
         self.types_spec
-            .get("kusama")?
+            .get(chain)?
             .iter()
             .find(|f| Self::is_in_range(spec, f))
             .map(|o| &o.types)

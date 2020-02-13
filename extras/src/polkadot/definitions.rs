@@ -14,17 +14,12 @@
 
 use crate::{error::Error, regex};
 use super::{Modules, ModuleTypes};
-use core::{decoder::Decoder, RustEnum, RustTypeMarker, SetField, StructField};
+use core::{RustEnum, RustTypeMarker, SetField, StructField};
 use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
-use std::{collections::HashMap, fmt, marker::PhantomData};
+use std::{collections::HashMap, fmt};
 
 // TODO: open this file or pass it via CLI to reduce binary size
 pub const DEFS: &'static str = include_str!("./dot_definitions/definitions.json");
-
-pub fn register() -> Result<(), Error> {
-    let decoder = Decoder::new();
-    Ok(())
-}
 
 pub fn definitions(raw_json: &str) -> Result<Modules, Error> {
     let types: Modules = serde_json::from_str(raw_json)?;
@@ -118,7 +113,6 @@ fn parse_mod_types(
     key: &str,
     val: &serde_json::Value,
 ) {
-    let mut t: Option<RustTypeMarker> = None;
     if val.is_string() {
         module_types.insert(
             key.to_string(),
@@ -128,8 +122,6 @@ fn parse_mod_types(
         let obj = val
             .as_object()
             .expect("checked for object before unwrap; qed");
-
-        let mut fields: Option<Vec<RustTypeMarker>> = None;
         if obj.contains_key("_enum") {
             module_types.insert(key.to_string(), parse_enum(&obj["_enum"]));
         } else if obj.contains_key("_set") {
@@ -141,8 +133,7 @@ fn parse_mod_types(
                 let field = StructField::new(key, parse_type(&val_to_str(val)));
                 fields.push(field);
             }
-            let t = RustTypeMarker::Struct(fields);
-            module_types.insert(key.to_string(), t);
+            module_types.insert(key.to_string(), RustTypeMarker::Struct(fields));
         }
     }
 }

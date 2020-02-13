@@ -5,8 +5,6 @@ use failure::Fail;
 pub enum Error {
     #[fail(display = "Codec {:?}", _0)]
     Codec(#[fail(cause)] CodecError),
-    #[fail(display = "{} Not Found", _0)]
-    NotFound(String)
 }
 
 impl From<CodecError> for Error {
