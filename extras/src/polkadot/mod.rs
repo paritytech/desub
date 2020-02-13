@@ -14,26 +14,58 @@
 mod definitions;
 mod overrides;
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
 
 use crate::error::Error;
-use core::{RustTypeMarker, Decodable, TypeDetective};
+use core::{Decodable, RustTypeMarker, TypeDetective};
 
 use self::overrides::Overrides;
 
 #[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq)]
 pub struct PolkadotTypes {
     pub mods: Modules,
-    pub overrides: Overrides
+    pub overrides: Overrides,
 }
 
 impl PolkadotTypes {
     pub fn new() -> Result<Self, Error> {
         Ok(PolkadotTypes {
-            mods:  definitions::definitions(definitions::DEFS)?,
-            overrides: overrides::overrides(overrides::OVERRIDES)?
+            mods: definitions::definitions(definitions::DEFS)?,
+            overrides: Overrides::new(overrides::OVERRIDES)?,
         })
+    }
+
+    pub fn get(
+        &self,
+        module: &str,
+        ty: &str,
+        spec: usize,
+        chain: &str,
+    ) -> Result<RustTypeMarker, Error> {
+
+        unimplemented!()
+    }
+
+
+    /// check if an override exists for a given type
+    ///
+    /// if it does, return the types/type pointer
+    pub fn check_overrides(
+        &self,
+        module: &str,
+        ty: &str,
+        spec: usize,
+        chain: &str,
+    ) -> Option<RustTypeMarker> {
+        unimplemented!()
+        // self.overrides.
+    }
+
+    /// try to resolve a type pointer
+    pub fn resolve(ty: RustTypeMarker) -> RustTypeMarker {
+
+        unimplemented!()
     }
 }
 
@@ -51,13 +83,22 @@ pub struct ModuleTypes {
 
 impl TypeDetective for PolkadotTypes {
     type Error = Error;
-    fn get(&self, module: &str, ty: &str) -> Result<&dyn Decodable, Error> {
-        Ok(self.mods.modules
-           .get(module)
-           .ok_or(Error::NotFound(format!("Module {}", module)))?
-           .types
-           .get(ty)
-           .ok_or(Error::NotFound(format!("Type {}", ty)))?)
+
+    fn get(
+        &self,
+        module: &str,
+        ty: &str,
+        spec: usize,
+        chain: &str,
+    ) -> Result<&dyn Decodable, Error> {
+        Ok(self
+            .mods
+            .modules
+            .get(module)
+            .ok_or(Error::NotFound(format!("Module {}", module)))?
+            .types
+            .get(ty)
+            .ok_or(Error::NotFound(format!("Type {}", ty)))?)
     }
 }
 
@@ -66,6 +107,5 @@ mod tests {
     use super::*;
 
     #[test]
-    fn should_get_type() {
-    }
+    fn should_get_type() {}
 }

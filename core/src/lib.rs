@@ -26,7 +26,14 @@ use serde::{Deserialize, Serialize};
 
 pub trait TypeDetective {
     type Error;
-    fn get(&self, module: &str, ty: &str) -> Result<&dyn Decodable, Self::Error>;
+    /// Get a 'Decodable' type
+    fn get(
+        &self,
+        module: &str,
+        ty: &str,
+        spec: usize,
+        chain: &str,
+    ) -> Result<&dyn Decodable, Self::Error>;
 }
 
 pub trait Decodable {
@@ -141,7 +148,6 @@ pub enum RustTypeMarker {
 }
 
 impl Decodable for RustTypeMarker {
-
     fn as_type_pointer(&self) -> Option<&str> {
         match self {
             RustTypeMarker::TypePointer(s) => Some(s),
@@ -152,28 +158,28 @@ impl Decodable for RustTypeMarker {
     fn as_type_pointer_owned(&self) -> Option<String> {
         match self {
             RustTypeMarker::TypePointer(s) => Some(s.clone()),
-            _ => None
+            _ => None,
         }
     }
 
     fn as_struct(&self) -> Option<&GenericStruct> {
         match self {
             RustTypeMarker::Struct(ref s) => Some(s),
-            _ => None
+            _ => None,
         }
     }
 
     fn as_enum(&self) -> Option<&RustEnum> {
         match self {
             RustTypeMarker::Enum(ref e) => Some(e),
-            _ => None
+            _ => None,
         }
     }
 
     fn as_set(&self) -> Option<&Vec<SetField>> {
         match self {
             RustTypeMarker::Set(ref s) => Some(s),
-            _ => None
+            _ => None,
         }
     }
 
@@ -188,28 +194,28 @@ impl Decodable for RustTypeMarker {
     fn is_str(&self) -> bool {
         match self {
             RustTypeMarker::TypePointer(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     fn is_struct(&self) -> bool {
         match self {
             RustTypeMarker::Struct(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     fn is_enum(&self) -> bool {
         match self {
             RustTypeMarker::Enum(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     fn is_set(&self) -> bool {
         match self {
             RustTypeMarker::Set(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -233,7 +239,7 @@ impl Decodable for RustTypeMarker {
             RustTypeMarker::F64 => true,
 
             RustTypeMarker::Bool => true,
-            _ => false
+            _ => false,
         }
     }
 }

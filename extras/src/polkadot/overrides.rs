@@ -21,20 +21,6 @@ use std::collections::HashMap;
 pub const OVERRIDES: &'static str = include_str!("./dot_definitions/overrides.json");
 
 #[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
-#[serde(transparent)]
-pub struct TypesModule {
-    /// Module -> Types
-    types: HashMap<String, ModuleTypes>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
-pub struct TypesSpec {
-    /// Network -> overrides
-    #[serde(flatten)]
-    spec: HashMap<String, Vec<SingleOverride>>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
 pub struct SingleOverride {
     /// the spec these overrides are relevant for
     #[serde(rename = "minmax")]
@@ -46,17 +32,29 @@ pub struct SingleOverride {
 
 #[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
 pub struct Overrides {
+    /// Type Overrides for modules (where duplication between modules exist)
     #[serde(rename = "TYPES_MODULES")]
-    types_modules: TypesModule,
+    types_modules: HashMap<String, ModuleTypes>,
+    /// Overrides based on metadata versions
+    /// this is for support of old testnets (Alexander)
+    // this can be safely ignored for the most part
     #[serde(rename = "TYPES_META")]
     types_meta: Vec<SingleOverride>,
+    /// these are override types for Polkadot & Kusama chains
+    /// NOTE The SessionKeys definition for Polkadot and Substrate (OpaqueKeys
+    /// implementation) are different. Detect Polkadot and inject the `Keys`
+    /// definition as applicable. (4 keys in substrate vs 5 in Polkadot/CC3).
     #[serde(rename = "TYPES_SPEC")]
-    types_spec: TypesSpec,
+    types_spec: HashMap<String, Vec<SingleOverride>>,
 }
 
-pub fn overrides(raw_json: &str) -> Result<Overrides, Error> {
-    let types: Overrides = serde_json::from_str(raw_json)?;
-    Ok(types)
+impl Overrides {
+    pub fn new(raw_json: &str) -> Result<Overrides, Error> {
+        let types: Overrides = serde_json::from_str(raw_json)?;
+        Ok(types)
+    }
+
+    // fn get_module_type(module: &str, ty: &str) -> Option<
 }
 
 #[cfg(test)]
@@ -65,7 +63,7 @@ mod tests {
 
     #[test]
     fn should_deserialize_overrides() {
-        let overrides = overrides(OVERRIDES).unwrap();
+        let overrides = Overrides::new(OVERRIDES).unwrap();
         dbg!(overrides);
     }
 
@@ -89,6 +87,7 @@ mod tests {
         let single_override: SingleOverride = serde_json::from_str(json).unwrap();
         dbg!(single_override);
     }
+
     #[test]
     fn should_deserialize_into_spec() {
         let json = r#"
@@ -142,7 +141,7 @@ mod tests {
         }
         "#;
 
-        let types_spec: TypesSpec = serde_json::from_str(json).unwrap();
+        let types_spec: HashMap<String, Vec<SingleOverride>> = serde_json::from_str(json).unwrap();
         dbg!(types_spec);
     }
 
@@ -166,6 +165,5 @@ mod tests {
         "#;
         let types_meta: Vec<SingleOverride> = serde_json::from_str(json).unwrap();
         dbg!(types_meta);
-
     }
 }
