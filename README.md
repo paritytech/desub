@@ -1,3 +1,4 @@
+[![Coverage Status](https://coveralls.io/repos/github/insipx/desub/badge.svg?branch=master)](https://coveralls.io/github/insipx/desub?branch=master)
 # Desub
 
 Encompassing decoder for substrate/polkadot/kusama types.
