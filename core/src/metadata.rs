@@ -121,7 +121,7 @@ impl Metadata {
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
                 meta.try_into().expect("Conversion failed")
             }
-            e @ _ => panic!("version {} is unknown, invalid or unsupported", e), /* TODO remove panic */
+            e => panic!("version {} is unknown, invalid or unsupported", e), /* TODO remove panic */
         }
     }
 
@@ -172,12 +172,12 @@ impl Metadata {
                 string.push_str(format!(" MOD {:?}", meta.modifier).as_str());
                 string.push('\n');
             }
-            for (call, _) in &module.calls {
+            for call in module.calls.keys() {
                 string.push_str(" C  ");
                 string.push_str(call.as_str());
                 string.push('\n');
             }
-            for (_, event) in &module.events {
+            for event in module.events.values() {
                 string.push_str(" E  ");
                 string.push_str(event.name.as_str());
                 string.push('\n');
@@ -192,17 +192,17 @@ impl Metadata {
         for (name, module) in &self.modules {
             string.push_str(name.as_str());
             string.push('\n');
-            for (storage, _) in &module.storage {
+            for storage in module.storage.keys() {
                 string.push_str(" s  ");
                 string.push_str(storage.as_str());
                 string.push('\n');
             }
-            for (call, _) in &module.calls {
+            for call in module.calls.keys() {
                 string.push_str(" c  ");
                 string.push_str(call.as_str());
                 string.push('\n');
             }
-            for (_, event) in &module.events {
+            for event in module.events.values() {
                 string.push_str(" e  ");
                 string.push_str(event.name.as_str());
                 string.push('\n');
@@ -382,8 +382,8 @@ impl FromStr for EventArg {
                     "Expected closing `>` for `Vec`",
                 ))
             }
-        } else if s.starts_with("(") {
-            if s.ends_with(")") {
+        } else if s.starts_with('(') {
+            if s.ends_with(')') {
                 let mut args = Vec::new();
                 for arg in s[1 .. s.len() - 1].split(',') {
                     let arg = arg.trim().parse()?;

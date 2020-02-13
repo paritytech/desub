@@ -27,14 +27,16 @@ pub fn rust_array_decl() -> Regex {
 /// Match a rust vector
 /// allowed to be nested within, or have other (ie Option<>) nested within
 pub fn rust_vec_decl() -> Regex {
-    Regex::new(r"Vec<(?P<type>[\w><]+)>").expect("Regex expression should be infallible; qed")
+    Regex::new(r"Vec<(?P<type>[\w><]+)>")
+        .expect("Regex expression should be infallible; qed")
 }
 
 /// Match a Rust Option
 /// Allowed to be nested within another type, or have other (ie Vec<>) nested
 /// within
 pub fn rust_option_decl() -> Regex {
-    Regex::new(r"Option<(?P<type>[\w><]+)>").expect("Regex expression should be infallible; qed")
+    Regex::new(r"Option<(?P<type>[\w><]+)>")
+        .expect("Regex expression should be infallible; qed")
 }
 
 /// Match a Rust Generic Type Declaration
@@ -56,7 +58,8 @@ pub fn rust_regex_set() -> RegexSet {
         rust_option_decl().as_str(),
         rust_generic_decl().as_str(),
         rust_tuple_decl().as_str(),
-    ]).expect("Regex expression should be infallible; qed")
+    ])
+    .expect("Regex expression should be infallible; qed")
 }
 
 #[cfg(test)]
@@ -400,8 +403,8 @@ mod tests {
     fn should_get_all_matches() {
         let set = rust_regex_set();
         let matches: Vec<_> = set.matches("[u8; 16]").into_iter().collect();
-        // matches array decl and tuple type (tuple type will match on anything, should not be trusted)
-        // TODO: create better regex for tuple type
+        // matches array decl and tuple type (tuple type will match on anything, should
+        // not be trusted) TODO: create better regex for tuple type
         assert_eq!(vec![0, 4], matches);
     }
 }

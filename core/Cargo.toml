@@ -30,16 +30,6 @@ runtime-version = { git = "https://github.com/paritytech/substrate/", package = 
 substrate-primitives = { git = "https://github.com/paritytech/substrate/", package = "sp-core", branch = "polkadot-master" }
 derive_more = "0.99.2"
 
-# [dependencies.type-metadata]
-# git = "https://github.com/insipx/type-metadata"
-# branch = "insipx/deserialize-registry-merge"
-# package = "type-metadata"
-# default-features = false
-# features = ["std", "derive"]
-
-[dev-dependencies]
-# sp-runtime = { git = "https://github.com/paritytech/substrate", package = "sp-runtime", branch = "polkadot-master" }
-
 # [features]
 # substrate = []
 # polkadot = []

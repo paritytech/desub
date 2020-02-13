@@ -111,12 +111,12 @@ impl TypeDetective for PolkadotTypes {
     ) -> Result<&dyn Decodable, Error> {
         let module = module.to_ascii_lowercase();
         let chain = chain.to_ascii_lowercase();
-        let decodable =
-            self.get(&module, ty, spec, &chain)
-                .ok_or(Error::NotFound(format!(
-                    "{} in module {} for spec {} on chain {}",
-                    ty, module, spec, chain
-                )))?;
+        let decodable = self.get(&module, ty, spec, &chain).ok_or_else(|| {
+            Error::NotFound(format!(
+                "{} in module {} for spec {} on chain {}",
+                ty, module, spec, chain
+            ))
+        })?;
         Ok(decodable as &dyn Decodable)
     }
 }
@@ -129,11 +129,22 @@ mod tests {
     #[test]
     fn should_get_type_from_module() -> Result<(), Error> {
         let post_1031_dispatch_error = RustTypeMarker::Enum(RustEnum::Struct(vec![
-            StructField { name: "Other".to_string(),        ty: RustTypeMarker::Null},
-            StructField { name: "CannotLookup".to_string(), ty: RustTypeMarker::Null},
-            StructField { name: "BadOrigin".to_string(),    ty: RustTypeMarker::Null},
-            StructField { name: "Module".to_string(),
-                         ty: RustTypeMarker::TypePointer("DispatchErrorModule".to_string())}
+            StructField {
+                name: "Other".to_string(),
+                ty: RustTypeMarker::Null,
+            },
+            StructField {
+                name: "CannotLookup".to_string(),
+                ty: RustTypeMarker::Null,
+            },
+            StructField {
+                name: "BadOrigin".to_string(),
+                ty: RustTypeMarker::Null,
+            },
+            StructField {
+                name: "Module".to_string(),
+                ty: RustTypeMarker::TypePointer("DispatchErrorModule".to_string()),
+            },
         ]));
         let types = PolkadotTypes::new()?;
         let t = types

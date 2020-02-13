@@ -41,11 +41,11 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
     fn try_from(metadata: RuntimeMetadataPrefixed) -> Result<Self, Self::Error> {
         if metadata.0 != META_RESERVED {
             // 'meta' warn endiannes
-            Err(Error::InvalidPrefix)?;
+            return Err(Error::InvalidPrefix);
         }
         let meta = match metadata.1 {
             RuntimeMetadata::V9(meta) => meta,
-            _ => Err(Error::InvalidVersion)?,
+            _ => return Err(Error::InvalidVersion),
         };
         let mut modules = HashMap::new();
         let mut modules_by_event_index = HashMap::new();
@@ -57,7 +57,7 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
             // top level enum
             if !module_metadata.events.is_empty() {
                 modules_by_event_index.insert(event_index, module_name.clone());
-                event_index = event_index + 1;
+                event_index += 1;
             }
             modules.insert(module_name, Rc::new(module_metadata));
         }

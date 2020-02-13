@@ -24,7 +24,7 @@
 //! Theoretically, one could upload the deserialized decoder JSON to distribute
 //! to different applications that need the type data
 
-use super::metadata::{Metadata as SubstrateMetadata};
+use super::metadata::Metadata as SubstrateMetadata;
 use std::collections::HashMap;
 
 type SpecVersion = u32;
@@ -33,7 +33,7 @@ type SpecVersion = u32;
 /// hold information about the Runtime Metadata
 /// and maps types inside the runtime metadata to self-describing types in
 /// type-metadata
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct Decoder {
     // reference to an item in 'versions' vector
     // NOTE: possibly a concurrent HashMap
@@ -56,12 +56,6 @@ pub enum Entry {
 }
 
 impl Decoder {
-    /// Create a new instance of Decoder
-    pub fn new() -> Self {
-        Self {
-            versions: HashMap::new(),
-        }
-    }
 
     /// Insert a Metadata with Version attached
     /// If version exists, it's corresponding metadata will be updated
@@ -80,8 +74,11 @@ impl Decoder {
     ///
     /// # Note
     /// Returns None if version is nonexistant
-    pub fn get_version_metadata(&self, version: &SpecVersion) -> Option<&SubstrateMetadata> {
-        self.versions.get(version)
+    pub fn get_version_metadata(
+        &self,
+        version: SpecVersion,
+    ) -> Option<&SubstrateMetadata> {
+        self.versions.get(&version)
     }
 
     #[allow(dead_code)]
@@ -93,7 +90,13 @@ impl Decoder {
 
     /// dynamically Decode a SCALE-encoded byte string into it's concrete rust
     /// types
-    pub fn decode(&self, spec: SpecVersion, _module: String, _ty: String, _data: Vec<u8>) {
+    pub fn decode(
+        &self,
+        spec: SpecVersion,
+        _module: String,
+        _ty: String,
+        _data: Vec<u8>,
+    ) {
         // have to go to registry and get by TypeId
         let meta = self.versions.get(&spec).expect("Spec does not exist");
         // let types = types.get(&module).expect("Module not found");
@@ -119,18 +122,33 @@ mod tests {
 
     #[test]
     fn should_insert_metadata() {
-        let mut decoder = Decoder::new();
-        decoder.register_version(test_suite::mock_runtime(0).spec_version, meta_test_suite::test_metadata());
-        decoder.register_version(test_suite::mock_runtime(1).spec_version, meta_test_suite::test_metadata());
-        decoder.register_version(test_suite::mock_runtime(2).spec_version, meta_test_suite::test_metadata());
-        assert!(decoder.versions.contains_key(&test_suite::mock_runtime(0).spec_version));
-        assert!(decoder.versions.contains_key(&test_suite::mock_runtime(1).spec_version));
-        assert!(decoder.versions.contains_key(&test_suite::mock_runtime(2).spec_version))
+        let mut decoder = Decoder::default();
+        decoder.register_version(
+            test_suite::mock_runtime(0).spec_version,
+            meta_test_suite::test_metadata(),
+        );
+        decoder.register_version(
+            test_suite::mock_runtime(1).spec_version,
+            meta_test_suite::test_metadata(),
+        );
+        decoder.register_version(
+            test_suite::mock_runtime(2).spec_version,
+            meta_test_suite::test_metadata(),
+        );
+        assert!(decoder
+            .versions
+            .contains_key(&test_suite::mock_runtime(0).spec_version));
+        assert!(decoder
+            .versions
+            .contains_key(&test_suite::mock_runtime(1).spec_version));
+        assert!(decoder
+            .versions
+            .contains_key(&test_suite::mock_runtime(2).spec_version))
     }
 
     #[test]
     fn should_get_version_metadata() {
-        let mut decoder = Decoder::new();
+        let mut decoder = Decoder::default();
         let rt_version = test_suite::mock_runtime(0);
         let meta = meta_test_suite::test_metadata();
         decoder.register_version(rt_version.spec_version.clone(), meta.clone());

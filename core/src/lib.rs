@@ -89,7 +89,9 @@ pub enum RustEnum {
     Struct(Vec<StructField>),
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)] pub enum RustTypeMarker {/// name of a type that exists elsewhere in type declarations
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub enum RustTypeMarker {
+    /// name of a type that exists elsewhere in type declarations
     TypePointer(String),
 
     /// Some Struct
@@ -148,7 +150,7 @@ pub enum RustEnum {
 
     /// Used for fields that don't exist (ex Unit variant in an enum with both
     /// units/structs)
-    Null
+    Null,
 }
 
 impl Decodable for RustTypeMarker {

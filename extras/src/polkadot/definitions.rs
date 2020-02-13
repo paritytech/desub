@@ -12,14 +12,14 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
+use super::{ModuleTypes, Modules};
 use crate::{error::Error, regex};
-use super::{Modules, ModuleTypes};
 use core::{RustEnum, RustTypeMarker, SetField, StructField};
 use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
 use std::{collections::HashMap, fmt};
 
 // TODO: open this file or pass it via CLI to reduce binary size
-pub const DEFS: &'static str = include_str!("./dot_definitions/definitions.json");
+pub const DEFS: &str = include_str!("./dot_definitions/definitions.json");
 
 pub fn definitions(raw_json: &str) -> Result<Modules, Error> {
     let types: Modules = serde_json::from_str(raw_json)?;
@@ -95,7 +95,7 @@ impl<'de> Visitor<'de> for ModuleTypeVisitor {
                         parse_mod_types(&mut module_types, key, val);
                     }
                 }
-                m @ _ => {
+                m => {
                     let val: serde_json::Value = map.next_value()?;
                     //let val = val.as_object().expect("Types must refer to an object");
                     parse_mod_types(&mut module_types, m, &val);
@@ -155,6 +155,9 @@ fn parse_set(obj: &serde_json::map::Map<String, serde_json::Value>) -> RustTypeM
     RustTypeMarker::Set(set_vec)
 }
 
+/// internal api to convert a serde value to str
+///
+/// # Panics
 fn parse_enum(obj: &serde_json::Value) -> RustTypeMarker {
     if obj.is_array() {
         let arr = obj.as_array().expect("checked before cast; qed");
@@ -209,7 +212,7 @@ fn parse_type(t: &str) -> RustTypeMarker {
         "bool" => RustTypeMarker::Bool,
         "Null" => RustTypeMarker::Null,
 
-        s @ _ => {
+        s => {
             let re = regex::rust_array_decl();
             if re.is_match(s) {
                 let caps = re.captures(s).expect("checked for array declaration; ");

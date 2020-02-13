@@ -21,7 +21,7 @@ pub enum Error {
     #[fail(display = "Decode {}", _0)]
     Decode(#[fail(cause)] serde_json::Error),
     #[fail(display = "{} Not Found", _0)]
-    NotFound(String)
+    NotFound(String),
 }
 
 impl From<serde_json::Error> for Error {

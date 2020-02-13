@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 // TODO: open this file or pass it via CLI to reduce binary size
-pub const OVERRIDES: &'static str = include_str!("./dot_definitions/overrides.json");
+pub const OVERRIDES: &str = include_str!("./dot_definitions/overrides.json");
 
 #[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
 pub struct SingleOverride {
