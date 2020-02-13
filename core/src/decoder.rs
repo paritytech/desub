@@ -152,7 +152,7 @@ mod tests {
         let rt_version = test_suite::mock_runtime(0);
         let meta = meta_test_suite::test_metadata();
         decoder.register_version(rt_version.spec_version.clone(), meta.clone());
-        let _other_meta = decoder.get_version_metadata(&rt_version.spec_version);
+        let _other_meta = decoder.get_version_metadata(rt_version.spec_version);
         assert_eq!(Some(&meta), _other_meta.clone())
     }
 }
