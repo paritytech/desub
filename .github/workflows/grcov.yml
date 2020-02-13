@@ -1,4 +1,4 @@
-on: [pull_request]
+on: [push, pull_request]
 
 name: Code coverage with grcov
 
@@ -9,9 +9,6 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          - macOS-latest
-          - windows-latest
-
     steps:
       - uses: actions/checkout@v2
 
