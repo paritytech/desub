@@ -117,58 +117,15 @@ mod tests {
     use crate::metadata::test_suite as meta_test_suite;
     use crate::test_suite;
 
-    #[allow(dead_code)]
-    pub struct TestType {
-        foo: u8,
-        name: String,
-    }
-
-    #[allow(dead_code)]
-    pub struct TestType2 {
-        super_simple_type: u8,
-        some_kind_of_name: String,
-        first_test_struct: TestType,
-    }
-
     #[test]
     fn should_insert_metadata() {
         let mut decoder = Decoder::new();
-        decoder.insert_version(SubstrateMetadata {
-            version: test_suite::mock_runtime(0),
-            metadata: meta_test_suite::test_metadata(),
-        });
-        decoder.insert_version(SubstrateMetadata {
-            version: test_suite::mock_runtime(1),
-            metadata: meta_test_suite::test_metadata(),
-        });
-        decoder.insert_version(SubstrateMetadata {
-            version: test_suite::mock_runtime(2),
-            metadata: meta_test_suite::test_metadata(),
-        });
-        println!("{:#?}", decoder);
-    }
-
-    trait TestTrait {
-        type Moment: Copy + Clone + Default;
-    }
-
-    struct TestTraitImpl;
-    impl TestTrait for TestTraitImpl {
-        type Moment = u32;
-    }
-
-    trait TestTrait2 {
-        type Precision: Copy + Clone + Default;
-    }
-
-    struct TestTraitImpl2;
-    impl TestTrait2 for TestTraitImpl2 {
-        type Precision = i128;
-    }
-
-    struct TestEvent {
-        some_str: String,
-        some_num: u32,
+        decoder.register_version(test_suite::mock_runtime(0).spec_version, meta_test_suite::test_metadata());
+        decoder.register_version(test_suite::mock_runtime(1).spec_version, meta_test_suite::test_metadata());
+        decoder.register_version(test_suite::mock_runtime(2).spec_version, meta_test_suite::test_metadata());
+        assert!(decoder.versions.contains_key(&test_suite::mock_runtime(0).spec_version));
+        assert!(decoder.versions.contains_key(&test_suite::mock_runtime(1).spec_version));
+        assert!(decoder.versions.contains_key(&test_suite::mock_runtime(2).spec_version))
     }
 
     #[test]
@@ -177,7 +134,7 @@ mod tests {
         let rt_version = test_suite::mock_runtime(0);
         let meta = meta_test_suite::test_metadata();
         decoder.register_version(rt_version.spec_version.clone(), meta.clone());
-        let _other_meta = decoder.get_version_metadata(&rt_version);
-        assert_eq!(Some(meta), _other_meta.clone())
+        let _other_meta = decoder.get_version_metadata(&rt_version.spec_version);
+        assert_eq!(Some(&meta), _other_meta.clone())
     }
 }
