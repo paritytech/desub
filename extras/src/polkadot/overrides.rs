@@ -45,6 +45,7 @@ pub struct Overrides {
     /// implementation) are different. Detect Polkadot and inject the `Keys`
     /// definition as applicable. (4 keys in substrate vs 5 in Polkadot/CC3).
     #[serde(rename = "TYPES_SPEC")]
+    // chain(e.g kusama/polkadot) -> Vector of overrides
     types_spec: HashMap<String, Vec<SingleOverride>>,
 }
 
@@ -54,7 +55,29 @@ impl Overrides {
         Ok(types)
     }
 
-    // fn get_module_type(module: &str, ty: &str) -> Option<
+    /// get a module types based upon spec
+    pub fn get_chain_types(&self, chain: &str, spec: usize) -> Option<&ModuleTypes> {
+        self.types_spec
+            .get("kusama")?
+            .iter()
+            .find(|f| Self::is_in_range(spec, f))
+            .map(|o| &o.types)
+    }
+
+    pub fn get_module_types(&self, module: &str) -> Option<&ModuleTypes> {
+        self.types_modules.get(module)
+    }
+
+    fn is_in_range(spec: usize, over_ride: &SingleOverride) -> bool {
+        match over_ride.min_max {
+            [Some(min), Some(max)] => (min ..= max).contains(&spec),
+            [Some(min), None] => spec > min,
+            [None, Some(max)] => spec < max,
+            // presumably, this would be for null -> null,
+            // so for every spec
+            [None, None] => true,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -141,7 +164,8 @@ mod tests {
         }
         "#;
 
-        let types_spec: HashMap<String, Vec<SingleOverride>> = serde_json::from_str(json).unwrap();
+        let types_spec: HashMap<String, Vec<SingleOverride>> =
+            serde_json::from_str(json).unwrap();
         dbg!(types_spec);
     }
 

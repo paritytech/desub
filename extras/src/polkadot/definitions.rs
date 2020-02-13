@@ -216,6 +216,7 @@ fn parse_type(t: &str) -> RustTypeMarker {
         "f32" => RustTypeMarker::F32,
         "f64" => RustTypeMarker::F64,
         "bool" => RustTypeMarker::Bool,
+        "Null" => RustTypeMarker::Null,
 
         s @ _ => {
             let re = regex::rust_array_decl();
