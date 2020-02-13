@@ -42,11 +42,11 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
     fn try_from(metadata: RuntimeMetadataPrefixed) -> Result<Self, Self::Error> {
         if metadata.0 != META_RESERVED {
             // 'meta' warn endiannes
-            Err(Error::InvalidPrefix)?;
+            return Err(Error::InvalidPrefix);
         }
         let meta = match metadata.1 {
             RuntimeMetadata::V7(meta) => meta,
-            _ => Err(Error::InvalidVersion)?,
+            _ => return Err(Error::InvalidVersion),
         };
         let mut modules = HashMap::new();
         let mut modules_by_event_index = HashMap::new();
@@ -58,7 +58,7 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
             // top level enum
             if !module_metadata.events.is_empty() {
                 modules_by_event_index.insert(event_index, module_name.clone());
-                event_index = event_index + 1;
+                event_index += 1;
             }
             modules.insert(module_name, Rc::new(module_metadata));
         }
@@ -77,7 +77,8 @@ fn convert<B: 'static, O: 'static>(dd: DecodeDifferent<B, O>) -> Result<O, Error
 }
 
 fn convert_module(
-    index: usize, module: runtime_metadata07::ModuleMetadata,
+    index: usize,
+    module: runtime_metadata07::ModuleMetadata,
 ) -> Result<ModuleMetadata, Error> {
     let mut storage_map = HashMap::new();
     if let Some(storage) = module.storage {
@@ -127,7 +128,8 @@ fn convert_event(
 }
 
 fn convert_entry(
-    prefix: String, entry: runtime_metadata07::StorageEntryMetadata,
+    prefix: String,
+    entry: runtime_metadata07::StorageEntryMetadata,
 ) -> Result<StorageMetadata, Error> {
     let default = convert(entry.default)?;
     let documentation = convert(entry.documentation)?;
