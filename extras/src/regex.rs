@@ -14,7 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
+use core::RustTypeMarker;
 use regex::{Regex, RegexSet};
+
+/// Internal C-Like enum for indexing into a RegexSet
+enum RegexType {
+    Array = 0,
+    Vec = 1,
+    Compact = 2,
+    Option = 3,
+    Generic = 4,
+    Tuple = 5
+}
 
 /// Match a rust array
 pub fn rust_array_decl() -> Regex {
@@ -27,7 +38,7 @@ pub fn rust_array_decl() -> Regex {
 /// Match a rust vector
 /// allowed to be nested within, or have other (ie Option<>) nested within
 pub fn rust_vec_decl() -> Regex {
-    Regex::new(r"Vec<(?P<type>[\w><]+)>")
+    Regex::new(r"^Vec<(?P<type>[\w><]+)>$")
         .expect("Regex expression should be infallible; qed")
 }
 
@@ -35,13 +46,20 @@ pub fn rust_vec_decl() -> Regex {
 /// Allowed to be nested within another type, or have other (ie Vec<>) nested
 /// within
 pub fn rust_option_decl() -> Regex {
-    Regex::new(r"Option<(?P<type>[\w><]+)>")
+    Regex::new(r"^Option<(?P<type>[\w><]+)>$")
+        .expect("Regex expression should be infallible; qed")
+}
+
+/// Match a parity-scale-codec Compact<T> type
+pub fn rust_compact_decl() -> Regex {
+    Regex::new(r"^Compact<(?P<type>[\w><]+)>$")
         .expect("Regex expression should be infallible; qed")
 }
 
 /// Match a Rust Generic Type Declaration
+/// Excudes types Vec/Option/Compact from matches
 pub fn rust_generic_decl() -> Regex {
-    Regex::new(r"(?P<outer_type>[\w]+)<(?P<inner_type>[\w><]+)>")
+    Regex::new(r"\b(?!(?:Vec|Option|Compact)\b)(?P<outer_type>\w+)<(?P<inner_type>[\w<>]+)>")
         .expect("Regex expressions should be infallible; qed")
 }
 
@@ -55,12 +73,101 @@ pub fn rust_regex_set() -> RegexSet {
     RegexSet::new(&[
         rust_array_decl().as_str(),
         rust_vec_decl().as_str(),
+        rust_compact_decl().as_str(),
         rust_option_decl().as_str(),
         rust_generic_decl().as_str(),
         rust_tuple_decl().as_str(),
     ])
     .expect("Regex expression should be infallible; qed")
 }
+
+/// Parse a known match to the array regular expression
+///
+/// # Panics
+/// If the match is incorrect
+pub fn parse_regex_array(s: &str) -> Option<RustTypeMarker> {
+    let re = rust_array_decl();
+    if !re.is_match(s) {
+        return None;
+    }
+    let caps = re.captures(s).expect("checked for array declaration; ");
+
+    let t = caps
+        .name("type")
+        .expect("type match should always exist")
+        .as_str();
+    let size = caps.name("size").expect("name match should always exist");
+    let caps = caps
+        .iter()
+        .map(|c| c.map(|c| c.as_str()))
+        .collect::<Vec<Option<&str>>>();
+
+    let ty = if caps[2].is_some() {
+        match t {
+            "u" => RustTypeMarker::U8,
+            "i" => RustTypeMarker::I8,
+            "f" => panic!("type does not exist 'f8'"),
+            _ => panic!("impossible match encountered"),
+        }
+    } else if caps[3].is_some() {
+        match t {
+            "u" => RustTypeMarker::U16,
+            "i" => RustTypeMarker::I16,
+            "f" => panic!("type does not exist 'f16'"),
+            _ => panic!("impossible match encountered"),
+        }
+    } else if caps[4].is_some() {
+        match t {
+            "u" => RustTypeMarker::U32,
+            "i" => RustTypeMarker::I32,
+            "f" => RustTypeMarker::F32,
+            _ => panic!("impossible match encountered"),
+        }
+    } else if caps[5].is_some() {
+        match t {
+            "u" => RustTypeMarker::U64,
+            "i" => RustTypeMarker::I64,
+            "f" => RustTypeMarker::F64,
+            _ => panic!("impossible match encountered"),
+        }
+    } else if caps[6].is_some() {
+        match t {
+            "u" => RustTypeMarker::U128,
+            "i" => RustTypeMarker::I128,
+            "f" => panic!("type does not exist: 'f128'"),
+            _ => panic!("impossible match encountered"),
+        }
+    } else {
+        panic!("Couldn't determine size of array");
+    };
+    let ty = Box::new(ty);
+    let size = size
+        .as_str()
+        .parse::<usize>()
+        .expect("Should always be number");
+    Some(RustTypeMarker::Array { size, ty })
+}
+/*
+/// recursively parses a regex set
+/// returning a RustTypeMarker with all matched types
+pub fn parse_regex_set(s: &str) -> Option<RustTypeMarker> {
+    let re = rust_regex_set();
+
+    if !re.is_match(s) {
+        return None;
+    }
+    let matches: Vec<_> = re.matches(s);
+
+   
+
+    let caps = re.captures(s).expect("Checked for match; qed");
+    let t = caps.name("type").expect("type will always be present; qed");
+    // this gotta be recursive
+    let re_set = rust_regex_set();
+    let matches: Vec<_> = re_set.matches(t);
+    None
+}
+ */
 
 #[cfg(test)]
 mod tests {
@@ -324,6 +431,22 @@ mod tests {
     }
 
     #[test]
+    fn should_parse_compact() {
+        let re = rust_compact_decl();
+        assert!(re.is_match("Compact<RuntimeVersionApi>"));
+        assert!(re.is_match("Compact<BlockNumber>"));
+        assert!(re.is_match("Compact<SomeStruct>"));
+    }
+
+    #[test]
+    fn should_get_type_of_compact() {
+        let re = rust_compact_decl();
+        let caps = caps_to_vec_str(re.captures("Compact<RuntimeVersionApi>").unwrap());
+        // first capture group is always entire expression
+        assert!(caps[1] == Some("RuntimeVersionApi"));
+    }
+
+    #[test]
     fn should_parse_options() {
         let re = rust_option_decl();
         assert!(re.is_match("Option<RuntimeVersionApi>"));
@@ -405,6 +528,6 @@ mod tests {
         let matches: Vec<_> = set.matches("[u8; 16]").into_iter().collect();
         // matches array decl and tuple type (tuple type will match on anything, should
         // not be trusted) TODO: create better regex for tuple type
-        assert_eq!(vec![0, 4], matches);
+        assert_eq!(vec![0, 5], matches);
     }
 }

@@ -75,9 +75,20 @@ impl PolkadotTypes {
     }
 
     /// try to resolve a type pointer
-    pub fn resolve(_ty: RustTypeMarker) -> RustTypeMarker {
-        unimplemented!()
+    pub fn resolve(
+        &self,
+        module: &str,
+        ty: &RustTypeMarker,
+    ) -> Option<&RustTypeMarker> {
+        match ty {
+            RustTypeMarker::TypePointer(p) => {
+                self.mods.modules.get(module)?.types.get(p)
+            }
+            _ => None,
+        }
     }
+
+
 }
 
 #[derive(Serialize, Default, Debug, PartialEq, Eq)]
@@ -119,6 +130,14 @@ impl TypeDetective for PolkadotTypes {
         })?;
         Ok(decodable as &dyn Decodable)
     }
+
+    fn resolve(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker> {
+        self.resolve(module, ty)
+    }
+
+    fn recursive_resolve(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker> {
+        None
+    }
 }
 
 #[cfg(test)]
@@ -151,6 +170,33 @@ mod tests {
             .get("system", "DispatchError", 1040, "kusama")
             .unwrap();
         assert_eq!(t, &post_1031_dispatch_error);
+        Ok(())
+    }
+
+    #[test]
+    fn should_resolve_a_type() -> Result<(), Error> {
+        let t_pointer = RustTypeMarker::TypePointer("BalanceLockTo212".to_string());
+        let correct = RustTypeMarker::Struct(vec![
+            StructField {
+                name: "id".to_string(),
+                ty: RustTypeMarker::TypePointer("LockIdentifier".to_string())
+            },
+            StructField {
+                name: "amount".to_string(),
+                ty: RustTypeMarker::TypePointer("Balance".to_string())
+            },
+            StructField {
+                name: "until".to_string(),
+                ty: RustTypeMarker::TypePointer("BlockNumber".to_string()),
+            },
+            StructField {
+                name: "reasons".to_string(),
+                ty: RustTypeMarker::TypePointer("WithdrawReasons".to_string())
+            }
+        ]);
+        let types = PolkadotTypes::new()?;
+        let resolved = types.resolve("balances", &t_pointer).unwrap();
+        assert_eq!(&correct, resolved);
         Ok(())
     }
 
