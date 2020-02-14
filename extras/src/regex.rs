@@ -17,21 +17,39 @@
 use core::RustTypeMarker;
 use onig::{Regex, Region, SearchOptions};
 
-/// Internal C-Like enum for indexing into a RegexSet
-enum RegexType {
-    Array = 0,
-    Vec = 1,
-    Compact = 2,
-    Option = 3,
-    Generic = 4,
-    Tuple = 5,
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum RegexSet {
+    Array,
+    Vec,
+    Option,
+    Compact,
+    Generic,
+    Tuple
+}
+
+fn regex_set(s: &str) -> RegexSet {
+    if rust_array_decl().is_match(s) {
+        RegexSet::Array
+    } else if rust_vec_decl().is_match(s) {
+        RegexSet::Vec
+    } else if rust_option_decl().is_match(s) {
+        RegexSet::Option
+    } else if rust_compact_decl().is_match(s) {
+        RegexSet::Compact
+    } else if rust_generic_decl().is_match(s) {
+        RegexSet::Generic
+    } else if rust_tuple_decl().is_match(s) {
+        RegexSet::Tuple
+    } else {
+        panic!("Could not determine type")
+    }
 }
 
 /// Match a rust array
 pub fn rust_array_decl() -> Regex {
     // width of number and unsigned/signed are all in their own capture group
     // size of array is in the last capture group
-    Regex::new(r"^\[(?<type>[uif]{1})(?<bit8>8)?(?<bit16>16)?(?<bit32>32)?(?<bit64>64)?(?<bit128>128)?;\s?(?<size>[\d]*)]$")
+    Regex::new(r"^\[ *?(?<type>[uif]{1})(?<bit8>8)?(?<bit16>16)?(?<bit32>32)?(?<bit64>64)?(?<bit128>128)?;\s*?(?<size>[\d]*) *?]$")
         .expect("Regex expression invalid")
 }
 
@@ -101,24 +119,11 @@ pub fn rust_tuple_decl() -> Regex {
     .expect("Regex Expressions should be infallible; qed")
 }
 
-/*
-pub fn rust_regex_set() -> RegexSet {
-    RegexSet::new(&[
-        rust_array_decl().as_str(),
-        rust_vec_decl().as_str(),
-        rust_compact_decl().as_str(),
-        rust_option_decl().as_str(),
-        rust_generic_decl().as_str(),
-        rust_tuple_decl().as_str(),
-    ])
-    .expect("Regex expression should be infallible; qed")
-}
-*/
-
 /// Parse a known match to the array regular expression
 ///
 /// # Panics
-/// If the match is incorrect
+///
+/// TODO: Use errors instead of returning option
 pub fn parse_regex_array(s: &str) -> Option<RustTypeMarker> {
     let re = rust_array_decl();
     if !re.is_match(s) {
@@ -199,7 +204,7 @@ pub fn parse_regex_array(s: &str) -> Option<RustTypeMarker> {
             "f" => panic!("type does not exist: 'f128'"),
             _ => panic!("impossible match encountered"),
         },
-        _ => panic!("Couldn't determine size of array"),
+        _ => panic!("Couldn't determine bit-width of types in array"),
     };
     let ty = Box::new(ty);
     let size = size.parse::<usize>().expect("Should always be number");
@@ -225,7 +230,7 @@ pub fn parse_regex_set(s: &str) -> Option<RustTypeMarker> {
     let matches: Vec<_> = re_set.matches(t);
     None
 }
- */
+*/
 
 #[cfg(test)]
 mod tests {
@@ -467,6 +472,12 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
+    fn should_not_parse_on_nonexistant_type() {
+        parse_regex_array("[f16; 32]");
+    }
+
+    #[test]
     fn should_parse_regex_array() {
         assert_eq!(
             parse_regex_array("[u8; 32]").unwrap(),
@@ -669,15 +680,17 @@ mod tests {
         );
     }
 
-    /*
     #[test]
-    fn should_match_with_regex_set() {
-        let set = rust_regex_set();
-        assert!(set.is_match("(StorageKey, Option<StorageData>)"));
-        assert!(set.is_match("GenericOuterType<GenericInnerType>"));
-        assert!(set.is_match("[u8; 16]"));
-        assert!(set.is_match("Vec<InnerType>"));
-        assert!(set.is_match("Option<InnerType>"));
+    fn should_correctly_indicate_type() {
+        assert_eq!(regex_set("[   u8;   32 ]"), RegexSet::Array);
+        assert_eq!(regex_set("Vec<Foo>"), RegexSet::Vec);
+        assert_eq!(regex_set("Option<Foo>"), RegexSet::Option);
+        assert_eq!(regex_set("Compact<Foo>"), RegexSet::Compact);
+        assert_eq!(regex_set("Foo<Bar>"), RegexSet::Generic);
+        assert_eq!(regex_set("(StorageKey, Foo<Bar>)"), RegexSet::Tuple);
+
+        assert_eq!(regex_set("Vec<Option<Foo>>"), RegexSet::Vec);
+        assert_eq!(regex_set("Option<Vec<Hello>>"), RegexSet::Option);
     }
 
     #[test]
