@@ -27,21 +27,23 @@ enum RegexSet {
     Tuple
 }
 
-fn regex_set(s: &str) -> RegexSet {
-    if rust_array_decl().is_match(s) {
-        RegexSet::Array
-    } else if rust_vec_decl().is_match(s) {
-        RegexSet::Vec
-    } else if rust_option_decl().is_match(s) {
-        RegexSet::Option
-    } else if rust_compact_decl().is_match(s) {
-        RegexSet::Compact
-    } else if rust_generic_decl().is_match(s) {
-        RegexSet::Generic
-    } else if rust_tuple_decl().is_match(s) {
-        RegexSet::Tuple
-    } else {
-        panic!("Could not determine type")
+impl RegexSet {
+    fn get_type(s: &str) -> RegexSet {
+        if rust_array_decl().is_match(s) {
+            RegexSet::Array
+        } else if rust_vec_decl().is_match(s) {
+            RegexSet::Vec
+        } else if rust_option_decl().is_match(s) {
+            RegexSet::Option
+        } else if rust_compact_decl().is_match(s) {
+            RegexSet::Compact
+        } else if rust_generic_decl().is_match(s) {
+            RegexSet::Generic
+        } else if rust_tuple_decl().is_match(s) {
+            RegexSet::Tuple
+        } else {
+            panic!("Could not determine type")
+        }
     }
 }
 
@@ -682,24 +684,14 @@ mod tests {
 
     #[test]
     fn should_correctly_indicate_type() {
-        assert_eq!(regex_set("[   u8;   32 ]"), RegexSet::Array);
-        assert_eq!(regex_set("Vec<Foo>"), RegexSet::Vec);
-        assert_eq!(regex_set("Option<Foo>"), RegexSet::Option);
-        assert_eq!(regex_set("Compact<Foo>"), RegexSet::Compact);
-        assert_eq!(regex_set("Foo<Bar>"), RegexSet::Generic);
-        assert_eq!(regex_set("(StorageKey, Foo<Bar>)"), RegexSet::Tuple);
+        assert_eq!(RegexSet::get_type("[   u8;   32 ]"), RegexSet::Array);
+        assert_eq!(RegexSet::get_type("Vec<Foo>"), RegexSet::Vec);
+        assert_eq!(RegexSet::get_type("Option<Foo>"), RegexSet::Option);
+        assert_eq!(RegexSet::get_type("Compact<Foo>"), RegexSet::Compact);
+        assert_eq!(RegexSet::get_type("Foo<Bar>"), RegexSet::Generic);
+        assert_eq!(RegexSet::get_type("(StorageKey, Foo<Bar>)"), RegexSet::Tuple);
 
-        assert_eq!(regex_set("Vec<Option<Foo>>"), RegexSet::Vec);
-        assert_eq!(regex_set("Option<Vec<Hello>>"), RegexSet::Option);
+        assert_eq!(RegexSet::get_type("Vec<Option<Foo>>"), RegexSet::Vec);
+        assert_eq!(RegexSet::get_type("Option<Vec<Hello>>"), RegexSet::Option);
     }
-
-    #[test]
-    fn should_get_all_matches() {
-        let set = rust_regex_set();
-        let matches: Vec<_> = set.matches("[u8; 16]").into_iter().collect();
-        // matches array decl and tuple type (tuple type will match on anything, should
-        // not be trusted) TODO: create better regex for tuple type
-        assert_eq!(vec![0, 5], matches);
-    }
-     */
 }
