@@ -15,7 +15,7 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use core::RustTypeMarker;
-use regex::{Regex, RegexSet};
+use onig::{Regex, Region, SearchOptions};
 
 /// Internal C-Like enum for indexing into a RegexSet
 enum RegexType {
@@ -24,21 +24,21 @@ enum RegexType {
     Compact = 2,
     Option = 3,
     Generic = 4,
-    Tuple = 5
+    Tuple = 5,
 }
 
 /// Match a rust array
 pub fn rust_array_decl() -> Regex {
     // width of number and unsigned/signed are all in their own capture group
     // size of array is in the last capture group
-    Regex::new(r"^\[(?P<type>[uif]{1})(?P<bit8>8)?(?P<bit16>16)?(?P<bit32>32)?(?P<bit64>64)?(?P<bit128>128)?;\s?(?P<size>[\d]*)]$")
+    Regex::new(r"^\[(?<type>[uif]{1})(?<bit8>8)?(?<bit16>16)?(?<bit32>32)?(?<bit64>64)?(?<bit128>128)?;\s?(?<size>[\d]*)]$")
         .expect("Regex expression invalid")
 }
 
 /// Match a rust vector
 /// allowed to be nested within, or have other (ie Option<>) nested within
 pub fn rust_vec_decl() -> Regex {
-    Regex::new(r"^Vec<(?P<type>[\w><]+)>$")
+    Regex::new(r"^Vec<(?<type>[\w><]+)>$")
         .expect("Regex expression should be infallible; qed")
 }
 
@@ -46,29 +46,62 @@ pub fn rust_vec_decl() -> Regex {
 /// Allowed to be nested within another type, or have other (ie Vec<>) nested
 /// within
 pub fn rust_option_decl() -> Regex {
-    Regex::new(r"^Option<(?P<type>[\w><]+)>$")
+    Regex::new(r"^Option<(?<type>[\w><]+)>$")
         .expect("Regex expression should be infallible; qed")
 }
 
 /// Match a parity-scale-codec Compact<T> type
 pub fn rust_compact_decl() -> Regex {
-    Regex::new(r"^Compact<(?P<type>[\w><]+)>$")
+    Regex::new(r"^Compact<(?<type>[\w><]+)>$")
         .expect("Regex expression should be infallible; qed")
 }
 
 /// Match a Rust Generic Type Declaration
 /// Excudes types Vec/Option/Compact from matches
 pub fn rust_generic_decl() -> Regex {
-    Regex::new(r"\b(?!(?:Vec|Option|Compact)\b)(?P<outer_type>\w+)<(?P<inner_type>[\w<>]+)>")
-        .expect("Regex expressions should be infallible; qed")
+    Regex::new(
+        r"\b(?!(?:Vec|Option|Compact)\b)(?<outer_type>\w+)<(?<inner_type>[\w<>]+)>",
+    )
+    .expect("Regex expressions should be infallible; qed")
 }
 
 /// Only captures text within the tuples,
 /// need to use 'Matches' (ie `find_iter`) iterator to get all matches
+/// max tuple size is 64
+///
+/// # Note
+/// this does not contain named capture groups
+/// captures may be indexed like a tuple, via Captures<'a>::at(pos: usize)
+/// except starting at 1, since 0 is always the entire match
 pub fn rust_tuple_decl() -> Regex {
-    Regex::new(r"[\w><]+").expect("Regex expression should be infallible; qed")
+    Regex::new(
+        [
+            r#"^\(([\w><]+)"#,
+            r#",? *([\w><]+)*,? *([\w><]+)*"#,
+            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
+            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
+            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
+            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
+            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
+            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
+            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
+            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
+            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
+            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
+            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
+            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
+            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
+            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
+            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
+            r#",? *([\w><]+)*\)$"#,
+        ]
+        .join("")
+        .as_str(),
+    )
+    .expect("Regex Expressions should be infallible; qed")
 }
 
+/*
 pub fn rust_regex_set() -> RegexSet {
     RegexSet::new(&[
         rust_array_decl().as_str(),
@@ -80,6 +113,7 @@ pub fn rust_regex_set() -> RegexSet {
     ])
     .expect("Regex expression should be infallible; qed")
 }
+*/
 
 /// Parse a known match to the array regular expression
 ///
@@ -90,61 +124,85 @@ pub fn parse_regex_array(s: &str) -> Option<RustTypeMarker> {
     if !re.is_match(s) {
         return None;
     }
-    let caps = re.captures(s).expect("checked for array declaration; ");
 
-    let t = caps
-        .name("type")
-        .expect("type match should always exist")
-        .as_str();
-    let size = caps.name("size").expect("name match should always exist");
-    let caps = caps
-        .iter()
-        .map(|c| c.map(|c| c.as_str()))
-        .collect::<Vec<Option<&str>>>();
+    let mut region = Region::new();
 
-    let ty = if caps[2].is_some() {
-        match t {
+    let (mut t, mut size, mut ty) = (None, None, None);
+    if let Some(position) = re.search_with_options(
+        s,
+        0,
+        s.len(),
+        SearchOptions::SEARCH_OPTION_NONE,
+        Some(&mut region),
+    ) {
+        re.foreach_name(|name, groups| {
+            for group in groups {
+                // capture groups that don't represent type
+                // ie if type is 'u8', 'u32' capture group
+                // will be None
+                if let Some(pos) = region.pos(*group as usize) {
+                    match name {
+                        "type" => {
+                            // first thing matched
+                            t = Some(&s[pos.0 .. pos.1])
+                        }
+                        "size" => {
+                            // last thing matched
+                            size = Some(&s[pos.0 .. pos.1])
+                        }
+                        "bit8" => ty = Some(8),
+                        "bit16" => ty = Some(16),
+                        "bit32" => ty = Some(32),
+                        "bit64" => ty = Some(64),
+                        "bit128" => ty = Some(128),
+                        _ => panic!("Unhandled capture group"),
+                    }
+                } else {
+                    continue
+                }
+            }
+            true
+        });
+    };
+    let t = t?;
+    let size = size?;
+    let ty = ty?;
+
+    let ty = match ty {
+        8 => match t {
             "u" => RustTypeMarker::U8,
             "i" => RustTypeMarker::I8,
             "f" => panic!("type does not exist 'f8'"),
             _ => panic!("impossible match encountered"),
-        }
-    } else if caps[3].is_some() {
-        match t {
+        },
+        16 => match t {
             "u" => RustTypeMarker::U16,
             "i" => RustTypeMarker::I16,
             "f" => panic!("type does not exist 'f16'"),
             _ => panic!("impossible match encountered"),
-        }
-    } else if caps[4].is_some() {
-        match t {
+        },
+        32 => match t {
             "u" => RustTypeMarker::U32,
             "i" => RustTypeMarker::I32,
             "f" => RustTypeMarker::F32,
             _ => panic!("impossible match encountered"),
-        }
-    } else if caps[5].is_some() {
-        match t {
+        },
+        64 => match t {
             "u" => RustTypeMarker::U64,
             "i" => RustTypeMarker::I64,
             "f" => RustTypeMarker::F64,
             _ => panic!("impossible match encountered"),
-        }
-    } else if caps[6].is_some() {
-        match t {
+        },
+        128 => match t {
             "u" => RustTypeMarker::U128,
             "i" => RustTypeMarker::I128,
             "f" => panic!("type does not exist: 'f128'"),
             _ => panic!("impossible match encountered"),
-        }
-    } else {
-        panic!("Couldn't determine size of array");
+        },
+        _ => panic!("Couldn't determine size of array"),
     };
     let ty = Box::new(ty);
-    let size = size
-        .as_str()
-        .parse::<usize>()
-        .expect("Should always be number");
+    let size = size.parse::<usize>().expect("Should always be number");
     Some(RustTypeMarker::Array { size, ty })
 }
 /*
@@ -158,7 +216,7 @@ pub fn parse_regex_set(s: &str) -> Option<RustTypeMarker> {
     }
     let matches: Vec<_> = re.matches(s);
 
-   
+
 
     let caps = re.captures(s).expect("Checked for match; qed");
     let t = caps.name("type").expect("type will always be present; qed");
@@ -172,13 +230,7 @@ pub fn parse_regex_set(s: &str) -> Option<RustTypeMarker> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use regex::Captures;
-
-    fn caps_to_vec_str<'a>(caps: Captures<'a>) -> Vec<Option<&'a str>> {
-        caps.iter()
-            .map(|c| c.map(|c| c.as_str()))
-            .collect::<Vec<Option<&str>>>()
-    }
+    use onig::Captures;
 
     #[test]
     fn should_match_array_decl() {
@@ -203,7 +255,7 @@ mod tests {
     fn should_seperate_args_in_capture_groups() {
         let re = rust_array_decl();
 
-        let caps = caps_to_vec_str(re.captures("[u8; 16]").unwrap());
+        let caps = re.captures("[u8; 16]").unwrap();
         assert_eq!(
             vec![
                 Some("[u8; 16]"),
@@ -215,10 +267,10 @@ mod tests {
                 None,
                 Some("16")
             ],
-            caps
+            caps.iter().collect::<Vec<Option<&str>>>()
         );
 
-        let caps = caps_to_vec_str(re.captures("[i8; 16]").unwrap());
+        let caps = re.captures("[i8; 16]").unwrap();
         assert_eq!(
             vec![
                 Some("[i8; 16]"),
@@ -230,10 +282,10 @@ mod tests {
                 None,
                 Some("16")
             ],
-            caps
+            caps.iter().collect::<Vec<Option<&str>>>()
         );
 
-        let caps = caps_to_vec_str(re.captures("[u16; 16]").unwrap());
+        let caps = re.captures("[u16; 16]").unwrap();
         assert_eq!(
             vec![
                 Some("[u16; 16]"),
@@ -245,10 +297,10 @@ mod tests {
                 None,
                 Some("16")
             ],
-            caps
+            caps.iter().collect::<Vec<Option<&str>>>()
         );
 
-        let caps = caps_to_vec_str(re.captures("[i16; 16]").unwrap());
+        let caps = re.captures("[i16; 16]").unwrap();
         assert_eq!(
             vec![
                 Some("[i16; 16]"),
@@ -260,10 +312,10 @@ mod tests {
                 None,
                 Some("16")
             ],
-            caps
+            caps.iter().collect::<Vec<Option<&str>>>()
         );
 
-        let caps = caps_to_vec_str(re.captures("[u32; 16]").unwrap());
+        let caps = re.captures("[u32; 16]").unwrap();
         assert_eq!(
             vec![
                 Some("[u32; 16]"),
@@ -275,10 +327,10 @@ mod tests {
                 None,
                 Some("16")
             ],
-            caps
+            caps.iter().collect::<Vec<Option<&str>>>()
         );
 
-        let caps = caps_to_vec_str(re.captures("[i32; 16]").unwrap());
+        let caps = re.captures("[i32; 16]").unwrap();
         assert_eq!(
             vec![
                 Some("[i32; 16]"),
@@ -290,10 +342,10 @@ mod tests {
                 None,
                 Some("16")
             ],
-            caps
+            caps.iter().collect::<Vec<Option<&str>>>()
         );
 
-        let caps = caps_to_vec_str(re.captures("[u64; 16]").unwrap());
+        let caps = re.captures("[u64; 16]").unwrap();
         assert_eq!(
             vec![
                 Some("[u64; 16]"),
@@ -305,10 +357,10 @@ mod tests {
                 None,
                 Some("16")
             ],
-            caps
+            caps.iter().collect::<Vec<Option<&str>>>()
         );
 
-        let caps = caps_to_vec_str(re.captures("[i64; 16]").unwrap());
+        let caps = re.captures("[i64; 16]").unwrap();
         assert_eq!(
             vec![
                 Some("[i64; 16]"),
@@ -320,10 +372,10 @@ mod tests {
                 None,
                 Some("16")
             ],
-            caps
+            caps.iter().collect::<Vec<Option<&str>>>()
         );
 
-        let caps = caps_to_vec_str(re.captures("[u128; 16]").unwrap());
+        let caps = re.captures("[u128; 16]").unwrap();
         assert_eq!(
             vec![
                 Some("[u128; 16]"),
@@ -335,10 +387,10 @@ mod tests {
                 Some("128"),
                 Some("16")
             ],
-            caps
+            caps.iter().collect::<Vec<Option<&str>>>()
         );
 
-        let caps = caps_to_vec_str(re.captures("[i128; 16]").unwrap());
+        let caps = re.captures("[i128; 16]").unwrap();
         assert_eq!(
             vec![
                 Some("[i128; 16]"),
@@ -350,10 +402,10 @@ mod tests {
                 Some("128"),
                 Some("16")
             ],
-            caps
+            caps.iter().collect::<Vec<Option<&str>>>()
         );
 
-        let caps = caps_to_vec_str(re.captures("[f32; 16]").unwrap());
+        let caps = re.captures("[f32; 16]").unwrap();
         assert_eq!(
             vec![
                 Some("[f32; 16]"),
@@ -365,10 +417,10 @@ mod tests {
                 None,
                 Some("16")
             ],
-            caps
+            caps.iter().collect::<Vec<Option<&str>>>()
         );
 
-        let caps = caps_to_vec_str(re.captures("[f64; 16]").unwrap());
+        let caps = re.captures("[f64; 16]").unwrap();
         assert_eq!(
             vec![
                 Some("[f64; 16]"),
@@ -380,10 +432,10 @@ mod tests {
                 None,
                 Some("16")
             ],
-            caps
+            caps.iter().collect::<Vec<Option<&str>>>()
         );
 
-        let caps = caps_to_vec_str(re.captures("[i128; 9999]").unwrap());
+        let caps = re.captures("[i128; 9999]").unwrap();
         assert_eq!(
             vec![
                 Some("[i128; 9999]"),
@@ -395,10 +447,10 @@ mod tests {
                 Some("128"),
                 Some("9999")
             ],
-            caps
+            caps.iter().collect::<Vec<Option<&str>>>()
         );
 
-        let caps = caps_to_vec_str(re.captures("[u128; 9999]").unwrap());
+        let caps = re.captures("[u128; 9999]").unwrap();
         assert_eq!(
             vec![
                 Some("[u128; 9999]"),
@@ -410,7 +462,102 @@ mod tests {
                 Some("128"),
                 Some("9999")
             ],
-            caps
+            caps.iter().collect::<Vec<Option<&str>>>()
+        );
+    }
+
+    #[test]
+    fn should_parse_regex_array() {
+        assert_eq!(
+            parse_regex_array("[u8; 32]").unwrap(),
+            RustTypeMarker::Array {
+                size: 32,
+                ty: Box::new(RustTypeMarker::U8)
+            }
+        );
+        assert_eq!(
+            parse_regex_array("[u16; 32]").unwrap(),
+            RustTypeMarker::Array {
+                size: 32,
+                ty: Box::new(RustTypeMarker::U16)
+            }
+        );
+        assert_eq!(
+            parse_regex_array("[u32; 32]").unwrap(),
+            RustTypeMarker::Array {
+                size: 32,
+                ty: Box::new(RustTypeMarker::U32)
+            }
+        );
+        assert_eq!(
+            parse_regex_array("[u64; 32]").unwrap(),
+            RustTypeMarker::Array {
+                size: 32,
+                ty: Box::new(RustTypeMarker::U64)
+            }
+        );
+        assert_eq!(
+            parse_regex_array("[u128; 32]").unwrap(),
+            RustTypeMarker::Array {
+                size: 32,
+                ty: Box::new(RustTypeMarker::U128)
+            }
+        );
+        assert_eq!(
+            parse_regex_array("[i8; 32]").unwrap(),
+            RustTypeMarker::Array {
+                size: 32,
+                ty: Box::new(RustTypeMarker::I8)
+            }
+        );
+        assert_eq!(
+            parse_regex_array("[i16; 32]").unwrap(),
+            RustTypeMarker::Array {
+                size: 32,
+                ty: Box::new(RustTypeMarker::I16)
+            }
+        );
+        assert_eq!(
+            parse_regex_array("[i32; 32]").unwrap(),
+            RustTypeMarker::Array {
+                size: 32,
+                ty: Box::new(RustTypeMarker::I32)
+            }
+        );
+        assert_eq!(
+            parse_regex_array("[i64; 32]").unwrap(),
+            RustTypeMarker::Array {
+                size: 32,
+                ty: Box::new(RustTypeMarker::I64)
+            }
+        );
+        assert_eq!(
+            parse_regex_array("[i128; 32]").unwrap(),
+            RustTypeMarker::Array {
+                size: 32,
+                ty: Box::new(RustTypeMarker::I128)
+            }
+        );
+        assert_eq!(
+            parse_regex_array("[f32; 32]").unwrap(),
+            RustTypeMarker::Array {
+                size: 32,
+                ty: Box::new(RustTypeMarker::F32)
+            }
+        );
+        assert_eq!(
+            parse_regex_array("[f64; 32]").unwrap(),
+            RustTypeMarker::Array {
+                size: 32,
+                ty: Box::new(RustTypeMarker::F64)
+            }
+        );
+        assert_eq!(
+            parse_regex_array("[i128; 999999]").unwrap(),
+            RustTypeMarker::Array {
+                size: 999999,
+                ty: Box::new(RustTypeMarker::I128)
+            }
         );
     }
 
@@ -425,9 +572,9 @@ mod tests {
     #[test]
     fn should_get_type_of_vec() {
         let re = rust_vec_decl();
-        let caps = caps_to_vec_str(re.captures("Vec<RuntimeVersionApi>").unwrap());
+        let caps = re.captures("Vec<RuntimeVersionApi>").unwrap();
         // first capture group is always entire expression
-        assert!(caps[1] == Some("RuntimeVersionApi"));
+        assert!(caps.at(1) == Some("RuntimeVersionApi"));
     }
 
     #[test]
@@ -441,9 +588,9 @@ mod tests {
     #[test]
     fn should_get_type_of_compact() {
         let re = rust_compact_decl();
-        let caps = caps_to_vec_str(re.captures("Compact<RuntimeVersionApi>").unwrap());
+        let caps = re.captures("Compact<RuntimeVersionApi>").unwrap();
         // first capture group is always entire expression
-        assert!(caps[1] == Some("RuntimeVersionApi"));
+        assert!(caps.at(1) == Some("RuntimeVersionApi"));
     }
 
     #[test]
@@ -458,14 +605,13 @@ mod tests {
     #[test]
     fn should_get_type_of_option() {
         let re = rust_option_decl();
-        let caps = caps_to_vec_str(re.captures("Option<RuntimeVersionApi>").unwrap());
+        let caps = re.captures("Option<RuntimeVersionApi>").unwrap();
         // first capture group is always entire expression
-        assert!(caps[1] == Some("RuntimeVersionApi"));
+        assert!(caps.at(1) == Some("RuntimeVersionApi"));
 
         let re = rust_option_decl();
-        let caps =
-            caps_to_vec_str(re.captures("Option<Vec<RuntimeVersionApi>>").unwrap());
-        assert!(caps[1] == Some("Vec<RuntimeVersionApi>"));
+        let caps = re.captures("Option<Vec<RuntimeVersionApi>>").unwrap();
+        assert!(caps.at(1) == Some("Vec<RuntimeVersionApi>"));
     }
 
     #[test]
@@ -473,20 +619,22 @@ mod tests {
         let re = rust_generic_decl();
         assert!(re.is_match("GenericOuterType<GenericInnerType>"));
         assert!(re.is_match("GenericOutT<GenericOutInT<InnerT>>"));
+        assert!(!re.is_match("Vec<Foo>"));
+        assert!(!re.is_match("Option<Foo>"));
+        assert!(!re.is_match("Compact<Foo>"));
     }
 
     #[test]
     fn should_get_arbitrary_type() {
         let re = rust_generic_decl();
-        let caps =
-            caps_to_vec_str(re.captures("GenericOuterType<GenericInnerType>").unwrap());
+        let caps = re.captures("GenericOuterType<GenericInnerType>").unwrap();
         assert_eq!(
             vec![
                 Some("GenericOuterType<GenericInnerType>"),
                 Some("GenericOuterType"),
                 Some("GenericInnerType")
             ],
-            caps
+            caps.iter().collect::<Vec<Option<&str>>>()
         );
     }
 
@@ -496,22 +644,32 @@ mod tests {
         assert!(re.is_match("(StorageKey, Option<StorageData>)"));
         assert!(re.is_match("(ApiKey, u32)"));
         assert!(re.is_match("(u32,ApiKey,AnotherType)"));
+        // assert the upper match limit
+        assert!(re.is_match(["(StorageKey, Option<StorageData>, Foo, Bar, Aoo, Raw, Car, Dar, Eoo, Foo, Goo, Foo, Foo, Foo, Foo, Foo,",
+                             "Hoo, Ioo, Joo, Koo, Loo, Moo, Noo, Ooo, Poo, Qoo, Roo, Soo, Too, Uoo, Voo, Xoo,",
+                             "Hoo, Ioo, Joo, Koo, Loo, Moo, Noo, Ooo, Poo, Qoo, Roo, Soo, Too, Uoo, Voo, Xoo,",
+                             "Hoo, Ioo, Joo, Koo, Loo, Moo, Noo, Ooo, Poo, Qoo, Roo, Soo, Too, Uoo, Voo, Xoo)"
+                             ].join("").as_str()));
     }
 
     #[test]
     fn should_get_types_in_tuple() {
         let re = rust_tuple_decl();
         let match_str = "(StorageKey, Option<StorageData>)";
-        let types = re
-            .find_iter(match_str)
-            .map(|m| match_str[m.start() .. m.end()].to_string())
-            .collect::<Vec<String>>();
+        let caps = re.captures(match_str).unwrap();
         assert_eq!(
-            vec!["StorageKey".to_string(), "Option<StorageData>".to_string()],
-            types
+            vec![
+                Some("(StorageKey, Option<StorageData>)"),
+                Some("StorageKey"),
+                Some("Option<StorageData>"),
+            ],
+            caps.iter()
+                .filter(|c| c.is_some())
+                .collect::<Vec<Option<&str>>>()
         );
     }
 
+    /*
     #[test]
     fn should_match_with_regex_set() {
         let set = rust_regex_set();
@@ -530,4 +688,5 @@ mod tests {
         // not be trusted) TODO: create better regex for tuple type
         assert_eq!(vec![0, 5], matches);
     }
+     */
 }
