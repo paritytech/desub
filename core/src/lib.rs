@@ -36,11 +36,7 @@ pub trait TypeDetective {
     ) -> Result<&dyn Decodable, Self::Error>;
 
     /// Resolve a type pointer into the type it points to
-    fn resolve(
-        &self,
-        module: &str,
-        ty: &RustTypeMarker,
-    ) -> Option<&RustTypeMarker>;
+    fn resolve(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker>;
 }
 
 type TypePointer = String;
@@ -134,7 +130,7 @@ impl CommonTypes {
             CommonTypes::Vec(ref v_inner) => vec![v_inner],
             CommonTypes::Option(ref o_inner) => vec![o_inner],
             CommonTypes::Result(ref r_inner1, ref r_inner2) => vec![r_inner1, r_inner2],
-            CommonTypes::Compact(ref c_inner) => vec![c_inner]
+            CommonTypes::Compact(ref c_inner) => vec![c_inner],
         }
     }
 }

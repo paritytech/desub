@@ -56,7 +56,6 @@ pub enum Entry {
 }
 
 impl Decoder {
-
     /// Insert a Metadata with Version attached
     /// If version exists, it's corresponding metadata will be updated
     pub fn register_version(

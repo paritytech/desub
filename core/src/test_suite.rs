@@ -16,11 +16,7 @@
 
 use runtime_version::RuntimeVersion;
 
-use std::{
-    borrow::Cow,
-    fs::File,
-    io::prelude::*,
-};
+use std::{borrow::Cow, fs::File, io::prelude::*};
 
 pub fn mock_runtime(num: u32) -> RuntimeVersion {
     RuntimeVersion {

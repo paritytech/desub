@@ -1,4 +1,3 @@
-
 // Copyright 2019 Parity Technologies (UK) Ltd.
 // This file is part of substrate-desub.
 //
@@ -297,7 +296,8 @@ fn parse_regex_tuple(s: &str) -> Option<RustTypeMarker> {
             } else {
                 None
             }
-        }).collect::<Vec<RustTypeMarker>>();
+        })
+        .collect::<Vec<RustTypeMarker>>();
 
     Some(RustTypeMarker::Tuple(ty))
 }
@@ -857,52 +857,44 @@ mod tests {
         );
         assert_eq!(
             parse("Compact<Vec<Option<Foo>>>").unwrap(),
-            RustTypeMarker::Std(CommonTypes::Compact(Box::new(
-                RustTypeMarker::Std(CommonTypes::Vec(Box::new(
-                    RustTypeMarker::Std(CommonTypes::Option(Box::new(
-                        RustTypeMarker::TypePointer("Foo".to_string())
-                    )))
-                )))
-            )))
+            RustTypeMarker::Std(CommonTypes::Compact(Box::new(RustTypeMarker::Std(
+                CommonTypes::Vec(Box::new(RustTypeMarker::Std(CommonTypes::Option(
+                    Box::new(RustTypeMarker::TypePointer("Foo".to_string()))
+                ))))
+            ))))
         );
 
         assert_eq!(
             parse("Compact<Vec<(Foo, Bar, u8)>>").unwrap(),
-            RustTypeMarker::Std(CommonTypes::Compact(Box::new(
-                RustTypeMarker::Std(CommonTypes::Vec(Box::new(
-                    RustTypeMarker::Tuple(vec![
-                        RustTypeMarker::TypePointer("Foo".to_string()),
-                        RustTypeMarker::TypePointer("Bar".to_string()),
-                        RustTypeMarker::U8,
-                    ])
-                )))
-            )))
+            RustTypeMarker::Std(CommonTypes::Compact(Box::new(RustTypeMarker::Std(
+                CommonTypes::Vec(Box::new(RustTypeMarker::Tuple(vec![
+                    RustTypeMarker::TypePointer("Foo".to_string()),
+                    RustTypeMarker::TypePointer("Bar".to_string()),
+                    RustTypeMarker::U8,
+                ])))
+            ))))
         );
 
         assert_eq!(
             parse("Option<Vec<(Foo, Bar, u8)>>").unwrap(),
-            RustTypeMarker::Std(CommonTypes::Option(Box::new(
-                RustTypeMarker::Std(CommonTypes::Vec(Box::new(
-                    RustTypeMarker::Tuple(vec![
-                        RustTypeMarker::TypePointer("Foo".to_string()),
-                        RustTypeMarker::TypePointer("Bar".to_string()),
-                        RustTypeMarker::U8,
-                    ])
-                )))
-            )))
+            RustTypeMarker::Std(CommonTypes::Option(Box::new(RustTypeMarker::Std(
+                CommonTypes::Vec(Box::new(RustTypeMarker::Tuple(vec![
+                    RustTypeMarker::TypePointer("Foo".to_string()),
+                    RustTypeMarker::TypePointer("Bar".to_string()),
+                    RustTypeMarker::U8,
+                ])))
+            ))))
         );
 
         assert_eq!(
             parse("Vec<Vec<(Foo, Bar, u8)>>").unwrap(),
-            RustTypeMarker::Std(CommonTypes::Vec(Box::new(
-                RustTypeMarker::Std(CommonTypes::Vec(Box::new(
-                    RustTypeMarker::Tuple(vec![
-                        RustTypeMarker::TypePointer("Foo".to_string()),
-                        RustTypeMarker::TypePointer("Bar".to_string()),
-                        RustTypeMarker::U8,
-                    ])
-                )))
-            )))
+            RustTypeMarker::Std(CommonTypes::Vec(Box::new(RustTypeMarker::Std(
+                CommonTypes::Vec(Box::new(RustTypeMarker::Tuple(vec![
+                    RustTypeMarker::TypePointer("Foo".to_string()),
+                    RustTypeMarker::TypePointer("Bar".to_string()),
+                    RustTypeMarker::U8,
+                ])))
+            ))))
         );
     }
 }
