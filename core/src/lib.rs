@@ -34,16 +34,31 @@ pub trait TypeDetective {
         spec: usize,
         chain: &str,
     ) -> Result<&dyn Decodable, Self::Error>;
+
+    /// Resolve a type pointer into the type it points to
+    fn resolve(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker>;
 }
 
+type TypePointer = String;
 pub trait Decodable {
-    fn as_type_pointer(&self) -> Option<&str>;
-    fn as_type_pointer_owned(&self) -> Option<String>;
+    /// Cast type to a referenced type pointer type
+    fn as_type_pointer(&self) -> Option<&TypePointer>;
+    /// Cast type to an owned type pointer type
+    fn as_type_pointer_owned(&self) -> Option<TypePointer>;
+    /// Cast type to a struct
     fn as_struct(&self) -> Option<&GenericStruct>;
+    /// Cast type to an enum
     fn as_enum(&self) -> Option<&RustEnum>;
+    /// Cast type to a set
     fn as_set(&self) -> Option<&Vec<SetField>>;
+    /// Return type as reference
     fn as_type(&self) -> &RustTypeMarker;
+    /// return the owned version of RustTypeMarker
     fn as_type_owned(&self) -> RustTypeMarker;
+    /*
+    /// Resolve a type pointer into the type it points to
+    fn resolve(&self, ty: RustTypeMarker) -> RustTypeMarker;
+    */
 
     fn is_str(&self) -> bool;
     fn is_struct(&self) -> bool;
@@ -90,6 +105,37 @@ pub enum RustEnum {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+/// Definitions for common patterns seen in Substrate/Polkadot
+/// type definitions
+/// Definitions for Vec/Option/Compact
+pub enum CommonTypes {
+    /// Rust std Vec<T> type
+    Vec(Box<RustTypeMarker>),
+    /// Rust std Option<T> type
+    Option(Box<RustTypeMarker>),
+    /// Rust  Result<T, E> type
+    Result(Box<RustTypeMarker>, Box<RustTypeMarker>),
+    /// parity-scale-codec Compact<T> type
+    Compact(Box<RustTypeMarker>),
+}
+
+impl CommonTypes {
+    /// returns the inner types of Common Rust Constructs
+    /// types with more than one generic (E.G Result<T, E>)
+    /// are indexes in a Vector
+    /// Types with only one generic (E.G Option<T>) have only
+    /// one vector element
+    pub fn get_inner_type(&self) -> Vec<&RustTypeMarker> {
+        match self {
+            CommonTypes::Vec(ref v_inner) => vec![v_inner],
+            CommonTypes::Option(ref o_inner) => vec![o_inner],
+            CommonTypes::Result(ref r_inner1, ref r_inner2) => vec![r_inner1, r_inner2],
+            CommonTypes::Compact(ref c_inner) => vec![c_inner],
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum RustTypeMarker {
     /// name of a type that exists elsewhere in type declarations
     TypePointer(String),
@@ -98,8 +144,11 @@ pub enum RustTypeMarker {
     /// Field Name -> Field Type
     Struct(Vec<StructField>),
 
-    // A C-Like Enum
+    /// A C-Like Enum
     Set(Vec<SetField>),
+
+    /// A tuple type (max size 64)
+    Tuple(Vec<RustTypeMarker>),
 
     /// Some Enum
     /// A Rust Enum that contains mixed "Struct" and Unit fields
@@ -113,6 +162,10 @@ pub enum RustTypeMarker {
         /// type of array
         ty: Box<RustTypeMarker>,
     },
+
+    /// Definitions for common patterns seen in substrate/polkadot
+    /// type definitions
+    Std(CommonTypes),
 
     /// primitive unsigned 8 bit integer
     U8,
@@ -154,14 +207,14 @@ pub enum RustTypeMarker {
 }
 
 impl Decodable for RustTypeMarker {
-    fn as_type_pointer(&self) -> Option<&str> {
+    fn as_type_pointer(&self) -> Option<&TypePointer> {
         match self {
             RustTypeMarker::TypePointer(s) => Some(s),
             _ => None,
         }
     }
 
-    fn as_type_pointer_owned(&self) -> Option<String> {
+    fn as_type_pointer_owned(&self) -> Option<TypePointer> {
         match self {
             RustTypeMarker::TypePointer(s) => Some(s.clone()),
             _ => None,

@@ -116,7 +116,7 @@ fn parse_mod_types(
     if val.is_string() {
         module_types.insert(
             key.to_string(),
-            parse_type(val.as_str().expect("Checked; qed")),
+            regex::parse(val.as_str().expect("Checked; qed")).expect("not a type"),
         );
     } else if val.is_object() {
         let obj = val
@@ -130,7 +130,10 @@ fn parse_mod_types(
         } else {
             let mut fields = Vec::new();
             for (key, val) in obj.iter() {
-                let field = StructField::new(key, parse_type(&val_to_str(val)));
+                let field = StructField::new(
+                    key,
+                    regex::parse(&val_to_str(val)).expect("Not a type"),
+                );
                 fields.push(field);
             }
             module_types.insert(key.to_string(), RustTypeMarker::Struct(fields));
@@ -180,101 +183,13 @@ fn parse_enum(obj: &serde_json::Value) -> RustTypeMarker {
             } else {
                 value.as_str().expect("will be str; qed")
             };
-            let field = StructField::new(key, parse_type(value));
+            let field = StructField::new(key, regex::parse(value).expect("Not a type"));
             rust_enum.push(field);
         }
         RustTypeMarker::Enum(RustEnum::Struct(rust_enum))
     // if enum is an object, it's an enum with tuples defined as structs
     } else {
         panic!("Unnaccounted type")
-    }
-}
-
-/// Returns a primitive type or rust TypePointer
-fn parse_type(t: &str) -> RustTypeMarker {
-    match t {
-        "u8" => RustTypeMarker::U8,
-        "u16" => RustTypeMarker::U16,
-        "u32" => RustTypeMarker::U32,
-        "u64" => RustTypeMarker::U64,
-        "u128" => RustTypeMarker::U128,
-        "usize" => RustTypeMarker::USize,
-
-        "i8" => RustTypeMarker::I8,
-        "i16" => RustTypeMarker::I16,
-        "i32" => RustTypeMarker::I32,
-        "i64" => RustTypeMarker::I64,
-        "i128" => RustTypeMarker::I128,
-        "isize" => RustTypeMarker::ISize,
-
-        "f32" => RustTypeMarker::F32,
-        "f64" => RustTypeMarker::F64,
-        "bool" => RustTypeMarker::Bool,
-        "Null" => RustTypeMarker::Null,
-
-        s => {
-            let re = regex::rust_array_decl();
-            if re.is_match(s) {
-                let caps = re.captures(s).expect("checked for array declaration; ");
-
-                let t = caps
-                    .name("type")
-                    .expect("type match should always exist")
-                    .as_str();
-                let size = caps.name("size").expect("name match should always exist");
-                let caps = caps
-                    .iter()
-                    .map(|c| c.map(|c| c.as_str()))
-                    .collect::<Vec<Option<&str>>>();
-
-                let ty = if caps[2].is_some() {
-                    match t {
-                        "u" => RustTypeMarker::U8,
-                        "i" => RustTypeMarker::I8,
-                        "f" => panic!("type does not exist 'f8'"),
-                        _ => panic!("impossible match encountered"),
-                    }
-                } else if caps[3].is_some() {
-                    match t {
-                        "u" => RustTypeMarker::U16,
-                        "i" => RustTypeMarker::I16,
-                        "f" => panic!("type does not exist 'f16'"),
-                        _ => panic!("impossible match encountered"),
-                    }
-                } else if caps[4].is_some() {
-                    match t {
-                        "u" => RustTypeMarker::U32,
-                        "i" => RustTypeMarker::I32,
-                        "f" => RustTypeMarker::F32,
-                        _ => panic!("impossible match encountered"),
-                    }
-                } else if caps[5].is_some() {
-                    match t {
-                        "u" => RustTypeMarker::U64,
-                        "i" => RustTypeMarker::I64,
-                        "f" => RustTypeMarker::F64,
-                        _ => panic!("impossible match encountered"),
-                    }
-                } else if caps[6].is_some() {
-                    match t {
-                        "u" => RustTypeMarker::U128,
-                        "i" => RustTypeMarker::I128,
-                        "f" => panic!("type does not exist: 'f128'"),
-                        _ => panic!("impossible match encountered"),
-                    }
-                } else {
-                    panic!("Couldn't determine size of array");
-                };
-                let ty = Box::new(ty);
-                let size = size
-                    .as_str()
-                    .parse::<usize>()
-                    .expect("Should always be number");
-                RustTypeMarker::Array { size, ty }
-            } else {
-                RustTypeMarker::TypePointer(t.to_string())
-            }
-        }
     }
 }
 
