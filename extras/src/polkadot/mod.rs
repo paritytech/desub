@@ -134,10 +134,6 @@ impl TypeDetective for PolkadotTypes {
     fn resolve(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker> {
         self.resolve(module, ty)
     }
-
-    fn recursive_resolve(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker> {
-        None
-    }
 }
 
 #[cfg(test)]

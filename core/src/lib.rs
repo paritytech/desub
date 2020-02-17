@@ -41,10 +41,6 @@ pub trait TypeDetective {
         module: &str,
         ty: &RustTypeMarker,
     ) -> Option<&RustTypeMarker>;
-
-    /// Resolve all type pointers until no type pointers are left within the struct
-    /// preserves names of the types
-    fn recursive_resolve(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker>;
 }
 
 type TypePointer = String;

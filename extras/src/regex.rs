@@ -704,7 +704,6 @@ mod tests {
     fn should_get_type_of_compact() {
         let re = rust_compact_decl();
         let caps = re.captures("Compact<RuntimeVersionApi>").unwrap();
-        // first capture group is always entire expression
         assert!(caps.at(1) == Some("RuntimeVersionApi"));
     }
 
