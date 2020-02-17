@@ -118,7 +118,7 @@ pub enum RustEnum {
 /// Definitions for Vec/Option/Compact
 pub enum CommonTypes {
     /// Rust std Vec<T> type
-    Vector(Box<RustTypeMarker>),
+    Vec(Box<RustTypeMarker>),
     /// Rust std Option<T> type
     Option(Box<RustTypeMarker>),
     /// Rust  Result<T, E> type
@@ -128,10 +128,14 @@ pub enum CommonTypes {
 }
 
 impl CommonTypes {
-
-    pub fn get_inner_type(&self) -> Vec<&Box<RustTypeMarker>> {
+    /// returns the inner types of Common Rust Constructs
+    /// types with more than one generic (E.G Result<T, E>)
+    /// are indexes in a Vector
+    /// Types with only one generic (E.G Option<T>) have only
+    /// one vector element
+    pub fn get_inner_type(&self) -> Vec<&RustTypeMarker> {
         match self {
-            CommonTypes::Vector(ref v_inner) => vec![v_inner],
+            CommonTypes::Vec(ref v_inner) => vec![v_inner],
             CommonTypes::Option(ref o_inner) => vec![o_inner],
             CommonTypes::Result(ref r_inner1, ref r_inner2) => vec![r_inner1, r_inner2],
             CommonTypes::Compact(ref c_inner) => vec![c_inner]
