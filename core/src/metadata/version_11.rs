@@ -34,8 +34,7 @@ use super::{
 };
 
 use runtime_metadata_latest::{
-    DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier,
-    StorageEntryType, StorageHasher, META_RESERVED,
+    DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, META_RESERVED,
 };
 use std::{
     collections::{HashMap, HashSet},

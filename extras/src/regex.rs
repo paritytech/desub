@@ -169,11 +169,11 @@ pub fn parse_regex_array(s: &str) -> Option<RustTypeMarker> {
                     match name {
                         "type" => {
                             // first thing matched
-                            t = Some(&s[pos.0 .. pos.1])
+                            t = Some(&s[pos.0..pos.1])
                         }
                         "size" => {
                             // last thing matched
-                            size = Some(&s[pos.0 .. pos.1])
+                            size = Some(&s[pos.0..pos.1])
                         }
                         "bit8" => ty = Some(8),
                         "bit16" => ty = Some(16),

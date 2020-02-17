@@ -13,13 +13,3 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
-
-/// A generic trait that all metadata version must implement
-/// in order to be converted to the "Metadata" struct
-use super::{Metadata, ModuleMetadata};
-
-use codec::Decode;
-use runtime_metadata_latest::{
-    DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier,
-    StorageEntryType, StorageHasher, META_RESERVED,
-};

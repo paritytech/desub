@@ -16,7 +16,8 @@
 
 pub mod decoder;
 mod error;
-#[allow(unused, dead_code)] // TODO: refactor to not need this attribute
+
+#[allow(dead_code)]
 pub mod metadata;
 
 #[cfg(test)]
@@ -55,10 +56,6 @@ pub trait Decodable {
     fn as_type(&self) -> &RustTypeMarker;
     /// return the owned version of RustTypeMarker
     fn as_type_owned(&self) -> RustTypeMarker;
-    /*
-    /// Resolve a type pointer into the type it points to
-    fn resolve(&self, ty: RustTypeMarker) -> RustTypeMarker;
-    */
 
     fn is_str(&self) -> bool;
     fn is_struct(&self) -> bool;

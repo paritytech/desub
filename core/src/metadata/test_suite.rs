@@ -17,6 +17,7 @@
 //! Functions creating data to mock the `Metadata` struct
 
 use super::*;
+use runtime_metadata_latest::DecodeDifferent;
 
 type DecodeDifferentStr = DecodeDifferent<&'static str, String>;
 
@@ -122,7 +123,7 @@ fn storage_mock() -> HashMap<String, StorageMetadata> {
 
 fn call_mock() -> HashMap<String, Vec<u8>> {
     let mut map = HashMap::new();
-    map.insert("TestCall0".to_string(), vec![01, 02, 03, 04, 05]);
+    map.insert("TestCall0".to_string(), vec![1, 2, 3, 4, 5]);
     map.insert("TestCall1".to_string(), vec![11, 12, 13, 14, 15, 16, 17]);
     map.insert(
         "TestCall2".to_string(),

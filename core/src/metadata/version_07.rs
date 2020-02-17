@@ -21,9 +21,8 @@ use super::{
     Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata, StorageMetadata,
 };
 use runtime_metadata07::{
-    DecodeDifferent, EventMetadata, RuntimeMetadata, RuntimeMetadataPrefixed,
-    StorageEntryMetadata, StorageEntryModifier, StorageEntryType, StorageHasher,
-    META_RESERVED,
+    DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier,
+    StorageEntryType, StorageHasher, META_RESERVED,
 };
 
 use std::{

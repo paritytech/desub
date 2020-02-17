@@ -29,14 +29,11 @@ mod versions;
 use codec::{Decode, Encode, EncodeAsRef, HasCompact};
 use codec411::Decode as OldDecode;
 use failure::Fail;
-use runtime_metadata_latest::{
-    DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier,
-    StorageEntryType, StorageHasher, META_RESERVED,
-};
+use runtime_metadata_latest::{StorageEntryModifier, StorageEntryType, StorageHasher};
 
 use std::{
     collections::{HashMap, HashSet},
-    convert::{TryFrom, TryInto},
+    convert::TryInto,
     marker::PhantomData,
     rc::Rc,
     str::FromStr,
@@ -375,7 +372,7 @@ impl FromStr for EventArg {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.starts_with("Vec<") {
             if s.ends_with('>') {
-                Ok(EventArg::Vec(Box::new(s[4 .. s.len() - 1].parse()?)))
+                Ok(EventArg::Vec(Box::new(s[4..s.len() - 1].parse()?)))
             } else {
                 Err(Error::InvalidEventArg(
                     s.to_string(),
@@ -385,7 +382,7 @@ impl FromStr for EventArg {
         } else if s.starts_with('(') {
             if s.ends_with(')') {
                 let mut args = Vec::new();
-                for arg in s[1 .. s.len() - 1].split(',') {
+                for arg in s[1..s.len() - 1].split(',') {
                     let arg = arg.trim().parse()?;
                     args.push(arg)
                 }
@@ -439,9 +436,9 @@ pub mod tests {
     #[test]
     fn should_create_metadata() {
         let meta = test_suite::runtime_v9();
-        let meta: Metadata = Metadata::new(meta.as_slice());
+        let _meta: Metadata = Metadata::new(meta.as_slice());
 
         let meta = test_suite::runtime_v9_block6();
-        let meta: Metadata = Metadata::new(meta.as_slice());
+        let _meta: Metadata = Metadata::new(meta.as_slice());
     }
 }

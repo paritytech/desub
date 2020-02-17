@@ -108,8 +108,10 @@ impl Decoder {
     }
 
     /// Decode an extrinsic
-    pub fn decode_extrinsic(_ty: String, _spec: SpecVersion, _data: Vec<u8>) {
-        unimplemented!()
+    pub fn decode_extrinsic(&self, _ty: String, spec: SpecVersion, _data: Vec<u8>) {
+        let meta = self.versions.get(&spec).expect("Spec does not exist");
+
+        log::debug!("Types: {:?}", meta);
     }
 }
 
