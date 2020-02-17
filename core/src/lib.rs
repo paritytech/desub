@@ -121,8 +121,22 @@ pub enum CommonTypes {
     Vector(Box<RustTypeMarker>),
     /// Rust std Option<T> type
     Option(Box<RustTypeMarker>),
+    /// Rust  Result<T, E> type
+    Result(Box<RustTypeMarker>, Box<RustTypeMarker>),
     /// parity-scale-codec Compact<T> type
-    Compact(Box<RustTypeMarker>)
+    Compact(Box<RustTypeMarker>),
+}
+
+impl CommonTypes {
+
+    pub fn get_inner_type(&self) -> Vec<&Box<RustTypeMarker>> {
+        match self {
+            CommonTypes::Vector(ref v_inner) => vec![v_inner],
+            CommonTypes::Option(ref o_inner) => vec![o_inner],
+            CommonTypes::Result(ref r_inner1, ref r_inner2) => vec![r_inner1, r_inner2],
+            CommonTypes::Compact(ref c_inner) => vec![c_inner]
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
@@ -134,8 +148,11 @@ pub enum RustTypeMarker {
     /// Field Name -> Field Type
     Struct(Vec<StructField>),
 
-    // A C-Like Enum
+    /// A C-Like Enum
     Set(Vec<SetField>),
+
+    /// A tuple type (max size 64)
+    Tuple(Vec<RustTypeMarker>),
 
     /// Some Enum
     /// A Rust Enum that contains mixed "Struct" and Unit fields

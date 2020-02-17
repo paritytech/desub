@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use core::RustTypeMarker;
+use core::{RustTypeMarker, CommonTypes};
 use onig::{Regex, Region, SearchOptions};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -23,26 +23,42 @@ enum RegexSet {
     Vec,
     Option,
     Compact,
-    Generic,
-    Tuple
+    Tuple,
 }
 
 impl RegexSet {
-    fn get_type(s: &str) -> RegexSet {
+    /// Checks if string matches any of the patterns defined
+    fn is_match(s: &str) -> bool {
+        rust_array_decl().is_match(s)
+            || rust_vec_decl().is_match(s)
+            || rust_option_decl().is_match(s)
+            || rust_compact_decl().is_match(s)
+            || rust_tuple_decl().is_match(s)
+    }
+
+    fn get_type(s: &str) -> Option<RegexSet> {
         if rust_array_decl().is_match(s) {
-            RegexSet::Array
+            Some(RegexSet::Array)
         } else if rust_vec_decl().is_match(s) {
-            RegexSet::Vec
+            Some(RegexSet::Vec)
         } else if rust_option_decl().is_match(s) {
-            RegexSet::Option
+            Some(RegexSet::Option)
         } else if rust_compact_decl().is_match(s) {
-            RegexSet::Compact
-        } else if rust_generic_decl().is_match(s) {
-            RegexSet::Generic
+            Some(RegexSet::Compact)
         } else if rust_tuple_decl().is_match(s) {
-            RegexSet::Tuple
+            Some(RegexSet::Tuple)
         } else {
-            panic!("Could not determine type")
+            None
+        }
+    }
+
+    fn parse_type(&self, s: &str) -> Option<RustTypeMarker> {
+        match self {
+            RegexSet::Array => parse_regex_array(s),
+            RegexSet::Vec => parse_regex_vec(s),
+            RegexSet::Option => parse_regex_option(s),
+            RegexSet::Compact => parse_regex_compact(s),
+            RegexSet::Tuple => parse_regex_tuple(s),
         }
     }
 }
@@ -51,28 +67,33 @@ impl RegexSet {
 pub fn rust_array_decl() -> Regex {
     // width of number and unsigned/signed are all in their own capture group
     // size of array is in the last capture group
-    Regex::new(r"^\[ *?(?<type>[uif]{1})(?<bit8>8)?(?<bit16>16)?(?<bit32>32)?(?<bit64>64)?(?<bit128>128)?;\s*?(?<size>[\d]*) *?]$")
+    Regex::new(r"^\[ *?(?<type>[uif]{1})(?<bit8>8)?(?<bit16>16)?(?<bit32>32)?(?<bit64>64)?(?<bit128>128)?;\s*?(?<size>[\d]*) *?]")
         .expect("Regex expression invalid")
 }
 
 /// Match a rust vector
 /// allowed to be nested within, or have other (ie Option<>) nested within
 pub fn rust_vec_decl() -> Regex {
-    Regex::new(r"^Vec<(?<type>[\w><]+)>$")
+    Regex::new(r"^Vec<(?<type>[\w><,]+)>")
         .expect("Regex expression should be infallible; qed")
 }
 
 /// Match a Rust Option
 /// Allowed to be nested within another type, or have other (ie Vec<>) nested
-/// within
 pub fn rust_option_decl() -> Regex {
-    Regex::new(r"^Option<(?<type>[\w><]+)>$")
+    Regex::new(r"^Option<(?<type>[\w><,]+)>")
         .expect("Regex expression should be infallible; qed")
+}
+
+/// Match a rust result
+pub fn rust_result_decl() -> Regex {
+    Regex::new(r"^Result<(?<type>[\w><,() ]+) *, *(?<error>[\w><,() ]+)>")
+        .expect("Regex experssion should be infallible; qed")
 }
 
 /// Match a parity-scale-codec Compact<T> type
 pub fn rust_compact_decl() -> Regex {
-    Regex::new(r"^Compact<(?<type>[\w><]+)>$")
+    Regex::new(r"^Compact<(?<type>[\w><,]+)>")
         .expect("Regex expression should be infallible; qed")
 }
 
@@ -80,7 +101,7 @@ pub fn rust_compact_decl() -> Regex {
 /// Excudes types Vec/Option/Compact from matches
 pub fn rust_generic_decl() -> Regex {
     Regex::new(
-        r"\b(?!(?:Vec|Option|Compact)\b)(?<outer_type>\w+)<(?<inner_type>[\w<>]+)>",
+        r"\b(?!(?:Vec|Option|Compact)\b)(?<outer_type>\w+)<(?<inner_type>[\w<>,]+)>",
     )
     .expect("Regex expressions should be infallible; qed")
 }
@@ -165,7 +186,7 @@ pub fn parse_regex_array(s: &str) -> Option<RustTypeMarker> {
                         _ => panic!("Unhandled capture group"),
                     }
                 } else {
-                    continue
+                    continue;
                 }
             }
             true
@@ -212,27 +233,79 @@ pub fn parse_regex_array(s: &str) -> Option<RustTypeMarker> {
     let size = size.parse::<usize>().expect("Should always be number");
     Some(RustTypeMarker::Array { size, ty })
 }
-/*
-/// recursively parses a regex set
-/// returning a RustTypeMarker with all matched types
-pub fn parse_regex_set(s: &str) -> Option<RustTypeMarker> {
-    let re = rust_regex_set();
+
+fn parse_regex_vec(s: &str) -> Option<RustTypeMarker> {
+    let re = rust_vec_decl();
 
     if !re.is_match(s) {
         return None;
     }
-    let matches: Vec<_> = re.matches(s);
 
+    let ty = re.captures(s)?.at(1)?;
 
-
-    let caps = re.captures(s).expect("Checked for match; qed");
-    let t = caps.name("type").expect("type will always be present; qed");
-    // this gotta be recursive
-    let re_set = rust_regex_set();
-    let matches: Vec<_> = re_set.matches(t);
-    None
+    let ty = parse(ty).expect("Should always be some type; qed");
+    Some(RustTypeMarker::Std(CommonTypes::Vector(Box::new(ty))))
 }
-*/
+
+fn parse_regex_option(s: &str) -> Option<RustTypeMarker> {
+    let re = rust_option_decl();
+    if !re.is_match(s) {
+        return None;
+    }
+    let ty = re.captures(s)?.at(1)?;
+    let ty = parse(ty).expect("Should always be some type; qed");
+    Some(RustTypeMarker::Std(CommonTypes::Option(Box::new(ty))))
+}
+
+fn parse_regex_result(s: &str) -> Option<RustTypeMarker> {
+    let re = rust_result_decl();
+    if !re.is_match(s) {
+        return None;
+    }
+
+    let ty = parse(re.captures(s)?.at(1)?).expect("Should always be some type; qed");
+    let err = parse(re.captures(s)?.at(2)?).expect("Should always be some type; qed");
+    Some(RustTypeMarker::Std(CommonTypes::Result(Box::new(ty), Box::new(err))))
+}
+
+fn parse_regex_compact(s: &str) -> Option<RustTypeMarker> {
+    let re = rust_option_decl();
+
+    if !re.is_match(s) {
+        return None;
+    }
+
+    let ty = re.captures(s)?.at(1)?;
+
+    let ty = parse(ty).expect("Should always be some type; qed");
+    Some(RustTypeMarker::Std(CommonTypes::Compact(Box::new(ty))))
+}
+
+fn parse_regex_tuple(s: &str) -> Option<RustTypeMarker> {
+    let re = rust_tuple_decl();
+    if !re.is_match(s) {
+        return None;
+    }
+
+    // skip the first element (entire match)
+    let ty = re.captures(s)?.iter().skip(1).map(|c| {
+        parse(c.expect("Should exist")).expect("Should always be some type")
+    }).collect::<Vec<RustTypeMarker>>();
+
+    Some(RustTypeMarker::Tuple(ty))
+}
+
+
+/// recursively parses a regex set
+/// returning a RustTypeMarker with all matched types
+pub fn parse(s: &str) -> Option<RustTypeMarker> {
+    if let Some(m) = RegexSet::get_type(s) {
+        return None;
+    } else {
+        return None;
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -480,7 +553,7 @@ mod tests {
     }
 
     #[test]
-    fn should_parse_regex_array() {
+    fn should_match_regex_array() {
         assert_eq!(
             parse_regex_array("[u8; 32]").unwrap(),
             RustTypeMarker::Array {
@@ -575,7 +648,7 @@ mod tests {
     }
 
     #[test]
-    fn should_parse_vecs() {
+    fn should_match_vecs() {
         let re = rust_vec_decl();
         assert!(re.is_match("Vec<RuntimeVersionApi>"));
         assert!(re.is_match("Vec<BlockNumber>"));
@@ -591,7 +664,7 @@ mod tests {
     }
 
     #[test]
-    fn should_parse_compact() {
+    fn should_match_compact() {
         let re = rust_compact_decl();
         assert!(re.is_match("Compact<RuntimeVersionApi>"));
         assert!(re.is_match("Compact<BlockNumber>"));
@@ -607,7 +680,7 @@ mod tests {
     }
 
     #[test]
-    fn should_parse_options() {
+    fn should_match_options() {
         let re = rust_option_decl();
         assert!(re.is_match("Option<RuntimeVersionApi>"));
         assert!(re.is_match("Option<BlockNumber>"));
@@ -625,6 +698,29 @@ mod tests {
         let re = rust_option_decl();
         let caps = re.captures("Option<Vec<RuntimeVersionApi>>").unwrap();
         assert!(caps.at(1) == Some("Vec<RuntimeVersionApi>"));
+    }
+
+    #[test]
+    fn should_match_results() {
+        let re = rust_result_decl();
+        assert!(re.is_match("Result<RuntimeVersionApi, DispatchError>"));
+        assert!(re.is_match("Result<(), FooError>"));
+        assert!(re.is_match("Result<Foo, (WeirdError, PogError)>"));
+        assert!(re.is_match("Result<Vec<WeirdType>, FooError>"));
+        assert!(re.is_match("Result<(Vec<WeirdType>, Weird), (FooError, WeirdErrorFormat)>"));
+    }
+
+    #[test]
+    fn should_get_type_of_result() {
+        let re = rust_result_decl();
+        let caps = re.captures("Result<Foo, Bar>").unwrap();
+
+        assert!(caps.at(1) == Some("Foo"));
+        assert!(caps.at(2) == Some("Bar"));
+
+        let caps = re.captures("Result<(Foo, Zoo), (Bar, Car)>");
+        assert!(caps.at(1) == Some("(Foo, Zoo)"));
+        assert!(caps.at(2) == Some("(Bar, Car)"));
     }
 
     #[test]
@@ -652,7 +748,7 @@ mod tests {
     }
 
     #[test]
-    fn should_parse_tuples() {
+    fn should_match_tuples() {
         let re = rust_tuple_decl();
         assert!(re.is_match("(StorageKey, Option<StorageData>)"));
         assert!(re.is_match("(ApiKey, u32)"));
@@ -684,14 +780,20 @@ mod tests {
 
     #[test]
     fn should_correctly_indicate_type() {
-        assert_eq!(RegexSet::get_type("[   u8;   32 ]"), RegexSet::Array);
-        assert_eq!(RegexSet::get_type("Vec<Foo>"), RegexSet::Vec);
-        assert_eq!(RegexSet::get_type("Option<Foo>"), RegexSet::Option);
-        assert_eq!(RegexSet::get_type("Compact<Foo>"), RegexSet::Compact);
-        assert_eq!(RegexSet::get_type("Foo<Bar>"), RegexSet::Generic);
-        assert_eq!(RegexSet::get_type("(StorageKey, Foo<Bar>)"), RegexSet::Tuple);
+        assert_eq!(RegexSet::get_type("[   u8;   32 ]"), Some(RegexSet::Array));
+        assert_eq!(RegexSet::get_type("Vec<Foo>"), Some(RegexSet::Vec));
+        assert_eq!(RegexSet::get_type("Option<Foo>"), Some(RegexSet::Option));
+        assert_eq!(RegexSet::get_type("Compact<Foo>"), Some(RegexSet::Compact));
+        assert_eq!(RegexSet::get_type("Foo<Bar>"), Some(RegexSet::Generic));
+        assert_eq!(
+            RegexSet::get_type("(StorageKey, Foo<Bar>)"),
+            Some(RegexSet::Tuple)
+        );
 
-        assert_eq!(RegexSet::get_type("Vec<Option<Foo>>"), RegexSet::Vec);
-        assert_eq!(RegexSet::get_type("Option<Vec<Hello>>"), RegexSet::Option);
+        assert_eq!(RegexSet::get_type("Vec<Option<Foo>>"), Some(RegexSet::Vec));
+        assert_eq!(
+            RegexSet::get_type("Option<Vec<Hello>>"),
+            Some(RegexSet::Option)
+        );
     }
 }
