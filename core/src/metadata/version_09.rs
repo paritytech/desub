@@ -97,6 +97,7 @@ fn convert_module(
             call_map.insert(name, vec![index as u8]);
         }
     }
+
     let mut event_map = HashMap::new();
     if let Some(events) = module.event {
         for (index, event) in convert(events)?.into_iter().enumerate() {

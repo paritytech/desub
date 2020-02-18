@@ -17,6 +17,15 @@
 // taken directly and modified from substrate-subxt:
 // https://github.com/paritytech/substrate-subxt
 
+//! A generic metadata structure that delegates decoding of metadata to its
+//! native metadata version/structure in substrate runtime.
+//! Everything is converted to a generalized representation of the metadata via the
+//! `Metadata` struct
+//!
+//! # Note
+//! Must be updated whenever the metadata version is updated
+//! by adding a 'version_xx' file
+
 #[cfg(test)]
 pub mod test_suite;
 mod version_07;
@@ -106,6 +115,7 @@ impl Metadata {
             0x09 => {
                 let meta: runtime_metadata09::RuntimeMetadataPrefixed =
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
+                dbg!(&meta);
                 meta.try_into().expect("Conversion failed")
             }
             0xA => {
@@ -118,7 +128,8 @@ impl Metadata {
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
                 meta.try_into().expect("Conversion failed")
             }
-            e => panic!("version {} is unknown, invalid or unsupported", e), /* TODO remove panic */
+            /* TODO remove panic */
+            e => panic!("version {} is unknown, invalid or unsupported", e),
         }
     }
 
@@ -139,6 +150,7 @@ impl Metadata {
             .map(|m| (*m).clone())
     }
 
+    /// Check if a module exists
     pub fn module_exists<S>(&self, name: S) -> bool
     where
         S: ToString,
@@ -273,6 +285,25 @@ impl ModuleMetadata {
             .get(&index)
             .ok_or(MetadataError::EventNotFound(index))
     }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+/// Metadata for Calls in Substrate
+pub struct CallMetadata {
+    /// Name of the function of the call
+    name: String,
+    /// Arguments that the function accepts
+    arguments: Vec<CallArgMetadata>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+/// Metadata for Function Arguments to a Call
+pub struct CallArgMetadata {
+    /// name of argument
+    name: String,
+    /// Type of the Argument
+    /// TODO: Consider making this a 'RustTypeMarker' ?
+    ty: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -436,8 +467,8 @@ pub mod tests {
     #[test]
     fn should_create_metadata() {
         let meta = test_suite::runtime_v9();
-        let _meta: Metadata = Metadata::new(meta.as_slice());
-
+        let meta: Metadata = Metadata::new(meta.as_slice());
+        dbg!(&meta);
         let meta = test_suite::runtime_v9_block6();
         let _meta: Metadata = Metadata::new(meta.as_slice());
     }

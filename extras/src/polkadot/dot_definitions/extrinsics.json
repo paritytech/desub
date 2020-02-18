@@ -7,25 +7,14 @@
         "signature": "Option<(Address, AnySignature, SignedExtra)>",
         "function": "Call",
         "Address": {
-            "type": "enum",
-            "named": "true",
-            "types": {
+            "_enum": {
                 "id": "AccountId",
                 "Index": "AccountIndex"
             }
         },
         "AccountIndex": "u32",
-        "AccountId": {
-            "type": "array",
-            "items": "32",
-            "item_type": "u8"
-        },
-        "AnySignature": {
-            "type": "struct",
-            "fields": {
-                "0": "H512"
-            }
-        },
+        "AccountId": "[u8; 32]",
+        "AnySignature": "H512",
         "SignedExtra": {
             "type": "tuple",
             "named": "false",
