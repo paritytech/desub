@@ -15,10 +15,9 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 pub mod decoder;
+pub mod regex;
 mod error;
 
-#[allow(dead_code)]
-pub mod metadata;
 
 #[cfg(test)]
 mod test_suite;

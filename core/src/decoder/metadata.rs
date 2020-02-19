@@ -35,6 +35,7 @@ mod version_10;
 mod version_11;
 mod versions;
 
+use crate::RustTypeMarker;
 use codec::{Decode, Encode, EncodeAsRef, HasCompact};
 use codec411::Decode as OldDecode;
 use failure::Fail;
@@ -59,6 +60,7 @@ impl Encode for Encoded {
     }
 }
 
+#[allow(dead_code)]
 pub fn compact<T: HasCompact>(t: T) -> Encoded {
     let encodable: <<T as HasCompact>::Type as EncodeAsRef<'_, T>>::RefType =
         From::from(&t);
@@ -230,7 +232,7 @@ pub struct ModuleMetadata {
     /// Name of storage entry -> Metadata of storage entry
     storage: HashMap<String, StorageMetadata>,
     /// Calls in the module, CallName -> encoded calls
-    calls: HashMap<String, Vec<u8>>,
+    calls: HashMap<String, CallMetadata>,
     events: HashMap<u8, ModuleEventMetadata>,
     // constants
 }
@@ -249,7 +251,9 @@ impl ModuleMetadata {
         let fn_bytes = self
             .calls
             .get(function)
-            .ok_or(MetadataError::CallNotFound(function))?;
+            .ok_or(MetadataError::CallNotFound(function))?
+            .index
+            .as_slice();
         let mut bytes = vec![self.index];
         bytes.extend(fn_bytes);
         bytes.extend(params.encode());
@@ -270,8 +274,8 @@ impl ModuleMetadata {
 
     // TODO Transfer to Subxt
     /// iterator over all possible calls in this module
-    pub fn calls(&self) -> impl Iterator<Item = (&String, &Vec<u8>)> {
-        self.calls.iter()
+    pub fn calls(&self) -> impl Iterator<Item = &CallMetadata> {
+        self.calls.values()
     }
 
     /// iterator over all storage keys in this module
@@ -292,6 +296,8 @@ impl ModuleMetadata {
 pub struct CallMetadata {
     /// Name of the function of the call
     name: String,
+    /// encoded byte index of call
+    index: Vec<u8>,
     /// Arguments that the function accepts
     arguments: Vec<CallArgMetadata>,
 }
@@ -302,8 +308,7 @@ pub struct CallArgMetadata {
     /// name of argument
     name: String,
     /// Type of the Argument
-    /// TODO: Consider making this a 'RustTypeMarker' ?
-    ty: String,
+    ty: RustTypeMarker,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -457,6 +462,8 @@ pub enum Error {
     ExpectedDecoded,
     #[fail(display = "Invalid Event {}:{}", _0, _1)]
     InvalidEventArg(String, &'static str),
+    #[fail(display = "Invalid Type {}", _0)]
+    InvalidType(String)
 }
 
 #[cfg(test)]

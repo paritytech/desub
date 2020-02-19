@@ -13,8 +13,8 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{ModuleTypes, Modules};
-use crate::{error::Error, regex};
-use core::{RustEnum, RustTypeMarker, SetField, StructField};
+use crate::error::Error;
+use core::{RustEnum, RustTypeMarker, SetField, StructField, regex};
 use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
 use std::{collections::HashMap, fmt};
 

@@ -11,6 +11,9 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
+
+//! Deserializes Polkadot Type Definitions into general struct defined in `core/lib.rs`
+
 mod definitions;
 mod overrides;
 

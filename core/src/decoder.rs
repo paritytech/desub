@@ -24,7 +24,12 @@
 //! Theoretically, one could upload the deserialized decoder JSON to distribute
 //! to different applications that need the type data
 
-use super::metadata::Metadata as SubstrateMetadata;
+mod metadata;
+
+#[cfg(test)]
+pub use self::metadata::test_suite;
+
+use self::metadata::Metadata as SubstrateMetadata;
 use std::collections::HashMap;
 
 type SpecVersion = u32;
@@ -118,7 +123,7 @@ impl Decoder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::metadata::test_suite as meta_test_suite;
+    use crate::decoder::metadata::test_suite as meta_test_suite;
     use crate::test_suite;
 
     #[test]

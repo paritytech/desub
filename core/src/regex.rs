@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use core::{CommonTypes, RustTypeMarker};
+use super::{CommonTypes, RustTypeMarker};
 use onig::{Regex, Region, SearchOptions};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -328,9 +328,11 @@ pub fn parse(s: &str) -> Option<RustTypeMarker> {
         "Null" => Some(RustTypeMarker::Null),
 
         _ => {
+            // check if nested type
             if let Some(m) = RegexSet::get_type(s) {
                 m.parse_type(s)
             } else {
+                // if not a primitive, then a type pointer
                 Some(RustTypeMarker::TypePointer(s.to_string()))
             }
         }
@@ -670,7 +672,7 @@ mod tests {
         assert_eq!(
             parse_regex_array("[i128; 999999]").unwrap(),
             RustTypeMarker::Array {
-                size: 999999,
+                size: 999_999,
                 ty: Box::new(RustTypeMarker::I128)
             }
         );

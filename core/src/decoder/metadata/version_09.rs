@@ -19,8 +19,10 @@
 
 use super::{
     Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata, StorageMetadata,
+    CallMetadata, CallArgMetadata,
 };
-use runtime_metadata08::{
+use crate::regex;
+use runtime_metadata09::{
     DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier,
     StorageEntryType, StorageHasher, META_RESERVED,
 };
@@ -43,7 +45,7 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
             return Err(Error::InvalidPrefix);
         }
         let meta = match metadata.1 {
-            RuntimeMetadata::V8(meta) => meta,
+            RuntimeMetadata::V9(meta) => meta,
             _ => return Err(Error::InvalidVersion),
         };
         let mut modules = HashMap::new();
@@ -76,7 +78,7 @@ fn convert<B: 'static, O: 'static>(dd: DecodeDifferent<B, O>) -> Result<O, Error
 
 fn convert_module(
     index: usize,
-    module: runtime_metadata08::ModuleMetadata,
+    module: runtime_metadata09::ModuleMetadata,
 ) -> Result<ModuleMetadata, Error> {
     let mut storage_map = HashMap::new();
     if let Some(storage) = module.storage {
@@ -92,11 +94,26 @@ fn convert_module(
     let mut call_map = HashMap::new();
     if let Some(calls) = module.calls {
         for (index, call) in convert(calls)?.into_iter().enumerate() {
-            // HERE modify
             let name = convert(call.name)?;
-            call_map.insert(name, vec![index as u8]);
+            let index = vec![index as u8];
+            let args = convert(call.arguments)?.iter().map(|a| {
+                let ty = convert(a.ty.clone())?;
+                let name = convert(a.name.clone())?;
+                let arg = CallArgMetadata {
+                    name,
+                    ty: regex::parse(&ty).ok_or(Error::InvalidType(ty))?
+                };
+                Ok(arg)
+            }).collect::<Result<Vec<CallArgMetadata>, Error>>()?;
+            let meta = CallMetadata {
+                name: name.clone(),
+                index,
+                arguments: args
+            };
+            call_map.insert(name, meta);
         }
     }
+
     let mut event_map = HashMap::new();
     if let Some(events) = module.event {
         for (index, event) in convert(events)?.into_iter().enumerate() {
@@ -114,7 +131,7 @@ fn convert_module(
 }
 
 fn convert_event(
-    event: runtime_metadata08::EventMetadata,
+    event: runtime_metadata09::EventMetadata,
 ) -> Result<ModuleEventMetadata, Error> {
     let name = convert(event.name)?;
     let mut arguments = HashSet::new();
@@ -127,7 +144,7 @@ fn convert_event(
 
 fn convert_entry(
     prefix: String,
-    entry: runtime_metadata08::StorageEntryMetadata,
+    entry: runtime_metadata09::StorageEntryMetadata,
 ) -> Result<StorageMetadata, Error> {
     let default = convert(entry.default)?;
     let documentation = convert(entry.documentation)?;

@@ -16,7 +16,9 @@
 
 use super::{
     Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata, StorageMetadata,
+    CallMetadata, CallArgMetadata
 };
+use crate::regex;
 use runtime_metadata10::{
     DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier,
     StorageEntryType, StorageHasher, META_RESERVED,
@@ -89,9 +91,23 @@ fn convert_module(
     let mut call_map = HashMap::new();
     if let Some(calls) = module.calls {
         for (index, call) in convert(calls)?.into_iter().enumerate() {
-            // HERE modify
             let name = convert(call.name)?;
-            call_map.insert(name, vec![index as u8]);
+            let index = vec![index as u8];
+            let args = convert(call.arguments)?.iter().map(|a| {
+                let ty = convert(a.ty.clone())?;
+                let name = convert(a.name.clone())?;
+                let arg = CallArgMetadata {
+                    name,
+                    ty: regex::parse(&ty).ok_or(Error::InvalidType(ty))?
+                };
+                Ok(arg)
+            }).collect::<Result<Vec<CallArgMetadata>, Error>>()?;
+            let meta = CallMetadata {
+                name: name.clone(),
+                index,
+                arguments: args
+            };
+            call_map.insert(name, meta);
         }
     }
     let mut event_map = HashMap::new();
