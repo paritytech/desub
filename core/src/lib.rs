@@ -18,11 +18,11 @@ pub mod decoder;
 pub mod regex;
 mod error;
 
-
 #[cfg(test)]
 mod test_suite;
 
 use serde::{Deserialize, Serialize};
+use std::fmt::{self, Display};
 
 pub trait TypeDetective {
     type Error;
@@ -69,6 +69,12 @@ pub struct StructField {
     pub ty: RustTypeMarker,
 }
 
+impl Display for StructField {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "struct_field({}: {})", self.name, self.ty)
+    }
+}
+
 impl StructField {
     pub fn new<S: Into<String>>(name: S, ty: RustTypeMarker) -> Self {
         let name = name.into();
@@ -80,6 +86,12 @@ impl StructField {
 pub struct SetField {
     pub name: String,
     pub num: usize,
+}
+
+impl Display for SetField {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "set_field({} {})", self.name, self.num)
+    }
 }
 
 impl SetField {
@@ -100,6 +112,25 @@ pub enum RustEnum {
     Struct(Vec<StructField>),
 }
 
+impl Display for RustEnum {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut _enum = String::from("enum");
+        match self {
+            RustEnum::Unit(u) => {
+                for s in u.iter() {
+                    _enum.push_str(&format!("{}, ", s));
+                }
+            },
+            RustEnum::Struct(s) => {
+                for s in s.iter() {
+                    _enum.push_str(&format!("{}, ", s));
+                }
+            }
+        };
+        write!(f, "{}", _enum)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 /// Definitions for common patterns seen in Substrate/Polkadot
 /// type definitions
@@ -113,6 +144,27 @@ pub enum CommonTypes {
     Result(Box<RustTypeMarker>, Box<RustTypeMarker>),
     /// parity-scale-codec Compact<T> type
     Compact(Box<RustTypeMarker>),
+}
+
+impl Display for CommonTypes {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut common_types = String::from("");
+        match self {
+            CommonTypes::Vec(t) => {
+                common_types.push_str(&format!("Vec<{}>", t));
+            },
+            CommonTypes::Option(t) => {
+                common_types.push_str(&format!("Option<{}>", t));
+            },
+            CommonTypes::Result(r, e) => {
+                common_types.push_str(&format!("Result<{},{}>", r, e));
+            },
+            CommonTypes::Compact(t) => {
+                common_types.push_str(&format!("Compact<{}>", t));
+            }
+        }
+        write!(f, "{}", common_types)
+    }
 }
 
 impl CommonTypes {
@@ -200,6 +252,62 @@ pub enum RustTypeMarker {
     /// Used for fields that don't exist (ex Unit variant in an enum with both
     /// units/structs)
     Null,
+}
+
+impl Display for RustTypeMarker {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut type_marker = String::from("");
+        match self {
+            RustTypeMarker::TypePointer(t) => type_marker.push_str(t),
+            RustTypeMarker::Struct(t) => {
+                for substring in t.iter() {
+                    type_marker.push_str(&format!("{}, ", substring))
+                }
+            },
+            RustTypeMarker::Set(t) => {
+                for substring in t.iter() {
+                    type_marker.push_str("\n");
+                    type_marker.push_str(&format!("{}, ", substring))
+                }
+            },
+            RustTypeMarker::Tuple(t) => {
+                for substring in t.iter() {
+                    type_marker.push_str("\n");
+                    type_marker.push_str(&format!("{}, ", substring))
+                }
+            },
+            RustTypeMarker::Enum(t) => {
+                type_marker.push_str(&t.to_string());
+            },
+            RustTypeMarker::Array {size, ty} => {
+                type_marker.push_str(&format!("[{};{}], ", ty, size))
+            },
+            RustTypeMarker::Std(t) => {
+                type_marker.push_str(&t.to_string())
+            },
+            RustTypeMarker::U8 => type_marker.push_str("u8"),
+            RustTypeMarker::U16 => type_marker.push_str("u16"),
+            RustTypeMarker::U32 => type_marker.push_str("u32"),
+            RustTypeMarker::U64 => type_marker.push_str("u64"),
+            RustTypeMarker::U128 => type_marker.push_str("u128"),
+            RustTypeMarker::USize => type_marker.push_str("usize"),
+
+            RustTypeMarker::I8 => type_marker.push_str("i8"),
+            RustTypeMarker::I16 => type_marker.push_str("i16"),
+            RustTypeMarker::I32 => type_marker.push_str("i32"),
+            RustTypeMarker::I64 => type_marker.push_str("i64"),
+            RustTypeMarker::I128 => type_marker.push_str("i128"),
+            RustTypeMarker::ISize => type_marker.push_str("isize"),
+
+            RustTypeMarker::F32 => type_marker.push_str("f32"),
+            RustTypeMarker::F64 => type_marker.push_str("f64"),
+
+            RustTypeMarker::Bool => type_marker.push_str("bool"),
+
+            RustTypeMarker::Null => type_marker.push_str("null"),
+        }
+        write!(f, "{}", type_marker)
+    }
 }
 
 impl Decodable for RustTypeMarker {

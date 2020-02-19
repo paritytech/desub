@@ -47,6 +47,7 @@ use std::{
     marker::PhantomData,
     rc::Rc,
     str::FromStr,
+    fmt
 };
 use substrate_primitives::storage::StorageKey;
 
@@ -117,7 +118,7 @@ impl Metadata {
             0x09 => {
                 let meta: runtime_metadata09::RuntimeMetadataPrefixed =
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
-                dbg!(&meta);
+                // dbg!(&meta);
                 meta.try_into().expect("Conversion failed")
             }
             0xA => {
@@ -208,9 +209,9 @@ impl Metadata {
                 string.push_str(storage.as_str());
                 string.push('\n');
             }
-            for call in module.calls.keys() {
+            for call in module.calls.values() {
                 string.push_str(" c  ");
-                string.push_str(call.as_str());
+                string.push_str(&call.to_string());
                 string.push('\n');
             }
             for event in module.events.values() {
@@ -302,6 +303,16 @@ pub struct CallMetadata {
     arguments: Vec<CallArgMetadata>,
 }
 
+impl fmt::Display for CallMetadata {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut arg_str = String::from("");
+        for a in self.arguments.iter() {
+            arg_str.push_str(&format!("{}, ", a));
+        }
+        write!(f, "fn {}({})", self.name, arg_str)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 /// Metadata for Function Arguments to a Call
 pub struct CallArgMetadata {
@@ -309,6 +320,12 @@ pub struct CallArgMetadata {
     name: String,
     /// Type of the Argument
     ty: RustTypeMarker,
+}
+
+impl fmt::Display for CallArgMetadata {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: {}", self.name, self.ty)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -475,7 +492,7 @@ pub mod tests {
     fn should_create_metadata() {
         let meta = test_suite::runtime_v9();
         let meta: Metadata = Metadata::new(meta.as_slice());
-        dbg!(&meta);
+        println!("{}", meta.pretty());
         let meta = test_suite::runtime_v9_block6();
         let _meta: Metadata = Metadata::new(meta.as_slice());
     }
