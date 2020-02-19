@@ -266,15 +266,15 @@ impl Display for RustTypeMarker {
             },
             RustTypeMarker::Set(t) => {
                 for substring in t.iter() {
-                    type_marker.push_str("\n");
                     type_marker.push_str(&format!("{}, ", substring))
                 }
             },
             RustTypeMarker::Tuple(t) => {
+                type_marker.push_str("(");
                 for substring in t.iter() {
-                    type_marker.push_str("\n");
                     type_marker.push_str(&format!("{}, ", substring))
                 }
+                type_marker.push_str(")");
             },
             RustTypeMarker::Enum(t) => {
                 type_marker.push_str(&t.to_string());

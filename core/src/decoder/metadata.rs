@@ -118,7 +118,6 @@ impl Metadata {
             0x09 => {
                 let meta: runtime_metadata09::RuntimeMetadataPrefixed =
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
-                // dbg!(&meta);
                 meta.try_into().expect("Conversion failed")
             }
             0xA => {
