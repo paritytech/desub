@@ -113,9 +113,13 @@ impl Decoder {
     }
 
     /// Decode an extrinsic
-    pub fn decode_extrinsic(&self, _ty: String, spec: SpecVersion, _data: Vec<u8>) {
+    pub fn decode_extrinsic(&self, spec: SpecVersion, _data: Vec<u8>) {
         let meta = self.versions.get(&spec).expect("Spec does not exist");
-
+        // should have a list of 'guess type' where
+        // types like <T::Lookup as StaticLookup>::Source
+        // are 'guessed' to be `Address`
+        // this is sort of a hack
+        // and should instead be handled in the definitions.json
         log::debug!("Types: {:?}", meta);
     }
 }

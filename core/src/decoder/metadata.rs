@@ -488,11 +488,18 @@ pub mod tests {
     use crate::test_suite;
 
     #[test]
-    fn should_create_metadata() {
+    fn should_create_metadata_v9() {
         let meta = test_suite::runtime_v9();
         let meta: Metadata = Metadata::new(meta.as_slice());
         println!("{}", meta.pretty());
         let meta = test_suite::runtime_v9_block6();
         let _meta: Metadata = Metadata::new(meta.as_slice());
+    }
+
+    #[test]
+    fn should_create_metadata_v10() {
+        let meta = test_suite::runtime_v10();
+        let meta: Metadata = Metadata::new(meta.as_slice());
+        println!("{}", meta.pretty());
     }
 }
