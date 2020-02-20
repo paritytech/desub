@@ -31,6 +31,7 @@ pub use self::metadata::test_suite;
 
 use self::metadata::Metadata as SubstrateMetadata;
 use std::collections::HashMap;
+use crate::TypeDetective;
 
 type SpecVersion = u32;
 /// Decoder for substrate types
@@ -39,10 +40,11 @@ type SpecVersion = u32;
 /// and maps types inside the runtime metadata to self-describing types in
 /// type-metadata
 #[derive(Default, Debug)]
-pub struct Decoder {
+pub struct Decoder<T: TypeDetective> {
     // reference to an item in 'versions' vector
     // NOTE: possibly a concurrent HashMap
     versions: HashMap<SpecVersion, SubstrateMetadata>,
+    types: T
 }
 
 /// The type of Entry
@@ -60,7 +62,16 @@ pub enum Entry {
     Constant,
 }
 
-impl Decoder {
+impl<T> Decoder<T> where T: TypeDetective {
+
+    /// Create new Decoder with specified types
+    pub fn new(types: T) -> Self {
+        Self {
+            versions: HashMap::default(),
+            types
+        }
+    }
+
     /// Insert a Metadata with Version attached
     /// If version exists, it's corresponding metadata will be updated
     pub fn register_version(
@@ -128,11 +139,26 @@ impl Decoder {
 mod tests {
     use super::*;
     use crate::decoder::metadata::test_suite as meta_test_suite;
-    use crate::test_suite;
+    use crate::{test_suite, RustTypeMarker, Decodable};
+    // require 'polkadot' feature in extras to test
+    use extras::polkadot::PolkadotTypes;
+
+    struct GenericTypes;
+    impl TypeDetective for GenericTypes {
+        fn get(&self, _module: &str, _ty: &str, _spec: usize, _chain: &str) -> Option<&dyn Decodable> {
+            None
+        }
+        fn resolve(&self, _module: &str, _ty: &RustTypeMarker) -> Option<&RustTypeMarker> {
+            None
+        }
+    }
 
     #[test]
     fn should_insert_metadata() {
-        let mut decoder = Decoder::default();
+        // let types = PolkadotTypes::new().unwrap();
+        // types.get("balances", "BalanceLock", 1042, "kusama");
+
+        let mut decoder = Decoder::new(GenericTypes);
         decoder.register_version(
             test_suite::mock_runtime(0).spec_version,
             meta_test_suite::test_metadata(),
@@ -158,7 +184,8 @@ mod tests {
 
     #[test]
     fn should_get_version_metadata() {
-        let mut decoder = Decoder::default();
+        // let types = PolkadotTypes::new().unwrap();
+        let mut decoder = Decoder::new(GenericTypes);
         let rt_version = test_suite::mock_runtime(0);
         let meta = meta_test_suite::test_metadata();
         decoder.register_version(rt_version.spec_version.clone(), meta.clone());

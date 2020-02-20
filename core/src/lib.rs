@@ -25,7 +25,6 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
 
 pub trait TypeDetective {
-    type Error;
     /// Get a 'Decodable' type
     fn get(
         &self,
@@ -33,7 +32,7 @@ pub trait TypeDetective {
         ty: &str,
         spec: usize,
         chain: &str,
-    ) -> Result<&dyn Decodable, Self::Error>;
+    ) -> Option<&dyn Decodable>;
 
     /// Resolve a type pointer into the type it points to
     fn resolve(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker>;

@@ -106,24 +106,17 @@ impl ModuleTypes {
 }
 
 impl TypeDetective for PolkadotTypes {
-    type Error = Error;
-
     fn get(
         &self,
         module: &str,
         ty: &str,
         spec: usize,
         chain: &str,
-    ) -> Result<&dyn Decodable, Error> {
+    ) -> Option<&dyn Decodable> {
         let module = module.to_ascii_lowercase();
         let chain = chain.to_ascii_lowercase();
-        let decodable = self.get(&module, ty, spec, &chain).ok_or_else(|| {
-            Error::NotFound(format!(
-                "{} in module {} for spec {} on chain {}",
-                ty, module, spec, chain
-            ))
-        })?;
-        Ok(decodable as &dyn Decodable)
+        let decodable = self.get(&module, ty, spec, &chain)?;
+        Some(decodable as &dyn Decodable)
     }
 
     fn resolve(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker> {
@@ -134,7 +127,13 @@ impl TypeDetective for PolkadotTypes {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core::{RustEnum, StructField};
+    use core::{RustEnum, StructField, decoder::Decoder};
+
+    #[test]
+    fn should_create_new_decoder() {
+        let types = PolkadotTypes::new().unwrap();
+        let decoder = Decoder::new(types);
+    }
 
     #[test]
     fn should_get_type_from_module() -> Result<(), Error> {
