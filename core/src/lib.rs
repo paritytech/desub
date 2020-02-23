@@ -18,8 +18,8 @@ pub mod decoder;
 pub mod regex;
 mod error;
 
-#[cfg(test)]
-mod test_suite;
+#[cfg(any(feature = "test", test))]
+pub mod test_suite;
 
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};

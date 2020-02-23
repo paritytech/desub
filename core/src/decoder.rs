@@ -137,11 +137,13 @@ impl<T> Decoder<T> where T: TypeDetective {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::decoder::metadata::test_suite as meta_test_suite;
-    use crate::{test_suite, RustTypeMarker, Decodable};
-    // require 'polkadot' feature in extras to test
-    use extras::polkadot::PolkadotTypes;
+    use crate::{
+        decoder::{
+            metadata::test_suite as meta_test_suite,
+            Decoder
+        },
+        TypeDetective, test_suite, RustTypeMarker, Decodable
+    };
 
     struct GenericTypes;
     impl TypeDetective for GenericTypes {
