@@ -127,23 +127,24 @@ fn call_mock() -> HashMap<String, CallMetadata> {
     map.insert(
         "TestCall0".to_string(),
         CallMetadata {
-        name: "foo_function0".to_string(),
-        index: vec![1, 2, 3, 4, 5],
-        arguments: vec![CallArgMetadata {
-            name: "foo_arg".to_string(),
-            ty: RustTypeMarker::I8
-        }]
-    });
+            name: "foo_function0".to_string(),
+            index: vec![1, 2, 3, 4, 5],
+            arguments: vec![CallArgMetadata {
+                name: "foo_arg".to_string(),
+                ty: RustTypeMarker::I8,
+            }],
+        },
+    );
     map.insert(
         "TestCall1".to_string(),
         CallMetadata {
-        name: "foo_function1".to_string(),
-        index: vec![11, 12, 13, 14, 15, 16, 17],
-        arguments: vec![CallArgMetadata {
-            name: "foo_arg".to_string(),
-            ty: RustTypeMarker::U64,
-        }]
-    }
+            name: "foo_function1".to_string(),
+            index: vec![11, 12, 13, 14, 15, 16, 17],
+            arguments: vec![CallArgMetadata {
+                name: "foo_arg".to_string(),
+                ty: RustTypeMarker::U64,
+            }],
+        },
     );
     map.insert(
         "TestCall2".to_string(),
@@ -152,9 +153,9 @@ fn call_mock() -> HashMap<String, CallMetadata> {
             index: vec![21, 22, 23, 24, 25, 26, 27, 28, 29],
             arguments: vec![CallArgMetadata {
                 name: "foo_arg".to_string(),
-                ty: RustTypeMarker::TypePointer("SomeType".to_string())
-            }]
-        }
+                ty: RustTypeMarker::TypePointer("SomeType".to_string()),
+            }],
+        },
     );
     map.insert(
         "TestCall3".to_string(),
@@ -163,9 +164,9 @@ fn call_mock() -> HashMap<String, CallMetadata> {
             index: vec![31, 32, 33, 34, 35, 36, 37, 38, 39],
             arguments: vec![CallArgMetadata {
                 name: "foo_arg".to_string(),
-                ty: RustTypeMarker::F32
-            }]
-        }
+                ty: RustTypeMarker::F32,
+            }],
+        },
     );
     map
 }

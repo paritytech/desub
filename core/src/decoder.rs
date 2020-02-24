@@ -30,8 +30,8 @@ mod metadata;
 pub use self::metadata::test_suite;
 
 pub use self::metadata::Metadata;
-use std::collections::HashMap;
 use crate::TypeDetective;
+use std::collections::HashMap;
 
 type SpecVersion = u32;
 /// Decoder for substrate types
@@ -44,7 +44,7 @@ pub struct Decoder<T: TypeDetective> {
     // reference to an item in 'versions' vector
     // NOTE: possibly a concurrent HashMap
     versions: HashMap<SpecVersion, Metadata>,
-    types: T
+    types: T,
 }
 
 /// The type of Entry
@@ -62,23 +62,21 @@ pub enum Entry {
     Constant,
 }
 
-impl<T> Decoder<T> where T: TypeDetective {
-
+impl<T> Decoder<T>
+where
+    T: TypeDetective,
+{
     /// Create new Decoder with specified types
     pub fn new(types: T) -> Self {
         Self {
             versions: HashMap::default(),
-            types
+            types,
         }
     }
 
     /// Insert a Metadata with Version attached
     /// If version exists, it's corresponding metadata will be updated
-    pub fn register_version(
-        &mut self,
-        version: SpecVersion,
-        metadata: Metadata,
-    ) {
+    pub fn register_version(&mut self, version: SpecVersion, metadata: Metadata) {
         self.versions.insert(version, metadata);
     }
 
@@ -89,10 +87,7 @@ impl<T> Decoder<T> where T: TypeDetective {
     ///
     /// # Note
     /// Returns None if version is nonexistant
-    pub fn get_version_metadata(
-        &self,
-        version: SpecVersion,
-    ) -> Option<&Metadata> {
+    pub fn get_version_metadata(&self, version: SpecVersion) -> Option<&Metadata> {
         self.versions.get(&version)
     }
 
@@ -140,19 +135,26 @@ impl<T> Decoder<T> where T: TypeDetective {
 #[cfg(test)]
 mod tests {
     use crate::{
-        decoder::{
-            metadata::test_suite as meta_test_suite,
-            Decoder
-        },
-        TypeDetective, test_suite, RustTypeMarker, Decodable
+        decoder::{metadata::test_suite as meta_test_suite, Decoder},
+        test_suite, Decodable, RustTypeMarker, TypeDetective,
     };
 
     struct GenericTypes;
     impl TypeDetective for GenericTypes {
-        fn get(&self, _module: &str, _ty: &str, _spec: usize, _chain: &str) -> Option<&dyn Decodable> {
+        fn get(
+            &self,
+            _module: &str,
+            _ty: &str,
+            _spec: usize,
+            _chain: &str,
+        ) -> Option<&dyn Decodable> {
             None
         }
-        fn resolve(&self, _module: &str, _ty: &RustTypeMarker) -> Option<&RustTypeMarker> {
+        fn resolve(
+            &self,
+            _module: &str,
+            _ty: &RustTypeMarker,
+        ) -> Option<&RustTypeMarker> {
             None
         }
     }

@@ -127,8 +127,8 @@ impl TypeDetective for PolkadotTypes {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core::{RustEnum, StructField, decoder::Decoder};
     use core::test_suite;
+    use core::{decoder::Decoder, RustEnum, StructField};
 
     #[test]
     fn should_get_type_from_module() -> Result<(), Error> {

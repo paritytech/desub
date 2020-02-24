@@ -14,7 +14,7 @@
 
 use super::{ModuleTypes, Modules};
 use crate::error::Error;
-use core::{RustEnum, RustTypeMarker, SetField, StructField, regex};
+use core::{regex, RustEnum, RustTypeMarker, SetField, StructField};
 use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
 use std::{collections::HashMap, fmt};
 

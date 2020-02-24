@@ -15,8 +15,8 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 pub mod decoder;
-pub mod regex;
 mod error;
+pub mod regex;
 
 #[cfg(any(feature = "test", test))]
 pub mod test_suite;
@@ -119,7 +119,7 @@ impl Display for RustEnum {
                 for s in u.iter() {
                     _enum.push_str(&format!("{}, ", s));
                 }
-            },
+            }
             RustEnum::Struct(s) => {
                 for s in s.iter() {
                     _enum.push_str(&format!("{}, ", s));
@@ -151,13 +151,13 @@ impl Display for CommonTypes {
         match self {
             CommonTypes::Vec(t) => {
                 common_types.push_str(&format!("Vec<{}>", t));
-            },
+            }
             CommonTypes::Option(t) => {
                 common_types.push_str(&format!("Option<{}>", t));
-            },
+            }
             CommonTypes::Result(r, e) => {
                 common_types.push_str(&format!("Result<{},{}>", r, e));
-            },
+            }
             CommonTypes::Compact(t) => {
                 common_types.push_str(&format!("Compact<{}>", t));
             }
@@ -262,28 +262,26 @@ impl Display for RustTypeMarker {
                 for substring in t.iter() {
                     type_marker.push_str(&format!("{}, ", substring))
                 }
-            },
+            }
             RustTypeMarker::Set(t) => {
                 for substring in t.iter() {
                     type_marker.push_str(&format!("{}, ", substring))
                 }
-            },
+            }
             RustTypeMarker::Tuple(t) => {
                 type_marker.push_str("(");
                 for substring in t.iter() {
                     type_marker.push_str(&format!("{}, ", substring))
                 }
                 type_marker.push_str(")");
-            },
+            }
             RustTypeMarker::Enum(t) => {
                 type_marker.push_str(&t.to_string());
-            },
-            RustTypeMarker::Array {size, ty} => {
+            }
+            RustTypeMarker::Array { size, ty } => {
                 type_marker.push_str(&format!("[{};{}], ", ty, size))
-            },
-            RustTypeMarker::Std(t) => {
-                type_marker.push_str(&t.to_string())
-            },
+            }
+            RustTypeMarker::Std(t) => type_marker.push_str(&t.to_string()),
             RustTypeMarker::U8 => type_marker.push_str("u8"),
             RustTypeMarker::U16 => type_marker.push_str("u16"),
             RustTypeMarker::U32 => type_marker.push_str("u32"),

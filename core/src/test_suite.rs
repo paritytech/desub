@@ -67,19 +67,21 @@ pub fn runtime_v9_block6() -> Vec<u8> {
 /// # Panics
 /// Panics on std::io::Error
 pub fn extrinsics_block10994() -> Vec<Vec<u8>> {
-
-    let mut f = File::open("./test/extrinsics/EXTRINSIC_spec_1020_block_10994_index_0.bin")
-        .expect("Opening file failed");
+    let mut f =
+        File::open("./test/extrinsics/EXTRINSIC_spec_1020_block_10994_index_0.bin")
+            .expect("Opening file failed");
     let mut ext0 = Vec::new();
     f.read_to_end(&mut ext0).expect("Reading file failed");
 
-    let mut f = File::open("./test/extrinsics/EXTRINSIC_spec_1020_block_10994_index_1.bin")
-        .expect("Opening file failed");
+    let mut f =
+        File::open("./test/extrinsics/EXTRINSIC_spec_1020_block_10994_index_1.bin")
+            .expect("Opening file failed");
     let mut ext1 = Vec::new();
     f.read_to_end(&mut ext1).expect("Reading file failed");
 
-    let mut f = File::open("./test/extrinsics/EXTRINSIC_spec_1020_block_10994_index_2.bin")
-        .expect("Opening file failed");
+    let mut f =
+        File::open("./test/extrinsics/EXTRINSIC_spec_1020_block_10994_index_2.bin")
+            .expect("Opening file failed");
     let mut ext2 = Vec::new();
     f.read_to_end(&mut ext2).expect("Reading file failed");
 

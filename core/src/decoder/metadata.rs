@@ -44,10 +44,10 @@ use runtime_metadata_latest::{StorageEntryModifier, StorageEntryType, StorageHas
 use std::{
     collections::{HashMap, HashSet},
     convert::TryInto,
+    fmt,
     marker::PhantomData,
     rc::Rc,
     str::FromStr,
-    fmt
 };
 use substrate_primitives::storage::StorageKey;
 
@@ -479,7 +479,7 @@ pub enum Error {
     #[fail(display = "Invalid Event {}:{}", _0, _1)]
     InvalidEventArg(String, &'static str),
     #[fail(display = "Invalid Type {}", _0)]
-    InvalidType(String)
+    InvalidType(String),
 }
 
 #[cfg(test)]

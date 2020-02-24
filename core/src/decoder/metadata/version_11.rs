@@ -30,8 +30,8 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata, StorageMetadata,
-    CallMetadata, CallArgMetadata
+    CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata,
+    ModuleMetadata, StorageMetadata,
 };
 use crate::regex;
 use runtime_metadata_latest::{
@@ -103,19 +103,22 @@ fn convert_module(
         for (index, call) in convert(calls)?.into_iter().enumerate() {
             let name = convert(call.name)?;
             let index = vec![index as u8];
-            let args = convert(call.arguments)?.iter().map(|a| {
-                let ty = convert(a.ty.clone())?;
-                let name = convert(a.name.clone())?;
-                let arg = CallArgMetadata {
-                    name,
-                    ty: regex::parse(&ty).ok_or(Error::InvalidType(ty))?
-                };
-                Ok(arg)
-            }).collect::<Result<Vec<CallArgMetadata>, Error>>()?;
+            let args = convert(call.arguments)?
+                .iter()
+                .map(|a| {
+                    let ty = convert(a.ty.clone())?;
+                    let name = convert(a.name.clone())?;
+                    let arg = CallArgMetadata {
+                        name,
+                        ty: regex::parse(&ty).ok_or(Error::InvalidType(ty))?,
+                    };
+                    Ok(arg)
+                })
+                .collect::<Result<Vec<CallArgMetadata>, Error>>()?;
             let meta = CallMetadata {
                 name: name.clone(),
                 index,
-                arguments: args
+                arguments: args,
             };
             call_map.insert(name, meta);
         }
