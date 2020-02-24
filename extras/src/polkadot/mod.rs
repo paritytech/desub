@@ -11,6 +11,9 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
+
+//! Deserializes Polkadot Type Definitions into general struct defined in `core/lib.rs`
+
 mod definitions;
 mod overrides;
 
@@ -103,24 +106,17 @@ impl ModuleTypes {
 }
 
 impl TypeDetective for PolkadotTypes {
-    type Error = Error;
-
     fn get(
         &self,
         module: &str,
         ty: &str,
         spec: usize,
         chain: &str,
-    ) -> Result<&dyn Decodable, Error> {
+    ) -> Option<&dyn Decodable> {
         let module = module.to_ascii_lowercase();
         let chain = chain.to_ascii_lowercase();
-        let decodable = self.get(&module, ty, spec, &chain).ok_or_else(|| {
-            Error::NotFound(format!(
-                "{} in module {} for spec {} on chain {}",
-                ty, module, spec, chain
-            ))
-        })?;
-        Ok(decodable as &dyn Decodable)
+        let decodable = self.get(&module, ty, spec, &chain)?;
+        Some(decodable as &dyn Decodable)
     }
 
     fn resolve(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker> {

@@ -70,7 +70,7 @@ impl Overrides {
 
     fn is_in_range(spec: usize, over_ride: &SingleOverride) -> bool {
         match over_ride.min_max {
-            [Some(min), Some(max)] => (min ..= max).contains(&spec),
+            [Some(min), Some(max)] => (min..=max).contains(&spec),
             [Some(min), None] => spec > min,
             [None, Some(max)] => spec < max,
             // presumably, this would be for null -> null,

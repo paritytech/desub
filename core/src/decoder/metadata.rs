@@ -17,6 +17,15 @@
 // taken directly and modified from substrate-subxt:
 // https://github.com/paritytech/substrate-subxt
 
+//! A generic metadata structure that delegates decoding of metadata to its
+//! native metadata version/structure in substrate runtime.
+//! Everything is converted to a generalized representation of the metadata via the
+//! `Metadata` struct
+//!
+//! # Note
+//! Must be updated whenever the metadata version is updated
+//! by adding a 'version_xx' file
+
 #[cfg(test)]
 pub mod test_suite;
 mod version_07;
@@ -26,17 +35,16 @@ mod version_10;
 mod version_11;
 mod versions;
 
+use crate::RustTypeMarker;
 use codec::{Decode, Encode, EncodeAsRef, HasCompact};
 use codec411::Decode as OldDecode;
 use failure::Fail;
-use runtime_metadata_latest::{
-    DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier,
-    StorageEntryType, StorageHasher, META_RESERVED,
-};
+use runtime_metadata_latest::{StorageEntryModifier, StorageEntryType, StorageHasher};
 
 use std::{
     collections::{HashMap, HashSet},
-    convert::{TryFrom, TryInto},
+    convert::TryInto,
+    fmt,
     marker::PhantomData,
     rc::Rc,
     str::FromStr,
@@ -53,6 +61,7 @@ impl Encode for Encoded {
     }
 }
 
+#[allow(dead_code)]
 pub fn compact<T: HasCompact>(t: T) -> Encoded {
     let encodable: <<T as HasCompact>::Type as EncodeAsRef<'_, T>>::RefType =
         From::from(&t);
@@ -121,7 +130,8 @@ impl Metadata {
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
                 meta.try_into().expect("Conversion failed")
             }
-            e => panic!("version {} is unknown, invalid or unsupported", e), /* TODO remove panic */
+            /* TODO remove panic */
+            e => panic!("version {} is unknown, invalid or unsupported", e),
         }
     }
 
@@ -142,6 +152,7 @@ impl Metadata {
             .map(|m| (*m).clone())
     }
 
+    /// Check if a module exists
     pub fn module_exists<S>(&self, name: S) -> bool
     where
         S: ToString,
@@ -197,9 +208,9 @@ impl Metadata {
                 string.push_str(storage.as_str());
                 string.push('\n');
             }
-            for call in module.calls.keys() {
+            for call in module.calls.values() {
                 string.push_str(" c  ");
-                string.push_str(call.as_str());
+                string.push_str(&call.to_string());
                 string.push('\n');
             }
             for event in module.events.values() {
@@ -221,7 +232,7 @@ pub struct ModuleMetadata {
     /// Name of storage entry -> Metadata of storage entry
     storage: HashMap<String, StorageMetadata>,
     /// Calls in the module, CallName -> encoded calls
-    calls: HashMap<String, Vec<u8>>,
+    calls: HashMap<String, CallMetadata>,
     events: HashMap<u8, ModuleEventMetadata>,
     // constants
 }
@@ -240,7 +251,9 @@ impl ModuleMetadata {
         let fn_bytes = self
             .calls
             .get(function)
-            .ok_or(MetadataError::CallNotFound(function))?;
+            .ok_or(MetadataError::CallNotFound(function))?
+            .index
+            .as_slice();
         let mut bytes = vec![self.index];
         bytes.extend(fn_bytes);
         bytes.extend(params.encode());
@@ -261,8 +274,8 @@ impl ModuleMetadata {
 
     // TODO Transfer to Subxt
     /// iterator over all possible calls in this module
-    pub fn calls(&self) -> impl Iterator<Item = (&String, &Vec<u8>)> {
-        self.calls.iter()
+    pub fn calls(&self) -> impl Iterator<Item = &CallMetadata> {
+        self.calls.values()
     }
 
     /// iterator over all storage keys in this module
@@ -275,6 +288,42 @@ impl ModuleMetadata {
         self.events
             .get(&index)
             .ok_or(MetadataError::EventNotFound(index))
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+/// Metadata for Calls in Substrate
+pub struct CallMetadata {
+    /// Name of the function of the call
+    name: String,
+    /// encoded byte index of call
+    index: Vec<u8>,
+    /// Arguments that the function accepts
+    arguments: Vec<CallArgMetadata>,
+}
+
+impl fmt::Display for CallMetadata {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut arg_str = String::from("");
+        for a in self.arguments.iter() {
+            arg_str.push_str(&format!("{}, ", a));
+        }
+        write!(f, "fn {}({})", self.name, arg_str)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+/// Metadata for Function Arguments to a Call
+pub struct CallArgMetadata {
+    /// name of argument
+    name: String,
+    /// Type of the Argument
+    ty: RustTypeMarker,
+}
+
+impl fmt::Display for CallArgMetadata {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: {}", self.name, self.ty)
     }
 }
 
@@ -375,7 +424,7 @@ impl FromStr for EventArg {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.starts_with("Vec<") {
             if s.ends_with('>') {
-                Ok(EventArg::Vec(Box::new(s[4 .. s.len() - 1].parse()?)))
+                Ok(EventArg::Vec(Box::new(s[4..s.len() - 1].parse()?)))
             } else {
                 Err(Error::InvalidEventArg(
                     s.to_string(),
@@ -385,7 +434,7 @@ impl FromStr for EventArg {
         } else if s.starts_with('(') {
             if s.ends_with(')') {
                 let mut args = Vec::new();
-                for arg in s[1 .. s.len() - 1].split(',') {
+                for arg in s[1..s.len() - 1].split(',') {
                     let arg = arg.trim().parse()?;
                     args.push(arg)
                 }
@@ -429,6 +478,8 @@ pub enum Error {
     ExpectedDecoded,
     #[fail(display = "Invalid Event {}:{}", _0, _1)]
     InvalidEventArg(String, &'static str),
+    #[fail(display = "Invalid Type {}", _0)]
+    InvalidType(String),
 }
 
 #[cfg(test)]
@@ -437,11 +488,18 @@ pub mod tests {
     use crate::test_suite;
 
     #[test]
-    fn should_create_metadata() {
+    fn should_create_metadata_v9() {
         let meta = test_suite::runtime_v9();
         let meta: Metadata = Metadata::new(meta.as_slice());
-
+        println!("{}", meta.pretty());
         let meta = test_suite::runtime_v9_block6();
+        let _meta: Metadata = Metadata::new(meta.as_slice());
+    }
+
+    #[test]
+    fn should_create_metadata_v10() {
+        let meta = test_suite::runtime_v10();
         let meta: Metadata = Metadata::new(meta.as_slice());
+        println!("{}", meta.pretty());
     }
 }

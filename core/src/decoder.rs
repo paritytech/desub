@@ -24,7 +24,13 @@
 //! Theoretically, one could upload the deserialized decoder JSON to distribute
 //! to different applications that need the type data
 
-use super::metadata::Metadata as SubstrateMetadata;
+mod metadata;
+
+#[cfg(test)]
+pub use self::metadata::test_suite;
+
+pub use self::metadata::Metadata;
+use crate::TypeDetective;
 use std::collections::HashMap;
 
 type SpecVersion = u32;
@@ -34,10 +40,11 @@ type SpecVersion = u32;
 /// and maps types inside the runtime metadata to self-describing types in
 /// type-metadata
 #[derive(Default, Debug)]
-pub struct Decoder {
+pub struct Decoder<T: TypeDetective> {
     // reference to an item in 'versions' vector
     // NOTE: possibly a concurrent HashMap
-    versions: HashMap<SpecVersion, SubstrateMetadata>,
+    versions: HashMap<SpecVersion, Metadata>,
+    types: T,
 }
 
 /// The type of Entry
@@ -55,14 +62,21 @@ pub enum Entry {
     Constant,
 }
 
-impl Decoder {
+impl<T> Decoder<T>
+where
+    T: TypeDetective,
+{
+    /// Create new Decoder with specified types
+    pub fn new(types: T) -> Self {
+        Self {
+            versions: HashMap::default(),
+            types,
+        }
+    }
+
     /// Insert a Metadata with Version attached
     /// If version exists, it's corresponding metadata will be updated
-    pub fn register_version(
-        &mut self,
-        version: SpecVersion,
-        metadata: SubstrateMetadata,
-    ) {
+    pub fn register_version(&mut self, version: SpecVersion, metadata: Metadata) {
         self.versions.insert(version, metadata);
     }
 
@@ -73,10 +87,7 @@ impl Decoder {
     ///
     /// # Note
     /// Returns None if version is nonexistant
-    pub fn get_version_metadata(
-        &self,
-        version: SpecVersion,
-    ) -> Option<&SubstrateMetadata> {
+    pub fn get_version_metadata(&self, version: SpecVersion) -> Option<&Metadata> {
         self.versions.get(&version)
     }
 
@@ -103,25 +114,57 @@ impl Decoder {
         log::debug!("Types: {:?}", meta);
         // log::debug!("Type: {}", ty);
         // check if the concrete types are already included in
-        // RawSubstrateMetadata if not, fall back to type-metadata
+        // Metadata if not, fall back to type-metadata
         // exported types
     }
 
     /// Decode an extrinsic
-    pub fn decode_extrinsic(_ty: String, _spec: SpecVersion, _data: Vec<u8>) {
-        unimplemented!()
+    pub fn decode_extrinsic(&self, spec: SpecVersion, _data: Vec<u8>) {
+        let meta = self.versions.get(&spec).expect("Spec does not exist");
+
+        // should have a list of 'guess type' where
+        // types like <T::Lookup as StaticLookup>::Source
+        // are 'guessed' to be `Address`
+        // this is sort of a hack
+        // and should instead be handled in the definitions.json
+
+        log::debug!("Types: {:?}", meta);
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::metadata::test_suite as meta_test_suite;
-    use crate::test_suite;
+    use crate::{
+        decoder::{metadata::test_suite as meta_test_suite, Decoder},
+        test_suite, Decodable, RustTypeMarker, TypeDetective,
+    };
+
+    struct GenericTypes;
+    impl TypeDetective for GenericTypes {
+        fn get(
+            &self,
+            _module: &str,
+            _ty: &str,
+            _spec: usize,
+            _chain: &str,
+        ) -> Option<&dyn Decodable> {
+            None
+        }
+        fn resolve(
+            &self,
+            _module: &str,
+            _ty: &RustTypeMarker,
+        ) -> Option<&RustTypeMarker> {
+            None
+        }
+    }
 
     #[test]
     fn should_insert_metadata() {
-        let mut decoder = Decoder::default();
+        // let types = PolkadotTypes::new().unwrap();
+        // types.get("balances", "BalanceLock", 1042, "kusama");
+
+        let mut decoder = Decoder::new(GenericTypes);
         decoder.register_version(
             test_suite::mock_runtime(0).spec_version,
             meta_test_suite::test_metadata(),
@@ -147,7 +190,8 @@ mod tests {
 
     #[test]
     fn should_get_version_metadata() {
-        let mut decoder = Decoder::default();
+        // let types = PolkadotTypes::new().unwrap();
+        let mut decoder = Decoder::new(GenericTypes);
         let rt_version = test_suite::mock_runtime(0);
         let meta = meta_test_suite::test_metadata();
         decoder.register_version(rt_version.spec_version.clone(), meta.clone());

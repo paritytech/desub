@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use core::{CommonTypes, RustTypeMarker};
+use super::{CommonTypes, RustTypeMarker};
 use onig::{Regex, Region, SearchOptions};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -71,26 +71,26 @@ pub fn rust_array_decl() -> Regex {
 /// Match a rust vector
 /// allowed to be nested within, or have other (ie Option<>) nested within
 pub fn rust_vec_decl() -> Regex {
-    Regex::new(r"^Vec<(?<type>[\w><,() ]+)>")
+    Regex::new(r"^Vec<(?<type>[\w><,(): ]+)>")
         .expect("Regex expression should be infallible; qed")
 }
 
 /// Match a Rust Option
 /// Allowed to be nested within another type, or have other (ie Vec<>) nested
 pub fn rust_option_decl() -> Regex {
-    Regex::new(r"^Option<(?<type>[\w><,() ]+)>")
+    Regex::new(r"^Option<(?<type>[\w><,(): ]+)>")
         .expect("Regex expression should be infallible; qed")
 }
 
 /// Match a rust result
 pub fn rust_result_decl() -> Regex {
-    Regex::new(r"^Result<(?<type>\(?[\w><, ]*\)?), *(?<error>\(?[\w><, ]*\)?)>")
+    Regex::new(r"^Result<(?<type>\(?[\w><,: ]*\)?), *(?<error>\(?[\w><, ]*\)?)>")
         .expect("Regex experession should be infallible; qed")
 }
 
 /// Match a parity-scale-codec Compact<T> type
 pub fn rust_compact_decl() -> Regex {
-    Regex::new(r"^Compact<(?<type>[\w><,() ]+)>")
+    Regex::new(r"^Compact<(?<type>[\w><,(): ]+)>")
         .expect("Regex expression should be infallible; qed")
 }
 
@@ -98,7 +98,7 @@ pub fn rust_compact_decl() -> Regex {
 /// Excudes types Vec/Option/Compact from matches
 pub fn rust_generic_decl() -> Regex {
     Regex::new(
-        r"\b(?!(?:Vec|Option|Compact)\b)(?<outer_type>\w+)<(?<inner_type>[\w<>,]+)>",
+        r"\b(?!(?:Vec|Option|Compact)\b)(?<outer_type>\w+)<(?<inner_type>[\w<>,:]+)>",
     )
     .expect("Regex expressions should be infallible; qed")
 }
@@ -114,24 +114,24 @@ pub fn rust_generic_decl() -> Regex {
 pub fn rust_tuple_decl() -> Regex {
     Regex::new(
         [
-            r#"^\(([\w><]+)"#,
-            r#",? *([\w><]+)*,? *([\w><]+)*"#,
-            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
-            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
-            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
-            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
-            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
-            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
-            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
-            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
-            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
-            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
-            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
-            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
-            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
-            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
-            r#",? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*,? *([\w><]+)*"#,
-            r#",? *([\w><]+)*\)$"#,
+            r#"^\(([\w><:]+)"#,
+            r#",? *([\w><:]+)*,? *([\w><:]+)*"#,
+            r#",? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*"#,
+            r#",? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*"#,
+            r#",? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*"#,
+            r#",? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*"#,
+            r#",? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*"#,
+            r#",? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*"#,
+            r#",? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*"#,
+            r#",? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*"#,
+            r#",? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*"#,
+            r#",? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*"#,
+            r#",? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*"#,
+            r#",? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*"#,
+            r#",? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*"#,
+            r#",? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*"#,
+            r#",? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*,? *([\w><:]+)*"#,
+            r#",? *([\w><:]+)*\)$"#,
         ]
         .join("")
         .as_str(),
@@ -169,11 +169,11 @@ pub fn parse_regex_array(s: &str) -> Option<RustTypeMarker> {
                     match name {
                         "type" => {
                             // first thing matched
-                            t = Some(&s[pos.0 .. pos.1])
+                            t = Some(&s[pos.0..pos.1])
                         }
                         "size" => {
                             // last thing matched
-                            size = Some(&s[pos.0 .. pos.1])
+                            size = Some(&s[pos.0..pos.1])
                         }
                         "bit8" => ty = Some(8),
                         "bit16" => ty = Some(16),
@@ -328,9 +328,11 @@ pub fn parse(s: &str) -> Option<RustTypeMarker> {
         "Null" => Some(RustTypeMarker::Null),
 
         _ => {
+            // check if nested type
             if let Some(m) = RegexSet::get_type(s) {
                 m.parse_type(s)
             } else {
+                // if not a primitive, then a type pointer
                 Some(RustTypeMarker::TypePointer(s.to_string()))
             }
         }
@@ -670,7 +672,7 @@ mod tests {
         assert_eq!(
             parse_regex_array("[i128; 999999]").unwrap(),
             RustTypeMarker::Array {
-                size: 999999,
+                size: 999_999,
                 ty: Box::new(RustTypeMarker::I128)
             }
         );
@@ -887,12 +889,12 @@ mod tests {
         );
 
         assert_eq!(
-            parse("Vec<Vec<(Foo, Bar, u8)>>").unwrap(),
+            parse("Vec<Vec<(Foo, Bar, T::SystemMarker)>>").unwrap(),
             RustTypeMarker::Std(CommonTypes::Vec(Box::new(RustTypeMarker::Std(
                 CommonTypes::Vec(Box::new(RustTypeMarker::Tuple(vec![
                     RustTypeMarker::TypePointer("Foo".to_string()),
                     RustTypeMarker::TypePointer("Bar".to_string()),
-                    RustTypeMarker::U8,
+                    RustTypeMarker::TypePointer("T::SystemMarker".to_string()),
                 ])))
             ))))
         );

@@ -18,10 +18,11 @@ Supports Metadata versions from v7, which means all of Kusama (from CC1). Older 
       simply deserialize into Polkadot structs and utilize those. The decoding
       itself is generic enough to allow it.
    - types must adhere to the conventions set out by polkadot decoding
+      - type definitions for Polkadot (Kusama) are taken from Polkadot.js and deserialized into Rust (extras/polkadot)
    - type-metadata support (IE, self-referential types) will be supported once
     they are included in substrate proper
 
-Currently Supported Metadata Versions:
+Currently Supported Metadata Versions (From Kusama CC1):
 - [ ] V0
 - [ ] V1
 - [ ] V2

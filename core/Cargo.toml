@@ -6,12 +6,13 @@ edition = "2018"
 
 [dependencies]
 log = "0.4"
-failure = "0.1.6"
-codec = { version = "1.1.0", package = "parity-scale-codec" }
+failure = "0.1"
+codec = { version = "1.1", package = "parity-scale-codec" }
 codec411 = { version = "4.1.1", package = "parity-codec", features = ["derive"] } # for backwards compatibility with v 7
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 num = "0.2"
+onig = "5.0"
 
 runtime-metadata-latest = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", branch = "polkadot-master" }
 runtime-metadata10 = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", rev = "e931f9e5c2ae165658587f04d075c59a338061fb"}
@@ -30,6 +31,11 @@ runtime-version = { git = "https://github.com/paritytech/substrate/", package = 
 substrate-primitives = { git = "https://github.com/paritytech/substrate/", package = "sp-core", branch = "polkadot-master" }
 derive_more = "0.99.2"
 
-# [features]
-# substrate = []
-# polkadot = []
+[dev-dependencies]
+extras = { path = "../extras/", features = ["polkadot"], package = "desub-extras" }
+
+[features]
+# used because integration tests are external and not run under #[cfg(test)]
+# but all the mock data is under #[cfg(test)]
+# This feature is to also put the mock data under an external feature flag, test
+test = []
