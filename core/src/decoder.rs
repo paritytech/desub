@@ -29,7 +29,7 @@ mod metadata;
 #[cfg(test)]
 pub use self::metadata::test_suite;
 
-use self::metadata::Metadata as SubstrateMetadata;
+pub use self::metadata::Metadata;
 use std::collections::HashMap;
 use crate::TypeDetective;
 
@@ -43,7 +43,7 @@ type SpecVersion = u32;
 pub struct Decoder<T: TypeDetective> {
     // reference to an item in 'versions' vector
     // NOTE: possibly a concurrent HashMap
-    versions: HashMap<SpecVersion, SubstrateMetadata>,
+    versions: HashMap<SpecVersion, Metadata>,
     types: T
 }
 
@@ -77,7 +77,7 @@ impl<T> Decoder<T> where T: TypeDetective {
     pub fn register_version(
         &mut self,
         version: SpecVersion,
-        metadata: SubstrateMetadata,
+        metadata: Metadata,
     ) {
         self.versions.insert(version, metadata);
     }
@@ -92,7 +92,7 @@ impl<T> Decoder<T> where T: TypeDetective {
     pub fn get_version_metadata(
         &self,
         version: SpecVersion,
-    ) -> Option<&SubstrateMetadata> {
+    ) -> Option<&Metadata> {
         self.versions.get(&version)
     }
 
@@ -119,18 +119,20 @@ impl<T> Decoder<T> where T: TypeDetective {
         log::debug!("Types: {:?}", meta);
         // log::debug!("Type: {}", ty);
         // check if the concrete types are already included in
-        // RawSubstrateMetadata if not, fall back to type-metadata
+        // Metadata if not, fall back to type-metadata
         // exported types
     }
 
     /// Decode an extrinsic
     pub fn decode_extrinsic(&self, spec: SpecVersion, _data: Vec<u8>) {
         let meta = self.versions.get(&spec).expect("Spec does not exist");
+
         // should have a list of 'guess type' where
         // types like <T::Lookup as StaticLookup>::Source
         // are 'guessed' to be `Address`
         // this is sort of a hack
         // and should instead be handled in the definitions.json
+
         log::debug!("Types: {:?}", meta);
     }
 }
