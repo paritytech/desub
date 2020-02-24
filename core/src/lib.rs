@@ -18,7 +18,7 @@ pub mod decoder;
 mod error;
 pub mod regex;
 
-#[cfg(any(feature = "test", test))]
+#[cfg(any(test, feature = "test"))]
 pub mod test_suite;
 
 use serde::{Deserialize, Serialize};

@@ -19,16 +19,17 @@ matrix:
 script:
   - cargo fmt --all -- --check
   - cargo build --verbose --workspace
-  - cargo test --verbose --workspace
+  - cargo test --verbose --workspace --all-features
   - export CARGO_INCREMENTAL=0
+#  - cargo doc --verbose --workspace --no-deps --document-private-items
   - export RUSTFLAGS="-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Zno-landing-pads"
   - cargo build --verbose $CARGO_OPTIONS
-  - cargo test --verbose $CARGO_OPTIONS
+  - cargo test --verbose --all-features $CARGO_OPTIONS
   - |
     zip -0 ccov.zip `find . \( -name "YOUR_PROJECT_NAME*.gc*" \) -print`;
     ./grcov ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore "/*" -o lcov.info;
     bash <(curl -s https://codecov.io/bash) -f lcov.info;
-#  - cargo doc --verbose --workspace --no-deps --document-private-items
+
 
 notifications:
   email:
