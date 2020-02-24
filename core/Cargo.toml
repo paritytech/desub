@@ -33,3 +33,9 @@ derive_more = "0.99.2"
 
 [dev-dependencies]
 extras = { path = "../extras/", features = ["polkadot"], package = "desub-extras" }
+
+[features]
+# used because integration tests are external and not run under #[cfg(test)]
+# but all the mock data is under #[cfg(test)]
+# This feature is to also put the mock data under an external feature flag, test
+test = []

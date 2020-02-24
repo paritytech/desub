@@ -128,12 +128,7 @@ impl TypeDetective for PolkadotTypes {
 mod tests {
     use super::*;
     use core::{RustEnum, StructField, decoder::Decoder};
-
-    #[test]
-    fn should_create_new_decoder() {
-        let types = PolkadotTypes::new().unwrap();
-        let decoder = Decoder::new(types);
-    }
+    use core::test_suite;
 
     #[test]
     fn should_get_type_from_module() -> Result<(), Error> {

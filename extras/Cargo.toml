@@ -14,6 +14,9 @@ env_logger = "0.7"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 
+# [dev-dependencies]
+# core = { path = "../core", package = "desub-core", features = ["test"]}
+
 [features]
 default = []
 polkadot = []
