@@ -2,6 +2,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/insipx/desub/badge.svg?branch=master)](https://coveralls.io/github/insipx/desub?branch=master)
 # Desub
 
+## This Software is still in alpha and not stable
+### Not expected to be used in production yet
+
 Encompassing decoder for substrate/polkadot/kusama types.
 
 Gets type definitions from polkadot-js via JSON and decodes them into components
