@@ -109,6 +109,8 @@ where
     ) {
         // have to go to registry and get by TypeId
         let meta = self.versions.get(&spec).expect("Spec does not exist");
+
+        
         // let types = types.get(&module).expect("Module not found");
 
         log::debug!("Types: {:?}", meta);
@@ -119,16 +121,28 @@ where
     }
 
     /// Decode an extrinsic
-    pub fn decode_extrinsic(&self, spec: SpecVersion, _data: Vec<u8>) {
+    pub fn decode_extrinsic(&self, spec: SpecVersion, data: &[u8]) {
         let meta = self.versions.get(&spec).expect("Spec does not exist");
 
+        // first byte -> vector length
+        // second byte -> extinsic version
+        // third byte -> Outer enum index
+        // fourth byte -> inner enum index (function index)
+        // can check if signed via a simple & too
+
+        // the second byte will be the index of the
+        // call enum
+        dbg!(data[2]);
+        let module = meta.module_by_index(data[2]);
+        // println!("{:#?}", module);
+        // println!("Mod: {:#?}", module);
+        // byte three will be the index of the function enum
+       
         // should have a list of 'guess type' where
         // types like <T::Lookup as StaticLookup>::Source
         // are 'guessed' to be `Address`
         // this is sort of a hack
         // and should instead be handled in the definitions.json
-
-        log::debug!("Types: {:?}", meta);
     }
 }
 

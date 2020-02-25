@@ -169,6 +169,24 @@ impl Metadata {
             .ok_or(MetadataError::EventNotFound(module_index))
     }
 
+    ///
+    pub fn module_by_index(
+        &self,
+        module_index: u8,
+    ) -> Result<Rc<ModuleMetadata>, MetadataError> {
+
+        let name = self
+            .modules_by_event_index
+            .get(&module_index)
+            .ok_or(MetadataError::EventNotFound(module_index))?;
+
+        Ok(self
+            .modules
+            .get("Timestamp")
+            .ok_or_else(|| MetadataError::ModuleNotFound(name.to_string()))?
+            .clone())
+    }
+
     /// print out a detailed but human readable description of the module
     /// metadata
     pub fn detailed_pretty(&self) -> String {
