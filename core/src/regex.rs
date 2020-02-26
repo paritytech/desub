@@ -103,6 +103,16 @@ pub fn rust_generic_decl() -> Regex {
     .expect("Regex expressions should be infallible; qed")
 }
 
+/// Transforms a prefixed generic type (EX: T::Moment)
+/// into a non-prefixed type (T::Moment -> Moment)
+pub fn remove_prefix<'a, S: Into<&'a str>>(s: S) -> Option<String> {
+    let s: &str = s.into();
+
+    let re = Regex::new(r"T::([\w><]+)").expect("Regex expressions should be infallible; qed");
+    let caps = re.captures(s)?;
+    caps.iter().nth(1)?.map(|s| s.to_string())
+}
+
 /// Only captures text within the tuples,
 /// need to use 'Matches' (ie `find_iter`) iterator to get all matches
 /// max tuple size is 64
@@ -898,5 +908,11 @@ mod tests {
                 ])))
             ))))
         );
+    }
+
+    #[test]
+    fn should_remove_prefix() {
+        assert_eq!(remove_prefix("T::Moment").unwrap(), "Moment");
+        assert_eq!(remove_prefix("T::Generic<Runtime>").unwrap(), "Generic<Runtime>");
     }
 }

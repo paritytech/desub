@@ -39,3 +39,4 @@ Currently Supported Metadata Versions (From Kusama CC1):
 - [x] V8
 - [x] V9
 - [x] V10
+- [x] V11

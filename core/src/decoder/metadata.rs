@@ -68,14 +68,27 @@ pub fn compact<T: HasCompact>(t: T) -> Encoded {
     Encoded(encodable.encode())
 }
 
-#[derive(Debug, Clone, derive_more::Display)]
+#[derive(Debug, Clone, Fail)]
 pub enum MetadataError {
+    #[fail(display = "{}", _0)]
     ModuleNotFound(String),
+    #[fail(display = "{}", _0)]
     CallNotFound(&'static str),
-    EventNotFound(u8),
+    #[fail(display = "{}", _0)]
+    ModuleIndexNotFound(ModuleIndex),
+    #[fail(display = "{}", _0)]
     StorageNotFound(&'static str),
+    #[fail(display = "StorageType Error")]
     StorageTypeError,
+    #[fail(display = "MapValueType Error")]
     MapValueTypeError,
+}
+
+#[derive(Debug, Clone, derive_more::Display)]
+pub enum ModuleIndex {
+    Call(u8),
+    Storage(u8),
+    Event(u8)
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -83,7 +96,10 @@ pub enum MetadataError {
 pub struct Metadata {
     /// Hashmap of Modules (name -> module-specific metadata)
     modules: HashMap<String, Rc<ModuleMetadata>>,
+    /// modules by their index in the event enum
     modules_by_event_index: HashMap<u8, String>,
+    /// modules by their index in the Call Enum
+    modules_by_call_index: HashMap<u8, String>,
 }
 
 impl Metadata {
@@ -166,7 +182,32 @@ impl Metadata {
         self.modules_by_event_index
             .get(&module_index)
             .cloned()
-            .ok_or(MetadataError::EventNotFound(module_index))
+            .ok_or(MetadataError::ModuleIndexNotFound(ModuleIndex::Event(module_index)))
+    }
+
+    /// get a module by it's index
+    pub fn module_by_index(
+        &self,
+        module_index: ModuleIndex,
+    ) -> Result<Rc<ModuleMetadata>, MetadataError> {
+        Ok(match module_index {
+            ModuleIndex::Call(i) => {
+                let name = self.modules_by_call_index
+                               .get(&i)
+                               .ok_or(MetadataError::ModuleIndexNotFound(ModuleIndex::Call(i)))?;
+                self.modules.get(name).ok_or_else(|| MetadataError::ModuleNotFound(name.to_string()))?.clone()
+            },
+            ModuleIndex::Event(i) => {
+                let name = self.modules_by_event_index
+                                       .get(&i)
+                                       .ok_or(MetadataError::ModuleIndexNotFound(ModuleIndex::Event(i)))?;
+                self.modules.get(name).ok_or_else(|| MetadataError::ModuleNotFound(name.to_string()))?.clone()
+            },
+            ModuleIndex::Storage(_) => {
+                // TODO remove panics
+                panic!("No storage index stored")
+            }
+        })
     }
 
     /// print out a detailed but human readable description of the module
@@ -241,7 +282,7 @@ impl ModuleMetadata {
     pub fn name(&self) -> &str {
         &self.name
     }
-
+/*
     /// return the SCALE-encoded Call with parameters appended and parameters
     pub fn call<T: Encode>(
         &self,
@@ -259,7 +300,7 @@ impl ModuleMetadata {
         bytes.extend(params.encode());
         Ok(Encoded(bytes))
     }
-
+*/
     /// Return a storage entry by its key
     pub fn storage(&self, key: &'static str) -> Result<&StorageMetadata, MetadataError> {
         self.storage
@@ -287,7 +328,7 @@ impl ModuleMetadata {
     pub fn event(&self, index: u8) -> Result<&ModuleEventMetadata, MetadataError> {
         self.events
             .get(&index)
-            .ok_or(MetadataError::EventNotFound(index))
+            .ok_or(MetadataError::ModuleIndexNotFound(ModuleIndex::Event(index)))
     }
 }
 
@@ -297,7 +338,7 @@ pub struct CallMetadata {
     /// Name of the function of the call
     name: String,
     /// encoded byte index of call
-    index: Vec<u8>,
+    index: u8,
     /// Arguments that the function accepts
     arguments: Vec<CallArgMetadata>,
 }
