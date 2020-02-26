@@ -53,7 +53,8 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
             _ => return Err(Error::InvalidVersion),
         };
         let mut modules = HashMap::new();
-        let (mut modules_by_event_index, mut modules_by_call_index) = (HashMap::new(), HashMap::new());
+        let (mut modules_by_event_index, mut modules_by_call_index) =
+            (HashMap::new(), HashMap::new());
         let (mut event_index, mut call_index) = (0, 0);
         for (i, module) in convert(meta.modules)?.into_iter().enumerate() {
             let module_name = convert(module.name.clone())?;
@@ -71,7 +72,7 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
         Ok(Metadata {
             modules,
             modules_by_event_index,
-            modules_by_call_index
+            modules_by_call_index,
         })
     }
 }

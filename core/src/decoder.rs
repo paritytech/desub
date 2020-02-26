@@ -110,7 +110,6 @@ where
         // have to go to registry and get by TypeId
         let meta = self.versions.get(&spec).expect("Spec does not exist");
 
-        
         // let types = types.get(&module).expect("Module not found");
 
         log::debug!("Types: {:?}", meta);
@@ -137,7 +136,7 @@ where
         // println!("{:#?}", module);
         // println!("Mod: {:#?}", module);
         // byte three will be the index of the function enum
-       
+
         // should have a list of 'guess type' where
         // types like <T::Lookup as StaticLookup>::Source
         // are 'guessed' to be `Address`

@@ -178,7 +178,6 @@ impl Metadata {
         &self,
         module_index: u8,
     ) -> Result<Rc<ModuleMetadata>, MetadataError> {
-
         let name = self
             .modules_by_event_index
             .get(&module_index)
