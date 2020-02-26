@@ -32,6 +32,7 @@ pub use self::metadata::test_suite;
 pub use self::metadata::{Metadata, ModuleIndex, MetadataError};
 use crate::{TypeDetective, error::Error};
 use std::collections::HashMap;
+use serde::Serialize;
 
 type SpecVersion = u32;
 /// Decoder for substrate types
@@ -120,7 +121,7 @@ where
     }
 
     /// Decode an extrinsic
-    pub fn decode_extrinsic(&self, spec: SpecVersion, data: &[u8]) -> Result<(), Error> {
+    pub fn decode_extrinsic(&self, spec: SpecVersion, data: &[u8]) -> Result<impl Serialize, Error> {
         let meta = self.versions.get(&spec).expect("Spec does not exist");
 
         // first byte -> vector length
@@ -136,6 +137,7 @@ where
         // location in the vector of extrinsic bytes
         let mut cursor: usize = 0;
         for arg in call_meta.arguments() {
+
             println!("{:?}", arg);
         } 
         Ok(())
