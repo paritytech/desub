@@ -124,7 +124,7 @@ where
         let meta = self.versions.get(&spec).expect("Spec does not exist");
 
         // first byte -> vector length
-        // second byte -> extinsic version
+        // second byte -> extrinsic version
         // third byte -> Outer enum index
         // fourth byte -> inner enum index (function index)
         // can check if signed via a simple & too
@@ -132,7 +132,12 @@ where
         // the second byte will be the index of the
         // call enum
         let module = meta.module_by_index(ModuleIndex::Call(data[2]))?;
-        println!("{:#?}", module);
+        let call_meta = module.call(data[3])?;
+        // location in the vector of extrinsic bytes
+        let mut cursor: usize = 0;
+        for arg in call_meta.arguments() {
+            println!("{:?}", arg);
+        } 
         Ok(())
         // println!("{:#?}", module);
         // println!("Mod: {:#?}", module);
