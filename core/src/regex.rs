@@ -909,4 +909,10 @@ mod tests {
             ))))
         );
     }
+
+    #[test]
+    fn should_remove_prefix() {
+        assert_eq!(remove_prefix("T::Moment").unwrap(), "Moment");
+        assert_eq!(remove_prefix("T::Generic<Runtime>").unwrap(), "Generic<Runtime>");
+    }
 }

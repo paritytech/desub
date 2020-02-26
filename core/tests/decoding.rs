@@ -1,7 +1,7 @@
 extern crate extras;
 
 use desub_core::{decoder::{Decoder, Metadata}, test_suite};
-use codec::{Compact, Decode};
+// use codec::Decode;
 // use std::mem;
 
 #[test]
@@ -19,7 +19,7 @@ pub fn should_decode() {
         println!("{:?}", e);
     }
     // println!("{:08b}", ext[0][2]);
-    decoder.decode_extrinsic(1031, &ext[0].as_slice());
+    decoder.decode_extrinsic(1031, &ext[0].as_slice()).unwrap();
 }
 
 
