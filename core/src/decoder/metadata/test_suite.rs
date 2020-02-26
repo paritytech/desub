@@ -129,7 +129,7 @@ fn call_mock() -> HashMap<String, CallMetadata> {
         "TestCall0".to_string(),
         CallMetadata {
             name: "foo_function0".to_string(),
-            index: vec![1, 2, 3, 4, 5],
+            index: 3,
             arguments: vec![CallArgMetadata {
                 name: "foo_arg".to_string(),
                 ty: RustTypeMarker::I8,
@@ -140,7 +140,7 @@ fn call_mock() -> HashMap<String, CallMetadata> {
         "TestCall1".to_string(),
         CallMetadata {
             name: "foo_function1".to_string(),
-            index: vec![11, 12, 13, 14, 15, 16, 17],
+            index: 2,
             arguments: vec![CallArgMetadata {
                 name: "foo_arg".to_string(),
                 ty: RustTypeMarker::U64,
@@ -151,7 +151,7 @@ fn call_mock() -> HashMap<String, CallMetadata> {
         "TestCall2".to_string(),
         CallMetadata {
             name: "foo_function2".to_string(),
-            index: vec![21, 22, 23, 24, 25, 26, 27, 28, 29],
+            index: 1,
             arguments: vec![CallArgMetadata {
                 name: "foo_arg".to_string(),
                 ty: RustTypeMarker::TypePointer("SomeType".to_string()),
@@ -162,7 +162,7 @@ fn call_mock() -> HashMap<String, CallMetadata> {
         "TestCall3".to_string(),
         CallMetadata {
             name: "foo_function3".to_string(),
-            index: vec![31, 32, 33, 34, 35, 36, 37, 38, 39],
+            index: 0,
             arguments: vec![CallArgMetadata {
                 name: "foo_arg".to_string(),
                 ty: RustTypeMarker::F32,

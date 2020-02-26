@@ -36,10 +36,6 @@ type DecodeDifferentStr = DecodeDifferent<&'static str, String>;
 type LatestDecodeDifferentStr =
     runtime_metadata_latest::DecodeDifferent<&'static str, String>;
 
-// TODO, NEXT
-// TWO OPTIONS
-// make 'call' an option, or index call modules before conversion"
-
 impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
     type Error = Error;
 
@@ -103,7 +99,6 @@ fn convert_module(
     if let Some(calls) = module.calls {
         for (index, call) in convert(calls)?.into_iter().enumerate() {
             let name = convert(call.name)?;
-            let index = vec![index as u8];
             let args = convert(call.arguments)?
                 .iter()
                 .map(|a| {
@@ -118,7 +113,7 @@ fn convert_module(
                 .collect::<Result<Vec<CallArgMetadata>, Error>>()?;
             let meta = CallMetadata {
                 name: name.clone(),
-                index,
+                index: index as u8,
                 arguments: args,
             };
             call_map.insert(name, meta);

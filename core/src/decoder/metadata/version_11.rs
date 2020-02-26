@@ -106,7 +106,6 @@ fn convert_module(
     if let Some(calls) = module.calls {
         for (index, call) in convert(calls)?.into_iter().enumerate() {
             let name = convert(call.name)?;
-            let index = vec![index as u8];
             let args = convert(call.arguments)?
                 .iter()
                 .map(|a| {
@@ -121,7 +120,7 @@ fn convert_module(
                 .collect::<Result<Vec<CallArgMetadata>, Error>>()?;
             let meta = CallMetadata {
                 name: name.clone(),
-                index,
+                index: index as u8,
                 arguments: args,
             };
             call_map.insert(name, meta);

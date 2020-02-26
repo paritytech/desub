@@ -11,7 +11,6 @@ pub fn should_decode() {
 
     let (meta, ext) = test_suite::ext_and_metadata_spec1031();
     let meta = Metadata::new(meta.as_slice());
-    println!("{:#?}", meta);
 
     // block 6 of KSM CC3 is spec 1020
     decoder.register_version(1031, meta);

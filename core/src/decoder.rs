@@ -29,8 +29,8 @@ mod metadata;
 #[cfg(test)]
 pub use self::metadata::test_suite;
 
-pub use self::metadata::Metadata;
-use crate::TypeDetective;
+pub use self::metadata::{Metadata, ModuleIndex, MetadataError};
+use crate::{TypeDetective, error::Error};
 use std::collections::HashMap;
 
 type SpecVersion = u32;
@@ -120,7 +120,7 @@ where
     }
 
     /// Decode an extrinsic
-    pub fn decode_extrinsic(&self, spec: SpecVersion, data: &[u8]) {
+    pub fn decode_extrinsic(&self, spec: SpecVersion, data: &[u8]) -> Result<(), Error> {
         let meta = self.versions.get(&spec).expect("Spec does not exist");
 
         // first byte -> vector length
@@ -131,8 +131,9 @@ where
 
         // the second byte will be the index of the
         // call enum
-        dbg!(data[2]);
-        let module = meta.module_by_index(data[2]);
+        let module = meta.module_by_index(ModuleIndex::Call(data[2]))?;
+        println!("{:#?}", module);
+        Ok(())
         // println!("{:#?}", module);
         // println!("Mod: {:#?}", module);
         // byte three will be the index of the function enum
