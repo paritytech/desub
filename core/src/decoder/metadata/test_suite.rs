@@ -24,7 +24,8 @@ type DecodeDifferentStr = DecodeDifferent<&'static str, String>;
 pub fn test_metadata() -> Metadata {
     Metadata {
         modules: module_metadata_mock(),
-        modules_by_event_index: HashMap::new(), // not testing this
+        modules_by_event_index: HashMap::new(), // TODO: test this
+        modules_by_call_index: HashMap::new() // TODO: Test this
     }
 }
 

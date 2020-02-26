@@ -90,6 +90,7 @@ pub fn extrinsics_block10994() -> [Vec<u8>; 3] {
 
 
 /// returns raw metadata bytes and a vector of raw extrinsic bytes
+/// from block 342962 with spec 1031
 pub fn ext_and_metadata_spec1031() -> (Vec<u8>, [Vec<u8>; 2]) {
      let mut f =
         File::open("./test/extrinsics/spec1031_block_342-962/EXTRINSIC_spec_1031_block_342962_index_0.bin")

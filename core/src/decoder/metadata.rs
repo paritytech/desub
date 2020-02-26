@@ -83,7 +83,10 @@ pub enum MetadataError {
 pub struct Metadata {
     /// Hashmap of Modules (name -> module-specific metadata)
     modules: HashMap<String, Rc<ModuleMetadata>>,
+    /// modules by their index in the event enum
     modules_by_event_index: HashMap<u8, String>,
+    /// modules by their index in the Call Enum
+    modules_by_call_index: HashMap<u8, String>,
 }
 
 impl Metadata {
@@ -118,6 +121,7 @@ impl Metadata {
             0x09 => {
                 let meta: runtime_metadata09::RuntimeMetadataPrefixed =
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
+                println!("{:#?}", meta);
                 meta.try_into().expect("Conversion failed")
             }
             0xA => {
@@ -169,7 +173,7 @@ impl Metadata {
             .ok_or(MetadataError::EventNotFound(module_index))
     }
 
-    ///
+    /// get a module by it's index
     pub fn module_by_index(
         &self,
         module_index: u8,
