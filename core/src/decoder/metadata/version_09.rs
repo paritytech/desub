@@ -36,6 +36,10 @@ type DecodeDifferentStr = DecodeDifferent<&'static str, String>;
 type LatestDecodeDifferentStr =
     runtime_metadata_latest::DecodeDifferent<&'static str, String>;
 
+// TODO, NEXT
+// TWO OPTIONS
+// make 'call' an option, or index call modules before conversion"
+
 impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
     type Error = Error;
 
