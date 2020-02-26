@@ -57,17 +57,15 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
         let (mut event_index, mut call_index) = (0, 0);
         for (i, module) in convert(meta.modules)?.into_iter().enumerate() {
             let module_name = convert(module.name.clone())?;
-            let module_metadata = convert_module(i, module)?;
-            // modules with no events have no corresponding definition in the
-            // top level enum
-            if !module_metadata.events.is_empty() {
-                modules_by_event_index.insert(event_index, module_name.clone());
-                event_index += 1;
-            }
-            if !module_metadata.calls.is_empty() {
+            if module.calls.is_some() {
                 modules_by_call_index.insert(call_index, module_name.clone());
                 call_index += 1;
             }
+            if module.event.is_none() {
+                modules_by_event_index.insert(event_index, module_name.clone());
+                event_index += 1;
+            }
+            let module_metadata = convert_module(i, module)?;
             modules.insert(module_name, Rc::new(module_metadata));
         }
         Ok(Metadata {
