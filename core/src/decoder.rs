@@ -28,11 +28,12 @@ mod metadata;
 
 #[cfg(test)]
 pub use self::metadata::test_suite;
-
-pub use self::metadata::{Metadata, ModuleIndex, MetadataError};
-use crate::{TypeDetective, error::Error};
+pub use self::metadata::{Metadata, MetadataError, ModuleIndex};
+use type_metadata::Registry;
+use crate::{error::Error, TypeDetective, RustTypeMarker, substrate_types::SubstrateType};
+// use serde::Serialize;
+use std::any::Any;
 use std::collections::HashMap;
-use serde::Serialize;
 
 type SpecVersion = u32;
 /// Decoder for substrate types
@@ -46,6 +47,7 @@ pub struct Decoder<T: TypeDetective> {
     // NOTE: possibly a concurrent HashMap
     versions: HashMap<SpecVersion, Metadata>,
     types: T,
+    registry: Registry,
 }
 
 /// The type of Entry
@@ -71,6 +73,7 @@ where
     pub fn new(types: T) -> Self {
         Self {
             versions: HashMap::default(),
+            registry: Registry::default(),
             types,
         }
     }
@@ -121,7 +124,11 @@ where
     }
 
     /// Decode an extrinsic
-    pub fn decode_extrinsic(&self, spec: SpecVersion, data: &[u8]) -> Result<impl Serialize, Error> {
+    pub fn decode_extrinsic(
+        &self,
+        spec: SpecVersion,
+        data: &[u8],
+    ) -> Result<SubstrateType, Error> {
         let meta = self.versions.get(&spec).expect("Spec does not exist");
 
         // first byte -> vector length
@@ -137,9 +144,9 @@ where
         // location in the vector of extrinsic bytes
         let mut cursor: usize = 0;
         for arg in call_meta.arguments() {
-
             println!("{:?}", arg);
-        } 
+            self.decode_single(module.name(), &arg.ty, data, &mut cursor);
+        }
         Ok(())
         // println!("{:#?}", module);
         // println!("Mod: {:#?}", module);
@@ -150,6 +157,76 @@ where
         // are 'guessed' to be `Address`
         // this is sort of a hack
         // and should instead be handled in the definitions.json
+    }
+
+    // TODO: Return `Any` type instead of `Serialize`
+    /// Internal function to handle
+    /// decoding of a single rust type marker
+    /// from data and the curent position within the data
+    ///
+    /// # Panics
+    /// panics if a type cannot be decoded
+    fn decode_single(
+        &self,
+        module: &str,
+        ty: &RustTypeMarker,
+        data: &[u8],
+        cursor: &mut usize,
+    ) -> Result<impl Any, Error> {
+
+        match ty {
+            v @ RustTypeMarker::TypePointer(_) => {
+                let new_type = self.types.resolve(module, v).ok_or(Error::DecodeFail)?;
+                self.decode_single(module, new_type, data, cursor)?
+            }
+            RustTypeMarker::Struct(v) => {
+                // Option::new().map(|o| o as dyn Serialize).unwrap()
+            }
+            RustTypeMarker::Set(v) => {
+            }
+            RustTypeMarker::Tuple(v) => {
+            }
+            RustTypeMarker::Enum(v) => {
+            }
+            RustTypeMarker::Array { size, ty } => {
+            }
+            RustTypeMarker::Std(v) => {
+            }
+            RustTypeMarker::U8 => {
+            }
+            RustTypeMarker::U16 => {
+            }
+            RustTypeMarker::U32 => {
+            }
+            RustTypeMarker::U64 => {
+            }
+            RustTypeMarker::U128 => {
+            }
+            RustTypeMarker::USize => {
+            }
+            RustTypeMarker::I8 => {
+            }
+            RustTypeMarker::I16 => {
+            }
+            RustTypeMarker::I32 => {
+            }
+            RustTypeMarker::I64 => {
+            }
+            RustTypeMarker::I128 => {
+            }
+            RustTypeMarker::ISize => {
+            }
+            RustTypeMarker::F32 => {
+            }
+            RustTypeMarker::F64 => {
+            }
+            RustTypeMarker::Bool => {
+            }
+            RustTypeMarker::Null => {
+            }
+        };
+        // println!("{:?}", arg);
+        Ok(())
     }
 }
 

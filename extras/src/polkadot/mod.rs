@@ -21,7 +21,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::error::Error;
-use core::{Decodable, RustTypeMarker, TypeDetective};
+use core::{Decodable, RustTypeMarker, TypeDetective, regex};
 
 use self::overrides::Overrides;
 
@@ -120,6 +120,16 @@ impl TypeDetective for PolkadotTypes {
     }
 
     fn resolve(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker> {
+        let ty = match ty {
+            RustTypeMarker::TypePointer(v) => {
+                if let Some(un_prefixed) = regex::remove_prefix(v) {
+                    RustTypeMarker::TypePointer(un_prefixed)
+                } else {
+                    RustTypeMarker::TypePointer(v)
+                }
+            },
+            v @ _ => v
+        };
         self.resolve(module, ty)
     }
 }

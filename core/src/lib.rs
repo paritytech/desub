@@ -15,6 +15,7 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 pub mod decoder;
+mod substrate_types;
 mod error;
 pub mod regex;
 

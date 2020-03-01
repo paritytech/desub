@@ -377,6 +377,7 @@ dependencies = [
  "sp-version",
  "srml-metadata 2.0.0 (git+https://github.com/paritytech/substrate/?rev=7c8bd73cef8c6afd60fec837d8f5e732a39a5615)",
  "srml-metadata 2.0.0 (git+https://github.com/paritytech/substrate/?rev=ac11c330a95827211e1999781b5f691e72387c9e)",
+ "type-metadata",
 ]
 
 [[package]]
@@ -2497,6 +2498,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3bfd5b7557925ce778ff9b9ef90e3ade34c524b5ff10e239c69a42d546d2af56"
 dependencies = [
  "rand 0.7.3",
+]
+
+[[package]]
+name = "type-metadata"
+version = "0.1.0"
+source = "git+https://github.com/insipx/type-metadata?branch=insipx/deseralize-registry#9a284161d80262e3c4da3610622683d4997aeac4"
+dependencies = [
+ "derive_more",
+ "serde",
+ "type-metadata-derive",
+]
+
+[[package]]
+name = "type-metadata-derive"
+version = "0.1.0"
+source = "git+https://github.com/insipx/type-metadata?branch=insipx/deseralize-registry#9a284161d80262e3c4da3610622683d4997aeac4"
+dependencies = [
+ "proc-macro2 1.0.8",
+ "quote 1.0.2",
+ "syn 1.0.14",
 ]
 
 [[package]]

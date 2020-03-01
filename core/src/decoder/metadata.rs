@@ -383,9 +383,9 @@ impl fmt::Display for CallMetadata {
 /// Metadata for Function Arguments to a Call
 pub struct CallArgMetadata {
     /// name of argument
-    name: String,
+    pub name: String,
     /// Type of the Argument
-    ty: RustTypeMarker,
+    pub ty: RustTypeMarker,
 }
 
 impl fmt::Display for CallArgMetadata {
