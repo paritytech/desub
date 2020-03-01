@@ -14,6 +14,7 @@ serde_json = { version = "1.0", features = ["preserve_order"] }
 num = "0.2"
 onig = "5.0"
 
+primitives = { git = "https://github.com/paritytech/substrate", package = "sp-core" }
 runtime-metadata-latest = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", branch = "polkadot-master" }
 runtime-metadata10 = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", rev = "e931f9e5c2ae165658587f04d075c59a338061fb"}
 runtime-metadata09 = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", rev = "a512dcdd3931aa571c92c8550a0e079d5b27239a" }
@@ -30,13 +31,6 @@ runtime-metadata07 = { git = "https://github.com/paritytech/substrate/", package
 runtime-version = { git = "https://github.com/paritytech/substrate/", package = "sp-version", branch = "polkadot-master" }
 substrate-primitives = { git = "https://github.com/paritytech/substrate/", package = "sp-core", branch = "polkadot-master" }
 derive_more = "0.99.2"
-
-[dependencies.type-metadata]
-git = "https://github.com/insipx/type-metadata"
-branch = "insipx/deseralize-registry"
-package = "type-metadata"
-default-features = false
-features = ["std", "derive"]
 
 [dev-dependencies]
 extras = { path = "../extras/", features = ["polkadot"], package = "desub-extras" }

@@ -29,7 +29,6 @@ mod metadata;
 #[cfg(test)]
 pub use self::metadata::test_suite;
 pub use self::metadata::{Metadata, MetadataError, ModuleIndex};
-use type_metadata::Registry;
 use crate::{error::Error, TypeDetective, RustTypeMarker, substrate_types::SubstrateType};
 // use serde::Serialize;
 use std::any::Any;
@@ -47,7 +46,6 @@ pub struct Decoder<T: TypeDetective> {
     // NOTE: possibly a concurrent HashMap
     versions: HashMap<SpecVersion, Metadata>,
     types: T,
-    registry: Registry,
 }
 
 /// The type of Entry
@@ -73,7 +71,6 @@ where
     pub fn new(types: T) -> Self {
         Self {
             versions: HashMap::default(),
-            registry: Registry::default(),
             types,
         }
     }
@@ -145,7 +142,7 @@ where
         let mut cursor: usize = 0;
         for arg in call_meta.arguments() {
             println!("{:?}", arg);
-            self.decode_single(module.name(), &arg.ty, data, &mut cursor);
+            self.decode_single(None, module.name(), &arg.ty, data, &mut cursor);
         }
         Ok(())
         // println!("{:#?}", module);
@@ -168,21 +165,31 @@ where
     /// panics if a type cannot be decoded
     fn decode_single(
         &self,
+        ty_names: Option<Vec<String>>,
         module: &str,
         ty: &RustTypeMarker,
         data: &[u8],
         cursor: &mut usize,
-    ) -> Result<impl Any, Error> {
+    ) -> Result<SubstrateType, Error> {
 
         match ty {
             v @ RustTypeMarker::TypePointer(_) => {
+                // TODO: check substrate types for decoding
                 let new_type = self.types.resolve(module, v).ok_or(Error::DecodeFail)?;
-                self.decode_single(module, new_type, data, cursor)?
+                self.decode_single(ty_names, module, new_type, data, cursor)?
             }
             RustTypeMarker::Struct(v) => {
-                // Option::new().map(|o| o as dyn Serialize).unwrap()
-            }
+                let ty = v.iter().map(|field| {
+                    if let Some(names) = ty_names {
+                        names.push(field.name)
+                    }
+                    // names might be empty
+                    self.decode_single(ty_names, module, &field.ty, data, cursor)
+                }).collect::<Result<Vec<SubstrateType>, Error>>();
+                SubstrateType::Composite(ty?)
+            },
             RustTypeMarker::Set(v) => {
+               
             }
             RustTypeMarker::Tuple(v) => {
             }
