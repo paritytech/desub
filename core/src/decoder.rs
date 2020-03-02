@@ -29,7 +29,7 @@ mod metadata;
 #[cfg(test)]
 pub use self::metadata::test_suite;
 pub use self::metadata::{Metadata, MetadataError, ModuleIndex};
-use crate::{error::Error, TypeDetective, RustTypeMarker, substrate_types::SubstrateType};
+use crate::{error::Error, TypeDetective, RustTypeMarker, substrate_types::SubstrateType, RustEnum, StructField};
 // use serde::Serialize;
 use std::any::Any;
 use std::collections::HashMap;
@@ -172,6 +172,14 @@ where
         cursor: &mut usize,
     ) -> Result<SubstrateType, Error> {
 
+        let push_to_names = |ty_names: Option<Vec<String>>, name: String| {
+            if let Some(names) = ty_names {
+                names.push(name)
+            } else {
+                ty_names.replace(vec![name]);
+            }
+        };
+
         match ty {
             v @ RustTypeMarker::TypePointer(_) => {
                 // TODO: check substrate types for decoding
@@ -180,22 +188,44 @@ where
             }
             RustTypeMarker::Struct(v) => {
                 let ty = v.iter().map(|field| {
-                    if let Some(names) = ty_names {
-                        names.push(field.name)
-                    }
+                    push_to_names(ty_names, field.name);
                     // names might be empty
                     self.decode_single(ty_names, module, &field.ty, data, cursor)
                 }).collect::<Result<Vec<SubstrateType>, Error>>();
                 SubstrateType::Composite(ty?)
             },
             RustTypeMarker::Set(v) => {
-               
+                // a set item must be an u8
+                // can decode this right away
+                let index = data[*cursor];
+                *cursor += 2;
+                SubstrateType::Set(v[index as usize])
             }
             RustTypeMarker::Tuple(v) => {
+                let ty = v.iter().map(|v| {
+                    self.decode_single(ty_names, module, &v, data, cursor)
+                }).collect::<Result<Vec<SubstrateType>, Error>>();
+                SubstrateType::Composite(ty?)
             }
             RustTypeMarker::Enum(v) => {
+                match v {
+                    RustEnum::Unit(v) => {
+                        let index = data[*cursor];
+                        *cursor += 1;
+                        SubstrateType::UnitEnum(v[index as usize])
+                    },
+                    RustEnum::Struct(v) => {
+                        let index = data[*cursor] as usize;
+                        *cursor += 1;
+                        let variant = v[index];
+                        push_to_names(ty_names, variant.name);
+                        let new_type = self.types.resolve(module, &variant.ty).ok_or(Error::DecodeFail)?;
+                        self.decode_single(ty_names, module, new_type, data, cursor)?
+                    }
+                }
             }
             RustTypeMarker::Array { size, ty } => {
+
             }
             RustTypeMarker::Std(v) => {
             }
@@ -232,7 +262,6 @@ where
             RustTypeMarker::Null => {
             }
         };
-        // println!("{:?}", arg);
         Ok(())
     }
 }

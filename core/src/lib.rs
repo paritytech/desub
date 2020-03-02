@@ -85,7 +85,7 @@ impl StructField {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct SetField {
     pub name: String,
-    pub num: usize,
+    pub num: u8,
 }
 
 impl Display for SetField {
@@ -95,11 +95,11 @@ impl Display for SetField {
 }
 
 impl SetField {
-    pub fn new<S: Into<String>, N: Into<u64>>(name: S, num: N) -> Self {
+    pub fn new<S: Into<String>, N: Into<u8>>(name: S, num: N) -> Self {
         let (name, num) = (name.into(), num.into());
         Self {
             name,
-            num: num as usize,
+            num,
         }
     }
 }
