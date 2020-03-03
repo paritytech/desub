@@ -47,9 +47,8 @@ pub enum SubstrateType {
     F64(f64),
     Bool(bool),
     // not sure what to do with this yet
-    Null
+    Null,
 }
-
 
 impl From<u8> for SubstrateType {
     fn from(num: u8) -> SubstrateType {
