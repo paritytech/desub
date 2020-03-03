@@ -21,7 +21,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::error::Error;
-use core::{Decodable, RustTypeMarker, TypeDetective, regex};
+use core::{regex, Decodable, RustTypeMarker, TypeDetective};
 
 use self::overrides::Overrides;
 
@@ -48,7 +48,6 @@ impl PolkadotTypes {
         spec: u32,
         chain: &str,
     ) -> Option<&RustTypeMarker> {
-
         let ty = if let Some(un_prefixed) = regex::remove_prefix(ty) {
             un_prefixed
         } else {
@@ -86,7 +85,11 @@ impl PolkadotTypes {
 
     // TODO: Clean this up
     /// try to resolve a type pointer
-    fn resolve_helper(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker> {
+    fn resolve_helper(
+        &self,
+        module: &str,
+        ty: &RustTypeMarker,
+    ) -> Option<&RustTypeMarker> {
         match ty {
             RustTypeMarker::TypePointer(p) => {
                 if self.mods.modules.get(module).is_none() {
@@ -94,13 +97,14 @@ impl PolkadotTypes {
                 } else {
                     if let Some(t) = self.mods.modules.get(module)?.types.get(p) {
                         Some(t)
-                    } else if let Some(t) = self.mods.modules.get("runtime")?.types.get(p) {
+                    } else if let Some(t) = self.mods.modules.get("runtime")?.types.get(p)
+                    {
                         Some(t)
                     } else {
                         None
                     }
                 }
-            },
+            }
             _ => None,
         }
     }
@@ -147,8 +151,8 @@ impl TypeDetective for PolkadotTypes {
                 } else {
                     RustTypeMarker::TypePointer(v.clone())
                 }
-            },
-            v => v.clone()
+            }
+            v => v.clone(),
         };
         println!("{:?}", ty);
         self.resolve_helper(module, &ty)

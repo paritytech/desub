@@ -141,10 +141,11 @@ where
         let call_meta = module.call(data[3])?;
         // location in the vector of extrinsic bytes
         let mut cursor: usize = 4;
-        let mut types: Vec<SubstrateType> = Vec::new();
+        // tuple of argument name -> value
+        let mut types: Vec<(String, SubstrateType)> = Vec::new();
         for arg in call_meta.arguments() {
             println!("{:?}", arg);
-            types.push(self.decode_single(
+            let val = self.decode_single(
                 None,
                 module.name(),
                 spec,
@@ -152,7 +153,8 @@ where
                 data,
                 &mut cursor,
                 false,
-            )?);
+            )?;
+            types.push((arg.name.to_string(), val));
         }
         println!("{:?}", types);
         Ok(())
@@ -167,7 +169,6 @@ where
         // and should instead be handled in the definitions.json
     }
 
-    // TODO: Return `Any` type instead of `Serialize`
     /// Internal function to handle
     /// decoding of a single rust type marker
     /// from data and the curent position within the data

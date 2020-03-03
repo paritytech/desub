@@ -362,7 +362,6 @@ pub struct CallMetadata {
 }
 
 impl CallMetadata {
-
     /// Returns an iterator for all arguments for this call
     pub fn arguments(&self) -> impl Iterator<Item = &CallArgMetadata> {
         self.arguments.iter()

@@ -15,9 +15,9 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 pub mod decoder;
-mod substrate_types;
 mod error;
 pub mod regex;
+mod substrate_types;
 
 #[cfg(any(test, feature = "test"))]
 pub mod test_suite;
@@ -97,10 +97,7 @@ impl Display for SetField {
 impl SetField {
     pub fn new<S: Into<String>>(name: S, num: u8) -> Self {
         let (name, num) = (name.into(), num);
-        Self {
-            name,
-            num,
-        }
+        Self { name, num }
     }
 }
 
