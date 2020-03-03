@@ -122,15 +122,15 @@ impl TypeDetective for PolkadotTypes {
     fn resolve(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker> {
         let ty = match ty {
             RustTypeMarker::TypePointer(v) => {
-                if let Some(un_prefixed) = regex::remove_prefix(v) {
+                if let Some(un_prefixed) = regex::remove_prefix(v.as_str()) {
                     RustTypeMarker::TypePointer(un_prefixed)
                 } else {
-                    RustTypeMarker::TypePointer(v)
+                    RustTypeMarker::TypePointer(v.clone())
                 }
             },
-            v @ _ => v
+            v => v.clone()
         };
-        self.resolve(module, ty)
+        self.resolve(module, &ty)
     }
 }
 

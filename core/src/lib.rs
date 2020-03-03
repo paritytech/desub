@@ -95,8 +95,8 @@ impl Display for SetField {
 }
 
 impl SetField {
-    pub fn new<S: Into<String>, N: Into<u8>>(name: S, num: N) -> Self {
-        let (name, num) = (name.into(), num.into());
+    pub fn new<S: Into<String>>(name: S, num: u8) -> Self {
+        let (name, num) = (name.into(), num);
         Self {
             name,
             num,
