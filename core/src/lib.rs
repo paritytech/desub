@@ -31,7 +31,7 @@ pub trait TypeDetective {
         &self,
         module: &str,
         ty: &str,
-        spec: usize,
+        spec: u32,
         chain: &str,
     ) -> Option<&dyn Decodable>;
 

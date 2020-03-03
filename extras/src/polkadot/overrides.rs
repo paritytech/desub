@@ -56,7 +56,7 @@ impl Overrides {
     }
 
     /// get a module types based upon spec
-    pub fn get_chain_types(&self, chain: &str, spec: usize) -> Option<&ModuleTypes> {
+    pub fn get_chain_types(&self, chain: &str, spec: u32) -> Option<&ModuleTypes> {
         self.types_spec
             .get(chain)?
             .iter()
@@ -68,11 +68,11 @@ impl Overrides {
         self.types_modules.get(module)
     }
 
-    fn is_in_range(spec: usize, over_ride: &SingleOverride) -> bool {
+    fn is_in_range(spec: u32, over_ride: &SingleOverride) -> bool {
         match over_ride.min_max {
-            [Some(min), Some(max)] => (min..=max).contains(&spec),
-            [Some(min), None] => spec > min,
-            [None, Some(max)] => spec < max,
+            [Some(min), Some(max)] => (min..=max).contains(&(spec as usize)),
+            [Some(min), None] => (spec as usize) > min,
+            [None, Some(max)] => (spec as usize) < max,
             // presumably, this would be for null -> null,
             // so for every spec
             [None, None] => true,

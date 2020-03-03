@@ -7,7 +7,7 @@ use desub_core::{decoder::{Decoder, Metadata}, test_suite};
 #[test]
 pub fn should_decode() {
     let types = extras::polkadot::PolkadotTypes::new().unwrap();
-    let mut decoder = Decoder::new(types);
+    let mut decoder = Decoder::new(types, "kusama");
 
     let (meta, ext) = test_suite::ext_and_metadata_spec1031();
     let meta = Metadata::new(meta.as_slice());
@@ -19,11 +19,11 @@ pub fn should_decode() {
         println!("{:?}", e);
     }
     // println!("{:08b}", ext[0][2]);
-    decoder.decode_extrinsic(1031, &ext[0].as_slice()).unwrap();
+    decoder.decode_extrinsic(1031, &ext[0].as_slice()).expect("Should Decode");
 }
 
 
-// Some experiments to see if my assumptions hold true 
+// Some experiments to see if my assumptions hold true
 /*
 let types = extras::polkadot::PolkadotTypes::new().unwrap();
     let mut decoder = Decoder::new(types);
