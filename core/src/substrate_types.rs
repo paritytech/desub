@@ -17,6 +17,7 @@
 //! Stucture for registering substrate types
 
 use crate::SetField;
+use std::marker::PhantomData;
 
 #[derive(Debug, Clone, PartialEq)]
 // a 'stateful' Rust Type marker?
@@ -28,4 +29,23 @@ pub enum SubstrateType {
     // Rust Data Primitive Types
     Set(SetField),
     UnitEnum(String),
+    Array(Vec<SubstrateType>),
+    // Std
+    U8(u8),
+    U16(u16),
+    U32(u32),
+    U64(u64),
+    U128(u128),
+    USize(usize),
+    I8(i8),
+    I16(i16),
+    I32(i32),
+    I64(i64),
+    I128(i128),
+    ISize(isize),
+    F32(f32),
+    F64(f64),
+    Bool(bool),
+    // not sure what to do with this yet
+    Null
 }

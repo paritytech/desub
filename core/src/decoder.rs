@@ -29,7 +29,15 @@ mod metadata;
 #[cfg(test)]
 pub use self::metadata::test_suite;
 pub use self::metadata::{Metadata, MetadataError, ModuleIndex};
-use crate::{error::Error, TypeDetective, RustTypeMarker, substrate_types::SubstrateType, RustEnum, StructField};
+use crate::{
+    error::Error,
+    substrate_types::SubstrateType,
+    CommonTypes,
+    RustEnum,
+    RustTypeMarker,
+    TypeDetective,
+};
+use codec::Decode;
 // use serde::Serialize;
 use std::any::Any;
 use std::collections::HashMap;
@@ -171,7 +179,6 @@ where
         data: &[u8],
         cursor: &mut usize,
     ) -> Result<SubstrateType, Error> {
-
         let push_to_names = |ty_names: Option<Vec<String>>, name: String| {
             if let Some(names) = ty_names {
                 names.push(name)
@@ -187,13 +194,16 @@ where
                 self.decode_single(ty_names, module, new_type, data, cursor)?
             }
             RustTypeMarker::Struct(v) => {
-                let ty = v.iter().map(|field| {
-                    push_to_names(ty_names, field.name);
-                    // names might be empty
-                    self.decode_single(ty_names, module, &field.ty, data, cursor)
-                }).collect::<Result<Vec<SubstrateType>, Error>>();
+                let ty = v
+                    .iter()
+                    .map(|field| {
+                        push_to_names(ty_names, field.name);
+                        // names might be empty
+                        self.decode_single(ty_names, module, &field.ty, data, cursor)
+                    })
+                    .collect::<Result<Vec<SubstrateType>, Error>>();
                 SubstrateType::Composite(ty?)
-            },
+            }
             RustTypeMarker::Set(v) => {
                 // a set item must be an u8
                 // can decode this right away
@@ -202,65 +212,129 @@ where
                 SubstrateType::Set(v[index as usize])
             }
             RustTypeMarker::Tuple(v) => {
-                let ty = v.iter().map(|v| {
-                    self.decode_single(ty_names, module, &v, data, cursor)
-                }).collect::<Result<Vec<SubstrateType>, Error>>();
+                let ty = v
+                    .iter()
+                    .map(|v| self.decode_single(ty_names, module, &v, data, cursor))
+                    .collect::<Result<Vec<SubstrateType>, Error>>();
                 SubstrateType::Composite(ty?)
             }
-            RustTypeMarker::Enum(v) => {
-                match v {
-                    RustEnum::Unit(v) => {
-                        let index = data[*cursor];
-                        *cursor += 1;
-                        SubstrateType::UnitEnum(v[index as usize])
-                    },
-                    RustEnum::Struct(v) => {
-                        let index = data[*cursor] as usize;
-                        *cursor += 1;
-                        let variant = v[index];
-                        push_to_names(ty_names, variant.name);
-                        let new_type = self.types.resolve(module, &variant.ty).ok_or(Error::DecodeFail)?;
-                        self.decode_single(ty_names, module, new_type, data, cursor)?
-                    }
+            RustTypeMarker::Enum(v) => match v {
+                RustEnum::Unit(v) => {
+                    let index = data[*cursor];
+                    *cursor += 1;
+                    SubstrateType::UnitEnum(v[index as usize])
                 }
-            }
+                RustEnum::Struct(v) => {
+                    let index = data[*cursor] as usize;
+                    *cursor += 1;
+                    let variant = v[index];
+                    push_to_names(ty_names, variant.name);
+                    let new_type = self
+                        .types
+                        .resolve(module, &variant.ty)
+                        .ok_or(Error::DecodeFail)?;
+                    self.decode_single(ty_names, module, new_type, data, cursor)?
+                }
+            },
             RustTypeMarker::Array { size, ty } => {
-
+                let decoded_arr = Vec::with_capacity(*size);
+                for i in 0..*size {
+                    decoded_arr
+                        .push(self.decode_single(ty_names, module, ty, data, cursor)?)
+                }
+                SubstrateType::Composite(decoded_arr)
             }
-            RustTypeMarker::Std(v) => {
-            }
+            RustTypeMarker::Std(v) => match v {
+                // filler
+                CommonTypes::Vec(v) => SubstrateType::Composite(Vec::new()),
+                CommonTypes::Option(v) => SubstrateType::Composite(Vec::new()),
+                CommonTypes::Result(v, e) => SubstrateType::Composite(Vec::new()),
+                // might need an 'is_compact' bool on this method
+                CommonTypes::Compact(v) => SubstrateType::Composite(Vec::new()),
+            },
             RustTypeMarker::U8 => {
+                let num: u8 = Decode::decode(data[cursor])?;
+                *cursor += 1;
+                num
             }
             RustTypeMarker::U16 => {
+                let num: u16 = Decode::decode(data[cursor..=cursor + 1])?;
+                *cursor += 2;
+                num
             }
             RustTypeMarker::U32 => {
+                let num: u16 = Decode::decode(data[cursor..=cursor + 4])?;
+                *cursor += 5;
+                num
             }
             RustTypeMarker::U64 => {
+                let num: u16 = Decode::decode(data[cursor..=cursor + 8])?;
+                *cursor += 9;
+                num
             }
             RustTypeMarker::U128 => {
+                let num: u16 = Decode::decode(data[cursor..cursor + 16])?;
+                *cursor += 17;
+                num
             }
             RustTypeMarker::USize => {
+                let num: usize =
+                    Decode::decode(data[cursor..=cursor + std::mem::size_of::<usize>()])?;
+                *cursor += std::mem::size_of::<isize>();
+                num
             }
             RustTypeMarker::I8 => {
+                let num: i8 = Decode::decode(data[cursor])?;
+                *cursor += 1;
+                num
             }
             RustTypeMarker::I16 => {
+                let num: i16 = Decode::decode(data[cursor..=cursor + 1])?;
+                *cursor += 2;
+                num
             }
             RustTypeMarker::I32 => {
+                let num: i32 = Decode::decode(data[cursor..=cursor + 4])?;
+                *cursor += 5;
+                num
             }
             RustTypeMarker::I64 => {
+                let num: i64 = Decode::decode(data[cursor..=cursor + 8])?;
+                *cursor += 9;
+                num
             }
             RustTypeMarker::I128 => {
+                let num: i16 = Decode::decode(data[cursor..=cursor + 16])?;
+                *cursor += 17;
+                num
             }
             RustTypeMarker::ISize => {
+                let num: usize =
+                    Decode::decode(data[cursor..=cursor + std::mem::size_of::<isize>()])?;
+                *cursor += std::mem::size_of::<isize>();
+                num
             }
             RustTypeMarker::F32 => {
+                let num: f32 = Decode::decode(data[cursor..=cursor + 4])?;
+                *cursor += 5;
+                num
             }
             RustTypeMarker::F64 => {
+                let num: f64 = Decode::decode(data[cursor..=cursor + 8])?;
+                *cursor += 9;
+                num
             }
             RustTypeMarker::Bool => {
+                let boo: bool = Decode::decode(data[cursor])?;
+                *cursor += 1;
+                //   . - .
+                //  ( o o )
+                //  |  0  \
+                //   \     \
+                //    `~~~~~' boo!
+                boo
             }
-            RustTypeMarker::Null => {
-            }
+            RustTypeMarker::Null => SubstrateType::Null,
         };
         Ok(())
     }
