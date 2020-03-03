@@ -15,6 +15,7 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 pub mod decoder;
+mod substrate_types;
 mod error;
 pub mod regex;
 
@@ -30,7 +31,7 @@ pub trait TypeDetective {
         &self,
         module: &str,
         ty: &str,
-        spec: usize,
+        spec: u32,
         chain: &str,
     ) -> Option<&dyn Decodable>;
 
@@ -84,7 +85,7 @@ impl StructField {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct SetField {
     pub name: String,
-    pub num: usize,
+    pub num: u8,
 }
 
 impl Display for SetField {
@@ -94,11 +95,11 @@ impl Display for SetField {
 }
 
 impl SetField {
-    pub fn new<S: Into<String>, N: Into<u64>>(name: S, num: N) -> Self {
-        let (name, num) = (name.into(), num.into());
+    pub fn new<S: Into<String>>(name: S, num: u8) -> Self {
+        let (name, num) = (name.into(), num);
         Self {
             name,
-            num: num as usize,
+            num,
         }
     }
 }

@@ -7,7 +7,9 @@ pub enum Error {
     #[fail(display = "Codec {:?}", _0)]
     Codec(#[fail(cause)] CodecError),
     #[fail(display = "{:?}", _0)]
-    Metadata(#[fail(cause)]  MetadataError)
+    Metadata(#[fail(cause)]  MetadataError),
+    #[fail(display = "decoding failed")]
+    DecodeFail
 }
 
 impl From<CodecError> for Error {

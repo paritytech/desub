@@ -152,7 +152,8 @@ fn val_to_str(v: &serde_json::Value) -> String {
 fn parse_set(obj: &serde_json::map::Map<String, serde_json::Value>) -> RustTypeMarker {
     let mut set_vec = Vec::new();
     for (key, value) in obj.iter() {
-        let set_field = SetField::new(key, value.as_u64().expect("will not be negative"));
+        let num: u8 = serde_json::from_value(value.clone()).expect("Must be u8");
+        let set_field = SetField::new(key, num);
         set_vec.push(set_field)
     }
     RustTypeMarker::Set(set_vec)

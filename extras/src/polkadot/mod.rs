@@ -21,7 +21,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::error::Error;
-use core::{Decodable, RustTypeMarker, TypeDetective};
+use core::{Decodable, RustTypeMarker, TypeDetective, regex};
 
 use self::overrides::Overrides;
 
@@ -41,18 +41,25 @@ impl PolkadotTypes {
 
     /// get a types definition
     /// goes through override check
-    /// does not resolve TypePointers
     pub fn get(
         &self,
         module: &str,
         ty: &str,
-        spec: usize,
+        spec: u32,
         chain: &str,
     ) -> Option<&RustTypeMarker> {
-        if let Some(t) = self.check_overrides(module, ty, spec, chain) {
+
+        let ty = if let Some(un_prefixed) = regex::remove_prefix(ty) {
+            un_prefixed
+        } else {
+            ty.to_string()
+        };
+
+        println!("{}", ty);
+        if let Some(t) = self.check_overrides(module, ty.as_str(), spec, chain) {
             Some(&t)
         } else {
-            self.mods.modules.get(module)?.types.get(ty)
+            self.resolve_helper(module, &RustTypeMarker::TypePointer(ty.to_string()))
         }
     }
 
@@ -63,7 +70,7 @@ impl PolkadotTypes {
         &self,
         module: &str,
         ty: &str,
-        spec: usize,
+        spec: u32,
         chain: &str,
     ) -> Option<&RustTypeMarker> {
         // check if the type is a module override first
@@ -77,10 +84,23 @@ impl PolkadotTypes {
         self.overrides.get_chain_types(chain, spec)?.get(ty)
     }
 
+    // TODO: Clean this up
     /// try to resolve a type pointer
-    pub fn resolve(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker> {
+    fn resolve_helper(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker> {
         match ty {
-            RustTypeMarker::TypePointer(p) => self.mods.modules.get(module)?.types.get(p),
+            RustTypeMarker::TypePointer(p) => {
+                if self.mods.modules.get(module).is_none() {
+                    self.mods.modules.get("runtime")?.types.get(p)
+                } else {
+                    if let Some(t) = self.mods.modules.get(module)?.types.get(p) {
+                        Some(t)
+                    } else if let Some(t) = self.mods.modules.get("runtime")?.types.get(p) {
+                        Some(t)
+                    } else {
+                        None
+                    }
+                }
+            },
             _ => None,
         }
     }
@@ -110,7 +130,7 @@ impl TypeDetective for PolkadotTypes {
         &self,
         module: &str,
         ty: &str,
-        spec: usize,
+        spec: u32,
         chain: &str,
     ) -> Option<&dyn Decodable> {
         let module = module.to_ascii_lowercase();
@@ -120,7 +140,18 @@ impl TypeDetective for PolkadotTypes {
     }
 
     fn resolve(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker> {
-        self.resolve(module, ty)
+        let ty = match ty {
+            RustTypeMarker::TypePointer(v) => {
+                if let Some(un_prefixed) = regex::remove_prefix(v.as_str()) {
+                    RustTypeMarker::TypePointer(un_prefixed)
+                } else {
+                    RustTypeMarker::TypePointer(v.clone())
+                }
+            },
+            v => v.clone()
+        };
+        println!("{:?}", ty);
+        self.resolve_helper(module, &ty)
     }
 }
 
