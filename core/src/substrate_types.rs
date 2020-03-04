@@ -47,9 +47,13 @@ pub enum SubstrateType {
     F64(f64),
     Bool(bool),
     // not sure what to do with this yet
+    // may get rid of it
     Null,
 }
 
+// ============================================
+// /\/\/\         CONVERSIONS            /\/\/\
+// ============================================
 impl From<u8> for SubstrateType {
     fn from(num: u8) -> SubstrateType {
         SubstrateType::U8(num)

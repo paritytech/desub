@@ -126,7 +126,11 @@ where
     }
 
     /// Decode an extrinsic
-    pub fn decode_extrinsic(&self, spec: SpecVersion, data: &[u8]) -> Result<(), Error> {
+    pub fn decode_extrinsic(
+        &self,
+        spec: SpecVersion,
+        data: &[u8],
+    ) -> Result<Vec<(String, SubstrateType)>, Error> {
         let meta = self.versions.get(&spec).expect("Spec does not exist");
 
         // first byte -> vector length
@@ -156,8 +160,7 @@ where
             )?;
             types.push((arg.name.to_string(), val));
         }
-        println!("{:?}", types);
-        Ok(())
+        Ok(types)
         // println!("{:#?}", module);
         // println!("Mod: {:#?}", module);
         // byte three will be the index of the function enum
@@ -199,17 +202,19 @@ where
 
         let ty = match ty {
             RustTypeMarker::TypePointer(v) => {
-                // TODO: check substrate types for decoding
-                println!("{:?}", v);
-                let new_type = self
-                    .types
-                    .get(module, v, spec, self.chain.as_str())
-                    .ok_or(Error::DecodeFail)?
-                    .as_type();
-                println!("New Type: {:?}", new_type);
-                self.decode_single(
-                    ty_names, module, spec, new_type, data, cursor, is_compact,
-                )?
+                if let Some(t) = self.decode_sub_type(v, data, cursor, is_compact) {
+                    t
+                } else {
+                    let new_type = self
+                        .types
+                        .get(module, v, spec, self.chain.as_str())
+                        .ok_or(Error::DecodeFail)?
+                        .as_type();
+                    println!("New Type: {:?}", new_type);
+                    self.decode_single(
+                        ty_names, module, spec, new_type, data, cursor, is_compact,
+                    )?
+                }
             }
             RustTypeMarker::Struct(v) => {
                 let ty = v
@@ -288,10 +293,18 @@ where
             }
             RustTypeMarker::Std(v) => match v {
                 // filler
-                CommonTypes::Vec(v) => SubstrateType::Composite(Vec::new()),
-                CommonTypes::Option(v) => SubstrateType::Composite(Vec::new()),
-                CommonTypes::Result(v, e) => SubstrateType::Composite(Vec::new()),
-                // might need an 'is_compact' bool on this method
+                CommonTypes::Vec(v) => {
+                    dbg!("{:?}", v);
+                    SubstrateType::Null
+                },
+                CommonTypes::Option(v) => {
+                    dbg!("{:?}", v);
+                    SubstrateType::Null
+                },
+                CommonTypes::Result(v, e) => {
+                    dbg!("{:?}, {:?}", v, e);
+                    SubstrateType::Null
+                },
                 CommonTypes::Compact(v) => {
                     self.decode_single(ty_names, module, spec, v, data, cursor, true)?
                 }
@@ -407,7 +420,7 @@ where
                 num.into()
             }
             RustTypeMarker::ISize => {
-                panic!("isize decoding not possible!")
+                panic!("isize decoding impossible!")
                 /*
                 let idx = std::mem::size_of::<isize>();
                 let num: isize =
@@ -422,7 +435,7 @@ where
                 *cursor += 5;
                 num.into()
                  */
-                panic!("f32 decoding not possible!");
+                panic!("f32 decoding impossible!");
             }
             RustTypeMarker::F64 => {
                 /*
@@ -430,7 +443,7 @@ where
                 *cursor += 9;
                 num.into()
                  */
-                panic!("f64 decoding not possible!");
+                panic!("f64 decoding impossible!");
             }
             RustTypeMarker::Bool => {
                 let boo: bool = Decode::decode(&mut &data[*cursor..=*cursor])?;
@@ -445,6 +458,37 @@ where
             RustTypeMarker::Null => SubstrateType::Null,
         };
         Ok(ty)
+    }
+
+    /// internal API to decode substrate type
+    /// Tries to decode a type that is native to substrate
+    /// for example, H256. Returns none if type cannot be deduced
+    /// Supported types:
+    /// - H256
+    /// - H512
+    // TODO: test this with the substrate types used
+    fn decode_sub_type(
+        &self,
+        ty: &str,
+        data: &[u8],
+        cursor: &mut usize,
+        is_compact: bool,
+    ) -> Option<SubstrateType> {
+        match ty {
+            "H256" => {
+                let val: primitives::H256 =
+                    Decode::decode(&mut &data[*cursor..=*cursor + 32]).ok()?;
+                *cursor += 33;
+                Some(SubstrateType::H256(val))
+            }
+            "H512" => {
+                let val: primitives::H512 =
+                    Decode::decode(&mut &data[*cursor..=*cursor + 64]).ok()?;
+                *cursor += 65;
+                Some(SubstrateType::H512(val))
+            }
+            _ => None,
+        }
     }
 }
 
