@@ -1,6 +1,6 @@
 extern crate extras;
 
-use desub_core::{decoder::{Decoder, Metadata}, test_suite};
+use desub_core::{decoder::{Decoder, Metadata}, SubstrateType, test_suite};
 // use codec::Decode;
 // use std::mem;
 
@@ -19,7 +19,13 @@ pub fn should_decode() {
         println!("{:?}", e);
     }
     // println!("{:08b}", ext[0][2]);
-    decoder.decode_extrinsic(1031, &ext[0].as_slice()).expect("Should Decode");
+    let decoded = decoder.decode_extrinsic(1031, &ext[0].as_slice())
+        .expect("Should Decode");
+    println!("{:?}", decoded);
+    assert_eq!(vec![("now".to_string(), SubstrateType::U64(1577070096000))], decoded);
+    // 1577070096000 is the UNIX timestamp in milliseconds of
+    // Monday, December 23, 2019 3:01:36 AM
+    // when block 342,962 was processed
 }
 
 

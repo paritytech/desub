@@ -4,8 +4,7 @@
 // substrate-desub is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
+// (at your option) any later version. //
 // substrate-desub is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -30,12 +29,13 @@ mod metadata;
 pub use self::metadata::test_suite;
 pub use self::metadata::{Metadata, MetadataError, ModuleIndex};
 use crate::{
-    error::Error, substrate_types::SubstrateType, CommonTypes, RustEnum, RustTypeMarker,
-    TypeDetective,
+    error::Error,
+    substrate_types::{StructField, SubstrateType},
+    CommonTypes, RustEnum, RustTypeMarker, TypeDetective,
 };
-use codec::{Compact, Decode};
+use codec::{Compact, CompactLen, Decode};
 // use serde::Serialize;
-use std::collections::HashMap;
+use std::{collections::HashMap, convert::TryFrom};
 
 type SpecVersion = u32;
 /// Decoder for substrate types
@@ -126,7 +126,11 @@ where
     }
 
     /// Decode an extrinsic
-    pub fn decode_extrinsic(&self, spec: SpecVersion, data: &[u8]) -> Result<(), Error> {
+    pub fn decode_extrinsic(
+        &self,
+        spec: SpecVersion,
+        data: &[u8],
+    ) -> Result<Vec<(String, SubstrateType)>, Error> {
         let meta = self.versions.get(&spec).expect("Spec does not exist");
 
         // first byte -> vector length
@@ -144,9 +148,8 @@ where
         // tuple of argument name -> value
         let mut types: Vec<(String, SubstrateType)> = Vec::new();
         for arg in call_meta.arguments() {
-            println!("{:?}", arg);
+            dbg!("{:?}", arg);
             let val = self.decode_single(
-                None,
                 module.name(),
                 spec,
                 &arg.ty,
@@ -156,12 +159,12 @@ where
             )?;
             types.push((arg.name.to_string(), val));
         }
-        println!("{:?}", types);
-        Ok(())
+        Ok(types)
         // println!("{:#?}", module);
         // println!("Mod: {:#?}", module);
         // byte three will be the index of the function enum
 
+        // TODO
         // should have a list of 'guess type' where
         // types like <T::Lookup as StaticLookup>::Source
         // are 'guessed' to be `Address`
@@ -177,7 +180,6 @@ where
     /// panics if a type cannot be decoded
     fn decode_single(
         &self,
-        ty_names: Option<Vec<String>>,
         module: &str,
         spec: SpecVersion,
         ty: &RustTypeMarker,
@@ -185,45 +187,34 @@ where
         cursor: &mut usize,
         is_compact: bool,
     ) -> Result<SubstrateType, Error> {
-        let push_to_names =
-            |mut ty_names: Option<Vec<String>>, name: String| -> Option<Vec<String>> {
-                let ty_names = if let Some(mut names) = ty_names {
-                    names.push(name);
-                    Some(names)
-                } else {
-                    ty_names.replace(vec![name]);
-                    ty_names
-                };
-                ty_names
-            };
-
         let ty = match ty {
             RustTypeMarker::TypePointer(v) => {
-                // TODO: check substrate types for decoding
-                println!("{:?}", v);
-                let new_type = self
-                    .types
-                    .get(module, v, spec, self.chain.as_str())
-                    .ok_or(Error::DecodeFail)?
-                    .as_type();
-                println!("New Type: {:?}", new_type);
-                self.decode_single(
-                    ty_names, module, spec, new_type, data, cursor, is_compact,
-                )?
+                if let Some(t) = self.decode_sub_type(v, data, cursor, is_compact) {
+                    t
+                } else {
+                    let new_type = self
+                        .types
+                        .get(module, v, spec, self.chain.as_str())
+                        .ok_or(Error::DecodeFail)?
+                        .as_type();
+                    dbg!("New Type: {:?}", new_type);
+                    self.decode_single(module, spec, new_type, data, cursor, is_compact)?
+                }
             }
             RustTypeMarker::Struct(v) => {
                 let ty = v
                     .iter()
                     .map(|field| {
-                        let ty_names =
-                            push_to_names(ty_names.clone(), field.name.clone());
-                        // names might be empty
-                        self.decode_single(
-                            ty_names, module, spec, &field.ty, data, cursor, is_compact,
-                        )
+                        let ty = self.decode_single(
+                            module, spec, &field.ty, data, cursor, is_compact,
+                        )?;
+                        Ok(StructField {
+                            name: field.name.clone(),
+                            ty,
+                        })
                     })
-                    .collect::<Result<Vec<SubstrateType>, Error>>();
-                SubstrateType::Composite(ty?)
+                    .collect::<Result<Vec<StructField>, Error>>();
+                SubstrateType::Struct(ty?)
             }
             RustTypeMarker::Set(v) => {
                 // a set item must be an u8
@@ -236,15 +227,7 @@ where
                 let ty = v
                     .iter()
                     .map(|v| {
-                        self.decode_single(
-                            ty_names.clone(),
-                            module,
-                            spec,
-                            &v,
-                            data,
-                            cursor,
-                            is_compact,
-                        )
+                        self.decode_single(module, spec, &v, data, cursor, is_compact)
                     })
                     .collect::<Result<Vec<SubstrateType>, Error>>();
                 SubstrateType::Composite(ty?)
@@ -255,99 +238,150 @@ where
                     *cursor += 1;
                     SubstrateType::UnitEnum(v[index as usize].clone())
                 }
+                // TODO: Test
                 RustEnum::Struct(v) => {
                     let index = data[*cursor] as usize;
                     *cursor += 1;
                     let variant = &v[index];
-                    let ty_names = push_to_names(ty_names, variant.name.clone());
+                    // let ty_names = push_to_names(ty_names, variant.name.clone());
                     let new_type = self
                         .types
                         .resolve(module, &variant.ty)
                         .ok_or(Error::DecodeFail)?;
-                    self.decode_single(
-                        ty_names, module, spec, new_type, data, cursor, is_compact,
-                    )?
+                    self.decode_single(module, spec, new_type, data, cursor, is_compact)?
                 }
             },
             RustTypeMarker::Array { size, ty } => {
                 let mut decoded_arr = Vec::with_capacity(*size);
 
-                for mut i in *cursor..*cursor + *size {
-                    decoded_arr.push(self.decode_single(
-                        ty_names.clone(),
-                        module,
-                        spec,
-                        ty,
-                        &data,
-                        &mut i,
-                        is_compact,
-                    )?)
+                for _ in 0..*size {
+                    decoded_arr.push(
+                        self.decode_single(module, spec, ty, &data, cursor, is_compact)?,
+                    )
                 }
                 *cursor = *cursor + *size;
                 SubstrateType::Composite(decoded_arr)
             }
             RustTypeMarker::Std(v) => match v {
-                // filler
-                CommonTypes::Vec(v) => SubstrateType::Composite(Vec::new()),
-                CommonTypes::Option(v) => SubstrateType::Composite(Vec::new()),
-                CommonTypes::Result(v, e) => SubstrateType::Composite(Vec::new()),
-                // might need an 'is_compact' bool on this method
+                CommonTypes::Vec(v) => {
+                    let length = Self::scale_length(&data[*cursor..])?;
+                    *cursor += length.1;
+                    // we can just decode this as an "array" now
+                    self.decode_single(
+                        module,
+                        spec,
+                        &RustTypeMarker::Array {
+                            size: length.0,
+                            ty: v.clone(),
+                        },
+                        data,
+                        cursor,
+                        is_compact,
+                    )?
+                }
+                CommonTypes::Option(v) => {
+                    match data[*cursor] {
+                        // None
+                        0x00 => SubstrateType::Option(Box::new(None)),
+                        // Some
+                        0x01 => {
+                            *cursor += 1;
+                            let ty = self.decode_single(
+                                module, spec, v, data, cursor, is_compact,
+                            )?;
+                            SubstrateType::Option(Box::new(Some(ty)))
+                        }
+                        _ => {
+                            panic!("Cannot deduce correct Option<T> enum variant");
+                        }
+                    }
+                }
+                CommonTypes::Result(v, e) => {
+                    match data[*cursor] {
+                        // Ok
+                        0x00 => {
+                            *cursor += 1;
+                            let ty = self.decode_single(
+                                module, spec, v, data, cursor, is_compact,
+                            )?;
+                            SubstrateType::Result(Box::new(Ok(ty)))
+                        }
+                        // Err
+                        0x01 => {
+                            *cursor += 1;
+                            let ty = self.decode_single(
+                                module, spec, e, data, cursor, is_compact,
+                            )?;
+                            SubstrateType::Result(Box::new(Err(ty)))
+                        }
+                        _ => {
+                            panic!("Cannot deduce correct Result<T> Enum Variant");
+                        }
+                    }
+                }
+                // TODO: test
                 CommonTypes::Compact(v) => {
-                    self.decode_single(ty_names, module, spec, v, data, cursor, true)?
+                    self.decode_single(module, spec, v, data, cursor, true)?
                 }
             },
             RustTypeMarker::U8 => {
                 let num: u8 = if is_compact {
-                    let num: Compact<u8> = Decode::decode(&mut &data[*cursor..*cursor])?;
+                    let num: Compact<u8> = Decode::decode(&mut &data[*cursor..])?;
+                    *cursor += Compact::compact_len(&u8::from(num));
                     num.into()
                 } else {
-                    Decode::decode(&mut &data[*cursor..*cursor])?
+                    let num: u8 = Decode::decode(&mut &data[*cursor..])?;
+                    *cursor += 1;
+                    num
                 };
-                *cursor += 1;
                 num.into()
             }
             RustTypeMarker::U16 => {
                 let num: u16 = if is_compact {
-                    let num: Compact<u16> =
-                        Decode::decode(&mut &data[*cursor..*cursor + 1])?;
+                    let num: Compact<u16> = Decode::decode(&mut &data[*cursor..])?;
+                    *cursor += Compact::compact_len(&u16::from(num));
                     num.into()
                 } else {
-                    Decode::decode(&mut &data[*cursor..=*cursor + 1])?
+                    let num: u16 = Decode::decode(&mut &data[*cursor..])?;
+                    *cursor += 2;
+                    num
                 };
-                *cursor += 2;
                 num.into()
             }
             RustTypeMarker::U32 => {
                 let num: u32 = if is_compact {
-                    let num: Compact<u32> =
-                        Decode::decode(&mut &data[*cursor..*cursor + 4])?;
+                    let num: Compact<u32> = Decode::decode(&mut &data[*cursor..])?;
+                    *cursor += Compact::compact_len(&u32::from(num));
                     num.into()
                 } else {
-                    Decode::decode(&mut &data[*cursor..=*cursor + 4])?
+                    let num: u32 = Decode::decode(&mut &data[*cursor..])?;
+                    *cursor += 4;
+                    num
                 };
-                *cursor += 5;
                 num.into()
             }
             RustTypeMarker::U64 => {
                 let num: u64 = if is_compact {
-                    let num: Compact<u64> =
-                        Decode::decode(&mut &data[*cursor..*cursor + 8])?;
+                    let num: Compact<u64> = Decode::decode(&mut &data[*cursor..])?;
+                    *cursor += Compact::compact_len(&u64::from(num));
                     num.into()
                 } else {
-                    Decode::decode(&mut &data[*cursor..=*cursor + 8])?
+                    let num: u64 = Decode::decode(&mut &data[*cursor..])?;
+                    *cursor += 8;
+                    num
                 };
-                *cursor += 9;
                 num.into()
             }
             RustTypeMarker::U128 => {
                 let num: u128 = if is_compact {
-                    let num: Compact<u128> =
-                        Decode::decode(&mut &data[*cursor..*cursor + 16])?;
+                    let num: Compact<u128> = Decode::decode(&mut &data[*cursor..])?;
+                    *cursor += Compact::compact_len(&u128::from(num));
                     num.into()
                 } else {
-                    Decode::decode(&mut &data[*cursor..=*cursor + 16])?
+                    let num: u128 = Decode::decode(&mut &data[*cursor..])?;
+                    *cursor += 16;
+                    num
                 };
-                *cursor += 17;
                 num.into()
             }
             RustTypeMarker::USize => {
@@ -363,7 +397,7 @@ where
                 let num: i8 = if is_compact {
                     unimplemented!()
                 } else {
-                    Decode::decode(&mut &data[*cursor..=*cursor])?
+                    Decode::decode(&mut &data[*cursor..])?
                 };
                 *cursor += 1;
                 num.into()
@@ -372,7 +406,7 @@ where
                 let num: i16 = if is_compact {
                     unimplemented!()
                 } else {
-                    Decode::decode(&mut &data[*cursor..=*cursor + 1])?
+                    Decode::decode(&mut &data[*cursor..])?
                 };
                 *cursor += 2;
                 num.into()
@@ -381,9 +415,9 @@ where
                 let num: i32 = if is_compact {
                     unimplemented!()
                 } else {
-                    Decode::decode(&mut &data[*cursor..=*cursor + 4])?
+                    Decode::decode(&mut &data[*cursor..])?
                 };
-                *cursor += 5;
+                *cursor += 4;
                 num.into()
             }
             RustTypeMarker::I64 => {
@@ -392,22 +426,22 @@ where
                     // num.into()
                     unimplemented!()
                 } else {
-                    Decode::decode(&mut &data[*cursor..=*cursor + 8])?
+                    Decode::decode(&mut &data[*cursor..])?
                 };
-                *cursor += 9;
+                *cursor += 8;
                 num.into()
             }
             RustTypeMarker::I128 => {
                 let num: i128 = if is_compact {
                     unimplemented!()
                 } else {
-                    Decode::decode(&mut &data[*cursor..=*cursor + 16])?
+                    Decode::decode(&mut &data[*cursor..])?
                 };
-                *cursor += 17;
+                *cursor += 16;
                 num.into()
             }
             RustTypeMarker::ISize => {
-                panic!("isize decoding not possible!")
+                panic!("isize decoding impossible!")
                 /*
                 let idx = std::mem::size_of::<isize>();
                 let num: isize =
@@ -422,7 +456,7 @@ where
                 *cursor += 5;
                 num.into()
                  */
-                panic!("f32 decoding not possible!");
+                panic!("f32 decoding impossible!");
             }
             RustTypeMarker::F64 => {
                 /*
@@ -430,8 +464,9 @@ where
                 *cursor += 9;
                 num.into()
                  */
-                panic!("f64 decoding not possible!");
+                panic!("f64 decoding impossible!");
             }
+            RustTypeMarker::String => unimplemented!(),
             RustTypeMarker::Bool => {
                 let boo: bool = Decode::decode(&mut &data[*cursor..=*cursor])?;
                 *cursor += 1;
@@ -446,14 +481,61 @@ where
         };
         Ok(ty)
     }
+
+    /// internal API to decode substrate type
+    /// Tries to decode a type that is native to substrate
+    /// for example, H256. Returns none if type cannot be deduced
+    /// Supported types:
+    /// - H256
+    /// - H512
+    // TODO: test this with the substrate types used
+    fn decode_sub_type(
+        &self,
+        ty: &str,
+        data: &[u8],
+        cursor: &mut usize,
+        _is_compact: bool,
+    ) -> Option<SubstrateType> {
+        match ty {
+            "H256" => {
+                let val: primitives::H256 =
+                    Decode::decode(&mut &data[*cursor..=*cursor + 32]).ok()?;
+                *cursor += 33;
+                Some(SubstrateType::H256(val))
+            }
+            "H512" => {
+                let val: primitives::H512 =
+                    Decode::decode(&mut &data[*cursor..=*cursor + 64]).ok()?;
+                *cursor += 65;
+                Some(SubstrateType::H512(val))
+            }
+            _ => None,
+        }
+    }
+
+    /// internal api to get the number of items in a encoded series
+    /// returns a tuple of (number_of_items, length_of_prefix)
+    /// length of prefix is the length in bytes that the prefix took up
+    /// in the encoded data
+    fn scale_length(mut data: &[u8]) -> Result<(usize, usize), Error> {
+        // alternative to `DecodeLength` trait, to avoid casting from a trait
+        let u32_length = u32::from(Compact::<u32>::decode(&mut data)?);
+        let length_of_prefix: usize = Compact::compact_len(&u32_length);
+        let usize_length = usize::try_from(u32_length)
+            .map_err(|_| Error::from("Failed convert decoded size into usize."))?;
+        Ok((usize_length, length_of_prefix))
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::{
-        decoder::{metadata::test_suite as meta_test_suite, Decoder},
-        test_suite, Decodable, RustTypeMarker, TypeDetective,
+        decoder::metadata::test_suite as meta_test_suite,
+        substrate_types::StructField as SubStructField, test_suite, Decodable,
+        StructField,
     };
+    use codec::Encode;
 
     struct GenericTypes;
     impl TypeDetective for GenericTypes {
@@ -513,5 +595,261 @@ mod tests {
         decoder.register_version(rt_version.spec_version.clone(), meta.clone());
         let _other_meta = decoder.get_version_metadata(rt_version.spec_version);
         assert_eq!(Some(&meta), _other_meta.clone())
+    }
+
+    #[test]
+    fn should_get_scale_length() {
+        let encoded = vec![32, 4].encode();
+        for v in encoded.iter() {
+            print!("{:08b} ", v);
+        }
+        let len = Decoder::<GenericTypes>::scale_length(encoded.as_slice()).unwrap();
+        assert_eq!(len.0, 2);
+    }
+
+    #[test]
+    fn should_decode_option() {
+        let opt: Option<u32> = Some(0x1337);
+        let val = opt.encode();
+        let decoder = Decoder::new(GenericTypes, "kusama");
+        let res = decoder
+            .decode_single(
+                "system",
+                1031,
+                &RustTypeMarker::Std(CommonTypes::Option(Box::new(RustTypeMarker::U32))),
+                val.as_slice(),
+                &mut 0,
+                false,
+            )
+            .unwrap();
+        assert_eq!(
+            SubstrateType::Option(Box::new(Some(SubstrateType::U32(4919)))),
+            res
+        );
+
+        let opt: Option<u32> = None;
+        let val = opt.encode();
+        let res = decoder
+            .decode_single(
+                "system", // dummy data
+                1031,     // dummy data
+                &RustTypeMarker::Std(CommonTypes::Option(Box::new(RustTypeMarker::U32))),
+                val.as_slice(),
+                &mut 0,
+                false,
+            )
+            .unwrap();
+        assert_eq!(SubstrateType::Option(Box::new(None)), res);
+    }
+
+    #[test]
+    fn should_decode_result() {
+        let res: Result<u32, u32> = Ok(0x1337);
+        let val = res.encode();
+        let decoder = Decoder::new(GenericTypes, "kusama");
+        let res = decoder
+            .decode_single(
+                "system",
+                1031,
+                &RustTypeMarker::Std(CommonTypes::Result(
+                    Box::new(RustTypeMarker::U32),
+                    Box::new(RustTypeMarker::U32),
+                )),
+                val.as_slice(),
+                &mut 0,
+                false,
+            )
+            .unwrap();
+        assert_eq!(
+            SubstrateType::Result(Box::new(Ok(SubstrateType::U32(4919)))),
+            res
+        );
+
+        let res: Result<u32, u32> = Err(0x1337);
+        let val = res.encode();
+        let decoder = Decoder::new(GenericTypes, "kusama");
+        let res = decoder
+            .decode_single(
+                "system",
+                1031,
+                &RustTypeMarker::Std(CommonTypes::Result(
+                    Box::new(RustTypeMarker::U32),
+                    Box::new(RustTypeMarker::U32),
+                )),
+                val.as_slice(),
+                &mut 0,
+                false,
+            )
+            .unwrap();
+        assert_eq!(
+            SubstrateType::Result(Box::new(Err(SubstrateType::U32(4919)))),
+            res
+        );
+    }
+
+    #[test]
+    fn should_decode_vector() {
+        let vec: Vec<u32> = vec![12, 32, 0x1337, 62];
+        let val = vec.encode();
+        let decoder = Decoder::new(GenericTypes, "kusama");
+        let res = decoder
+            .decode_single(
+                "system",
+                1031,
+                &RustTypeMarker::Std(CommonTypes::Vec(Box::new(RustTypeMarker::U32))),
+                val.as_slice(),
+                &mut 0,
+                false,
+            )
+            .unwrap();
+
+        assert_eq!(
+            SubstrateType::Composite(vec![
+                SubstrateType::U32(12),
+                SubstrateType::U32(32),
+                SubstrateType::U32(4919),
+                SubstrateType::U32(62)
+            ]),
+            res
+        );
+
+        let vec: Vec<u128> = vec![12, 32, 0x1337, 62];
+        let val = vec.encode();
+        let decoder = Decoder::new(GenericTypes, "kusama");
+        let res = decoder
+            .decode_single(
+                "system",
+                1031,
+                &RustTypeMarker::Std(CommonTypes::Vec(Box::new(RustTypeMarker::U128))),
+                val.as_slice(),
+                &mut 0,
+                false,
+            )
+            .unwrap();
+
+        assert_eq!(
+            SubstrateType::Composite(vec![
+                SubstrateType::U128(12),
+                SubstrateType::U128(32),
+                SubstrateType::U128(4919),
+                SubstrateType::U128(62)
+            ]),
+            res
+        );
+    }
+
+    #[test]
+    fn should_decode_array() {
+        let arr: [u32; 4] = [12, 32, 0x1337, 62];
+        let val = arr.encode();
+        let decoder = Decoder::new(GenericTypes, "kusama");
+        let res = decoder
+            .decode_single(
+                "system",
+                1031,
+                &RustTypeMarker::Array {
+                    size: 4,
+                    ty: Box::new(RustTypeMarker::U32),
+                },
+                val.as_slice(),
+                &mut 0,
+                false,
+            )
+            .unwrap();
+        assert_eq!(
+            SubstrateType::Composite(vec![
+                SubstrateType::U32(12),
+                SubstrateType::U32(32),
+                SubstrateType::U32(4919),
+                SubstrateType::U32(62)
+            ]),
+            res
+        );
+    }
+
+    #[test]
+    fn should_decode_struct() {
+        #[derive(Encode, Decode)]
+        struct ToDecode {
+            foo: u32,
+            name: Vec<u8>,
+        }
+        let to_decode = ToDecode {
+            foo: 0x1337,
+            name: vec![8, 16, 30, 40],
+        };
+        let val = to_decode.encode();
+        let decoder = Decoder::new(GenericTypes, "kusama");
+        let res = decoder
+            .decode_single(
+                "system",
+                1031,
+                &RustTypeMarker::Struct(vec![
+                    StructField {
+                        name: "foo".to_string(),
+                        ty: RustTypeMarker::U32,
+                    },
+                    StructField {
+                        name: "name".to_string(),
+                        ty: RustTypeMarker::Std(CommonTypes::Vec(Box::new(
+                            RustTypeMarker::U8,
+                        ))),
+                    },
+                ]),
+                val.as_slice(),
+                &mut 0,
+                false,
+            )
+            .unwrap();
+        assert_eq!(
+            SubstrateType::Struct(vec![
+                SubStructField {
+                    name: "foo".to_string(),
+                    ty: SubstrateType::U32(0x1337)
+                },
+                SubStructField {
+                    name: "name".to_string(),
+                    ty: SubstrateType::Composite(vec![
+                        SubstrateType::U8(8),
+                        SubstrateType::U8(16),
+                        SubstrateType::U8(30),
+                        SubstrateType::U8(40)
+                    ])
+                }
+            ]),
+            res
+        );
+    }
+
+    #[test]
+    fn should_decode_tuple() {
+        let tup: (u32, u32, u32, u32) = (18, 32, 42, 0x1337);
+        let val = tup.encode();
+        let decoder = Decoder::new(GenericTypes, "kusama");
+        let res = decoder
+            .decode_single(
+                "system",
+                1031,
+                &RustTypeMarker::Tuple(vec![
+                    RustTypeMarker::U32,
+                    RustTypeMarker::U32,
+                    RustTypeMarker::U32,
+                    RustTypeMarker::U32,
+                ]),
+                val.as_slice(),
+                &mut 0,
+                false,
+            )
+            .unwrap();
+
+        assert_eq!(
+            SubstrateType::Composite(vec![
+                SubstrateType::U32(18),
+                SubstrateType::U32(32),
+                SubstrateType::U32(42),
+                SubstrateType::U32(0x1337)
+            ]),
+            res
+        );
     }
 }

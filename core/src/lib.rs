@@ -22,6 +22,7 @@ mod substrate_types;
 #[cfg(any(test, feature = "test"))]
 pub mod test_suite;
 
+pub use self::substrate_types::SubstrateType;
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
 
@@ -63,6 +64,7 @@ pub trait Decodable {
     fn is_primitive(&self) -> bool;
 }
 
+/// A field with an associated name
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct StructField {
     pub name: String,
@@ -246,6 +248,9 @@ pub enum RustTypeMarker {
     /// Boolean true/false type
     Bool,
 
+    /// String type
+    String,
+
     /// Used for fields that don't exist (ex Unit variant in an enum with both
     /// units/structs)
     Null,
@@ -298,6 +303,8 @@ impl Display for RustTypeMarker {
             RustTypeMarker::F64 => type_marker.push_str("f64"),
 
             RustTypeMarker::Bool => type_marker.push_str("bool"),
+
+            RustTypeMarker::String => type_marker.push_str("string"),
 
             RustTypeMarker::Null => type_marker.push_str("null"),
         }
