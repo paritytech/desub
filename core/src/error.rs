@@ -10,6 +10,19 @@ pub enum Error {
     Metadata(#[fail(cause)] MetadataError),
     #[fail(display = "decoding failed")]
     DecodeFail,
+    #[fail(display = "error: {}", _0)]
+    Fail(String)
+}
+impl From<String> for Error {
+    fn from(err: String) -> Error {
+        Error::Fail(err)
+    }
+}
+
+impl From<&str> for Error {
+    fn from(err: &str) -> Error {
+        Error::Fail(err.to_string())
+    }
 }
 
 impl From<CodecError> for Error {

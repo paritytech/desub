@@ -4,8 +4,7 @@
 // substrate-desub is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
+// (at your option) any later version. //
 // substrate-desub is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -35,7 +34,7 @@ use crate::{
 };
 use codec::{Compact, Decode};
 // use serde::Serialize;
-use std::collections::HashMap;
+use std::{collections::HashMap, convert::TryFrom};
 
 type SpecVersion = u32;
 /// Decoder for substrate types
@@ -294,7 +293,8 @@ where
             RustTypeMarker::Std(v) => match v {
                 // filler
                 CommonTypes::Vec(v) => {
-                    dbg!("{:?}", v);
+                    // let length: Compact<_> = Decode::decode(&mut &data[*cursor]).unwrap();
+                                        dbg!("{:?}", v);
                     SubstrateType::Null
                 },
                 CommonTypes::Option(v) => {
@@ -490,7 +490,16 @@ where
             _ => None,
         }
     }
+
+    /// internal api to get the number of items in a encoded series
+    fn scale_length(mut data: &[u8]) -> Result<usize, Error> {
+        // alternative to `DecodeLength` trait, to avoid casting from a trait
+        usize::try_from(u32::from(Compact::<u32>::decode(&mut data)?))
+            .map_err(|_| "Failed convert decoded size into usize.".into())
+    }
 }
+
+
 
 #[cfg(test)]
 mod tests {
@@ -498,6 +507,7 @@ mod tests {
         decoder::{metadata::test_suite as meta_test_suite, Decoder},
         test_suite, Decodable, RustTypeMarker, TypeDetective,
     };
+    use codec::{Encode, Decode};
 
     struct GenericTypes;
     impl TypeDetective for GenericTypes {
@@ -557,5 +567,21 @@ mod tests {
         decoder.register_version(rt_version.spec_version.clone(), meta.clone());
         let _other_meta = decoder.get_version_metadata(rt_version.spec_version);
         assert_eq!(Some(&meta), _other_meta.clone())
+    }
+
+    #[test]
+    fn should_decode_vector() {
+
+    }
+
+    #[test]
+    fn should_get_scale_length() {
+        let encoded = vec![32, 4].encode();
+        for v in encoded.iter() {
+            print!("{:08b} ", v);
+        }
+        println!();
+        let len = Decoder::<GenericTypes>::scale_length(encoded.as_slice());
+        println!("{}", len.unwrap());
     }
 }
