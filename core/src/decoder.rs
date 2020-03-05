@@ -32,7 +32,7 @@ use crate::{
     error::Error, substrate_types::SubstrateType, CommonTypes, RustEnum, RustTypeMarker,
     TypeDetective,
 };
-use codec::{Compact, Decode};
+use codec::{Compact, CompactLen, Decode};
 // use serde::Serialize;
 use std::{collections::HashMap, convert::TryFrom};
 
@@ -296,71 +296,77 @@ where
                     let length = Self::scale_length(&data[*cursor..]);
                     dbg!("{:?}", v);
                     SubstrateType::Null
-                },
+                }
                 CommonTypes::Option(v) => {
                     dbg!("{:?}", v);
                     SubstrateType::Null
-                },
+                }
                 CommonTypes::Result(v, e) => {
                     dbg!("{:?}, {:?}", v, e);
                     SubstrateType::Null
-                },
+                }
                 CommonTypes::Compact(v) => {
                     self.decode_single(ty_names, module, spec, v, data, cursor, true)?
                 }
             },
             RustTypeMarker::U8 => {
                 let num: u8 = if is_compact {
-                    let num: Compact<u8> = Decode::decode(&mut &data[*cursor..*cursor])?;
+                    let num: Compact<u8> = Decode::decode(&mut &data[*cursor..])?;
+                    *cursor += Compact::compact_len(&u8::from(num));
                     num.into()
                 } else {
-                    Decode::decode(&mut &data[*cursor..*cursor])?
+                    let num = Decode::decode(&mut &data[*cursor..])?;
+                    *cursor += 1;
+                    num
                 };
-                *cursor += 1;
                 num.into()
             }
             RustTypeMarker::U16 => {
                 let num: u16 = if is_compact {
-                    let num: Compact<u16> =
-                        Decode::decode(&mut &data[*cursor..*cursor + 1])?;
+                    let num: Compact<u16> = Decode::decode(&mut &data[*cursor..])?;
+                    *cursor += Compact::compact_len(&u16::from(num));
                     num.into()
                 } else {
-                    Decode::decode(&mut &data[*cursor..=*cursor + 1])?
+                    let num = Decode::decode(&mut &data[*cursor..])?;
+                    *cursor += 2;
+                    num
                 };
-                *cursor += 2;
                 num.into()
             }
             RustTypeMarker::U32 => {
                 let num: u32 = if is_compact {
-                    let num: Compact<u32> =
-                        Decode::decode(&mut &data[*cursor..*cursor + 4])?;
+                    let num: Compact<u32> = Decode::decode(&mut &data[*cursor..])?;
+                    *cursor += Compact::compact_len(&u32::from(num));
                     num.into()
                 } else {
-                    Decode::decode(&mut &data[*cursor..=*cursor + 4])?
+                    let num = Decode::decode(&mut &data[*cursor..])?;
+                    *cursor += 5;
+                    num
                 };
-                *cursor += 5;
                 num.into()
             }
             RustTypeMarker::U64 => {
                 let num: u64 = if is_compact {
-                    let num: Compact<u64> =
-                        Decode::decode(&mut &data[*cursor..*cursor + 8])?;
+                    let num: Compact<u64> = Decode::decode(&mut &data[*cursor..])?;
+                    *cursor += Compact::compact_len(&u64::from(num));
                     num.into()
                 } else {
-                    Decode::decode(&mut &data[*cursor..=*cursor + 8])?
+                    let num = Decode::decode(&mut &data[*cursor..])?;
+                    *cursor += 9;
+                    num
                 };
-                *cursor += 9;
                 num.into()
             }
             RustTypeMarker::U128 => {
                 let num: u128 = if is_compact {
-                    let num: Compact<u128> =
-                        Decode::decode(&mut &data[*cursor..*cursor + 16])?;
+                    let num: Compact<u128> = Decode::decode(&mut &data[*cursor..])?;
+                    *cursor += Compact::compact_len(&u128::from(num));
                     num.into()
                 } else {
-                    Decode::decode(&mut &data[*cursor..=*cursor + 16])?
+                    let num = Decode::decode(&mut &data[*cursor..])?;
+                    *cursor += 17;
+                    num
                 };
-                *cursor += 17;
                 num.into()
             }
             RustTypeMarker::USize => {
@@ -499,15 +505,13 @@ where
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use crate::{
         decoder::{metadata::test_suite as meta_test_suite, Decoder},
         test_suite, Decodable, RustTypeMarker, TypeDetective,
     };
-    use codec::{Encode, Decode};
+    use codec::{Decode, Encode};
 
     struct GenericTypes;
     impl TypeDetective for GenericTypes {
@@ -570,9 +574,7 @@ mod tests {
     }
 
     #[test]
-    fn should_decode_vector() {
-
-    }
+    fn should_decode_vector() {}
 
     #[test]
     fn should_get_scale_length() {
