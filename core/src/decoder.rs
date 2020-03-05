@@ -147,7 +147,7 @@ where
         // tuple of argument name -> value
         let mut types: Vec<(String, SubstrateType)> = Vec::new();
         for arg in call_meta.arguments() {
-            println!("{:?}", arg);
+            dbg!("{:?}", arg);
             let val = self.decode_single(
                 None,
                 module.name(),
@@ -164,6 +164,7 @@ where
         // println!("Mod: {:#?}", module);
         // byte three will be the index of the function enum
 
+        // TODO
         // should have a list of 'guess type' where
         // types like <T::Lookup as StaticLookup>::Source
         // are 'guessed' to be `Address`
@@ -209,7 +210,7 @@ where
                         .get(module, v, spec, self.chain.as_str())
                         .ok_or(Error::DecodeFail)?
                         .as_type();
-                    println!("New Type: {:?}", new_type);
+                    dbg!("New Type: {:?}", new_type);
                     self.decode_single(
                         ty_names, module, spec, new_type, data, cursor, is_compact,
                     )?
@@ -276,14 +277,14 @@ where
             RustTypeMarker::Array { size, ty } => {
                 let mut decoded_arr = Vec::with_capacity(*size);
 
-                for mut i in *cursor..*cursor + *size {
+                for _ in 0..*size {
                     decoded_arr.push(self.decode_single(
                         ty_names.clone(),
                         module,
                         spec,
                         ty,
                         &data,
-                        &mut i,
+                        cursor,
                         is_compact,
                     )?)
                 }
@@ -291,16 +292,16 @@ where
                 SubstrateType::Composite(decoded_arr)
             }
             RustTypeMarker::Std(v) => match v {
-                // filler
                 CommonTypes::Vec(v) => {
                     let length = Self::scale_length(&data[*cursor..])?;
+                    *cursor += length.1;
                     // we can just decode this as an "array" now
                     self.decode_single(
                         ty_names,
                         module,
                         spec,
                         &RustTypeMarker::Array {
-                            size: length,
+                            size: length.0,
                             ty: v.clone(),
                         },
                         data,
@@ -329,20 +330,20 @@ where
                     match data[*cursor] {
                         // Ok
                         0x00 => {
-                            *cursor +=1;
+                            *cursor += 1;
                             let ty = self.decode_single(
-                                ty_names, module, spec, v, data, cursor, is_compact
+                                ty_names, module, spec, v, data, cursor, is_compact,
                             )?;
                             SubstrateType::Result(Box::new(Ok(ty)))
-                        },
+                        }
                         // Err
                         0x01 => {
-                            *cursor +=1;
+                            *cursor += 1;
                             let ty = self.decode_single(
-                                ty_names, module, spec, e, data, cursor, is_compact
+                                ty_names, module, spec, e, data, cursor, is_compact,
                             )?;
                             SubstrateType::Result(Box::new(Err(ty)))
-                        },
+                        }
                         _ => {
                             panic!("Cannot deduce correct Result<T> Enum Variant");
                         }
@@ -383,7 +384,7 @@ where
                     num.into()
                 } else {
                     let num: u32 = Decode::decode(&mut &data[*cursor..])?;
-                    *cursor += 5;
+                    *cursor += 4;
                     num
                 };
                 num.into()
@@ -395,7 +396,7 @@ where
                     num.into()
                 } else {
                     let num: u64 = Decode::decode(&mut &data[*cursor..])?;
-                    *cursor += 9;
+                    *cursor += 8;
                     num
                 };
                 num.into()
@@ -407,7 +408,7 @@ where
                     num.into()
                 } else {
                     let num: u128 = Decode::decode(&mut &data[*cursor..])?;
-                    *cursor += 17;
+                    *cursor += 16;
                     num
                 };
                 num.into()
@@ -445,7 +446,7 @@ where
                 } else {
                     Decode::decode(&mut &data[*cursor..])?
                 };
-                *cursor += 5;
+                *cursor += 4;
                 num.into()
             }
             RustTypeMarker::I64 => {
@@ -456,7 +457,7 @@ where
                 } else {
                     Decode::decode(&mut &data[*cursor..])?
                 };
-                *cursor += 9;
+                *cursor += 8;
                 num.into()
             }
             RustTypeMarker::I128 => {
@@ -465,7 +466,7 @@ where
                 } else {
                     Decode::decode(&mut &data[*cursor..])?
                 };
-                *cursor += 17;
+                *cursor += 16;
                 num.into()
             }
             RustTypeMarker::ISize => {
@@ -521,7 +522,7 @@ where
         ty: &str,
         data: &[u8],
         cursor: &mut usize,
-        is_compact: bool,
+        _is_compact: bool,
     ) -> Option<SubstrateType> {
         match ty {
             "H256" => {
@@ -541,17 +542,25 @@ where
     }
 
     /// internal api to get the number of items in a encoded series
-    fn scale_length(mut data: &[u8]) -> Result<usize, Error> {
+    /// returns a tuple of (number_of_items, length_of_prefix)
+    /// length of prefix is the length in bytes that the prefix took up
+    /// in the encoded data
+    fn scale_length(mut data: &[u8]) -> Result<(usize, usize), Error> {
         // alternative to `DecodeLength` trait, to avoid casting from a trait
-        usize::try_from(u32::from(Compact::<u32>::decode(&mut data)?))
-            .map_err(|_| "Failed convert decoded size into usize.".into())
+        let u32_length = u32::from(Compact::<u32>::decode(&mut data)?);
+        let length_of_prefix: usize = Compact::compact_len(&u32_length);
+        let usize_length = usize::try_from(u32_length)
+            .map_err(|_| Error::from("Failed convert decoded size into usize."))?;
+        Ok((usize_length, length_of_prefix))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{decoder::metadata::test_suite as meta_test_suite, test_suite, Decodable};
+    use crate::{
+        decoder::metadata::test_suite as meta_test_suite, test_suite, Decodable,
+    };
     use codec::Encode;
 
     struct GenericTypes;
@@ -615,17 +624,13 @@ mod tests {
     }
 
     #[test]
-    fn should_decode_vector() {}
-
-    #[test]
     fn should_get_scale_length() {
         let encoded = vec![32, 4].encode();
         for v in encoded.iter() {
             print!("{:08b} ", v);
         }
-        println!();
-        let len = Decoder::<GenericTypes>::scale_length(encoded.as_slice());
-        println!("{}", len.unwrap());
+        let len = Decoder::<GenericTypes>::scale_length(encoded.as_slice()).unwrap();
+        assert_eq!(len.0, 2);
     }
 
     #[test]
@@ -633,28 +638,35 @@ mod tests {
         let opt: Option<u32> = Some(0x1337);
         let val = opt.encode();
         let decoder = Decoder::new(GenericTypes, "kusama");
-        let res = decoder.decode_single(
-            None,
-            "system",
-            1031,
-            &RustTypeMarker::Std(CommonTypes::Option(Box::new(RustTypeMarker::U32))),
-            val.as_slice(),
-            &mut 0,
-            false,
-        ).unwrap();
-        assert_eq!(SubstrateType::Option(Box::new(Some(SubstrateType::U32(4919)))), res);
+        let res = decoder
+            .decode_single(
+                None,
+                "system",
+                1031,
+                &RustTypeMarker::Std(CommonTypes::Option(Box::new(RustTypeMarker::U32))),
+                val.as_slice(),
+                &mut 0,
+                false,
+            )
+            .unwrap();
+        assert_eq!(
+            SubstrateType::Option(Box::new(Some(SubstrateType::U32(4919)))),
+            res
+        );
 
         let opt: Option<u32> = None;
         let val = opt.encode();
-        let res = decoder.decode_single(
-            None, //dummy data
-            "system", // dummy data
-            1031, // dummy data
-            &RustTypeMarker::Std(CommonTypes::Option(Box::new(RustTypeMarker::U32))),
-            val.as_slice(),
-            &mut 0,
-            false,
-        ).unwrap();
+        let res = decoder
+            .decode_single(
+                None,     //dummy data
+                "system", // dummy data
+                1031,     // dummy data
+                &RustTypeMarker::Std(CommonTypes::Option(Box::new(RustTypeMarker::U32))),
+                val.as_slice(),
+                &mut 0,
+                false,
+            )
+            .unwrap();
         assert_eq!(SubstrateType::Option(Box::new(None)), res);
     }
 
@@ -663,30 +675,128 @@ mod tests {
         let res: Result<u32, u32> = Ok(0x1337);
         let val = res.encode();
         let decoder = Decoder::new(GenericTypes, "kusama");
-        let res = decoder.decode_single(
-            None,
-            "system",
-            1031,
-            &RustTypeMarker::Std(CommonTypes::Result(Box::new(RustTypeMarker::U32), Box::new(RustTypeMarker::U32))),
-            val.as_slice(),
-            &mut 0,
-            false,
-        ).unwrap();
-        assert_eq!(SubstrateType::Result(Box::new(Ok(SubstrateType::U32(4919)))), res);
-
+        let res = decoder
+            .decode_single(
+                None,
+                "system",
+                1031,
+                &RustTypeMarker::Std(CommonTypes::Result(
+                    Box::new(RustTypeMarker::U32),
+                    Box::new(RustTypeMarker::U32),
+                )),
+                val.as_slice(),
+                &mut 0,
+                false,
+            )
+            .unwrap();
+        assert_eq!(
+            SubstrateType::Result(Box::new(Ok(SubstrateType::U32(4919)))),
+            res
+        );
 
         let res: Result<u32, u32> = Err(0x1337);
         let val = res.encode();
         let decoder = Decoder::new(GenericTypes, "kusama");
-        let res = decoder.decode_single(
-            None,
-            "system",
-            1031,
-            &RustTypeMarker::Std(CommonTypes::Result(Box::new(RustTypeMarker::U32), Box::new(RustTypeMarker::U32))),
-            val.as_slice(),
-            &mut 0,
-            false,
-        ).unwrap();
-        assert_eq!(SubstrateType::Result(Box::new(Err(SubstrateType::U32(4919)))), res);
+        let res = decoder
+            .decode_single(
+                None,
+                "system",
+                1031,
+                &RustTypeMarker::Std(CommonTypes::Result(
+                    Box::new(RustTypeMarker::U32),
+                    Box::new(RustTypeMarker::U32),
+                )),
+                val.as_slice(),
+                &mut 0,
+                false,
+            )
+            .unwrap();
+        assert_eq!(
+            SubstrateType::Result(Box::new(Err(SubstrateType::U32(4919)))),
+            res
+        );
+    }
+
+    #[test]
+    fn should_decode_vector() {
+        let vec: Vec<u32> = vec![12, 32, 0x1337, 62];
+        let val = vec.encode();
+        let decoder = Decoder::new(GenericTypes, "kusama");
+        let res = decoder
+            .decode_single(
+                None,
+                "system",
+                1031,
+                &RustTypeMarker::Std(CommonTypes::Vec(Box::new(RustTypeMarker::U32))),
+                val.as_slice(),
+                &mut 0,
+                false,
+            )
+            .unwrap();
+
+        assert_eq!(
+            SubstrateType::Composite(vec![
+                SubstrateType::U32(12),
+                SubstrateType::U32(32),
+                SubstrateType::U32(4919),
+                SubstrateType::U32(62)
+            ]),
+            res
+        );
+
+        let vec: Vec<u128> = vec![12, 32, 0x1337, 62];
+        let val = vec.encode();
+        let decoder = Decoder::new(GenericTypes, "kusama");
+        let res = decoder
+            .decode_single(
+                None,
+                "system",
+                1031,
+                &RustTypeMarker::Std(CommonTypes::Vec(Box::new(RustTypeMarker::U128))),
+                val.as_slice(),
+                &mut 0,
+                false,
+            )
+            .unwrap();
+
+        assert_eq!(
+            SubstrateType::Composite(vec![
+                SubstrateType::U128(12),
+                SubstrateType::U128(32),
+                SubstrateType::U128(4919),
+                SubstrateType::U128(62)
+            ]),
+            res
+        );
+    }
+
+    #[test]
+    fn should_decode_array() {
+        let arr: [u32; 4] = [12, 32, 0x1337, 62];
+        let val = arr.encode();
+        let decoder = Decoder::new(GenericTypes, "kusama");
+        let res = decoder
+            .decode_single(
+                None,
+                "system",
+                1031,
+                &RustTypeMarker::Array {
+                    size: 4,
+                    ty: Box::new(RustTypeMarker::U32),
+                },
+                val.as_slice(),
+                &mut 0,
+                false,
+            )
+            .unwrap();
+        assert_eq!(
+            SubstrateType::Composite(vec![
+                SubstrateType::U32(12),
+                SubstrateType::U32(32),
+                SubstrateType::U32(4919),
+                SubstrateType::U32(62)
+            ]),
+            res
+        );
     }
 }
