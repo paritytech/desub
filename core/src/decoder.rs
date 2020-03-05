@@ -321,13 +321,32 @@ where
                             SubstrateType::Option(Box::new(Some(ty)))
                         }
                         _ => {
-                            panic!("Incorrect Option Encoding");
+                            panic!("Cannot deduce correct Option<T> enum variant");
                         }
                     }
                 }
                 CommonTypes::Result(v, e) => {
-                    dbg!("{:?}, {:?}", v, e);
-                    SubstrateType::Null
+                    match data[*cursor] {
+                        // Ok
+                        0x00 => {
+                            *cursor +=1;
+                            let ty = self.decode_single(
+                                ty_names, module, spec, v, data, cursor, is_compact
+                            )?;
+                            SubstrateType::Result(Box::new(Ok(ty)))
+                        },
+                        // Err
+                        0x01 => {
+                            *cursor +=1;
+                            let ty = self.decode_single(
+                                ty_names, module, spec, e, data, cursor, is_compact
+                            )?;
+                            SubstrateType::Result(Box::new(Err(ty)))
+                        },
+                        _ => {
+                            panic!("Cannot deduce correct Result<T> Enum Variant");
+                        }
+                    }
                 }
                 CommonTypes::Compact(v) => {
                     self.decode_single(ty_names, module, spec, v, data, cursor, true)?
@@ -627,7 +646,6 @@ mod tests {
 
         let opt: Option<u32> = None;
         let val = opt.encode();
-
         let res = decoder.decode_single(
             None, //dummy data
             "system", // dummy data
@@ -638,5 +656,37 @@ mod tests {
             false,
         ).unwrap();
         assert_eq!(SubstrateType::Option(Box::new(None)), res);
+    }
+
+    #[test]
+    fn should_decode_result() {
+        let res: Result<u32, u32> = Ok(0x1337);
+        let val = res.encode();
+        let decoder = Decoder::new(GenericTypes, "kusama");
+        let res = decoder.decode_single(
+            None,
+            "system",
+            1031,
+            &RustTypeMarker::Std(CommonTypes::Result(Box::new(RustTypeMarker::U32), Box::new(RustTypeMarker::U32))),
+            val.as_slice(),
+            &mut 0,
+            false,
+        ).unwrap();
+        assert_eq!(SubstrateType::Result(Box::new(Ok(SubstrateType::U32(4919)))), res);
+
+
+        let res: Result<u32, u32> = Err(0x1337);
+        let val = res.encode();
+        let decoder = Decoder::new(GenericTypes, "kusama");
+        let res = decoder.decode_single(
+            None,
+            "system",
+            1031,
+            &RustTypeMarker::Std(CommonTypes::Result(Box::new(RustTypeMarker::U32), Box::new(RustTypeMarker::U32))),
+            val.as_slice(),
+            &mut 0,
+            false,
+        ).unwrap();
+        assert_eq!(SubstrateType::Result(Box::new(Err(SubstrateType::U32(4919)))), res);
     }
 }

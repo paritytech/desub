@@ -17,7 +17,6 @@
 //! Stucture for registering substrate types
 
 use crate::SetField;
-use std::marker::PhantomData;
 
 #[derive(Debug, Clone, PartialEq)]
 // a 'stateful' Rust Type marker?
@@ -31,6 +30,8 @@ pub enum SubstrateType {
     UnitEnum(String),
     Array(Vec<SubstrateType>),
     Option(Box<Option<SubstrateType>>),
+    Result(Box<Result<SubstrateType, SubstrateType>>),
+
     // Std
     U8(u8),
     U16(u16),
