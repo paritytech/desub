@@ -293,8 +293,8 @@ where
             RustTypeMarker::Std(v) => match v {
                 // filler
                 CommonTypes::Vec(v) => {
-                    // let length: Compact<_> = Decode::decode(&mut &data[*cursor]).unwrap();
-                                        dbg!("{:?}", v);
+                    let length = Self::scale_length(&data[*cursor..]);
+                    dbg!("{:?}", v);
                     SubstrateType::Null
                 },
                 CommonTypes::Option(v) => {
