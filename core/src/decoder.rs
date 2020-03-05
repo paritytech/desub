@@ -293,13 +293,37 @@ where
             RustTypeMarker::Std(v) => match v {
                 // filler
                 CommonTypes::Vec(v) => {
-                    let length = Self::scale_length(&data[*cursor..]);
-                    dbg!("{:?}", v);
-                    SubstrateType::Null
+                    let length = Self::scale_length(&data[*cursor..])?;
+                    // we can just decode this as an "array" now
+                    self.decode_single(
+                        ty_names,
+                        module,
+                        spec,
+                        &RustTypeMarker::Array {
+                            size: length,
+                            ty: v.clone(),
+                        },
+                        data,
+                        cursor,
+                        is_compact,
+                    )?
                 }
                 CommonTypes::Option(v) => {
-                    dbg!("{:?}", v);
-                    SubstrateType::Null
+                    match data[*cursor] {
+                        // None
+                        0x00 => SubstrateType::Option(Box::new(None)),
+                        // Some
+                        0x01 => {
+                            *cursor += 1;
+                            let ty = self.decode_single(
+                                ty_names, module, spec, v, data, cursor, is_compact,
+                            )?;
+                            SubstrateType::Option(Box::new(Some(ty)))
+                        }
+                        _ => {
+                            panic!("Incorrect Option Encoding");
+                        }
+                    }
                 }
                 CommonTypes::Result(v, e) => {
                     dbg!("{:?}, {:?}", v, e);
@@ -315,7 +339,7 @@ where
                     *cursor += Compact::compact_len(&u8::from(num));
                     num.into()
                 } else {
-                    let num = Decode::decode(&mut &data[*cursor..])?;
+                    let num: u8 = Decode::decode(&mut &data[*cursor..])?;
                     *cursor += 1;
                     num
                 };
@@ -327,7 +351,7 @@ where
                     *cursor += Compact::compact_len(&u16::from(num));
                     num.into()
                 } else {
-                    let num = Decode::decode(&mut &data[*cursor..])?;
+                    let num: u16 = Decode::decode(&mut &data[*cursor..])?;
                     *cursor += 2;
                     num
                 };
@@ -339,7 +363,7 @@ where
                     *cursor += Compact::compact_len(&u32::from(num));
                     num.into()
                 } else {
-                    let num = Decode::decode(&mut &data[*cursor..])?;
+                    let num: u32 = Decode::decode(&mut &data[*cursor..])?;
                     *cursor += 5;
                     num
                 };
@@ -351,7 +375,7 @@ where
                     *cursor += Compact::compact_len(&u64::from(num));
                     num.into()
                 } else {
-                    let num = Decode::decode(&mut &data[*cursor..])?;
+                    let num: u64 = Decode::decode(&mut &data[*cursor..])?;
                     *cursor += 9;
                     num
                 };
@@ -363,7 +387,7 @@ where
                     *cursor += Compact::compact_len(&u128::from(num));
                     num.into()
                 } else {
-                    let num = Decode::decode(&mut &data[*cursor..])?;
+                    let num: u128 = Decode::decode(&mut &data[*cursor..])?;
                     *cursor += 17;
                     num
                 };
@@ -382,7 +406,7 @@ where
                 let num: i8 = if is_compact {
                     unimplemented!()
                 } else {
-                    Decode::decode(&mut &data[*cursor..=*cursor])?
+                    Decode::decode(&mut &data[*cursor..])?
                 };
                 *cursor += 1;
                 num.into()
@@ -391,7 +415,7 @@ where
                 let num: i16 = if is_compact {
                     unimplemented!()
                 } else {
-                    Decode::decode(&mut &data[*cursor..=*cursor + 1])?
+                    Decode::decode(&mut &data[*cursor..])?
                 };
                 *cursor += 2;
                 num.into()
@@ -400,7 +424,7 @@ where
                 let num: i32 = if is_compact {
                     unimplemented!()
                 } else {
-                    Decode::decode(&mut &data[*cursor..=*cursor + 4])?
+                    Decode::decode(&mut &data[*cursor..])?
                 };
                 *cursor += 5;
                 num.into()
@@ -411,7 +435,7 @@ where
                     // num.into()
                     unimplemented!()
                 } else {
-                    Decode::decode(&mut &data[*cursor..=*cursor + 8])?
+                    Decode::decode(&mut &data[*cursor..])?
                 };
                 *cursor += 9;
                 num.into()
@@ -420,7 +444,7 @@ where
                 let num: i128 = if is_compact {
                     unimplemented!()
                 } else {
-                    Decode::decode(&mut &data[*cursor..=*cursor + 16])?
+                    Decode::decode(&mut &data[*cursor..])?
                 };
                 *cursor += 17;
                 num.into()
@@ -507,11 +531,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        decoder::{metadata::test_suite as meta_test_suite, Decoder},
-        test_suite, Decodable, RustTypeMarker, TypeDetective,
-    };
-    use codec::{Decode, Encode};
+    use super::*;
+    use crate::{decoder::metadata::test_suite as meta_test_suite, test_suite, Decodable};
+    use codec::Encode;
 
     struct GenericTypes;
     impl TypeDetective for GenericTypes {
@@ -585,5 +607,36 @@ mod tests {
         println!();
         let len = Decoder::<GenericTypes>::scale_length(encoded.as_slice());
         println!("{}", len.unwrap());
+    }
+
+    #[test]
+    fn should_decode_option() {
+        let opt: Option<u32> = Some(0x1337);
+        let val = opt.encode();
+        let decoder = Decoder::new(GenericTypes, "kusama");
+        let res = decoder.decode_single(
+            None,
+            "system",
+            1031,
+            &RustTypeMarker::Std(CommonTypes::Option(Box::new(RustTypeMarker::U32))),
+            val.as_slice(),
+            &mut 0,
+            false,
+        ).unwrap();
+        assert_eq!(SubstrateType::Option(Box::new(Some(SubstrateType::U32(4919)))), res);
+
+        let opt: Option<u32> = None;
+        let val = opt.encode();
+
+        let res = decoder.decode_single(
+            None, //dummy data
+            "system", // dummy data
+            1031, // dummy data
+            &RustTypeMarker::Std(CommonTypes::Option(Box::new(RustTypeMarker::U32))),
+            val.as_slice(),
+            &mut 0,
+            false,
+        ).unwrap();
+        assert_eq!(SubstrateType::Option(Box::new(None)), res);
     }
 }

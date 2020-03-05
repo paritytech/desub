@@ -30,6 +30,7 @@ pub enum SubstrateType {
     Set(SetField),
     UnitEnum(String),
     Array(Vec<SubstrateType>),
+    Option(Box<Option<SubstrateType>>),
     // Std
     U8(u8),
     U16(u16),
