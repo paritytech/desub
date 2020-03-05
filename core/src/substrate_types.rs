@@ -18,19 +18,23 @@
 
 use crate::SetField;
 
-#[derive(Debug, Clone, PartialEq)]
-// a 'stateful' Rust Type marker?
+#[derive(Debug, PartialEq, Clone)]
+// a 'stateful' Rust Type marker
 pub enum SubstrateType {
     H512(primitives::H512),
     H256(primitives::H256),
+    /// Either a vector or an array
     Composite(Vec<SubstrateType>),
 
     // Rust Data Primitive Types
     Set(SetField),
     UnitEnum(String),
+    StructEnum(Vec<StructField>),
+    Struct(Vec<StructField>),
     Array(Vec<SubstrateType>),
     Option(Box<Option<SubstrateType>>),
     Result(Box<Result<SubstrateType, SubstrateType>>),
+    // need to create a 'Struct' Variant for Struct Enum and Struct Type
 
     // Std
     U8(u8),
@@ -51,6 +55,13 @@ pub enum SubstrateType {
     // not sure what to do with this yet
     // may get rid of it
     Null,
+}
+
+/// Type with an associated name
+#[derive(Debug, PartialEq, Clone)]
+pub struct StructField {
+    pub name: String,
+    pub ty: SubstrateType,
 }
 
 // ============================================
