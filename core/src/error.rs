@@ -11,7 +11,7 @@ pub enum Error {
     #[fail(display = "decoding failed")]
     DecodeFail,
     #[fail(display = "error: {}", _0)]
-    Fail(String)
+    Fail(String),
 }
 impl From<String> for Error {
     fn from(err: String) -> Error {

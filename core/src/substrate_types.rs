@@ -23,7 +23,7 @@ use crate::SetField;
 pub enum SubstrateType {
     H512(primitives::H512),
     H256(primitives::H256),
-    /// Either a vector or an array
+    /// vectors, arrays, and tuples
     Composite(Vec<SubstrateType>),
 
     // Rust Data Primitive Types
