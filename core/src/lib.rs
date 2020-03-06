@@ -49,7 +49,7 @@ pub trait Decodable {
     /// Cast type to a struct
     fn as_struct(&self) -> Option<&GenericStruct>;
     /// Cast type to an enum
-    fn as_enum(&self) -> Option<&RustEnum>;
+    fn as_enum(&self) -> Option<&[EnumField]>;
     /// Cast type to a set
     fn as_set(&self) -> Option<&Vec<SetField>>;
     /// Return type as reference
@@ -62,6 +62,7 @@ pub trait Decodable {
     fn is_enum(&self) -> bool;
     fn is_set(&self) -> bool;
     fn is_primitive(&self) -> bool;
+    fn is_type_pointer(&self) -> bool;
 }
 
 /// A field with an associated name
@@ -105,30 +106,60 @@ impl SetField {
 
 type GenericStruct = Vec<StructField>;
 
+/// TODO: Allow mixed struct-unit types
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-pub enum RustEnum {
-    Unit(Vec<String>),
-    Struct(Vec<StructField>),
+pub struct EnumField {
+    /// name of the Variant
+    /// if the variant is a Unit enum, it will not have a name
+    pub variant_name: Option<String>,
+    pub ty: StructUnitOrTuple,
 }
 
-impl Display for RustEnum {
+impl EnumField {
+    pub fn new(variant_name: Option<String>, ty: StructUnitOrTuple) -> Self {
+        EnumField {
+            variant_name,
+            ty
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub enum StructUnitOrTuple {
+    Struct(Vec<StructField>),
+    Unit(String),
+    Tuple(RustTypeMarker)
+}
+
+impl From<String> for EnumField {
+    fn from(s: String) -> EnumField {
+        EnumField {
+            variant_name: None,
+            ty: StructUnitOrTuple::Unit(s)
+        }
+    }
+}
+
+impl Display for EnumField {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut _enum = String::from("enum");
-        match self {
-            RustEnum::Unit(u) => {
-                for s in u.iter() {
-                    _enum.push_str(&format!("{}, ", s));
-                }
-            }
-            RustEnum::Struct(s) => {
+        match &self.ty {
+            StructUnitOrTuple::Struct(s) => {
                 for s in s.iter() {
                     _enum.push_str(&format!("{}, ", s));
                 }
+            },
+            StructUnitOrTuple::Unit(u) => {
+                _enum.push_str(&format!("{}, ", u));
+            },
+            StructUnitOrTuple::Tuple(v) => {
+                _enum.push_str(&format!("{} ", v))
             }
         };
         write!(f, "{}", _enum)
     }
 }
+
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 /// Definitions for common patterns seen in Substrate/Polkadot
@@ -200,7 +231,7 @@ pub enum RustTypeMarker {
     /// Some Enum
     /// A Rust Enum that contains mixed "Struct" and Unit fields
     /// will have unit fields as struct but with the type as "Null"
-    Enum(RustEnum),
+    Enum(Vec<EnumField>),
 
     /// A sized array
     Array {
@@ -256,6 +287,17 @@ pub enum RustTypeMarker {
     Null,
 }
 
+fn display_types(fields: &Vec<RustTypeMarker>) -> String {
+    let mut s = String::new();
+
+    s.push_str("(");
+    for substring in fields.iter() {
+        s.push_str(&format!("{}, ", substring))
+    }
+    s.push_str(")");
+    s
+}
+
 impl Display for RustTypeMarker {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut type_marker = String::from("");
@@ -272,14 +314,14 @@ impl Display for RustTypeMarker {
                 }
             }
             RustTypeMarker::Tuple(t) => {
-                type_marker.push_str("(");
-                for substring in t.iter() {
-                    type_marker.push_str(&format!("{}, ", substring))
-                }
-                type_marker.push_str(")");
+                type_marker.push_str(&display_types(&t))
             }
             RustTypeMarker::Enum(t) => {
-                type_marker.push_str(&t.to_string());
+                type_marker.push_str("{ ");
+                for field in t.iter() {
+                    type_marker.push_str(&format!("{} ,", &field.to_string()));
+                }
+                type_marker.push_str(" }")
             }
             RustTypeMarker::Array { size, ty } => {
                 type_marker.push_str(&format!("[{};{}], ", ty, size))
@@ -334,9 +376,9 @@ impl Decodable for RustTypeMarker {
         }
     }
 
-    fn as_enum(&self) -> Option<&RustEnum> {
+    fn as_enum(&self) -> Option<&[EnumField]> {
         match self {
-            RustTypeMarker::Enum(ref e) => Some(e),
+            RustTypeMarker::Enum(ref e) => Some(e.as_slice()),
             _ => None,
         }
     }
@@ -405,6 +447,13 @@ impl Decodable for RustTypeMarker {
 
             RustTypeMarker::Bool => true,
             _ => false,
+        }
+    }
+
+    fn is_type_pointer(&self) -> bool {
+        match self {
+            RustTypeMarker::TypePointer(_) => true,
+            _ => false
         }
     }
 }

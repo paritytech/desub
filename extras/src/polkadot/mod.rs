@@ -154,7 +154,6 @@ impl TypeDetective for PolkadotTypes {
             }
             v => v.clone(),
         };
-        println!("{:?}", ty);
         self.resolve_helper(module, &ty)
     }
 }
@@ -162,28 +161,16 @@ impl TypeDetective for PolkadotTypes {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core::{RustEnum, StructField};
+    use core::{StructField, EnumField, StructUnitOrTuple};
 
     #[test]
     fn should_get_type_from_module() -> Result<(), Error> {
-        let post_1031_dispatch_error = RustTypeMarker::Enum(RustEnum::Struct(vec![
-            StructField {
-                name: "Other".to_string(),
-                ty: RustTypeMarker::Null,
-            },
-            StructField {
-                name: "CannotLookup".to_string(),
-                ty: RustTypeMarker::Null,
-            },
-            StructField {
-                name: "BadOrigin".to_string(),
-                ty: RustTypeMarker::Null,
-            },
-            StructField {
-                name: "Module".to_string(),
-                ty: RustTypeMarker::TypePointer("DispatchErrorModule".to_string()),
-            },
-        ]));
+        let post_1031_dispatch_error = RustTypeMarker::Enum(vec![
+                EnumField::new(Some("Other".into()), StructUnitOrTuple::Tuple(RustTypeMarker::Null)),
+                EnumField::new(Some("CannotLookup".into()), StructUnitOrTuple::Tuple(RustTypeMarker::Null)),
+                EnumField::new(Some("BadOrigin".into()), StructUnitOrTuple::Tuple(RustTypeMarker::Null)),
+                EnumField::new(Some("Module".into()), StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer("DispatchErrorModule".to_string())))
+            ]);
         let types = PolkadotTypes::new()?;
         let t = types
             .get("system", "DispatchError", 1040, "kusama")
