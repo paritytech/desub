@@ -35,7 +35,7 @@ pub enum SubstrateType {
     /// C-Like Enum Type
     Set(SetField),
     /// Enum
-    Enum(StructOrUnit),
+    Enum(StructUnitOrTuple),
     /// Struct Type
     Struct(Vec<StructField>),
     /// Option Type
@@ -81,9 +81,11 @@ pub enum SubstrateType {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum StructOrUnit {
+pub enum StructUnitOrTuple {
     Struct(Vec<StructField>),
-    Unit(String)
+    Unit(String),
+    /// vector of variant name -> type
+    Tuple(String, Box<SubstrateType>)
 }
 
 /// Type with an associated name
