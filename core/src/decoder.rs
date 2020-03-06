@@ -30,8 +30,8 @@ pub use self::metadata::test_suite;
 pub use self::metadata::{Metadata, MetadataError, ModuleIndex};
 use crate::{
     error::Error,
-    substrate_types::{StructField, SubstrateType},
-    CommonTypes, RustEnum, RustTypeMarker, TypeDetective,
+    substrate_types::{StructField, StructUnitOrTuple, SubstrateType},
+    CommonTypes, RustTypeMarker, TypeDetective,
 };
 use codec::{Compact, CompactLen, Decode};
 // use serde::Serialize;
@@ -148,7 +148,6 @@ where
         // tuple of argument name -> value
         let mut types: Vec<(String, SubstrateType)> = Vec::new();
         for arg in call_meta.arguments() {
-            dbg!("{:?}", arg);
             let val = self.decode_single(
                 module.name(),
                 spec,
@@ -197,30 +196,20 @@ where
                         .get(module, v, spec, self.chain.as_str())
                         .ok_or(Error::DecodeFail)?
                         .as_type();
-                    dbg!("New Type: {:?}", new_type);
                     self.decode_single(module, spec, new_type, data, cursor, is_compact)?
                 }
             }
             RustTypeMarker::Struct(v) => {
-                let ty = v
-                    .iter()
-                    .map(|field| {
-                        let ty = self.decode_single(
-                            module, spec, &field.ty, data, cursor, is_compact,
-                        )?;
-                        Ok(StructField {
-                            name: field.name.clone(),
-                            ty,
-                        })
-                    })
-                    .collect::<Result<Vec<StructField>, Error>>();
-                SubstrateType::Struct(ty?)
+                let ty =
+                    self.decode_structlike(v, module, spec, data, cursor, is_compact)?;
+                SubstrateType::Struct(ty)
             }
+            // TODO: test
             RustTypeMarker::Set(v) => {
                 // a set item must be an u8
                 // can decode this right away
                 let index = data[*cursor];
-                *cursor += 2;
+                *cursor += 1;
                 SubstrateType::Set(v[index as usize].clone())
             }
             RustTypeMarker::Tuple(v) => {
@@ -232,25 +221,32 @@ where
                     .collect::<Result<Vec<SubstrateType>, Error>>();
                 SubstrateType::Composite(ty?)
             }
-            RustTypeMarker::Enum(v) => match v {
-                RustEnum::Unit(v) => {
-                    let index = data[*cursor];
-                    *cursor += 1;
-                    SubstrateType::UnitEnum(v[index as usize].clone())
+            RustTypeMarker::Enum(v) => {
+                let index = data[*cursor];
+                *cursor += 1;
+                let variant = &v[index as usize];
+                match &variant.ty {
+                    crate::StructUnitOrTuple::Struct(ref v) => {
+                        let ty = self.decode_structlike(
+                            v, module, spec, data, cursor, is_compact,
+                        )?;
+                        SubstrateType::Enum(StructUnitOrTuple::Struct(ty))
+                    }
+                    crate::StructUnitOrTuple::Unit(v) => {
+                        SubstrateType::Enum(StructUnitOrTuple::Unit(v.clone()))
+                    }
+                    crate::StructUnitOrTuple::Tuple(ref v) => {
+                        let ty = self
+                            .decode_single(module, spec, v, data, cursor, is_compact)?;
+                        let name = variant
+                            .variant_name
+                            .as_ref()
+                            .expect("Tuple Variant must have a name")
+                            .clone();
+                        SubstrateType::Enum(StructUnitOrTuple::Tuple(name, Box::new(ty)))
+                    }
                 }
-                // TODO: Test
-                RustEnum::Struct(v) => {
-                    let index = data[*cursor] as usize;
-                    *cursor += 1;
-                    let variant = &v[index];
-                    // let ty_names = push_to_names(ty_names, variant.name.clone());
-                    let new_type = self
-                        .types
-                        .resolve(module, &variant.ty)
-                        .ok_or(Error::DecodeFail)?;
-                    self.decode_single(module, spec, new_type, data, cursor, is_compact)?
-                }
-            },
+            }
             RustTypeMarker::Array { size, ty } => {
                 let mut decoded_arr = Vec::with_capacity(*size);
 
@@ -259,7 +255,7 @@ where
                         self.decode_single(module, spec, ty, &data, cursor, is_compact)?,
                     )
                 }
-                *cursor = *cursor + *size;
+                // rely on cursor increments in sub-types (U32/substrate specific types)
                 SubstrateType::Composite(decoded_arr)
             }
             RustTypeMarker::Std(v) => match v {
@@ -525,6 +521,30 @@ where
             .map_err(|_| Error::from("Failed convert decoded size into usize."))?;
         Ok((usize_length, length_of_prefix))
     }
+
+    /// internal api to decode a vector of struct IdentityFields
+    /// avoids code duplications when dealing with structfields in structs/enums
+    fn decode_structlike(
+        &self,
+        fields: &Vec<crate::StructField>,
+        module: &str,
+        spec: SpecVersion,
+        data: &[u8],
+        cursor: &mut usize,
+        is_compact: bool,
+    ) -> Result<Vec<StructField>, Error> {
+        fields
+            .iter()
+            .map(|field| {
+                let ty = self
+                    .decode_single(module, spec, &field.ty, data, cursor, is_compact)?;
+                Ok(StructField {
+                    name: Some(field.name.clone()),
+                    ty,
+                })
+            })
+            .collect::<Result<Vec<StructField>, Error>>()
+    }
 }
 
 #[cfg(test)]
@@ -532,8 +552,7 @@ mod tests {
     use super::*;
     use crate::{
         decoder::metadata::test_suite as meta_test_suite,
-        substrate_types::StructField as SubStructField, test_suite, Decodable,
-        StructField,
+        substrate_types::StructField, test_suite, Decodable, EnumField,
     };
     use codec::Encode;
 
@@ -546,14 +565,14 @@ mod tests {
             _spec: u32,
             _chain: &str,
         ) -> Option<&dyn Decodable> {
-            None
+            Some(&RustTypeMarker::I128)
         }
         fn resolve(
             &self,
             _module: &str,
             _ty: &RustTypeMarker,
         ) -> Option<&RustTypeMarker> {
-            None
+            Some(&RustTypeMarker::I128)
         }
     }
 
@@ -785,11 +804,11 @@ mod tests {
                 "system",
                 1031,
                 &RustTypeMarker::Struct(vec![
-                    StructField {
+                    crate::StructField {
                         name: "foo".to_string(),
                         ty: RustTypeMarker::U32,
                     },
-                    StructField {
+                    crate::StructField {
                         name: "name".to_string(),
                         ty: RustTypeMarker::Std(CommonTypes::Vec(Box::new(
                             RustTypeMarker::U8,
@@ -803,12 +822,12 @@ mod tests {
             .unwrap();
         assert_eq!(
             SubstrateType::Struct(vec![
-                SubStructField {
-                    name: "foo".to_string(),
+                StructField {
+                    name: Some("foo".to_string()),
                     ty: SubstrateType::U32(0x1337)
                 },
-                SubStructField {
-                    name: "name".to_string(),
+                StructField {
+                    name: Some("name".to_string()),
                     ty: SubstrateType::Composite(vec![
                         SubstrateType::U8(8),
                         SubstrateType::U8(16),
@@ -849,6 +868,147 @@ mod tests {
                 SubstrateType::U32(42),
                 SubstrateType::U32(0x1337)
             ]),
+            res
+        );
+    }
+
+    #[test]
+    fn should_decode_unit_enum() {
+        #[derive(Encode, Decode)]
+        enum Foo {
+            Zoo,
+            Wraith,
+            Spree,
+        }
+        let val = Foo::Wraith.encode();
+        let decoder = Decoder::new(GenericTypes, "kusama");
+        let res = decoder
+            .decode_single(
+                "system",
+                1031,
+                &RustTypeMarker::Enum(vec![
+                    EnumField::new(None, crate::StructUnitOrTuple::Unit("Zoo".into())),
+                    EnumField::new(None, crate::StructUnitOrTuple::Unit("Wraith".into())),
+                    EnumField::new(None, crate::StructUnitOrTuple::Unit("Spree".into())),
+                ]),
+                val.as_slice(),
+                &mut 0,
+                false,
+            )
+            .unwrap();
+        assert_eq!(
+            SubstrateType::Enum(StructUnitOrTuple::Unit("Wraith".into())),
+            res
+        )
+    }
+
+    #[test]
+    fn should_decode_tuple_enum() {
+        #[derive(Encode, Decode)]
+        struct TestStruct(i128);
+
+        #[derive(Encode, Decode)]
+        enum Foo {
+            Zoo(TestStruct),
+            Wraith(TestStruct),
+        }
+        let t_enum = Foo::Wraith(TestStruct(0x1337));
+        let val = t_enum.encode();
+        let decoder = Decoder::new(GenericTypes, "kusama");
+        let res = decoder
+            .decode_single(
+                "system",
+                1031,
+                &RustTypeMarker::Enum(vec![
+                    EnumField::new(
+                        Some("Zoo".into()),
+                        crate::StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer(
+                            "TestStruct".into(),
+                        )),
+                    ),
+                    EnumField::new(
+                        Some("Wraith".into()),
+                        crate::StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer(
+                            "TestStruct".into(),
+                        )),
+                    ),
+                ]),
+                val.as_slice(),
+                &mut 0,
+                false,
+            )
+            .unwrap();
+        assert_eq!(
+            SubstrateType::Enum(StructUnitOrTuple::Tuple(
+                "Wraith".into(),
+                Box::new(SubstrateType::I128(0x1337))
+            )),
+            res
+        );
+    }
+
+    #[test]
+    fn should_decode_structlike_enum() {
+        #[derive(Encode, Decode)]
+        enum Foo {
+            Zoo { name: Vec<u8>, id: u32 },
+            Wraith { name: Vec<u16>, id: u64 },
+        }
+        let val = Foo::Wraith {
+            name: vec![0x13, 0x37],
+            id: 15,
+        }
+        .encode();
+        let decoder = Decoder::new(GenericTypes, "kusama");
+        let res = decoder
+            .decode_single(
+                "system",
+                1031,
+                &RustTypeMarker::Enum(vec![
+                    EnumField::new(
+                        Some("Zoo".into()),
+                        crate::StructUnitOrTuple::Struct(vec![
+                            crate::StructField::new(
+                                "name",
+                                RustTypeMarker::Std(CommonTypes::Vec(Box::new(
+                                    RustTypeMarker::U8,
+                                ))),
+                            ),
+                            crate::StructField::new("id", RustTypeMarker::U32),
+                        ]),
+                    ),
+                    EnumField::new(
+                        Some("Wraith".into()),
+                        crate::StructUnitOrTuple::Struct(vec![
+                            crate::StructField::new(
+                                "name",
+                                RustTypeMarker::Std(CommonTypes::Vec(Box::new(
+                                    RustTypeMarker::U16,
+                                ))),
+                            ),
+                            crate::StructField::new("id", RustTypeMarker::U64),
+                        ]),
+                    ),
+                ]),
+                val.as_slice(),
+                &mut 0,
+                false,
+            )
+            .unwrap();
+        assert_eq!(
+            SubstrateType::Enum(StructUnitOrTuple::Struct(vec![
+                StructField {
+                    name: Some("name".into()),
+                    ty: SubstrateType::Composite(vec![
+                        SubstrateType::U16(0x13),
+                        SubstrateType::U16(0x37)
+                    ])
+                },
+                StructField {
+                    name: Some("id".into()),
+                    ty: SubstrateType::U64(15)
+                }
+            ])),
             res
         );
     }

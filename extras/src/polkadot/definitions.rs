@@ -14,13 +14,14 @@
 
 use super::{ModuleTypes, Modules};
 use crate::error::Error;
-use core::{regex, RustEnum, RustTypeMarker, SetField, StructField};
+use core::{regex, EnumField, RustTypeMarker, SetField, StructField, StructUnitOrTuple};
 use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
 use std::{collections::HashMap, fmt};
 
 // TODO: open this file or pass it via CLI to reduce binary size
 pub const DEFS: &str = include_str!("./dot_definitions/definitions.json");
 
+/// deserializes raw json definitions into modules
 pub fn definitions(raw_json: &str) -> Result<Modules, Error> {
     let types: Modules = serde_json::from_str(raw_json)?;
     Ok(types)
@@ -174,7 +175,12 @@ fn parse_enum(obj: &serde_json::Value) -> RustTypeMarker {
                     .to_string(),
             )
         }
-        RustTypeMarker::Enum(RustEnum::Unit(rust_enum))
+        let rust_enum = rust_enum
+            .into_iter()
+            .map(|f| f.into())
+            .collect::<Vec<EnumField>>();
+        RustTypeMarker::Enum(rust_enum)
+    // all enum 'objects' in polkadot.js definitions are tuple-enums
     } else if obj.is_object() {
         let obj = obj.as_object().expect("Checked before casting; qed");
         let mut rust_enum = Vec::new();
@@ -184,11 +190,14 @@ fn parse_enum(obj: &serde_json::Value) -> RustTypeMarker {
             } else {
                 value.as_str().expect("will be str; qed")
             };
-            let field = StructField::new(key, regex::parse(value).expect("Not a type"));
+            let field = EnumField::new(
+                Some(key.into()),
+                StructUnitOrTuple::Tuple(regex::parse(value).expect("Not a type")),
+            );
             rust_enum.push(field);
         }
-        RustTypeMarker::Enum(RustEnum::Struct(rust_enum))
-    // if enum is an object, it's an enum with tuples defined as structs
+        RustTypeMarker::Enum(rust_enum)
+    // so far, polkadot.js does not define any struct-like enums
     } else {
         panic!("Unnaccounted type")
     }
@@ -294,28 +303,37 @@ mod tests {
         );
         types.insert(
             "MultiSignature".to_string(),
-            RustTypeMarker::Enum(RustEnum::Struct(vec![
-                StructField {
-                    name: "Ed25519".to_string(),
-                    ty: RustTypeMarker::TypePointer("Ed25519Signature".to_string()),
+            RustTypeMarker::Enum(vec![
+                EnumField {
+                    variant_name: Some("Ed25519".to_string()),
+                    ty: StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer("Ed25519Signature".to_string()))
                 },
-                StructField {
-                    name: "Sr25519".to_string(),
-                    ty: RustTypeMarker::TypePointer("Sr25519Signature".to_string()),
+                EnumField {
+                    variant_name: Some("Sr25519".to_string()),
+                    ty: StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer("Sr25519Signature".to_string()))
                 },
-                StructField {
-                    name: "Ecdsa".to_string(),
-                    ty: RustTypeMarker::TypePointer("EcdsaSignature".to_string()),
-                },
-            ])),
+                EnumField {
+                    variant_name: Some("Ecdsa".to_string()),
+                    ty: StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer("EcdsaSignature".to_string()))
+                }
+                ]),
         );
         types.insert(
             "Reasons".to_string(),
-            RustTypeMarker::Enum(RustEnum::Unit(vec![
-                "Fee".to_string(),
-                "Misc".to_string(),
-                "All".to_string(),
-            ])),
+            RustTypeMarker::Enum(vec![
+                EnumField {
+                    variant_name: None,
+                    ty: StructUnitOrTuple::Unit("Fee".to_string())
+                },
+                EnumField {
+                    variant_name: None,
+                    ty: StructUnitOrTuple::Unit("Misc".to_string())
+                },
+                EnumField {
+                    variant_name: None,
+                    ty: StructUnitOrTuple::Unit("All".to_string())
+                }
+            ]),
         );
         types.insert(
             "WithdrawReasons".to_string(),
