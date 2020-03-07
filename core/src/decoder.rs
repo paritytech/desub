@@ -551,8 +551,8 @@ where
 mod tests {
     use super::*;
     use crate::{
-        decoder::metadata::test_suite as meta_test_suite,
-        substrate_types::StructField, test_suite, Decodable, EnumField,
+        decoder::metadata::test_suite as meta_test_suite, substrate_types::StructField,
+        test_suite, Decodable, EnumField,
     };
     use codec::Encode;
 
@@ -626,164 +626,100 @@ mod tests {
         assert_eq!(len.0, 2);
     }
 
+    macro_rules! decode_test {
+        ( $v: expr, $x:expr, $r: expr) => {{
+            let val = $v.encode();
+            let decoder = Decoder::new(GenericTypes, "kusama");
+            let res = decoder
+                .decode_single("system", 1031, &$x, val.as_slice(), &mut 0, false)
+                .unwrap();
+
+            assert_eq!($r, res)
+        }};
+    }
+
     #[test]
     fn should_decode_option() {
-        let opt: Option<u32> = Some(0x1337);
-        let val = opt.encode();
-        let decoder = Decoder::new(GenericTypes, "kusama");
-        let res = decoder
-            .decode_single(
-                "system",
-                1031,
-                &RustTypeMarker::Std(CommonTypes::Option(Box::new(RustTypeMarker::U32))),
-                val.as_slice(),
-                &mut 0,
-                false,
-            )
-            .unwrap();
-        assert_eq!(
-            SubstrateType::Option(Box::new(Some(SubstrateType::U32(4919)))),
-            res
+        let val: Option<u32> = Some(0x1337);
+        decode_test!(
+            val,
+            RustTypeMarker::Std(CommonTypes::Option(Box::new(RustTypeMarker::U32))),
+            SubstrateType::Option(Box::new(Some(SubstrateType::U32(0x1337))))
         );
-
-        let opt: Option<u32> = None;
-        let val = opt.encode();
-        let res = decoder
-            .decode_single(
-                "system", // dummy data
-                1031,     // dummy data
-                &RustTypeMarker::Std(CommonTypes::Option(Box::new(RustTypeMarker::U32))),
-                val.as_slice(),
-                &mut 0,
-                false,
-            )
-            .unwrap();
-        assert_eq!(SubstrateType::Option(Box::new(None)), res);
+        let val: Option<u32> = None;
+        decode_test!(
+            val,
+            RustTypeMarker::Std(CommonTypes::Option(Box::new(RustTypeMarker::U32))),
+            SubstrateType::Option(Box::new(None))
+        );
     }
 
     #[test]
     fn should_decode_result() {
-        let res: Result<u32, u32> = Ok(0x1337);
-        let val = res.encode();
-        let decoder = Decoder::new(GenericTypes, "kusama");
-        let res = decoder
-            .decode_single(
-                "system",
-                1031,
-                &RustTypeMarker::Std(CommonTypes::Result(
-                    Box::new(RustTypeMarker::U32),
-                    Box::new(RustTypeMarker::U32),
-                )),
-                val.as_slice(),
-                &mut 0,
-                false,
-            )
-            .unwrap();
-        assert_eq!(
-            SubstrateType::Result(Box::new(Ok(SubstrateType::U32(4919)))),
-            res
+        let val: Result<u32, u32> = Ok(0x1337);
+        decode_test!(
+            val,
+            RustTypeMarker::Std(CommonTypes::Result(
+                Box::new(RustTypeMarker::U32),
+                Box::new(RustTypeMarker::U32)
+            )),
+            SubstrateType::Result(Box::new(Ok(SubstrateType::U32(0x1337))))
         );
 
-        let res: Result<u32, u32> = Err(0x1337);
-        let val = res.encode();
-        let decoder = Decoder::new(GenericTypes, "kusama");
-        let res = decoder
-            .decode_single(
-                "system",
-                1031,
-                &RustTypeMarker::Std(CommonTypes::Result(
-                    Box::new(RustTypeMarker::U32),
-                    Box::new(RustTypeMarker::U32),
-                )),
-                val.as_slice(),
-                &mut 0,
-                false,
-            )
-            .unwrap();
-        assert_eq!(
-            SubstrateType::Result(Box::new(Err(SubstrateType::U32(4919)))),
-            res
+        let val: Result<u32, u32> = Err(0x1337);
+        decode_test!(
+            val,
+            RustTypeMarker::Std(CommonTypes::Result(
+                Box::new(RustTypeMarker::U32),
+                Box::new(RustTypeMarker::U32),
+            )),
+            SubstrateType::Result(Box::new(Err(SubstrateType::U32(0x1337))))
         );
     }
 
     #[test]
     fn should_decode_vector() {
-        let vec: Vec<u32> = vec![12, 32, 0x1337, 62];
-        let val = vec.encode();
-        let decoder = Decoder::new(GenericTypes, "kusama");
-        let res = decoder
-            .decode_single(
-                "system",
-                1031,
-                &RustTypeMarker::Std(CommonTypes::Vec(Box::new(RustTypeMarker::U32))),
-                val.as_slice(),
-                &mut 0,
-                false,
-            )
-            .unwrap();
-
-        assert_eq!(
+        let val: Vec<u32> = vec![12, 32, 0x1337, 62];
+        decode_test!(
+            val,
+            RustTypeMarker::Std(CommonTypes::Vec(Box::new(RustTypeMarker::U32))),
             SubstrateType::Composite(vec![
                 SubstrateType::U32(12),
                 SubstrateType::U32(32),
                 SubstrateType::U32(4919),
                 SubstrateType::U32(62)
-            ]),
-            res
+            ])
         );
 
-        let vec: Vec<u128> = vec![12, 32, 0x1337, 62];
-        let val = vec.encode();
-        let decoder = Decoder::new(GenericTypes, "kusama");
-        let res = decoder
-            .decode_single(
-                "system",
-                1031,
-                &RustTypeMarker::Std(CommonTypes::Vec(Box::new(RustTypeMarker::U128))),
-                val.as_slice(),
-                &mut 0,
-                false,
-            )
-            .unwrap();
-
-        assert_eq!(
+        let val: Vec<u128> = vec![12, 32, 0x1337, 62];
+        decode_test!(
+            val,
+            RustTypeMarker::Std(CommonTypes::Vec(Box::new(RustTypeMarker::U128))),
             SubstrateType::Composite(vec![
                 SubstrateType::U128(12),
                 SubstrateType::U128(32),
                 SubstrateType::U128(4919),
                 SubstrateType::U128(62)
-            ]),
-            res
+            ])
         );
     }
 
     #[test]
     fn should_decode_array() {
-        let arr: [u32; 4] = [12, 32, 0x1337, 62];
-        let val = arr.encode();
-        let decoder = Decoder::new(GenericTypes, "kusama");
-        let res = decoder
-            .decode_single(
-                "system",
-                1031,
-                &RustTypeMarker::Array {
-                    size: 4,
-                    ty: Box::new(RustTypeMarker::U32),
-                },
-                val.as_slice(),
-                &mut 0,
-                false,
-            )
-            .unwrap();
-        assert_eq!(
+        let val: [u32; 4] = [12, 32, 0x1337, 62];
+        decode_test!(
+            val,
+            RustTypeMarker::Array {
+                size: 4,
+                ty: Box::new(RustTypeMarker::U32),
+            },
             SubstrateType::Composite(vec![
                 SubstrateType::U32(12),
                 SubstrateType::U32(32),
                 SubstrateType::U32(4919),
                 SubstrateType::U32(62)
-            ]),
-            res
-        );
+            ])
+        )
     }
 
     #[test]
@@ -793,34 +729,24 @@ mod tests {
             foo: u32,
             name: Vec<u8>,
         }
-        let to_decode = ToDecode {
+        let val = ToDecode {
             foo: 0x1337,
             name: vec![8, 16, 30, 40],
         };
-        let val = to_decode.encode();
-        let decoder = Decoder::new(GenericTypes, "kusama");
-        let res = decoder
-            .decode_single(
-                "system",
-                1031,
-                &RustTypeMarker::Struct(vec![
-                    crate::StructField {
-                        name: "foo".to_string(),
-                        ty: RustTypeMarker::U32,
-                    },
-                    crate::StructField {
-                        name: "name".to_string(),
-                        ty: RustTypeMarker::Std(CommonTypes::Vec(Box::new(
-                            RustTypeMarker::U8,
-                        ))),
-                    },
-                ]),
-                val.as_slice(),
-                &mut 0,
-                false,
-            )
-            .unwrap();
-        assert_eq!(
+        decode_test!(
+            val,
+            RustTypeMarker::Struct(vec![
+                crate::StructField {
+                    name: "foo".to_string(),
+                    ty: RustTypeMarker::U32,
+                },
+                crate::StructField {
+                    name: "name".to_string(),
+                    ty: RustTypeMarker::Std(CommonTypes::Vec(Box::new(
+                        RustTypeMarker::U8,
+                    ))),
+                },
+            ]),
             SubstrateType::Struct(vec![
                 StructField {
                     name: Some("foo".to_string()),
@@ -835,41 +761,28 @@ mod tests {
                         SubstrateType::U8(40)
                     ])
                 }
-            ]),
-            res
+            ])
         );
     }
 
     #[test]
     fn should_decode_tuple() {
-        let tup: (u32, u32, u32, u32) = (18, 32, 42, 0x1337);
-        let val = tup.encode();
-        let decoder = Decoder::new(GenericTypes, "kusama");
-        let res = decoder
-            .decode_single(
-                "system",
-                1031,
-                &RustTypeMarker::Tuple(vec![
-                    RustTypeMarker::U32,
-                    RustTypeMarker::U32,
-                    RustTypeMarker::U32,
-                    RustTypeMarker::U32,
-                ]),
-                val.as_slice(),
-                &mut 0,
-                false,
-            )
-            .unwrap();
-
-        assert_eq!(
+        let val: (u32, u32, u32, u32) = (18, 32, 42, 0x1337);
+        decode_test!(
+            val,
+            RustTypeMarker::Tuple(vec![
+                RustTypeMarker::U32,
+                RustTypeMarker::U32,
+                RustTypeMarker::U32,
+                RustTypeMarker::U32,
+            ]),
             SubstrateType::Composite(vec![
                 SubstrateType::U32(18),
                 SubstrateType::U32(32),
                 SubstrateType::U32(42),
                 SubstrateType::U32(0x1337)
-            ]),
-            res
-        );
+            ])
+        )
     }
 
     #[test]
@@ -880,26 +793,16 @@ mod tests {
             Wraith,
             Spree,
         }
-        let val = Foo::Wraith.encode();
-        let decoder = Decoder::new(GenericTypes, "kusama");
-        let res = decoder
-            .decode_single(
-                "system",
-                1031,
-                &RustTypeMarker::Enum(vec![
-                    EnumField::new(None, crate::StructUnitOrTuple::Unit("Zoo".into())),
-                    EnumField::new(None, crate::StructUnitOrTuple::Unit("Wraith".into())),
-                    EnumField::new(None, crate::StructUnitOrTuple::Unit("Spree".into())),
-                ]),
-                val.as_slice(),
-                &mut 0,
-                false,
-            )
-            .unwrap();
-        assert_eq!(
-            SubstrateType::Enum(StructUnitOrTuple::Unit("Wraith".into())),
-            res
-        )
+        let val = Foo::Wraith;
+        decode_test!(
+            val,
+            RustTypeMarker::Enum(vec![
+                EnumField::new(None, crate::StructUnitOrTuple::Unit("Zoo".into())),
+                EnumField::new(None, crate::StructUnitOrTuple::Unit("Wraith".into())),
+                EnumField::new(None, crate::StructUnitOrTuple::Unit("Spree".into())),
+            ]),
+            SubstrateType::Enum(StructUnitOrTuple::Unit("Wraith".into()))
+        );
     }
 
     #[test]
@@ -912,38 +815,27 @@ mod tests {
             Zoo(TestStruct),
             Wraith(TestStruct),
         }
-        let t_enum = Foo::Wraith(TestStruct(0x1337));
-        let val = t_enum.encode();
-        let decoder = Decoder::new(GenericTypes, "kusama");
-        let res = decoder
-            .decode_single(
-                "system",
-                1031,
-                &RustTypeMarker::Enum(vec![
-                    EnumField::new(
-                        Some("Zoo".into()),
-                        crate::StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer(
-                            "TestStruct".into(),
-                        )),
-                    ),
-                    EnumField::new(
-                        Some("Wraith".into()),
-                        crate::StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer(
-                            "TestStruct".into(),
-                        )),
-                    ),
-                ]),
-                val.as_slice(),
-                &mut 0,
-                false,
-            )
-            .unwrap();
-        assert_eq!(
+        let val = Foo::Wraith(TestStruct(0x1337));
+        decode_test!(
+            val,
+            RustTypeMarker::Enum(vec![
+                EnumField::new(
+                    Some("Zoo".into()),
+                    crate::StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer(
+                        "TestStruct".into(),
+                    )),
+                ),
+                EnumField::new(
+                    Some("Wraith".into()),
+                    crate::StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer(
+                        "TestStruct".into(),
+                    )),
+                ),
+            ]),
             SubstrateType::Enum(StructUnitOrTuple::Tuple(
                 "Wraith".into(),
                 Box::new(SubstrateType::I128(0x1337))
-            )),
-            res
+            ))
         );
     }
 
@@ -957,14 +849,11 @@ mod tests {
         let val = Foo::Wraith {
             name: vec![0x13, 0x37],
             id: 15,
-        }
-        .encode();
-        let decoder = Decoder::new(GenericTypes, "kusama");
-        let res = decoder
-            .decode_single(
-                "system",
-                1031,
-                &RustTypeMarker::Enum(vec![
+        };
+
+        decode_test!(
+            val,
+            RustTypeMarker::Enum(vec![
                     EnumField::new(
                         Some("Zoo".into()),
                         crate::StructUnitOrTuple::Struct(vec![
@@ -990,12 +879,6 @@ mod tests {
                         ]),
                     ),
                 ]),
-                val.as_slice(),
-                &mut 0,
-                false,
-            )
-            .unwrap();
-        assert_eq!(
             SubstrateType::Enum(StructUnitOrTuple::Struct(vec![
                 StructField {
                     name: Some("name".into()),
@@ -1008,8 +891,7 @@ mod tests {
                     name: Some("id".into()),
                     ty: SubstrateType::U64(15)
                 }
-            ])),
-            res
+            ]))
         );
     }
 }
