@@ -68,19 +68,19 @@ pub fn runtime_v9_block6() -> Vec<u8> {
 /// Panics on std::io::Error
 pub fn extrinsics_block10994() -> [Vec<u8>; 3] {
     let mut f =
-        File::open("./test/extrinsics/EXTRINSIC_spec_1020_block_10994_index_0.bin")
+        File::open("./test/extrinsics/spec1020_block10994/EXTRINSIC_spec_1020_block_10994_index_0.bin")
             .expect("Opening file failed");
     let mut ext0 = Vec::new();
     f.read_to_end(&mut ext0).expect("Reading file failed");
 
     let mut f =
-        File::open("./test/extrinsics/EXTRINSIC_spec_1020_block_10994_index_1.bin")
+        File::open("./test/extrinsics/spec1020_block10994/EXTRINSIC_spec_1020_block_10994_index_1.bin")
             .expect("Opening file failed");
     let mut ext1 = Vec::new();
     f.read_to_end(&mut ext1).expect("Reading file failed");
 
     let mut f =
-        File::open("./test/extrinsics/EXTRINSIC_spec_1020_block_10994_index_2.bin")
+        File::open("./test/extrinsics/spec1020_block10994/EXTRINSIC_spec_1020_block_10994_index_2.bin")
             .expect("Opening file failed");
     let mut ext2 = Vec::new();
     f.read_to_end(&mut ext2).expect("Reading file failed");
@@ -90,21 +90,47 @@ pub fn extrinsics_block10994() -> [Vec<u8>; 3] {
 
 /// returns raw metadata bytes and a vector of raw extrinsic bytes
 /// from block 342962 with spec 1031
-pub fn ext_and_metadata_spec1031() -> (Vec<u8>, [Vec<u8>; 2]) {
+pub fn extrinsics_block342962() -> (Vec<u8>, [Vec<u8>; 2]) {
     let mut f =
-        File::open("./test/extrinsics/spec1031_block_342-962/EXTRINSIC_spec_1031_block_342962_index_0.bin")
+        File::open("./test/extrinsics/spec1031_block342962/EXTRINSIC_spec_1031_block_342962_index_0.bin")
             .expect("Opening file failed");
     let mut ext0 = Vec::new();
     f.read_to_end(&mut ext0).expect("Reading file failed");
 
     let mut f =
-        File::open("./test/extrinsics/spec1031_block_342-962/EXTRINSIC_spec_1031_block_342962_index_1.bin")
+        File::open("./test/extrinsics/spec1031_block342962/EXTRINSIC_spec_1031_block_342962_index_1.bin")
             .expect("Opening file failed");
     let mut ext1 = Vec::new();
     f.read_to_end(&mut ext1).expect("Reading file failed");
 
     let mut f = File::open(
-        "./test/extrinsics/spec1031_block_342-962/spec_1031_block_342962_METADATA.bin",
+        "./test/extrinsics/spec1031_block342962/spec_1031_block_342962_METADATA.bin",
+    )
+    .expect("Opening file failed");
+    let mut meta = Vec::new();
+    f.read_to_end(&mut meta).expect("Reading file failed");
+
+    (meta, [ext0, ext1])
+}
+
+/// returns raw metadata bytes and a vector of raw extrinsic bytes
+/// from block 422871 with spec 1031
+/// there are three extrinsics: FinalityTracker, Parachains and Timestmap
+pub fn extrinsics_block422871() -> (Vec<u8>, [Vec<u8>; 2]) {
+    let mut f =
+        File::open("./test/extrinsics/spec1031_block422871/EXTRINSIC_spec_1031_block_422871_index_0.bin")
+            .expect("Opening file failed");
+    let mut ext0 = Vec::new();
+    f.read_to_end(&mut ext0).expect("Reading file failed");
+
+    let mut f =
+        File::open("./test/extrinsics/spec1031_block422871/EXTRINSIC_spec_1031_block_422871_index_1.bin")
+            .expect("Opening file failed");
+    let mut ext1 = Vec::new();
+    f.read_to_end(&mut ext1).expect("Reading file failed");
+
+    let mut f = File::open(
+        "./test/extrinsics/spec1031_block422871/spec_1031_block_422871_METADATA.bin",
     )
     .expect("Opening file failed");
     let mut meta = Vec::new();

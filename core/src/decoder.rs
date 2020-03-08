@@ -143,6 +143,7 @@ where
         // call enum
         let module = meta.module_by_index(ModuleIndex::Call(data[2]))?;
         let call_meta = module.call(data[3])?;
+        println!("CALL META {:?}", call_meta);
         // location in the vector of extrinsic bytes
         let mut cursor: usize = 4;
         // tuple of argument name -> value
@@ -686,7 +687,7 @@ mod tests {
             SubstrateType::Composite(vec![
                 SubstrateType::U32(12),
                 SubstrateType::U32(32),
-                SubstrateType::U32(4919),
+                SubstrateType::U32(0x1337),
                 SubstrateType::U32(62)
             ])
         );
@@ -698,7 +699,7 @@ mod tests {
             SubstrateType::Composite(vec![
                 SubstrateType::U128(12),
                 SubstrateType::U128(32),
-                SubstrateType::U128(4919),
+                SubstrateType::U128(0x1337),
                 SubstrateType::U128(62)
             ])
         );
@@ -716,7 +717,7 @@ mod tests {
             SubstrateType::Composite(vec![
                 SubstrateType::U32(12),
                 SubstrateType::U32(32),
-                SubstrateType::U32(4919),
+                SubstrateType::U32(0x1337),
                 SubstrateType::U32(62)
             ])
         )
