@@ -16,7 +16,7 @@
 use serde::{Deserialize, Serialize};
 use super::ModuleTypes;
 use crate::error::Error;
-const EXTRINSICS: &'static str = include_str!("./dot_definitions/extrinsics.json");
+pub const EXTRINSICS: &'static str = include_str!("./dot_definitions/extrinsics.json");
 
 #[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
 pub struct Types {

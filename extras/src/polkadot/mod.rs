@@ -25,11 +25,13 @@ use crate::error::Error;
 use core::{regex, Decodable, RustTypeMarker, TypeDetective};
 
 use self::overrides::Overrides;
+use self::extrinsics::Extrinsics;
 
 #[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq)]
 pub struct PolkadotTypes {
     pub mods: Modules,
     pub overrides: Overrides,
+    pub extrinsics: Extrinsics,
 }
 
 impl PolkadotTypes {
@@ -37,6 +39,7 @@ impl PolkadotTypes {
         Ok(PolkadotTypes {
             mods: definitions::definitions(definitions::DEFS)?,
             overrides: Overrides::new(overrides::OVERRIDES)?,
+            extrinsics: Extrinsics::new(extrinsics::EXTRINSICS)?,
         })
     }
 
