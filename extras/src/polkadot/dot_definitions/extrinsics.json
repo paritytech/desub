@@ -1,52 +1,41 @@
-
-"kusama": [
-  {
-    "minmax": {
-      "min": "0",
-      "max": "1006"
-    },
-    "signature": "Option<(Address, AnySignature, SignedExtra)>",
-    "Address": {
-      "_enum": {
-        "id": "AccountId",
-        "Index": "AccountIndex"
+{
+  "kusama": [
+    {
+      "minmax": [
+         0,
+        1006
+      ],
+      "types": {
+        "signature": "Option<(Address, AnySignature, SignedExtra)>",
+        "Address": {
+          "_enum": {
+            "id": "AccountId",
+            "Index": "AccountIndex"
+          }
+        },
+        "AccountIndex": "u32",
+        "AccountId": "[u8; 32]",
+        "AnySignature": "H512",
+        "SignedExtra": "(OnlyStakingAndClaims, system::CheckVersion<Runtime>, system::CheckGenesis<Runtime>, system::CheckEra<Runtime>, system::CheckNonce<Runtime>, system::CheckWeight<Runtime>, balances::TakeFees<Runtime>)"
       }
     },
-    "AccountIndex": "u32",
-    "AccountId": "[u8; 32]",
-    "AnySignature": "H512",
-    "SignedExtra": "(
-      OnlyStakingAndClaims,
-      system::CheckVersion<Runtime>,
-      system::CheckGenesis<Runtime>,
-      system::CheckEra<Runtime>,
-      system::CheckNonce<Runtime>,
-      system::CheckWeight<Runtime>,
-      balances::TakeFees<Runtime>
-    )"
-  },
-  {
-    "minmax": {
-      "min": "1007",
-      "max": null
-    },
-    "signature": "Option<(Address, MultiSignature, SignedExtra>)",
-    "Address": {
-      "_enum": [
-        "id": "AccountId",
-        "Index": "AccountIndex"
-      ]
-    },
-    "AccountIndex": "u32",
-    "AccountId": "GenericAccountId",
-    "SignedExtra": "(
-        OnlyStakingAndClaims, system::CheckVersion<Runtime>,
-        system::CheckGenesis<Runtime>,
-        system::CheckEra<Runtime>,
-        system::CheckNonce<Runtime>,
-        system::CheckWeight<Runtime>,
-        transaction_payment::ChargeTransactionPayment::<Runtime>,
-        registrar::LimitParathreadCommits<Runtime>
-    )"
-  }
-]
+    {
+      "minmax": [
+        1007,
+        null
+      ],
+      "types": {
+        "signature": "Option<(Address, MultiSignature, SignedExtra>)",
+        "Address": {
+          "_enum": {
+            "id": "AccountId",
+            "Index": "AccountIndex"
+          }
+        },
+        "AccountIndex": "u32",
+        "AccountId": "GenericAccountId",
+        "SignedExtra": "(OnlyStakingAndClaims, system::CheckVersion<Runtime>, system::CheckGenesis<Runtime>, system::CheckEra<Runtime>, system::CheckNonce<Runtime>, system::CheckWeight<Runtime>, transaction_payment::ChargeTransactionPayment::<Runtime>, registrar::LimitParathreadCommits<Runtime>)"
+      }
+    }
+  ]
+}

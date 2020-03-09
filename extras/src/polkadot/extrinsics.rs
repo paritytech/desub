@@ -14,19 +14,37 @@
 
 // TODO: open this file or pass it via CLI to reduce binary size
 use serde::{Deserialize, Serialize};
+use super::ModuleTypes;
+use crate::error::Error;
 const EXTRINSICS: &'static str = include_str!("./dot_definitions/extrinsics.json");
 
-
-pub struct Versions {
-    min: f32,
-    max: f32
+#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
+pub struct Types {
+    /// the spec these types are relevant for
+    #[serde(rename = "minmax")]
+    min_max: [Option<usize>; 2],
+    /// types relevant to the spec
+    types: ModuleTypes
 }
 
-pub type Signature = String;
-pub type Function = String;
+#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
+pub struct Extrinsics {
+    kusama: Vec<Types>
+}
 
-pub struct Address {
-    ty: String,
-    named: bool,
-    types: HashMap<String, RustTypeMarker>
+impl Extrinsics {
+    pub fn new(raw_json: &str) -> Result<Self, Error> {
+        serde_json::from_str(raw_json).map_err(Into::into)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn should_deserialize_ext_definitions() {
+        let extrinsics = Extrinsics::new(EXTRINSICS).unwrap();
+        dbg!(extrinsics);
+    }
 }
