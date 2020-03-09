@@ -1,64 +1,52 @@
-[
-    {
-        "versions": {
-            "min": "0.5",
-            "max": "0.6.3"
-        },
-        "signature": "Option<(Address, AnySignature, SignedExtra)>",
-        "function": "Call",
-        "Address": {
-            "_enum": {
-                "id": "AccountId",
-                "Index": "AccountIndex"
-            }
-        },
-        "AccountIndex": "u32",
-        "AccountId": "[u8; 32]",
-        "AnySignature": "H512",
-        "SignedExtra": {
-            "type": "tuple",
-            "named": "false",
-            "fields": [
-                "OnlyStakingAndClaims",
-                "system::CheckVersion<Runtime>",
-                "system::CheckGenesis<Runtime>",
-                "system::CheckEra<Runtime>",
-                "system::CheckNonce<Runtime>",
-                "system::CheckWeight<Runtime>",
-                "balances::TakeFees<Runtime>"
-            ]
-        }
+
+"kusama": [
+  {
+    "minmax": {
+      "min": "0",
+      "max": "1006"
     },
-    {
-        "versions": {
-            "min": "0.6.4",
-            "max": "latest"
-        },
-        "signature": "Option<(Address, MultiSignature, SignedExtra>)",
-        "function": "Call",
-        "Address": {
-            "type": "enum",
-            "named": "true",
-            "types": {
-                "id": "AccountId",
-                "Index": "AccountIndex"
-            }
-        },
-        "AccountIndex": "u32",
-        "AccountId": "GenericAccountId",
-        "SignedExtra": {
-            "type": "tuple",
-            "named": "false",
-            "fields": [
-                "OnlyStakingAndClaims",
-	            "system::CheckVersion<Runtime>",
-                "system::CheckGenesis<Runtime>",
-                "system::CheckEra<Runtime>",
-                "system::CheckNonce<Runtime>",
-                "system::CheckWeight<Runtime>",
-                "transaction_payment::ChargeTransactionPayment::<Runtime>",
-                "registrar::LimitParathreadCommits<Runtime>"
-            ]
-        }
-    }
+    "signature": "Option<(Address, AnySignature, SignedExtra)>",
+    "Address": {
+      "_enum": {
+        "id": "AccountId",
+        "Index": "AccountIndex"
+      }
+    },
+    "AccountIndex": "u32",
+    "AccountId": "[u8; 32]",
+    "AnySignature": "H512",
+    "SignedExtra": "(
+      OnlyStakingAndClaims,
+      system::CheckVersion<Runtime>,
+      system::CheckGenesis<Runtime>,
+      system::CheckEra<Runtime>,
+      system::CheckNonce<Runtime>,
+      system::CheckWeight<Runtime>,
+      balances::TakeFees<Runtime>
+    )"
+  },
+  {
+    "minmax": {
+      "min": "1007",
+      "max": null
+    },
+    "signature": "Option<(Address, MultiSignature, SignedExtra>)",
+    "Address": {
+      "_enum": [
+        "id": "AccountId",
+        "Index": "AccountIndex"
+      ]
+    },
+    "AccountIndex": "u32",
+    "AccountId": "GenericAccountId",
+    "SignedExtra": "(
+        OnlyStakingAndClaims, system::CheckVersion<Runtime>,
+        system::CheckGenesis<Runtime>,
+        system::CheckEra<Runtime>,
+        system::CheckNonce<Runtime>,
+        system::CheckWeight<Runtime>,
+        transaction_payment::ChargeTransactionPayment::<Runtime>,
+        registrar::LimitParathreadCommits<Runtime>
+    )"
+  }
 ]
