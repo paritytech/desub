@@ -39,4 +39,15 @@ pub fn should_decode_ext() {
 
     println!("====================== END Block 422871 ======================");
     println!();
+    println!("====================== START Block 50970 ======================");
+    let (meta, ext) = test_suite::extrinsics_block50970();
+    println!("{}", ext.len());
+    for e in ext.iter() {
+        println!("{:?}", e);
+        let decoded = decoder.decode_extrinsic(1031, e.as_slice()).expect("should decode");
+        println!("{:?}", decoded);
+    }
+
+    println!("====================== END Block 50970 ======================");
+    println!();
 }

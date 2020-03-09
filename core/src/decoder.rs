@@ -138,7 +138,10 @@ where
         // third byte -> Outer enum index
         // fourth byte -> inner enum index (function index)
         // can check if signed via a simple & too
-
+        let version = data[1];
+        let is_signed = version & 0b1000_0000 != 0;
+        // decode Address, Signature, and SignedExtra,
+        // decode the call
         // the second byte will be the index of the
         // call enum
         let module = meta.module_by_index(ModuleIndex::Call(data[2]))?;
