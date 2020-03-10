@@ -24,7 +24,8 @@
         "Address": "AccountId",
         "AccountIndex": "u32",
         "AccountId": "[u8; 32]",
-        "SignedExtra": "(OnlyStakingAndClaims, system::CheckVersion<Runtime>, system::CheckGenesis<Runtime>, system::CheckEra<Runtime>, system::CheckNonce<Runtime>, system::CheckWeight<Runtime>, transaction_payment::ChargeTransactionPayment::<Runtime>, registrar::LimitParathreadCommits<Runtime>)"
+        "SignedExtra": "(OnlyStakingAndClaims, system::CheckVersion<Runtime>, system::CheckGenesis<Runtime>, system::CheckEra<Runtime>, system::CheckNonce<Runtime>, system::CheckWeight<Runtime>, transaction_payment::ChargeTransactionPayment::<Runtime>, registrar::LimitParathreadCommits<Runtime>)",
+        "OnlyStakingAndClaims": "[u8; 0]",
       }
     }
   ]

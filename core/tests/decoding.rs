@@ -15,7 +15,7 @@ pub fn should_decode_ext342962() {
     decoder.register_version(1031, meta);
     for e in ext.iter() {
         println!("{:?}", e);
-        let decoded = decoder.decode_extrinsic(1032, e.as_slice()).expect("should decode");
+        let decoded = decoder.decode_extrinsic(1031, e.as_slice()).expect("should decode");
         println!("{:?}", decoded);
     }
 

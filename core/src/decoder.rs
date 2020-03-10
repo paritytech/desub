@@ -139,16 +139,13 @@ where
         // fourth byte -> inner enum index (function index)
         // can check if signed via a simple & too
         let length = Self::scale_length(data)?;
-        dbg!(&length);
         let mut cursor: usize = length.1;
-        dbg!(&cursor);
         let version = data[cursor];
         let is_signed = version & 0b1000_0000 != 0;
         let version = version & 0b0111_1111;
-        dbg!(&version);
-        dbg!(&is_signed);
         // the second byte will be the index of the
         // call enum
+        cursor += 1;
 
         let mut signature: Option<(
             SubstrateType,
@@ -156,25 +153,21 @@ where
             SubstrateType,
         )> = None;
 
-
         // TODO: split into decode_signature
         if is_signed {
             cursor += 1;
-            println!("{:08b}", data[cursor]);
             println!("IS SIGNED");
             let signature =
                 self.types
                     .get_extrinsic_ty(spec, self.chain.as_str(), "signature")
                     .expect("Signature must not be empty")
                     .as_type();
-                dbg!(&signature);
             let ty = self.decode_single("system", spec, signature, data, &mut cursor, false)?;
-            println!("TY");
-            dbg!(ty);
+            println!("{:X?}", ty);
         }
 
+        println!("{:?}", &data[cursor..]);
         // split into decode call
-        cursor += 1;
         dbg!(&cursor);
         let module = meta.module_by_index(ModuleIndex::Call(data[cursor]))?;
         cursor += 1;
@@ -182,10 +175,12 @@ where
         let call_meta = module.call(data[cursor])?;
         cursor += 1;
         dbg!(&cursor);
+        println!("{:?}", &data[cursor..]);
 
         // TODO: tuple of argument name -> value
         let mut types: Vec<(String, SubstrateType)> = Vec::new();
         for arg in call_meta.arguments() {
+            dbg!(&arg);
             let val = self.decode_single(
                 module.name(),
                 spec,
@@ -226,7 +221,9 @@ where
     ) -> Result<SubstrateType, Error> {
         let ty = match ty {
             RustTypeMarker::TypePointer(v) => {
-                if let Some(t) = self.decode_sub_type(v, data, cursor, is_compact) {
+                dbg!(&cursor);
+                dbg!(&v);
+                if let Some(t) = self.decode_sub_type(spec, v, data, cursor, is_compact) {
                     t
                 } else {
                     let new_type = self
@@ -234,6 +231,7 @@ where
                         .get(module, v, spec, self.chain.as_str())
                         .ok_or(Error::DecodeFail)?
                         .as_type();
+                    dbg!(&data[*cursor..]);
                     print!("NewType: ");
                     dbg!(&new_type);
                     self.decode_single(module, spec, new_type, data, cursor, is_compact)?
@@ -289,11 +287,14 @@ where
             }
             RustTypeMarker::Array { size, ty } => {
                 let mut decoded_arr = Vec::with_capacity(*size);
-
-                for _ in 0..*size {
-                    decoded_arr.push(
-                        self.decode_single(module, spec, ty, &data, cursor, is_compact)?,
-                    )
+                if *size == 0 as usize {
+                    return Ok(SubstrateType::Composite(Vec::new()));
+                } else {
+                    for _ in 0..*size {
+                        decoded_arr.push(
+                            self.decode_single(module, spec, ty, &data, cursor, is_compact)?,
+                        )
+                    }
                 }
                 // rely on cursor increments in sub-types (U32/substrate specific types)
                 SubstrateType::Composite(decoded_arr)
@@ -530,11 +531,36 @@ where
     // TODO: test this with the substrate types used
     fn decode_sub_type(
         &self,
+        spec: SpecVersion,
         ty: &str,
         data: &[u8],
         cursor: &mut usize,
         _is_compact: bool,
     ) -> Option<SubstrateType> {
+        // check if type is of signed extension
+        if let Some(e) = self.types.get_extrinsic_ty(spec, self.chain.as_str(), "SignedExtra") {
+            match e.as_type() {
+                RustTypeMarker::TypePointer(t) => {
+                    if ty == t {
+                        return Some(SubstrateType::SignedExtra(t.to_string()));
+                    }
+                },
+                RustTypeMarker::Tuple(v) => {
+                    for t in v.iter() {
+                        match t {
+                            RustTypeMarker::TypePointer(t) => {
+                                if t == ty {
+                                    return Some(SubstrateType::SignedExtra(t.to_string()));
+                                }
+                            },
+                            _ => (),
+                        }
+                    }
+                }
+                _ => ()
+            };
+        }
+
         match ty {
             "H256" => {
                 let val: primitives::H256 =

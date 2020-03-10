@@ -29,6 +29,9 @@ pub enum SubstrateType {
     /// 256-bit hash type
     H256(primitives::H256),
 
+    /// SignedExtension Type
+    SignedExtra(String),
+
     /// vectors, arrays, and tuples
     Composite(Vec<SubstrateType>),
 
