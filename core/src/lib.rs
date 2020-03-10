@@ -36,6 +36,9 @@ pub trait TypeDetective {
         chain: &str,
     ) -> Option<&dyn Decodable>;
 
+    /// get a type specific to decoding extrinsics
+    fn get_extrinsic_ty(&self, spec: u32, chain: &str, ty: &str) -> Option<&dyn Decodable>;
+
     /// Resolve a type pointer into the type it points to
     fn resolve(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker>;
 }

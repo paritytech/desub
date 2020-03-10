@@ -61,6 +61,8 @@ impl PolkadotTypes {
         println!("{}", ty);
         if let Some(t) = self.check_overrides(module, ty.as_str(), spec, chain) {
             Some(&t)
+        } else if let Some(t) = self.check_extrinsics(ty.as_str(), spec, chain) {
+            Some(&t)
         } else {
             self.resolve_helper(module, &RustTypeMarker::TypePointer(ty.to_string()))
         }
@@ -85,6 +87,20 @@ impl PolkadotTypes {
 
         // if it isn't in modules, chain types is next
         self.overrides.get_chain_types(chain, spec)?.get(ty)
+    }
+
+    pub fn check_extrinsics(
+        &self,
+        ty: &str,
+        spec: u32,
+        chain: &str
+    ) -> Option<&RustTypeMarker> {
+        if let Some(m) = self.extrinsics.get_chain_types(chain, spec) {
+            if let Some(ty) = m.get(ty) {
+                return Some(ty);
+            }
+        }
+        None
     }
 
     // TODO: Clean this up
@@ -145,6 +161,19 @@ impl TypeDetective for PolkadotTypes {
         let chain = chain.to_ascii_lowercase();
         let decodable = self.get(&module, ty, spec, &chain)?;
         Some(decodable as &dyn Decodable)
+    }
+
+    fn get_extrinsic_ty(&self, spec: u32, chain: &str, ty: &str) -> Option<&dyn Decodable> {
+        let ty = self.check_extrinsics(ty, spec, chain);
+        let ty = if let Some(t) = ty {
+            match t {
+                t @ RustTypeMarker::TypePointer(_) => {
+                    self.resolve_helper("system", t)
+                },
+                t => Some(t)
+            }
+        } else { None };
+        ty.map(|t| t as &dyn Decodable)
     }
 
     fn resolve(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker> {

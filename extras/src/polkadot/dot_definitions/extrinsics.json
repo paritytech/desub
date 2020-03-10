@@ -6,13 +6,8 @@
         1006
       ],
       "types": {
-        "signature": "Option<(Address, AnySignature, SignedExtra)>",
-        "Address": {
-          "_enum": {
-            "id": "AccountId",
-            "Index": "AccountIndex"
-          }
-        },
+        "signature": "(Address, AnySignature, SignedExtra)",
+        "Address": "AccountId",
         "AccountIndex": "u32",
         "AccountId": "[u8; 32]",
         "AnySignature": "H512",
@@ -25,15 +20,10 @@
         null
       ],
       "types": {
-        "signature": "Option<(Address, MultiSignature, SignedExtra>)",
-        "Address": {
-          "_enum": {
-            "id": "AccountId",
-            "Index": "AccountIndex"
-          }
-        },
+        "signature": "(Address, MultiSignature, SignedExtra)",
+        "Address": "AccountId",
         "AccountIndex": "u32",
-        "AccountId": "GenericAccountId",
+        "AccountId": "[u8; 32]",
         "SignedExtra": "(OnlyStakingAndClaims, system::CheckVersion<Runtime>, system::CheckGenesis<Runtime>, system::CheckEra<Runtime>, system::CheckNonce<Runtime>, system::CheckWeight<Runtime>, transaction_payment::ChargeTransactionPayment::<Runtime>, registrar::LimitParathreadCommits<Runtime>)"
       }
     }

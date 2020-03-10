@@ -138,18 +138,52 @@ where
         // third byte -> Outer enum index
         // fourth byte -> inner enum index (function index)
         // can check if signed via a simple & too
-        let version = data[1];
+        let length = Self::scale_length(data)?;
+        dbg!(&length);
+        let mut cursor: usize = length.1;
+        dbg!(&cursor);
+        let version = data[cursor];
         let is_signed = version & 0b1000_0000 != 0;
-        // decode Address, Signature, and SignedExtra,
-        // decode the call
+        let version = version & 0b0111_1111;
+        dbg!(&version);
+        dbg!(&is_signed);
         // the second byte will be the index of the
         // call enum
-        let module = meta.module_by_index(ModuleIndex::Call(data[2]))?;
-        let call_meta = module.call(data[3])?;
-        println!("CALL META {:?}", call_meta);
-        // location in the vector of extrinsic bytes
-        let mut cursor: usize = 4;
-        // tuple of argument name -> value
+
+        let mut signature: Option<(
+            SubstrateType,
+            SubstrateType,
+            SubstrateType,
+        )> = None;
+
+
+        // TODO: split into decode_signature
+        if is_signed {
+            cursor += 1;
+            println!("{:08b}", data[cursor]);
+            println!("IS SIGNED");
+            let signature =
+                self.types
+                    .get_extrinsic_ty(spec, self.chain.as_str(), "signature")
+                    .expect("Signature must not be empty")
+                    .as_type();
+                dbg!(&signature);
+            let ty = self.decode_single("system", spec, signature, data, &mut cursor, false)?;
+            println!("TY");
+            dbg!(ty);
+        }
+
+        // split into decode call
+        cursor += 1;
+        dbg!(&cursor);
+        let module = meta.module_by_index(ModuleIndex::Call(data[cursor]))?;
+        cursor += 1;
+        dbg!(&cursor);
+        let call_meta = module.call(data[cursor])?;
+        cursor += 1;
+        dbg!(&cursor);
+
+        // TODO: tuple of argument name -> value
         let mut types: Vec<(String, SubstrateType)> = Vec::new();
         for arg in call_meta.arguments() {
             let val = self.decode_single(
@@ -200,6 +234,8 @@ where
                         .get(module, v, spec, self.chain.as_str())
                         .ok_or(Error::DecodeFail)?
                         .as_type();
+                    print!("NewType: ");
+                    dbg!(&new_type);
                     self.decode_single(module, spec, new_type, data, cursor, is_compact)?
                 }
             }
@@ -282,7 +318,10 @@ where
                 CommonTypes::Option(v) => {
                     match data[*cursor] {
                         // None
-                        0x00 => SubstrateType::Option(Box::new(None)),
+                        0x00 => {
+                            *cursor += 1;
+                            SubstrateType::Option(Box::new(None))
+                        },
                         // Some
                         0x01 => {
                             *cursor += 1;
@@ -508,7 +547,7 @@ where
                     Decode::decode(&mut &data[*cursor..=*cursor + 64]).ok()?;
                 *cursor += 65;
                 Some(SubstrateType::H512(val))
-            }
+            },
             _ => None,
         }
     }
@@ -571,6 +610,11 @@ mod tests {
         ) -> Option<&dyn Decodable> {
             Some(&RustTypeMarker::I128)
         }
+
+        fn get_extrinsic_ty(&self, spec: u32, chain: &str, ty: &str) -> Option<&dyn Decodable> {
+            None
+        }
+
         fn resolve(
             &self,
             _module: &str,
@@ -858,31 +902,31 @@ mod tests {
         decode_test!(
             val,
             RustTypeMarker::Enum(vec![
-                    EnumField::new(
-                        Some("Zoo".into()),
-                        crate::StructUnitOrTuple::Struct(vec![
-                            crate::StructField::new(
-                                "name",
-                                RustTypeMarker::Std(CommonTypes::Vec(Box::new(
-                                    RustTypeMarker::U8,
-                                ))),
-                            ),
-                            crate::StructField::new("id", RustTypeMarker::U32),
-                        ]),
-                    ),
-                    EnumField::new(
-                        Some("Wraith".into()),
-                        crate::StructUnitOrTuple::Struct(vec![
-                            crate::StructField::new(
-                                "name",
-                                RustTypeMarker::Std(CommonTypes::Vec(Box::new(
-                                    RustTypeMarker::U16,
-                                ))),
-                            ),
-                            crate::StructField::new("id", RustTypeMarker::U64),
-                        ]),
-                    ),
-                ]),
+                EnumField::new(
+                    Some("Zoo".into()),
+                    crate::StructUnitOrTuple::Struct(vec![
+                        crate::StructField::new(
+                            "name",
+                            RustTypeMarker::Std(CommonTypes::Vec(Box::new(
+                                RustTypeMarker::U8,
+                            ))),
+                        ),
+                        crate::StructField::new("id", RustTypeMarker::U32),
+                    ]),
+                ),
+                EnumField::new(
+                    Some("Wraith".into()),
+                    crate::StructUnitOrTuple::Struct(vec![
+                        crate::StructField::new(
+                            "name",
+                            RustTypeMarker::Std(CommonTypes::Vec(Box::new(
+                                RustTypeMarker::U16,
+                            ))),
+                        ),
+                        crate::StructField::new("id", RustTypeMarker::U64),
+                    ]),
+                ),
+            ]),
             SubstrateType::Enum(StructUnitOrTuple::Struct(vec![
                 StructField {
                     name: Some("name".into()),
