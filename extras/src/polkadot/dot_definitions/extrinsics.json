@@ -26,21 +26,13 @@
         "AccountId": "[u8; 32]",
         "SignedExtra": "(OnlyStakingAndClaims, system::CheckVersion<Runtime>, system::CheckGenesis<Runtime>, system::CheckEra<Runtime>, system::CheckNonce<Runtime>, system::CheckWeight<Runtime>, transaction_payment::ChargeTransactionPayment::<Runtime>, registrar::LimitParathreadCommits<Runtime>)",
         "OnlyStakingAndClaims": "[u8; 0]",
-        "system::CheckVersion<Runtime>": "[u8; 0]",
-        "system::CheckGenesis<Runtime>": "[u8; 0]",
-        "system::CheckEra<Runtime>": "Era",
-        "Era": {
-          "_enum": {
-              "Immortal",
-              "Mortal": "(Period, Phase)"
-          }
-        },
-        "Period": "u64",
-        "Phase": "u64",
-        "system::CheckNonce<Runtime>": "Compact<Index>",
-        "system::CheckWeight<Runtime>": "[u8; 0]",
-        "transaction_payment::ChargeTransactionPayment::<Runtime>": "BalanceOf",
-        "registrar::LimitParathreadCommits<Runtime>": "[u8; 0]"
+        "CheckVersion<Runtime>": "[u8; 0]",
+        "CheckGenesis<Runtime>": "[u8; 0]",
+        "CheckEra<Runtime>": "Era",
+        "CheckNonce<Runtime>": "Compact<Index>",
+        "CheckWeight<Runtime>": "[u8; 0]",
+        "ChargeTransactionPayment::<Runtime>": "BalanceOf",
+        "LimitParathreadCommits<Runtime>": "[u8; 0]"
       }
     }
   ]

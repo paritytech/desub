@@ -29,6 +29,9 @@ pub enum SubstrateType {
     /// 256-bit hash type
     H256(primitives::H256),
 
+    /// Era
+    Era(runtime_primitives::generic::Era),
+    
     /// SignedExtension Type
     SignedExtra(String),
 

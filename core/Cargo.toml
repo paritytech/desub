@@ -15,6 +15,7 @@ num = "0.2"
 onig = "5.0"
 
 primitives = { git = "https://github.com/paritytech/substrate", package = "sp-core" }
+runtime_primitives = { git = "https://github.com/paritytech/substrate", package = "sp-runtime" }
 runtime-metadata-latest = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", branch = "polkadot-master" }
 runtime-metadata10 = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", rev = "e931f9e5c2ae165658587f04d075c59a338061fb"}
 runtime-metadata09 = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", rev = "a512dcdd3931aa571c92c8550a0e079d5b27239a" }
@@ -29,7 +30,6 @@ runtime-metadata07 = { git = "https://github.com/paritytech/substrate/", package
 # runtime-metadata01 = { git = "https://github.com/paritytech/substrate/", package = "srml-metadata",  rev = "a29f214132a81f82e8b833f4d941b6d57680989f" } # not supported (yet)
 
 runtime-version = { git = "https://github.com/paritytech/substrate/", package = "sp-version", branch = "polkadot-master" }
-substrate-primitives = { git = "https://github.com/paritytech/substrate/", package = "sp-core", branch = "polkadot-master" }
 derive_more = "0.99.2"
 
 [dev-dependencies]

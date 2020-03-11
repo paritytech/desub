@@ -32,8 +32,7 @@ use crate::{
     error::Error,
     substrate_types::{StructField, StructUnitOrTuple, SubstrateType},
     CommonTypes, RustTypeMarker, TypeDetective,
-};
-use codec::{Compact, CompactLen, Decode};
+}; use codec::{Compact, CompactLen, Decode};
 // use serde::Serialize;
 use std::{collections::HashMap, convert::TryFrom};
 
@@ -145,8 +144,7 @@ where
         let version = version & 0b0111_1111;
         // the second byte will be the index of the
         // call enum
-        cursor += 1;
-
+        cursor+=1;
         let mut signature: Option<(
             SubstrateType,
             SubstrateType,
@@ -168,6 +166,7 @@ where
 
         println!("{:?}", &data[cursor..]);
         // split into decode call
+
         dbg!(&cursor);
         let module = meta.module_by_index(ModuleIndex::Call(data[cursor]))?;
         cursor += 1;
@@ -221,6 +220,7 @@ where
     ) -> Result<SubstrateType, Error> {
         let ty = match ty {
             RustTypeMarker::TypePointer(v) => {
+                println!("Should have era at some point {:?}", v);
                 dbg!(&cursor);
                 dbg!(&v);
                 if let Some(t) = self.decode_sub_type(spec, v, data, cursor, is_compact) {
@@ -231,7 +231,7 @@ where
                         .get(module, v, spec, self.chain.as_str())
                         .ok_or(Error::DecodeFail)?
                         .as_type();
-                    dbg!(&data[*cursor..]);
+                    println!("{:?}", &data[*cursor..]);
                     print!("NewType: ");
                     dbg!(&new_type);
                     self.decode_single(module, spec, new_type, data, cursor, is_compact)?
@@ -288,6 +288,7 @@ where
             RustTypeMarker::Array { size, ty } => {
                 let mut decoded_arr = Vec::with_capacity(*size);
                 if *size == 0 as usize {
+                    println!("Returning Empty Vector");
                     return Ok(SubstrateType::Composite(Vec::new()));
                 } else {
                     for _ in 0..*size {
@@ -531,12 +532,13 @@ where
     // TODO: test this with the substrate types used
     fn decode_sub_type(
         &self,
-        spec: SpecVersion,
+        _spec: SpecVersion,
         ty: &str,
         data: &[u8],
         cursor: &mut usize,
         _is_compact: bool,
     ) -> Option<SubstrateType> {
+        /*
         // check if type is of signed extension
         if let Some(e) = self.types.get_extrinsic_ty(spec, self.chain.as_str(), "SignedExtra") {
             match e.as_type() {
@@ -560,18 +562,31 @@ where
                 _ => ()
             };
         }
-
+        */
         match ty {
+            "Era" => {
+                println!("DO GET HERE");
+                println!("{:X?}", &data[*cursor..]);
+                // *cursor -= 1;
+                let val: runtime_primitives::generic::Era =
+                    Decode::decode(&mut &data[*cursor..]).ok()?;
+                match val {
+                    runtime_primitives::generic::Era::Immortal => *cursor += 1,
+                    runtime_primitives::generic::Era::Mortal(_, _) => *cursor += 1
+                };
+                println!("{:?}", val);
+                Some(SubstrateType::Era(val))
+            }
             "H256" => {
                 let val: primitives::H256 =
-                    Decode::decode(&mut &data[*cursor..=*cursor + 32]).ok()?;
-                *cursor += 33;
+                    Decode::decode(&mut &data[*cursor..]).ok()?;
+                *cursor += 32;
                 Some(SubstrateType::H256(val))
             }
             "H512" => {
                 let val: primitives::H512 =
-                    Decode::decode(&mut &data[*cursor..=*cursor + 64]).ok()?;
-                *cursor += 65;
+                    Decode::decode(&mut &data[*cursor..]).ok()?;
+                *cursor += 64;
                 Some(SubstrateType::H512(val))
             },
             _ => None,

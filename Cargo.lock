@@ -373,8 +373,8 @@ dependencies = [
  "parity-scale-codec",
  "serde",
  "serde_json",
- "sp-core 2.0.0 (git+https://github.com/paritytech/substrate/?branch=polkadot-master)",
  "sp-core 2.0.0-alpha.3",
+ "sp-runtime 2.0.0-alpha.3",
  "sp-version",
  "srml-metadata 2.0.0 (git+https://github.com/paritytech/substrate/?rev=7c8bd73cef8c6afd60fec837d8f5e732a39a5615)",
  "srml-metadata 2.0.0 (git+https://github.com/paritytech/substrate/?rev=ac11c330a95827211e1999781b5f691e72387c9e)",
@@ -1739,14 +1739,39 @@ checksum = "5c2fb2ec9bcd216a5b0d0ccf31ab17b5ed1d627960edff65bbe95d3ce221cefc"
 
 [[package]]
 name = "sp-application-crypto"
+version = "2.0.0-alpha.3"
+source = "git+https://github.com/paritytech/substrate#3cfd9ee3ebd0141af725b7acdf478d89690dd2ef"
+dependencies = [
+ "parity-scale-codec",
+ "serde",
+ "sp-core 2.0.0-alpha.3",
+ "sp-io 2.0.0-alpha.3",
+ "sp-std 2.0.0-alpha.3",
+]
+
+[[package]]
+name = "sp-application-crypto"
 version = "2.0.0"
 source = "git+https://github.com/paritytech/substrate/?branch=polkadot-master#6c0232b9a34d1680cf3d0f1e383edb6f8aa4dffa"
 dependencies = [
  "parity-scale-codec",
  "serde",
  "sp-core 2.0.0 (git+https://github.com/paritytech/substrate/?branch=polkadot-master)",
- "sp-io",
+ "sp-io 2.0.0",
  "sp-std 2.0.0 (git+https://github.com/paritytech/substrate/?branch=polkadot-master)",
+]
+
+[[package]]
+name = "sp-arithmetic"
+version = "2.0.0-alpha.3"
+source = "git+https://github.com/paritytech/substrate#3cfd9ee3ebd0141af725b7acdf478d89690dd2ef"
+dependencies = [
+ "integer-sqrt",
+ "num-traits",
+ "parity-scale-codec",
+ "serde",
+ "sp-debug-derive 2.0.0-alpha.3",
+ "sp-std 2.0.0-alpha.3",
 ]
 
 [[package]]
@@ -1943,6 +1968,18 @@ dependencies = [
 
 [[package]]
 name = "sp-inherents"
+version = "2.0.0-alpha.3"
+source = "git+https://github.com/paritytech/substrate#3cfd9ee3ebd0141af725b7acdf478d89690dd2ef"
+dependencies = [
+ "derive_more",
+ "parity-scale-codec",
+ "parking_lot 0.10.0",
+ "sp-core 2.0.0-alpha.3",
+ "sp-std 2.0.0-alpha.3",
+]
+
+[[package]]
+name = "sp-inherents"
 version = "2.0.0"
 source = "git+https://github.com/paritytech/substrate/?branch=polkadot-master#6c0232b9a34d1680cf3d0f1e383edb6f8aa4dffa"
 dependencies = [
@@ -1951,6 +1988,24 @@ dependencies = [
  "parking_lot 0.10.0",
  "sp-core 2.0.0 (git+https://github.com/paritytech/substrate/?branch=polkadot-master)",
  "sp-std 2.0.0 (git+https://github.com/paritytech/substrate/?branch=polkadot-master)",
+]
+
+[[package]]
+name = "sp-io"
+version = "2.0.0-alpha.3"
+source = "git+https://github.com/paritytech/substrate#3cfd9ee3ebd0141af725b7acdf478d89690dd2ef"
+dependencies = [
+ "hash-db 0.15.2",
+ "libsecp256k1",
+ "log",
+ "parity-scale-codec",
+ "sp-core 2.0.0-alpha.3",
+ "sp-externalities 0.8.0-alpha.3",
+ "sp-runtime-interface 2.0.0-alpha.3",
+ "sp-state-machine 0.8.0-alpha.3",
+ "sp-std 2.0.0-alpha.3",
+ "sp-trie 2.0.0-alpha.3",
+ "sp-wasm-interface 2.0.0-alpha.3",
 ]
 
 [[package]]
@@ -1965,10 +2020,19 @@ dependencies = [
  "sp-core 2.0.0 (git+https://github.com/paritytech/substrate/?branch=polkadot-master)",
  "sp-externalities 0.8.0 (git+https://github.com/paritytech/substrate/?branch=polkadot-master)",
  "sp-runtime-interface 2.0.0 (git+https://github.com/paritytech/substrate/?branch=polkadot-master)",
- "sp-state-machine",
+ "sp-state-machine 0.8.0",
  "sp-std 2.0.0 (git+https://github.com/paritytech/substrate/?branch=polkadot-master)",
- "sp-trie",
+ "sp-trie 2.0.0",
  "sp-wasm-interface 2.0.0 (git+https://github.com/paritytech/substrate/?branch=polkadot-master)",
+]
+
+[[package]]
+name = "sp-panic-handler"
+version = "2.0.0-alpha.3"
+source = "git+https://github.com/paritytech/substrate#3cfd9ee3ebd0141af725b7acdf478d89690dd2ef"
+dependencies = [
+ "backtrace",
+ "log",
 ]
 
 [[package]]
@@ -1978,6 +2042,27 @@ source = "git+https://github.com/paritytech/substrate/?branch=polkadot-master#6c
 dependencies = [
  "backtrace",
  "log",
+]
+
+[[package]]
+name = "sp-runtime"
+version = "2.0.0-alpha.3"
+source = "git+https://github.com/paritytech/substrate#3cfd9ee3ebd0141af725b7acdf478d89690dd2ef"
+dependencies = [
+ "hash256-std-hasher 0.15.2",
+ "impl-trait-for-tuples",
+ "log",
+ "parity-scale-codec",
+ "parity-util-mem",
+ "paste",
+ "rand 0.7.3",
+ "serde",
+ "sp-application-crypto 2.0.0-alpha.3",
+ "sp-arithmetic 2.0.0-alpha.3",
+ "sp-core 2.0.0-alpha.3",
+ "sp-inherents 2.0.0-alpha.3",
+ "sp-io 2.0.0-alpha.3",
+ "sp-std 2.0.0-alpha.3",
 ]
 
 [[package]]
@@ -1992,11 +2077,11 @@ dependencies = [
  "paste",
  "rand 0.7.3",
  "serde",
- "sp-application-crypto",
- "sp-arithmetic",
+ "sp-application-crypto 2.0.0",
+ "sp-arithmetic 2.0.0",
  "sp-core 2.0.0 (git+https://github.com/paritytech/substrate/?branch=polkadot-master)",
- "sp-inherents",
- "sp-io",
+ "sp-inherents 2.0.0",
+ "sp-io 2.0.0",
  "sp-std 2.0.0 (git+https://github.com/paritytech/substrate/?branch=polkadot-master)",
 ]
 
@@ -2080,6 +2165,25 @@ dependencies = [
 
 [[package]]
 name = "sp-state-machine"
+version = "0.8.0-alpha.3"
+source = "git+https://github.com/paritytech/substrate#3cfd9ee3ebd0141af725b7acdf478d89690dd2ef"
+dependencies = [
+ "hash-db 0.15.2",
+ "log",
+ "num-traits",
+ "parity-scale-codec",
+ "parking_lot 0.10.0",
+ "rand 0.7.3",
+ "sp-core 2.0.0-alpha.3",
+ "sp-externalities 0.8.0-alpha.3",
+ "sp-panic-handler 2.0.0-alpha.3",
+ "sp-trie 2.0.0-alpha.3",
+ "trie-db",
+ "trie-root",
+]
+
+[[package]]
+name = "sp-state-machine"
 version = "0.8.0"
 source = "git+https://github.com/paritytech/substrate/?branch=polkadot-master#6c0232b9a34d1680cf3d0f1e383edb6f8aa4dffa"
 dependencies = [
@@ -2091,8 +2195,8 @@ dependencies = [
  "rand 0.7.3",
  "sp-core 2.0.0 (git+https://github.com/paritytech/substrate/?branch=polkadot-master)",
  "sp-externalities 0.8.0 (git+https://github.com/paritytech/substrate/?branch=polkadot-master)",
- "sp-panic-handler",
- "sp-trie",
+ "sp-panic-handler 2.0.0",
+ "sp-trie 2.0.0",
  "trie-db",
  "trie-root",
 ]
@@ -2147,6 +2251,20 @@ dependencies = [
 
 [[package]]
 name = "sp-trie"
+version = "2.0.0-alpha.3"
+source = "git+https://github.com/paritytech/substrate#3cfd9ee3ebd0141af725b7acdf478d89690dd2ef"
+dependencies = [
+ "hash-db 0.15.2",
+ "memory-db",
+ "parity-scale-codec",
+ "sp-core 2.0.0-alpha.3",
+ "sp-std 2.0.0-alpha.3",
+ "trie-db",
+ "trie-root",
+]
+
+[[package]]
+name = "sp-trie"
 version = "2.0.0"
 source = "git+https://github.com/paritytech/substrate/?branch=polkadot-master#6c0232b9a34d1680cf3d0f1e383edb6f8aa4dffa"
 dependencies = [
@@ -2167,7 +2285,7 @@ dependencies = [
  "impl-serde 0.2.3",
  "parity-scale-codec",
  "serde",
- "sp-runtime",
+ "sp-runtime 2.0.0",
  "sp-std 2.0.0 (git+https://github.com/paritytech/substrate/?branch=polkadot-master)",
 ]
 
