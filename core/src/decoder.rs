@@ -145,36 +145,27 @@ where
         // the second byte will be the index of the
         // call enum
         cursor+=1;
-        let mut signature: Option<(
-            SubstrateType,
-            SubstrateType,
-            SubstrateType,
-        )> = None;
 
         // TODO: split into decode_signature
-        if is_signed {
+        let signature: Option<_> = if is_signed {
             cursor += 1;
-            println!("IS SIGNED");
+            log::debug!("SIGNED EXTRINSIC");
             let signature =
                 self.types
                     .get_extrinsic_ty(spec, self.chain.as_str(), "signature")
                     .expect("Signature must not be empty")
                     .as_type();
-            let ty = self.decode_single("system", spec, signature, data, &mut cursor, false)?;
-            println!("{:X?}", ty);
-        }
+            Some(self.decode_single("runtime", spec, signature, data, &mut cursor, false)?)
+        } else { None };
 
-        println!("{:?}", &data[cursor..]);
-        // split into decode call
-
-        dbg!(&cursor);
+        log::debug!("cursor = {}", cursor);
         let module = meta.module_by_index(ModuleIndex::Call(data[cursor]))?;
         cursor += 1;
-        dbg!(&cursor);
+        log::debug!("cursor = {}", cursor);
         let call_meta = module.call(data[cursor])?;
         cursor += 1;
-        dbg!(&cursor);
-        println!("{:?}", &data[cursor..]);
+        log::debug!("cursor = {}", cursor);
+        log::debug!("data = {:X?}", &data[cursor..]);
 
         // TODO: tuple of argument name -> value
         let mut types: Vec<(String, SubstrateType)> = Vec::new();
@@ -220,9 +211,6 @@ where
     ) -> Result<SubstrateType, Error> {
         let ty = match ty {
             RustTypeMarker::TypePointer(v) => {
-                println!("Should have era at some point {:?}", v);
-                dbg!(&cursor);
-                dbg!(&v);
                 if let Some(t) = self.decode_sub_type(spec, v, data, cursor, is_compact) {
                     t
                 } else {
@@ -231,9 +219,6 @@ where
                         .get(module, v, spec, self.chain.as_str())
                         .ok_or(Error::DecodeFail)?
                         .as_type();
-                    println!("{:?}", &data[*cursor..]);
-                    print!("NewType: ");
-                    dbg!(&new_type);
                     self.decode_single(module, spec, new_type, data, cursor, is_compact)?
                 }
             }
@@ -565,16 +550,12 @@ where
         */
         match ty {
             "Era" => {
-                println!("DO GET HERE");
-                println!("{:X?}", &data[*cursor..]);
-                // *cursor -= 1;
                 let val: runtime_primitives::generic::Era =
                     Decode::decode(&mut &data[*cursor..]).ok()?;
                 match val {
                     runtime_primitives::generic::Era::Immortal => *cursor += 1,
                     runtime_primitives::generic::Era::Mortal(_, _) => *cursor += 1
                 };
-                println!("{:?}", val);
                 Some(SubstrateType::Era(val))
             }
             "H256" => {
@@ -720,7 +701,7 @@ mod tests {
             let val = $v.encode();
             let decoder = Decoder::new(GenericTypes, "kusama");
             let res = decoder
-                .decode_single("system", 1031, &$x, val.as_slice(), &mut 0, false)
+                .decode_single("", 1031, &$x, val.as_slice(), &mut 0, false)
                 .unwrap();
 
             assert_eq!($r, res)
