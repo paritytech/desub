@@ -24,14 +24,14 @@
         "Address": "AccountId",
         "AccountIndex": "u32",
         "AccountId": "[u8; 32]",
-        "SignedExtra": "(OnlyStakingAndClaims, system::CheckVersion<Runtime>, system::CheckGenesis<Runtime>, system::CheckEra<Runtime>, system::CheckNonce<Runtime>, system::CheckWeight<Runtime>, transaction_payment::ChargeTransactionPayment::<Runtime>, registrar::LimitParathreadCommits<Runtime>)",
+        "SignedExtra": "(OnlyStakingAndClaims, system::CheckVersion<Runtime>, system::CheckGenesis<Runtime>, system::CheckEra<Runtime>, system::CheckNonce<Runtime>, system::CheckWeight<Runtime>, transaction_payment::ChargeTransactionPayment<Runtime>, registrar::LimitParathreadCommits<Runtime>)",
         "OnlyStakingAndClaims": "[u8; 0]",
         "CheckVersion<Runtime>": "[u8; 0]",
         "CheckGenesis<Runtime>": "[u8; 0]",
         "CheckEra<Runtime>": "Era",
         "CheckNonce<Runtime>": "Compact<Index>",
         "CheckWeight<Runtime>": "[u8; 0]",
-        "ChargeTransactionPayment::<Runtime>": "BalanceOf",
+        "ChargeTransactionPayment<Runtime>": "Compact<BalanceOf>",
         "LimitParathreadCommits<Runtime>": "[u8; 0]"
       }
     }

@@ -31,12 +31,16 @@ runtime-metadata07 = { git = "https://github.com/paritytech/substrate/", package
 
 runtime-version = { git = "https://github.com/paritytech/substrate/", package = "sp-version", branch = "polkadot-master" }
 derive_more = "0.99.2"
+# For tests
+fern = { version = "0.6.0", features = ["colored"], optional = true }
+dirs = { version = "2.0.2", optional = true }
+chrono = { version = "0.4.11", optional = true }
+
 
 [dev-dependencies]
 extras = { path = "../extras/", features = ["polkadot"], package = "desub-extras" }
-
 [features]
 # used because integration tests are external and not run under #[cfg(test)]
 # but all the mock data is under #[cfg(test)]
 # This feature is to also put the mock data under an external feature flag, test
-test = []
+test = ["fern", "dirs", "chrono"]

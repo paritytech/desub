@@ -18,6 +18,8 @@ pub mod decoder;
 mod error;
 pub mod regex;
 mod substrate_types;
+#[cfg(any(test, feature = "test"))]
+pub mod util;
 
 #[cfg(any(test, feature = "test"))]
 pub mod test_suite;

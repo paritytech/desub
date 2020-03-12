@@ -66,6 +66,25 @@ pub enum Entry {
     Constant,
 }
 
+#[derive(Debug)]
+pub struct GenericExtrinsic {
+    signature: Option<SubstrateType>,
+    call: Vec<(String, SubstrateType)>,
+}
+
+impl GenericExtrinsic {
+    pub fn new(sig: Option<SubstrateType>, call: Vec<(String, SubstrateType)>) -> Self {
+        Self {
+            signature: sig,
+            call,
+        }
+    }
+
+    pub fn call(&self) -> &Vec<(String, SubstrateType)> {
+        &self.call
+    }
+}
+
 impl<T> Decoder<T>
 where
     T: TypeDetective,
@@ -129,7 +148,7 @@ where
         &self,
         spec: SpecVersion,
         data: &[u8],
-    ) -> Result<Vec<(String, SubstrateType)>, Error> {
+    ) -> Result<GenericExtrinsic, Error> {
         let meta = self.versions.get(&spec).expect("Spec does not exist");
 
         // first byte -> vector length
@@ -157,7 +176,8 @@ where
                     .as_type();
             Some(self.decode_single("runtime", spec, signature, data, &mut cursor, false)?)
         } else { None };
-
+        log::debug!("Signature: {:?}", signature);
+        log::debug!("data = {:?}", &data[cursor..]);
         log::debug!("cursor = {}", cursor);
         let module = meta.module_by_index(ModuleIndex::Call(data[cursor]))?;
         cursor += 1;
@@ -170,7 +190,7 @@ where
         // TODO: tuple of argument name -> value
         let mut types: Vec<(String, SubstrateType)> = Vec::new();
         for arg in call_meta.arguments() {
-            dbg!(&arg);
+            log::trace!("arg = {:?}", arg);
             let val = self.decode_single(
                 module.name(),
                 spec,
@@ -181,10 +201,7 @@ where
             )?;
             types.push((arg.name.to_string(), val));
         }
-        Ok(types)
-        // println!("{:#?}", module);
-        // println!("Mod: {:#?}", module);
-        // byte three will be the index of the function enum
+        Ok(GenericExtrinsic::new(signature, types))
 
         // TODO
         // should have a list of 'guess type' where
@@ -217,7 +234,7 @@ where
                     let new_type = self
                         .types
                         .get(module, v, spec, self.chain.as_str())
-                        .ok_or(Error::DecodeFail)?
+                        .ok_or(Error::from("Name Resolution Failure"))?
                         .as_type();
                     self.decode_single(module, spec, new_type, data, cursor, is_compact)?
                 }
@@ -273,7 +290,7 @@ where
             RustTypeMarker::Array { size, ty } => {
                 let mut decoded_arr = Vec::with_capacity(*size);
                 if *size == 0 as usize {
-                    println!("Returning Empty Vector");
+                    log::trace!("Returning Empty Vector");
                     return Ok(SubstrateType::Composite(Vec::new()));
                 } else {
                     for _ in 0..*size {
@@ -375,6 +392,7 @@ where
                 num.into()
             }
             RustTypeMarker::U32 => {
+                println!("HEREHEREHERE");
                 let num: u32 = if is_compact {
                     let num: Compact<u32> = Decode::decode(&mut &data[*cursor..])?;
                     *cursor += Compact::compact_len(&u32::from(num));
@@ -523,38 +541,13 @@ where
         cursor: &mut usize,
         _is_compact: bool,
     ) -> Option<SubstrateType> {
-        /*
-        // check if type is of signed extension
-        if let Some(e) = self.types.get_extrinsic_ty(spec, self.chain.as_str(), "SignedExtra") {
-            match e.as_type() {
-                RustTypeMarker::TypePointer(t) => {
-                    if ty == t {
-                        return Some(SubstrateType::SignedExtra(t.to_string()));
-                    }
-                },
-                RustTypeMarker::Tuple(v) => {
-                    for t in v.iter() {
-                        match t {
-                            RustTypeMarker::TypePointer(t) => {
-                                if t == ty {
-                                    return Some(SubstrateType::SignedExtra(t.to_string()));
-                                }
-                            },
-                            _ => (),
-                        }
-                    }
-                }
-                _ => ()
-            };
-        }
-        */
         match ty {
             "Era" => {
                 let val: runtime_primitives::generic::Era =
                     Decode::decode(&mut &data[*cursor..]).ok()?;
                 match val {
                     runtime_primitives::generic::Era::Immortal => *cursor += 1,
-                    runtime_primitives::generic::Era::Mortal(_, _) => *cursor += 1
+                    runtime_primitives::generic::Era::Mortal(_, _) => *cursor += 2
                 };
                 Some(SubstrateType::Era(val))
             }

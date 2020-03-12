@@ -13,7 +13,9 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Deserializes Polkadot Type Definitions into general struct defined in `core/lib.rs`
-
+// TODO: all type resolution should be refactored
+// this is a very confusing and inefficient warranty
+// but it works (for the most part)
 mod definitions;
 mod overrides;
 mod extrinsics;
@@ -59,7 +61,7 @@ impl PolkadotTypes {
             ty.to_string()
         };
 
-        println!("{}", ty);
+        log::debug!("Getting Type: {}", ty);
         if let Some(t) = self.check_overrides(module, ty.as_str(), spec, chain) {
             Some(&t)
         } else if let Some(t) = self.check_extrinsics(ty.as_str(), spec, chain) {
@@ -166,10 +168,11 @@ impl TypeDetective for PolkadotTypes {
 
     fn get_extrinsic_ty(&self, spec: u32, chain: &str, ty: &str) -> Option<&dyn Decodable> {
         let ty = self.check_extrinsics(ty, spec, chain);
+
         let ty = if let Some(t) = ty {
             match t {
                 t @ RustTypeMarker::TypePointer(_) => {
-                    self.resolve_helper("system", t)
+                    self.resolve_helper("runtime", t)
                 },
                 t => Some(t)
             }
