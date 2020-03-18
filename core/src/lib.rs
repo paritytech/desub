@@ -37,7 +37,12 @@ pub trait TypeDetective {
     ) -> Option<&dyn Decodable>;
 
     /// get a type specific to decoding extrinsics
-    fn get_extrinsic_ty(&self, spec: u32, chain: &str, ty: &str) -> Option<&dyn Decodable>;
+    fn get_extrinsic_ty(
+        &self,
+        spec: u32,
+        chain: &str,
+        ty: &str,
+    ) -> Option<&dyn Decodable>;
 
     /// Resolve a type pointer into the type it points to
     fn resolve(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker>;
@@ -120,10 +125,7 @@ pub struct EnumField {
 
 impl EnumField {
     pub fn new(variant_name: Option<String>, ty: StructUnitOrTuple) -> Self {
-        EnumField {
-            variant_name,
-            ty
-        }
+        EnumField { variant_name, ty }
     }
 }
 
@@ -131,14 +133,14 @@ impl EnumField {
 pub enum StructUnitOrTuple {
     Struct(Vec<StructField>),
     Unit(String),
-    Tuple(RustTypeMarker)
+    Tuple(RustTypeMarker),
 }
 
 impl From<String> for EnumField {
     fn from(s: String) -> EnumField {
         EnumField {
             variant_name: None,
-            ty: StructUnitOrTuple::Unit(s)
+            ty: StructUnitOrTuple::Unit(s),
         }
     }
 }
@@ -151,18 +153,15 @@ impl Display for EnumField {
                 for s in s.iter() {
                     _enum.push_str(&format!("{}, ", s));
                 }
-            },
+            }
             StructUnitOrTuple::Unit(u) => {
                 _enum.push_str(&format!("{}, ", u));
-            },
-            StructUnitOrTuple::Tuple(v) => {
-                _enum.push_str(&format!("{} ", v))
             }
+            StructUnitOrTuple::Tuple(v) => _enum.push_str(&format!("{} ", v)),
         };
         write!(f, "{}", _enum)
     }
 }
-
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 /// Definitions for common patterns seen in Substrate/Polkadot
@@ -316,9 +315,7 @@ impl Display for RustTypeMarker {
                     type_marker.push_str(&format!("{}, ", substring))
                 }
             }
-            RustTypeMarker::Tuple(t) => {
-                type_marker.push_str(&display_types(&t))
-            }
+            RustTypeMarker::Tuple(t) => type_marker.push_str(&display_types(&t)),
             RustTypeMarker::Enum(t) => {
                 type_marker.push_str("{ ");
                 for field in t.iter() {
@@ -456,7 +453,7 @@ impl Decodable for RustTypeMarker {
     fn is_type_pointer(&self) -> bool {
         match self {
             RustTypeMarker::TypePointer(_) => true,
-            _ => false
+            _ => false,
         }
     }
 }

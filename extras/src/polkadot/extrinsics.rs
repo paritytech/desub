@@ -15,10 +15,10 @@
 // TODO: open this file or pass it via CLI to reduce binary size
 // TODO: So much of this code is redundant between extrinsics.rs and overrides.rs
 // TODO: merge the similarities
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use super::ModuleTypes;
 use crate::error::Error;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 pub const EXTRINSICS: &'static str = include_str!("./dot_definitions/extrinsics.json");
 
 #[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
@@ -27,13 +27,11 @@ pub struct Types {
     #[serde(rename = "minmax")]
     min_max: [Option<usize>; 2],
     /// types relevant to the spec
-    types: ModuleTypes
+    types: ModuleTypes,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
-pub struct Extrinsics (
-    HashMap<String, Vec<Types>>
-);
+pub struct Extrinsics(HashMap<String, Vec<Types>>);
 
 impl Extrinsics {
     pub fn new(raw_json: &str) -> Result<Self, Error> {
@@ -41,10 +39,11 @@ impl Extrinsics {
     }
 
     pub fn get_chain_types(&self, chain: &str, spec: u32) -> Option<&ModuleTypes> {
-        self.0.get(chain)?
-        .iter()
-        .find(|f| Self::is_in_range(spec, f))
-        .map(|o| &o.types)
+        self.0
+            .get(chain)?
+            .iter()
+            .find(|f| Self::is_in_range(spec, f))
+            .map(|o| &o.types)
     }
 
     fn is_in_range(spec: u32, over_ride: &Types) -> bool {

@@ -41,6 +41,7 @@ use codec411::Decode as OldDecode;
 use failure::Fail;
 use runtime_metadata_latest::{StorageEntryModifier, StorageEntryType, StorageHasher};
 
+use primitives::storage::StorageKey;
 use std::{
     collections::{HashMap, HashSet},
     convert::TryInto,
@@ -49,7 +50,6 @@ use std::{
     rc::Rc,
     str::FromStr,
 };
-use primitives::storage::StorageKey;
 
 /// Newtype struct around a Vec<u8> (vector of bytes)
 #[derive(Clone)]
@@ -437,15 +437,9 @@ impl<K: Encode, V: Decode + Clone> StorageMap<K, V> {
         let mut bytes = self.prefix.clone();
         bytes.extend(key.encode());
         let hash = match self.hasher {
-            StorageHasher::Blake2_128 => {
-                primitives::blake2_128(&bytes).to_vec()
-            }
-            StorageHasher::Blake2_256 => {
-                primitives::blake2_256(&bytes).to_vec()
-            }
-            StorageHasher::Blake2_128Concat => {
-                primitives::blake2_128(&bytes).to_vec()
-            }
+            StorageHasher::Blake2_128 => primitives::blake2_128(&bytes).to_vec(),
+            StorageHasher::Blake2_256 => primitives::blake2_256(&bytes).to_vec(),
+            StorageHasher::Blake2_128Concat => primitives::blake2_128(&bytes).to_vec(),
             StorageHasher::Twox128 => primitives::twox_128(&bytes).to_vec(),
             StorageHasher::Twox256 => primitives::twox_256(&bytes).to_vec(),
             StorageHasher::Twox64Concat => primitives::twox_64(&bytes).to_vec(),

@@ -803,8 +803,12 @@ mod tests {
                              "Hoo, Ioo, Joo, Koo, Loo, Moo, Noo, Ooo, Poo, Qoo, Roo, Soo, Too, Uoo, Voo, Xoo,",
                              "Hoo, Ioo, Joo, Koo, Loo, Moo, Noo, Ooo, Poo, Qoo, Roo, Soo, Too, Uoo, Voo, Xoo)"
                              ].join("").as_str()));
-        assert!(re.is_match(["(StorageKey, Option<StorageData>, Foo,
-        Bar, Aoo)"].join("").as_str()));
+        assert!(re.is_match(
+            ["(StorageKey, Option<StorageData>, Foo,
+        Bar, Aoo)"]
+            .join("")
+            .as_str()
+        ));
     }
 
     #[test]

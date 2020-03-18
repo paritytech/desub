@@ -19,7 +19,7 @@
 use crate::SetField;
 use std::fmt;
 
-use primitives::crypto::{AccountId32, Ss58Codec, Ss58AddressFormat};
+use primitives::crypto::{AccountId32, Ss58AddressFormat, Ss58Codec};
 pub type Address = pallet_indices::address::Address<AccountId32, u32>;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -27,7 +27,6 @@ pub type Address = pallet_indices::address::Address<AccountId32, u32>;
 /// 'Std' variant is not here like in RustTypeMarker
 /// Instead common types are just apart fo the original enum
 pub enum SubstrateType {
-
     /// 512-bit hash type
     H512(primitives::H512),
     /// 256-bit hash type
@@ -100,27 +99,23 @@ impl fmt::Display for SubstrateType {
         match self {
             SubstrateType::H512(v) => write!(f, "{}", v),
             SubstrateType::H256(v) => write!(f, "{}", v),
-            SubstrateType::Era(v) => {
-                match v {
-                    runtime_primitives::generic::Era::Mortal(s, e) => {
-                        write!(f, "Era {}..{}", s, e)
-                    },
-                    runtime_primitives::generic::Era::Immortal => {
-                        write!(f, "Immortal Era")
-                    }
+            SubstrateType::Era(v) => match v {
+                runtime_primitives::generic::Era::Mortal(s, e) => {
+                    write!(f, "Era {}..{}", s, e)
                 }
+                runtime_primitives::generic::Era::Immortal => write!(f, "Immortal Era"),
             },
             SubstrateType::Address(v) => {
                 match v {
                     pallet_indices::address::Address::Id(ref i) => {
-                        write!(f, "Account::Id({})", i.to_ss58check_with_version(Ss58AddressFormat::KusamaAccount))
-                        // write!(f, "Account::Id({})", i)
-                    },
+                        // write!(f, "Account::Id({})", i.to_ss58check_with_version(Ss58AddressFormat::KusamaAccount))
+                        write!(f, "Account::Id({})", i)
+                    }
                     pallet_indices::address::Address::Index(i) => {
                         write!(f, "Index: {:?}", i)
                     }
                 }
-            },
+            }
             SubstrateType::SignedExtra(v) => write!(f, "{}", v),
             SubstrateType::Composite(v) => {
                 let mut s = String::from("");
@@ -129,73 +124,35 @@ impl fmt::Display for SubstrateType {
                 }
                 write!(f, "{}", s)
             }
-            SubstrateType::Set(v) => {
-                write!(f, "{}", v)
-            },
-            SubstrateType::Enum(v) => {
-                write!(f, "{}", v)
-            },
+            SubstrateType::Set(v) => write!(f, "{}", v),
+            SubstrateType::Enum(v) => write!(f, "{}", v),
             SubstrateType::Struct(v) => {
                 let mut s = String::from("");
                 for val in v.iter() {
                     s.push_str(&format!("{}", val))
                 }
                 write!(f, "{}", s)
-            },
-            SubstrateType::Option(v) => {
-                write!(f, "{:?}", v)
-            },
-            SubstrateType::Result(v) => {
-                write!(f, "{:?}", v)
-            },
+            }
+            SubstrateType::Option(v) => write!(f, "{:?}", v),
+            SubstrateType::Result(v) => write!(f, "{:?}", v),
             SubstrateType::U8(v) => {
                 write!(f, "{:X}", v) // u8's print in hex format
-            },
-            SubstrateType::U16(v) => {
-                write!(f, "{}", v)
-            },
-            SubstrateType::U32(v) => {
-                write!(f, "{}", v)
-            },
-            SubstrateType::U64(v) => {
-                write!(f, "{}", v)
-            },
-            SubstrateType::U128(v) => {
-                write!(f, "{}", v)
-            },
-            SubstrateType::USize(v) => {
-                write!(f, "{}", v)
-            },
-            SubstrateType::I8(v) => {
-                write!(f, "{}", v)
-            },
-            SubstrateType::I16(v) => {
-                write!(f, "{}", v)
-            },
-            SubstrateType::I32(v) => {
-                write!(f, "{}", v)
-            },
-            SubstrateType::I64(v) => {
-                write!(f, "{}", v)
-            },
-            SubstrateType::I128(v) => {
-                write!(f, "{}", v)
-            },
-            SubstrateType::ISize(v) => {
-                write!(f, "{}", v)
-            },
-            SubstrateType::F32(v) => {
-                write!(f, "{}", v)
-            },
-            SubstrateType::F64(v) => {
-                write!(f, "{}", v)
-            },
-            SubstrateType::Bool(v) => {
-                write!(f, "{}", v)
-            },
-            SubstrateType::Null => {
-                write!(f, "Null")
-            },
+            }
+            SubstrateType::U16(v) => write!(f, "{}", v),
+            SubstrateType::U32(v) => write!(f, "{}", v),
+            SubstrateType::U64(v) => write!(f, "{}", v),
+            SubstrateType::U128(v) => write!(f, "{}", v),
+            SubstrateType::USize(v) => write!(f, "{}", v),
+            SubstrateType::I8(v) => write!(f, "{}", v),
+            SubstrateType::I16(v) => write!(f, "{}", v),
+            SubstrateType::I32(v) => write!(f, "{}", v),
+            SubstrateType::I64(v) => write!(f, "{}", v),
+            SubstrateType::I128(v) => write!(f, "{}", v),
+            SubstrateType::ISize(v) => write!(f, "{}", v),
+            SubstrateType::F32(v) => write!(f, "{}", v),
+            SubstrateType::F64(v) => write!(f, "{}", v),
+            SubstrateType::Bool(v) => write!(f, "{}", v),
+            SubstrateType::Null => write!(f, "Null"),
         }
     }
 }
@@ -205,7 +162,7 @@ pub enum StructUnitOrTuple {
     Struct(Vec<StructField>),
     Unit(String),
     /// vector of variant name -> type
-    Tuple(String, Box<SubstrateType>)
+    Tuple(String, Box<SubstrateType>),
 }
 
 impl fmt::Display for StructUnitOrTuple {
@@ -216,11 +173,11 @@ impl fmt::Display for StructUnitOrTuple {
                 for val in v.iter() {
                     _enum.push_str(&format!("{}, ", val))
                 }
-            },
-            Self::Unit(v) => {
-                _enum.push_str(&format!("{}, ", v))
-            },
-            Self::Tuple(name, v) => _enum.push_str(&format!(" {}:{} ", name, v.to_string())),
+            }
+            Self::Unit(v) => _enum.push_str(&format!("{}, ", v)),
+            Self::Tuple(name, v) => {
+                _enum.push_str(&format!(" {}:{} ", name, v.to_string()))
+            }
         }
         _enum.push_str(" ]");
         write!(f, "{}", _enum)

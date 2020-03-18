@@ -32,7 +32,8 @@ use crate::{
     error::Error,
     substrate_types::{self, StructField, StructUnitOrTuple, SubstrateType},
     CommonTypes, RustTypeMarker, TypeDetective,
-}; use codec::{Compact, CompactLen, Decode};
+};
+use codec::{Compact, CompactLen, Decode};
 // use serde::Serialize;
 use std::{collections::HashMap, convert::TryFrom};
 
@@ -183,21 +184,30 @@ where
         let version = version & 0b0111_1111;
         log::debug!("Extrinsic Version: {}", version);
         // the second byte will be the index of the call enum
-        cursor+=1;
+        cursor += 1;
 
         // TODO: split into decode_signature
         let signature: Option<_> = if is_signed {
             // cursor += 1;
             log::debug!("SIGNED EXTRINSIC");
-            let signature =
-                self.types
-                    .get_extrinsic_ty(spec, self.chain.as_str(), "signature")
-                    .expect("Signature must not be empty")
-                    .as_type();
+            let signature = self
+                .types
+                .get_extrinsic_ty(spec, self.chain.as_str(), "signature")
+                .expect("Signature must not be empty")
+                .as_type();
             println!("HEREHERE");
             log::debug!("TYPE: {:?}", signature);
-            Some(self.decode_single("runtime", spec, signature, data, &mut cursor, false)?)
-        } else { None };
+            Some(self.decode_single(
+                "runtime",
+                spec,
+                signature,
+                data,
+                &mut cursor,
+                false,
+            )?)
+        } else {
+            None
+        };
         if let Some(s) = &signature {
             log::debug!("Signature: \n{}", s);
             log::debug!("End Signature");
@@ -324,7 +334,9 @@ where
                 } else {
                     for _ in 0..*size {
                         decoded_arr.push(
-                            self.decode_single(module, spec, ty, &data, cursor, is_compact)?,
+                            self.decode_single(
+                                module, spec, ty, &data, cursor, is_compact,
+                            )?,
                         )
                     }
                 }
@@ -354,7 +366,7 @@ where
                         0x00 => {
                             *cursor += 1;
                             SubstrateType::Option(Box::new(None))
-                        },
+                        }
                         // Some
                         0x01 => {
                             *cursor += 1;
@@ -571,34 +583,36 @@ where
     ) -> Option<SubstrateType> {
         match ty {
             "Lookup" => {
-                    let inc: usize;
-                    // TODO: requires more investigation
-                    // cursor increments for 0x00 .. 0xfe may be incorrect
-                    match data[*cursor] {
-                        0x00..=0xef => {
-                            inc = 1;
-                        },
-                        0xfc => {
-                            inc = 2;
-                        },
-                        0xfd => {
-                            inc = 4;
-                        },
-                        0xfe => {
-                            inc = 4;
-                        },
-                        0xff => {
-                            inc = 32;
-                        },
-                        _ => {
-                            log::error!("Invalid Address");
-                            return None;
-                        }
-                    };
-                    let val: substrate_types::Address = Decode::decode(&mut &data[*cursor..]).ok()?;
-                    *cursor += inc + 1; // +1 for byte 0x00-0xff
-                    Some(SubstrateType::Address(val))
-            },
+                let inc: usize;
+                // TODO: requires more investigation
+                // cursor increments for 0x00 .. 0xfe may be incorrect
+                match data[*cursor] {
+                    0x00..=0xef => {
+                        inc = 1;
+                    }
+                    0xfc => {
+                        inc = 2;
+                    }
+                    0xfd => {
+                        inc = 4;
+                    }
+                    0xfe => {
+                        inc = 4;
+                    }
+                    0xff => {
+                        inc = 32;
+                    }
+                    _ => {
+                        log::error!("Invalid Address");
+                        return None;
+                    }
+                };
+                let val: substrate_types::Address =
+                    Decode::decode(&mut &data[*cursor..]).ok()?;
+
+                *cursor += inc + 1; // +1 for byte 0x00-0xff
+                Some(SubstrateType::Address(val))
+            }
             "Era" => {
                 let val: runtime_primitives::generic::Era =
                     Decode::decode(&mut &data[*cursor..]).ok()?;
@@ -606,22 +620,20 @@ where
                     // although phase and period are both u64, era is Encoded
                     // in only two bytes
                     runtime_primitives::generic::Era::Immortal => *cursor += 1,
-                    runtime_primitives::generic::Era::Mortal(_, _) => *cursor += 2
+                    runtime_primitives::generic::Era::Mortal(_, _) => *cursor += 2,
                 };
                 Some(SubstrateType::Era(val))
             }
             "H256" => {
-                let val: primitives::H256 =
-                    Decode::decode(&mut &data[*cursor..]).ok()?;
+                let val: primitives::H256 = Decode::decode(&mut &data[*cursor..]).ok()?;
                 *cursor += 32;
                 Some(SubstrateType::H256(val))
             }
             "H512" => {
-                let val: primitives::H512 =
-                    Decode::decode(&mut &data[*cursor..]).ok()?;
+                let val: primitives::H512 = Decode::decode(&mut &data[*cursor..]).ok()?;
                 *cursor += 64;
                 Some(SubstrateType::H512(val))
-            },
+            }
             _ => None,
         }
     }
@@ -685,7 +697,12 @@ mod tests {
             Some(&RustTypeMarker::I128)
         }
 
-        fn get_extrinsic_ty(&self, spec: u32, chain: &str, ty: &str) -> Option<&dyn Decodable> {
+        fn get_extrinsic_ty(
+            &self,
+            spec: u32,
+            chain: &str,
+            ty: &str,
+        ) -> Option<&dyn Decodable> {
             None
         }
 
