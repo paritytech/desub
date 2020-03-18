@@ -136,34 +136,6 @@ where
         self.versions.get(&version)
     }
 
-    #[allow(dead_code)]
-    /// Verifies if all generic types of 'RuntimeMetadata' are present
-    fn verify(&self) -> bool {
-        // TODO: implement
-        unimplemented!()
-    }
-
-    /// dynamically Decode a SCALE-encoded byte string into it's concrete rust
-    /// types
-    pub fn decode(
-        &self,
-        spec: SpecVersion,
-        _module: String,
-        _ty: String,
-        _data: Vec<u8>,
-    ) {
-        // have to go to registry and get by TypeId
-        let meta = self.versions.get(&spec).expect("Spec does not exist");
-
-        // let types = types.get(&module).expect("Module not found");
-
-        log::debug!("Types: {:?}", meta);
-        // log::debug!("Type: {}", ty);
-        // check if the concrete types are already included in
-        // Metadata if not, fall back to type-metadata
-        // exported types
-    }
-
     /// Decode an extrinsic
     pub fn decode_extrinsic(
         &self,
