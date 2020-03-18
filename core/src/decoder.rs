@@ -79,7 +79,7 @@ impl std::fmt::Display for GenericExtrinsic {
         if let Some(v) = &self.signature {
             s.push_str(&format!("{}", v));
         } else {
-            s.push_str(&format!("None"));
+            s.push_str(&"None".to_string());
         }
 
         for val in self.call.iter() {
@@ -270,7 +270,7 @@ where
                     let new_type = self
                         .types
                         .get(module, v, spec, self.chain.as_str())
-                        .ok_or(Error::from("Name Resolution Failure"))?
+                        .ok_or_else(||Error::from("Name Resolution Failure"))?
                         .as_type();
                     self.decode_single(module, spec, new_type, data, cursor, is_compact)?
                 }
@@ -655,7 +655,7 @@ where
     /// avoids code duplications when dealing with structfields in structs/enums
     fn decode_structlike(
         &self,
-        fields: &Vec<crate::StructField>,
+        fields: &[crate::StructField],
         module: &str,
         spec: SpecVersion,
         data: &[u8],

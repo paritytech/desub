@@ -289,7 +289,7 @@ pub enum RustTypeMarker {
     Null,
 }
 
-fn display_types(fields: &Vec<RustTypeMarker>) -> String {
+fn display_types(fields: &[RustTypeMarker]) -> String {
     let mut s = String::new();
 
     s.push_str("(");
