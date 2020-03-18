@@ -19,7 +19,7 @@ mod error;
 pub mod regex;
 mod substrate_types;
 
-#[cfg(any(test, feature = "test"))]
+#[cfg(test)]
 pub mod test_suite;
 
 pub use self::substrate_types::SubstrateType;

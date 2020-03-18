@@ -1,6 +1,7 @@
 extern crate extras;
+mod test_suite;
 
-use desub_core::{decoder::{Decoder, Metadata}, SubstrateType, test_suite};
+use desub_core::{decoder::{Decoder, Metadata}};
 
 pub fn init() {
     env_logger::try_init();
