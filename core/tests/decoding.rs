@@ -20,7 +20,7 @@ pub fn should_decode_ext342962() {
     for e in ext.iter() {
         println!("{:?}", e);
         let decoded = decoder.decode_extrinsic(1031, e.as_slice()).expect("should decode");
-        println!("{:?}", decoded);
+        println!("{}", decoded);
     }
 
     // assert_eq!(vec![("now".to_string(), SubstrateType::U64(1577070096000))], decoded);
@@ -43,7 +43,7 @@ pub fn should_decode_ext422871() {
     for e in ext.iter() {
         println!("{:?}", e);
         let decoded = decoder.decode_extrinsic(1031, e.as_slice()).expect("should decode");
-        println!("{:?}", decoded);
+        println!("{}", decoded);
     }
 
 }
@@ -62,11 +62,7 @@ pub fn should_decode_ext50970() {
         println!("{:?}", e);
         println!("{:X?}", e);
         let decoded = decoder.decode_extrinsic(1031, e.as_slice()).expect("should decode");
-        println!("{:?}", decoded);
-        let call = decoded.call();
-        for val in call.iter() {
-            println!("{:X?}", val.1);
-        }
+        println!("{}", decoded);
     }
 }
 

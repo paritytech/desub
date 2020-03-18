@@ -19,7 +19,8 @@
 use crate::SetField;
 use std::fmt;
 
-pub type Address = pallet_indices::address::Address<[u8; 32], u32>;
+use primitives::crypto::{AccountId32, Ss58Codec, Ss58AddressFormat};
+pub type Address = pallet_indices::address::Address<AccountId32, u32>;
 
 #[derive(Debug, PartialEq, Clone)]
 /// a 'stateful' Rust Type marker
@@ -112,11 +113,8 @@ impl fmt::Display for SubstrateType {
             SubstrateType::Address(v) => {
                 match v {
                     pallet_indices::address::Address::Id(ref i) => {
-                        let mut s = String::from("");
-                        for v in i.iter() {
-                            s.push_str(&format!("{:x?}", v));
-                        }
-                        write!(f, "Account::Id({})", s.as_str())
+                        write!(f, "Account::Id({})", i.to_ss58check_with_version(Ss58AddressFormat::KusamaAccount))
+                        // write!(f, "Account::Id({})", i)
                     },
                     pallet_indices::address::Address::Index(i) => {
                         write!(f, "Index: {:?}", i)
@@ -212,7 +210,7 @@ pub enum StructUnitOrTuple {
 
 impl fmt::Display for StructUnitOrTuple {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut _enum = String::from("enum[ ");
+        let mut _enum = String::from("tuple[ ");
         match self {
             Self::Struct(v) => {
                 for val in v.iter() {
@@ -222,7 +220,7 @@ impl fmt::Display for StructUnitOrTuple {
             Self::Unit(v) => {
                 _enum.push_str(&format!("{}, ", v))
             },
-            Self::Tuple(name, v) => _enum.push_str(&format!("{}:{}", name, v.to_string())),
+            Self::Tuple(name, v) => _enum.push_str(&format!(" {}:{} ", name, v.to_string())),
         }
         _enum.push_str(" ]");
         write!(f, "{}", _enum)
@@ -242,7 +240,7 @@ pub struct StructField {
 
 impl fmt::Display for StructField {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "struct_field({:?}: {})", self.name, self.ty)
+        write!(f, "struct_field( {:?}: {} )", self.name, self.ty)
     }
 }
 

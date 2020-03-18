@@ -182,8 +182,7 @@ where
         let is_signed = version & 0b1000_0000 != 0;
         let version = version & 0b0111_1111;
         log::debug!("Extrinsic Version: {}", version);
-        // the second byte will be the index of the
-        // call enum
+        // the second byte will be the index of the call enum
         cursor+=1;
 
         // TODO: split into decode_signature
