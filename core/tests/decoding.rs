@@ -1,9 +1,9 @@
 extern crate extras;
 
-use desub_core::{decoder::{Decoder, Metadata}, SubstrateType, test_suite, util};
+use desub_core::{decoder::{Decoder, Metadata}, SubstrateType, test_suite};
 
 pub fn init() {
-    util::init_logger(log::LevelFilter::Debug, log::LevelFilter::Trace);
+    env_logger::try_init();
 }
 
 #[test]
@@ -67,6 +67,24 @@ pub fn should_decode_ext50970() {
         for val in call.iter() {
             println!("{:X?}", val.1);
         }
-        // println!("{:X?}", decoded.call);
+    }
+}
+
+#[test]
+pub fn should_decode_ext_106284() {
+    init();
+
+    let types = extras::polkadot::PolkadotTypes::new().unwrap();
+    let mut decoder = Decoder::new(types, "kusama");
+
+    let (meta, ext) = test_suite::extrinsics_block106284();
+    let meta = Metadata::new(meta.as_slice());
+
+    decoder.register_version(1042, meta);
+    for e in ext.iter() {
+        println!("{:?}", e);
+        println!("{:X?}", e);
+        let decoded = decoder.decode_extrinsic(1042, e.as_slice()).expect("should decode");
+        println!("{}", decoded);
     }
 }

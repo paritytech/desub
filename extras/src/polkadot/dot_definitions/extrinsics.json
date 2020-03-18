@@ -21,7 +21,7 @@
       ],
       "types": {
         "signature": "(Address, MultiSignature, SignedExtra)",
-        "Address": "AccountId",
+        "Address": "Lookup",
         "AccountIndex": "u32",
         "AccountId": "[u8; 32]",
         "SignedExtra": "(OnlyStakingAndClaims, system::CheckVersion<Runtime>, system::CheckGenesis<Runtime>, system::CheckEra<Runtime>, system::CheckNonce<Runtime>, system::CheckWeight<Runtime>, transaction_payment::ChargeTransactionPayment<Runtime>, registrar::LimitParathreadCommits<Runtime>)",
@@ -32,7 +32,8 @@
         "CheckNonce<Runtime>": "Compact<Index>",
         "CheckWeight<Runtime>": "[u8; 0]",
         "ChargeTransactionPayment<Runtime>": "Compact<BalanceOf>",
-        "LimitParathreadCommits<Runtime>": "[u8; 0]"
+        "LimitParathreadCommits<Runtime>": "[u8; 0]",
+	      "Lookup": "Address"
       }
     }
   ]

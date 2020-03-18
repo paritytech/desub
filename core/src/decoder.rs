@@ -30,7 +30,7 @@ pub use self::metadata::test_suite;
 pub use self::metadata::{Metadata, MetadataError, ModuleIndex};
 use crate::{
     error::Error,
-    substrate_types::{StructField, StructUnitOrTuple, SubstrateType},
+    substrate_types::{self, StructField, StructUnitOrTuple, SubstrateType},
     CommonTypes, RustTypeMarker, TypeDetective,
 }; use codec::{Compact, CompactLen, Decode};
 // use serde::Serialize;
@@ -70,6 +70,26 @@ pub enum Entry {
 pub struct GenericExtrinsic {
     signature: Option<SubstrateType>,
     call: Vec<(String, SubstrateType)>,
+}
+
+impl std::fmt::Display for GenericExtrinsic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s = String::from("");
+        if let Some(v) = &self.signature {
+            s.push_str(&format!("{}", v));
+        } else {
+            s.push_str(&format!("None"));
+        }
+
+        for val in self.call.iter() {
+            s.push_str("\n");
+            s.push_str("CALL");
+            s.push_str("\n");
+            s.push_str(&format!("arg: {}, Ty: {}", val.0, val.1))
+        }
+
+        write!(f, "{}", s)
+    }
 }
 
 impl GenericExtrinsic {
@@ -161,22 +181,28 @@ where
         let version = data[cursor];
         let is_signed = version & 0b1000_0000 != 0;
         let version = version & 0b0111_1111;
+        log::debug!("Extrinsic Version: {}", version);
         // the second byte will be the index of the
         // call enum
         cursor+=1;
 
         // TODO: split into decode_signature
         let signature: Option<_> = if is_signed {
-            cursor += 1;
+            // cursor += 1;
             log::debug!("SIGNED EXTRINSIC");
             let signature =
                 self.types
                     .get_extrinsic_ty(spec, self.chain.as_str(), "signature")
                     .expect("Signature must not be empty")
                     .as_type();
+            println!("HEREHERE");
+            log::debug!("TYPE: {:?}", signature);
             Some(self.decode_single("runtime", spec, signature, data, &mut cursor, false)?)
         } else { None };
-        log::debug!("Signature: {:?}", signature);
+        if let Some(s) = &signature {
+            log::debug!("Signature: \n{}", s);
+            log::debug!("End Signature");
+        }
         log::debug!("data = {:?}", &data[cursor..]);
         log::debug!("cursor = {}", cursor);
         let module = meta.module_by_index(ModuleIndex::Call(data[cursor]))?;
@@ -201,6 +227,7 @@ where
             )?;
             types.push((arg.name.to_string(), val));
         }
+        log::debug!("{:?}", &data[cursor]);
         Ok(GenericExtrinsic::new(signature, types))
 
         // TODO
@@ -264,7 +291,10 @@ where
             RustTypeMarker::Enum(v) => {
                 let index = data[*cursor];
                 *cursor += 1;
+                log::debug!("HERE");
+                log::debug!("data = {:?}", data[*cursor]);
                 let variant = &v[index as usize];
+                log::debug!("Don't get here");
                 match &variant.ty {
                     crate::StructUnitOrTuple::Struct(ref v) => {
                         let ty = self.decode_structlike(
@@ -392,7 +422,6 @@ where
                 num.into()
             }
             RustTypeMarker::U32 => {
-                println!("HEREHEREHERE");
                 let num: u32 = if is_compact {
                     let num: Compact<u32> = Decode::decode(&mut &data[*cursor..])?;
                     *cursor += Compact::compact_len(&u32::from(num));
@@ -542,10 +571,41 @@ where
         _is_compact: bool,
     ) -> Option<SubstrateType> {
         match ty {
+            "Lookup" => {
+                    let inc: usize;
+                    // TODO: requires more investigation
+                    // cursor increments for 0x00 .. 0xfe may be incorrect
+                    match data[*cursor] {
+                        0x00..=0xef => {
+                            inc = 1;
+                        },
+                        0xfc => {
+                            inc = 2;
+                        },
+                        0xfd => {
+                            inc = 4;
+                        },
+                        0xfe => {
+                            inc = 4;
+                        },
+                        0xff => {
+                            inc = 32;
+                        },
+                        _ => {
+                            log::error!("Invalid Address");
+                            return None;
+                        }
+                    };
+                    let val: substrate_types::Address = Decode::decode(&mut &data[*cursor..]).ok()?;
+                    *cursor += inc + 1; // +1 for byte 0x00-0xff
+                    Some(SubstrateType::Address(val))
+            },
             "Era" => {
                 let val: runtime_primitives::generic::Era =
                     Decode::decode(&mut &data[*cursor..]).ok()?;
                 match val {
+                    // although phase and period are both u64, era is Encoded
+                    // in only two bytes
                     runtime_primitives::generic::Era::Immortal => *cursor += 1,
                     runtime_primitives::generic::Era::Mortal(_, _) => *cursor += 2
                 };
