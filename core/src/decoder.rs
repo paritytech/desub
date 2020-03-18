@@ -30,7 +30,7 @@ pub use self::metadata::test_suite;
 pub use self::metadata::{Metadata, MetadataError, ModuleIndex};
 use crate::{
     error::Error,
-    substrate_types::{StructField, StructUnitOrTuple, SubstrateType},
+    substrate_types::{self, StructField, StructUnitOrTuple, SubstrateType},
     CommonTypes, RustTypeMarker, TypeDetective,
 };
 use codec::{Compact, CompactLen, Decode};
@@ -67,6 +67,45 @@ pub enum Entry {
     Constant,
 }
 
+#[derive(Debug)]
+pub struct GenericExtrinsic {
+    signature: Option<SubstrateType>,
+    call: Vec<(String, SubstrateType)>,
+}
+
+impl std::fmt::Display for GenericExtrinsic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s = String::from("");
+        if let Some(v) = &self.signature {
+            s.push_str(&format!("{}", v));
+        } else {
+            s.push_str(&"None".to_string());
+        }
+
+        for val in self.call.iter() {
+            s.push_str("\n");
+            s.push_str("CALL");
+            s.push_str("\n");
+            s.push_str(&format!("arg: {}, Ty: {}", val.0, val.1))
+        }
+
+        write!(f, "{}", s)
+    }
+}
+
+impl GenericExtrinsic {
+    pub fn new(sig: Option<SubstrateType>, call: Vec<(String, SubstrateType)>) -> Self {
+        Self {
+            signature: sig,
+            call,
+        }
+    }
+
+    pub fn call(&self) -> &Vec<(String, SubstrateType)> {
+        &self.call
+    }
+}
+
 impl<T> Decoder<T>
 where
     T: TypeDetective,
@@ -97,40 +136,12 @@ where
         self.versions.get(&version)
     }
 
-    #[allow(dead_code)]
-    /// Verifies if all generic types of 'RuntimeMetadata' are present
-    fn verify(&self) -> bool {
-        // TODO: implement
-        unimplemented!()
-    }
-
-    /// dynamically Decode a SCALE-encoded byte string into it's concrete rust
-    /// types
-    pub fn decode(
-        &self,
-        spec: SpecVersion,
-        _module: String,
-        _ty: String,
-        _data: Vec<u8>,
-    ) {
-        // have to go to registry and get by TypeId
-        let meta = self.versions.get(&spec).expect("Spec does not exist");
-
-        // let types = types.get(&module).expect("Module not found");
-
-        log::debug!("Types: {:?}", meta);
-        // log::debug!("Type: {}", ty);
-        // check if the concrete types are already included in
-        // Metadata if not, fall back to type-metadata
-        // exported types
-    }
-
     /// Decode an extrinsic
     pub fn decode_extrinsic(
         &self,
         spec: SpecVersion,
         data: &[u8],
-    ) -> Result<Vec<(String, SubstrateType)>, Error> {
+    ) -> Result<GenericExtrinsic, Error> {
         let meta = self.versions.get(&spec).expect("Spec does not exist");
 
         // first byte -> vector length
@@ -138,20 +149,55 @@ where
         // third byte -> Outer enum index
         // fourth byte -> inner enum index (function index)
         // can check if signed via a simple & too
-        let version = data[1];
+        let length = Self::scale_length(data)?;
+        let mut cursor: usize = length.1;
+        let version = data[cursor];
         let is_signed = version & 0b1000_0000 != 0;
-        // decode Address, Signature, and SignedExtra,
-        // decode the call
-        // the second byte will be the index of the
-        // call enum
-        let module = meta.module_by_index(ModuleIndex::Call(data[2]))?;
-        let call_meta = module.call(data[3])?;
-        println!("CALL META {:?}", call_meta);
-        // location in the vector of extrinsic bytes
-        let mut cursor: usize = 4;
-        // tuple of argument name -> value
+        let version = version & 0b0111_1111;
+        log::debug!("Extrinsic Version: {}", version);
+        // the second byte will be the index of the call enum
+        cursor += 1;
+
+        // TODO: split into decode_signature
+        let signature: Option<_> = if is_signed {
+            // cursor += 1;
+            log::debug!("SIGNED EXTRINSIC");
+            let signature = self
+                .types
+                .get_extrinsic_ty(spec, self.chain.as_str(), "signature")
+                .expect("Signature must not be empty")
+                .as_type();
+            println!("HEREHERE");
+            log::debug!("TYPE: {:?}", signature);
+            Some(self.decode_single(
+                "runtime",
+                spec,
+                signature,
+                data,
+                &mut cursor,
+                false,
+            )?)
+        } else {
+            None
+        };
+        if let Some(s) = &signature {
+            log::debug!("Signature: \n{}", s);
+            log::debug!("End Signature");
+        }
+        log::debug!("data = {:?}", &data[cursor..]);
+        log::debug!("cursor = {}", cursor);
+        let module = meta.module_by_index(ModuleIndex::Call(data[cursor]))?;
+        cursor += 1;
+        log::debug!("cursor = {}", cursor);
+        let call_meta = module.call(data[cursor])?;
+        cursor += 1;
+        log::debug!("cursor = {}", cursor);
+        log::debug!("data = {:X?}", &data[cursor..]);
+
+        // TODO: tuple of argument name -> value
         let mut types: Vec<(String, SubstrateType)> = Vec::new();
         for arg in call_meta.arguments() {
+            log::trace!("arg = {:?}", arg);
             let val = self.decode_single(
                 module.name(),
                 spec,
@@ -162,10 +208,8 @@ where
             )?;
             types.push((arg.name.to_string(), val));
         }
-        Ok(types)
-        // println!("{:#?}", module);
-        // println!("Mod: {:#?}", module);
-        // byte three will be the index of the function enum
+        log::debug!("{:?}", &data[cursor]);
+        Ok(GenericExtrinsic::new(signature, types))
 
         // TODO
         // should have a list of 'guess type' where
@@ -192,13 +236,13 @@ where
     ) -> Result<SubstrateType, Error> {
         let ty = match ty {
             RustTypeMarker::TypePointer(v) => {
-                if let Some(t) = self.decode_sub_type(v, data, cursor, is_compact) {
+                if let Some(t) = self.decode_sub_type(spec, v, data, cursor, is_compact) {
                     t
                 } else {
                     let new_type = self
                         .types
                         .get(module, v, spec, self.chain.as_str())
-                        .ok_or(Error::DecodeFail)?
+                        .ok_or_else(||Error::from("Name Resolution Failure"))?
                         .as_type();
                     self.decode_single(module, spec, new_type, data, cursor, is_compact)?
                 }
@@ -228,7 +272,10 @@ where
             RustTypeMarker::Enum(v) => {
                 let index = data[*cursor];
                 *cursor += 1;
+                log::debug!("HERE");
+                log::debug!("data = {:?}", data[*cursor]);
                 let variant = &v[index as usize];
+                log::debug!("Don't get here");
                 match &variant.ty {
                     crate::StructUnitOrTuple::Struct(ref v) => {
                         let ty = self.decode_structlike(
@@ -253,11 +300,17 @@ where
             }
             RustTypeMarker::Array { size, ty } => {
                 let mut decoded_arr = Vec::with_capacity(*size);
-
-                for _ in 0..*size {
-                    decoded_arr.push(
-                        self.decode_single(module, spec, ty, &data, cursor, is_compact)?,
-                    )
+                if *size == 0 as usize {
+                    log::trace!("Returning Empty Vector");
+                    return Ok(SubstrateType::Composite(Vec::new()));
+                } else {
+                    for _ in 0..*size {
+                        decoded_arr.push(
+                            self.decode_single(
+                                module, spec, ty, &data, cursor, is_compact,
+                            )?,
+                        )
+                    }
                 }
                 // rely on cursor increments in sub-types (U32/substrate specific types)
                 SubstrateType::Composite(decoded_arr)
@@ -282,7 +335,10 @@ where
                 CommonTypes::Option(v) => {
                     match data[*cursor] {
                         // None
-                        0x00 => SubstrateType::Option(Box::new(None)),
+                        0x00 => {
+                            *cursor += 1;
+                            SubstrateType::Option(Box::new(None))
+                        }
                         // Some
                         0x01 => {
                             *cursor += 1;
@@ -491,22 +547,63 @@ where
     // TODO: test this with the substrate types used
     fn decode_sub_type(
         &self,
+        _spec: SpecVersion,
         ty: &str,
         data: &[u8],
         cursor: &mut usize,
         _is_compact: bool,
     ) -> Option<SubstrateType> {
         match ty {
+            "Lookup" => {
+                let inc: usize;
+                // TODO: requires more investigation
+                // cursor increments for 0x00 .. 0xfe may be incorrect
+                match data[*cursor] {
+                    0x00..=0xef => {
+                        inc = 1;
+                    }
+                    0xfc => {
+                        inc = 2;
+                    }
+                    0xfd => {
+                        inc = 4;
+                    }
+                    0xfe => {
+                        inc = 4;
+                    }
+                    0xff => {
+                        inc = 32;
+                    }
+                    _ => {
+                        log::error!("Invalid Address");
+                        return None;
+                    }
+                };
+                let val: substrate_types::Address =
+                    Decode::decode(&mut &data[*cursor..]).ok()?;
+
+                *cursor += inc + 1; // +1 for byte 0x00-0xff
+                Some(SubstrateType::Address(val))
+            }
+            "Era" => {
+                let val: runtime_primitives::generic::Era =
+                    Decode::decode(&mut &data[*cursor..]).ok()?;
+                match val {
+                    // although phase and period are both u64, era is Encoded
+                    // in only two bytes
+                    runtime_primitives::generic::Era::Immortal => *cursor += 1,
+                    runtime_primitives::generic::Era::Mortal(_, _) => *cursor += 2,
+                };
+                Some(SubstrateType::Era(val))
+            }
             "H256" => {
-                let val: primitives::H256 =
-                    Decode::decode(&mut &data[*cursor..=*cursor + 32]).ok()?;
-                *cursor += 33;
+                let val: primitives::H256 = Decode::decode(&mut &data[*cursor..]).ok()?;
+                *cursor += 32;
                 Some(SubstrateType::H256(val))
             }
             "H512" => {
-                let val: primitives::H512 =
-                    Decode::decode(&mut &data[*cursor..=*cursor + 64]).ok()?;
-                *cursor += 65;
+                let val: primitives::H512 = Decode::decode(&mut &data[*cursor..]).ok()?;
+                *cursor += 64;
                 Some(SubstrateType::H512(val))
             }
             _ => None,
@@ -530,7 +627,7 @@ where
     /// avoids code duplications when dealing with structfields in structs/enums
     fn decode_structlike(
         &self,
-        fields: &Vec<crate::StructField>,
+        fields: &[crate::StructField],
         module: &str,
         spec: SpecVersion,
         data: &[u8],
@@ -571,6 +668,16 @@ mod tests {
         ) -> Option<&dyn Decodable> {
             Some(&RustTypeMarker::I128)
         }
+
+        fn get_extrinsic_ty(
+            &self,
+            spec: u32,
+            chain: &str,
+            ty: &str,
+        ) -> Option<&dyn Decodable> {
+            None
+        }
+
         fn resolve(
             &self,
             _module: &str,
@@ -635,7 +742,7 @@ mod tests {
             let val = $v.encode();
             let decoder = Decoder::new(GenericTypes, "kusama");
             let res = decoder
-                .decode_single("system", 1031, &$x, val.as_slice(), &mut 0, false)
+                .decode_single("", 1031, &$x, val.as_slice(), &mut 0, false)
                 .unwrap();
 
             assert_eq!($r, res)
@@ -858,31 +965,31 @@ mod tests {
         decode_test!(
             val,
             RustTypeMarker::Enum(vec![
-                    EnumField::new(
-                        Some("Zoo".into()),
-                        crate::StructUnitOrTuple::Struct(vec![
-                            crate::StructField::new(
-                                "name",
-                                RustTypeMarker::Std(CommonTypes::Vec(Box::new(
-                                    RustTypeMarker::U8,
-                                ))),
-                            ),
-                            crate::StructField::new("id", RustTypeMarker::U32),
-                        ]),
-                    ),
-                    EnumField::new(
-                        Some("Wraith".into()),
-                        crate::StructUnitOrTuple::Struct(vec![
-                            crate::StructField::new(
-                                "name",
-                                RustTypeMarker::Std(CommonTypes::Vec(Box::new(
-                                    RustTypeMarker::U16,
-                                ))),
-                            ),
-                            crate::StructField::new("id", RustTypeMarker::U64),
-                        ]),
-                    ),
-                ]),
+                EnumField::new(
+                    Some("Zoo".into()),
+                    crate::StructUnitOrTuple::Struct(vec![
+                        crate::StructField::new(
+                            "name",
+                            RustTypeMarker::Std(CommonTypes::Vec(Box::new(
+                                RustTypeMarker::U8,
+                            ))),
+                        ),
+                        crate::StructField::new("id", RustTypeMarker::U32),
+                    ]),
+                ),
+                EnumField::new(
+                    Some("Wraith".into()),
+                    crate::StructUnitOrTuple::Struct(vec![
+                        crate::StructField::new(
+                            "name",
+                            RustTypeMarker::Std(CommonTypes::Vec(Box::new(
+                                RustTypeMarker::U16,
+                            ))),
+                        ),
+                        crate::StructField::new("id", RustTypeMarker::U64),
+                    ]),
+                ),
+            ]),
             SubstrateType::Enum(StructUnitOrTuple::Struct(vec![
                 StructField {
                     name: Some("name".into()),

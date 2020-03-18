@@ -13,20 +13,67 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 // TODO: open this file or pass it via CLI to reduce binary size
+// TODO: So much of this code is redundant between extrinsics.rs and overrides.rs
+// TODO: merge the similarities
+use super::ModuleTypes;
+use crate::error::Error;
 use serde::{Deserialize, Serialize};
-const EXTRINSICS: &'static str = include_str!("./dot_definitions/extrinsics.json");
+use std::collections::HashMap;
+pub const EXTRINSICS: &'static str = include_str!("./dot_definitions/extrinsics.json");
 
-
-pub struct Versions {
-    min: f32,
-    max: f32
+#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
+pub struct Types {
+    /// the spec these types are relevant for
+    #[serde(rename = "minmax")]
+    min_max: [Option<usize>; 2],
+    /// types relevant to the spec
+    types: ModuleTypes,
 }
 
-pub type Signature = String;
-pub type Function = String;
+#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
+pub struct Extrinsics(HashMap<String, Vec<Types>>);
 
-pub struct Address {
-    ty: String,
-    named: bool,
-    types: HashMap<String, RustTypeMarker>
+impl Extrinsics {
+    pub fn new(raw_json: &str) -> Result<Self, Error> {
+        serde_json::from_str(raw_json).map_err(Into::into)
+    }
+
+    pub fn get_chain_types(&self, chain: &str, spec: u32) -> Option<&ModuleTypes> {
+        self.0
+            .get(chain)?
+            .iter()
+            .find(|f| Self::is_in_range(spec, f))
+            .map(|o| &o.types)
+    }
+
+    fn is_in_range(spec: u32, over_ride: &Types) -> bool {
+        match over_ride.min_max {
+            [Some(min), Some(max)] => (min..=max).contains(&(spec as usize)),
+            [Some(min), None] => (spec as usize) > min,
+            [None, Some(max)] => (spec as usize) < max,
+            // presumably, this would be for null -> null,
+            // so for every spec
+            [None, None] => true,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn should_deserialize_ext_definitions() {
+        let extrinsics = Extrinsics::new(EXTRINSICS).unwrap();
+        dbg!(extrinsics);
+    }
+
+    #[test]
+    fn should_get_types_from_json() {
+        let extrinsics = Extrinsics::new(EXTRINSICS).unwrap();
+        extrinsics.get_chain_types("kusama", 1031);
+        extrinsics.get_chain_types("kusama", 1007);
+        extrinsics.get_chain_types("kusama", 1006);
+        let tys = extrinsics.get_chain_types("kusama", 1003);
+        dbg!(tys);
+    }
 }

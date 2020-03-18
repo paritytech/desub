@@ -306,33 +306,39 @@ mod tests {
             RustTypeMarker::Enum(vec![
                 EnumField {
                     variant_name: Some("Ed25519".to_string()),
-                    ty: StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer("Ed25519Signature".to_string()))
+                    ty: StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer(
+                        "Ed25519Signature".to_string(),
+                    )),
                 },
                 EnumField {
                     variant_name: Some("Sr25519".to_string()),
-                    ty: StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer("Sr25519Signature".to_string()))
+                    ty: StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer(
+                        "Sr25519Signature".to_string(),
+                    )),
                 },
                 EnumField {
                     variant_name: Some("Ecdsa".to_string()),
-                    ty: StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer("EcdsaSignature".to_string()))
-                }
-                ]),
+                    ty: StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer(
+                        "EcdsaSignature".to_string(),
+                    )),
+                },
+            ]),
         );
         types.insert(
             "Reasons".to_string(),
             RustTypeMarker::Enum(vec![
                 EnumField {
                     variant_name: None,
-                    ty: StructUnitOrTuple::Unit("Fee".to_string())
+                    ty: StructUnitOrTuple::Unit("Fee".to_string()),
                 },
                 EnumField {
                     variant_name: None,
-                    ty: StructUnitOrTuple::Unit("Misc".to_string())
+                    ty: StructUnitOrTuple::Unit("Misc".to_string()),
                 },
                 EnumField {
                     variant_name: None,
-                    ty: StructUnitOrTuple::Unit("All".to_string())
-                }
+                    ty: StructUnitOrTuple::Unit("All".to_string()),
+                },
             ]),
         );
         types.insert(

@@ -1,64 +1,40 @@
-[
+{
+  "kusama": [
     {
-        "versions": {
-            "min": "0.5",
-            "max": "0.6.3"
-        },
-        "signature": "Option<(Address, AnySignature, SignedExtra)>",
-        "function": "Call",
-        "Address": {
-            "_enum": {
-                "id": "AccountId",
-                "Index": "AccountIndex"
-            }
-        },
+      "minmax": [
+         0,
+        1006
+      ],
+      "types": {
+        "signature": "(Address, AnySignature, SignedExtra)",
+        "Address": "AccountId",
         "AccountIndex": "u32",
         "AccountId": "[u8; 32]",
         "AnySignature": "H512",
-        "SignedExtra": {
-            "type": "tuple",
-            "named": "false",
-            "fields": [
-                "OnlyStakingAndClaims",
-                "system::CheckVersion<Runtime>",
-                "system::CheckGenesis<Runtime>",
-                "system::CheckEra<Runtime>",
-                "system::CheckNonce<Runtime>",
-                "system::CheckWeight<Runtime>",
-                "balances::TakeFees<Runtime>"
-            ]
-        }
+        "SignedExtra": "(OnlyStakingAndClaims, system::CheckVersion<Runtime>, system::CheckGenesis<Runtime>, system::CheckEra<Runtime>, system::CheckNonce<Runtime>, system::CheckWeight<Runtime>, balances::TakeFees<Runtime>)"
+      }
     },
     {
-        "versions": {
-            "min": "0.6.4",
-            "max": "latest"
-        },
-        "signature": "Option<(Address, MultiSignature, SignedExtra>)",
-        "function": "Call",
-        "Address": {
-            "type": "enum",
-            "named": "true",
-            "types": {
-                "id": "AccountId",
-                "Index": "AccountIndex"
-            }
-        },
+      "minmax": [
+        1007,
+        null
+      ],
+      "types": {
+        "signature": "(Address, MultiSignature, SignedExtra)",
+        "Address": "Lookup",
         "AccountIndex": "u32",
-        "AccountId": "GenericAccountId",
-        "SignedExtra": {
-            "type": "tuple",
-            "named": "false",
-            "fields": [
-                "OnlyStakingAndClaims",
-	            "system::CheckVersion<Runtime>",
-                "system::CheckGenesis<Runtime>",
-                "system::CheckEra<Runtime>",
-                "system::CheckNonce<Runtime>",
-                "system::CheckWeight<Runtime>",
-                "transaction_payment::ChargeTransactionPayment::<Runtime>",
-                "registrar::LimitParathreadCommits<Runtime>"
-            ]
-        }
+        "AccountId": "[u8; 32]",
+        "SignedExtra": "(OnlyStakingAndClaims, system::CheckVersion<Runtime>, system::CheckGenesis<Runtime>, system::CheckEra<Runtime>, system::CheckNonce<Runtime>, system::CheckWeight<Runtime>, transaction_payment::ChargeTransactionPayment<Runtime>, registrar::LimitParathreadCommits<Runtime>)",
+        "OnlyStakingAndClaims": "[u8; 0]",
+        "CheckVersion<Runtime>": "[u8; 0]",
+        "CheckGenesis<Runtime>": "[u8; 0]",
+        "CheckEra<Runtime>": "Era",
+        "CheckNonce<Runtime>": "Compact<Index>",
+        "CheckWeight<Runtime>": "[u8; 0]",
+        "ChargeTransactionPayment<Runtime>": "Compact<BalanceOf>",
+        "LimitParathreadCommits<Runtime>": "[u8; 0]",
+	      "Lookup": "Address"
+      }
     }
-]
+  ]
+}

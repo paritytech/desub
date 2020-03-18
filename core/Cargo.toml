@@ -15,11 +15,13 @@ num = "0.2"
 onig = "5.0"
 
 primitives = { git = "https://github.com/paritytech/substrate", package = "sp-core" }
+runtime-primitives = { git = "https://github.com/paritytech/substrate", package = "sp-runtime" }
 runtime-metadata-latest = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", branch = "polkadot-master" }
 runtime-metadata10 = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", rev = "e931f9e5c2ae165658587f04d075c59a338061fb"}
 runtime-metadata09 = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", rev = "a512dcdd3931aa571c92c8550a0e079d5b27239a" }
 runtime-metadata08 = { git = "https://github.com/paritytech/substrate/", package = "srml-metadata", rev = "ac11c330a95827211e1999781b5f691e72387c9e" }
-runtime-metadata07 = { git = "https://github.com/paritytech/substrate/", package = "srml-metadata",  rev = "7c8bd73cef8c6afd60fec837d8f5e732a39a5615" } # meta version is before Kusama
+# meta version is before Kusama
+runtime-metadata07 = { git = "https://github.com/paritytech/substrate/", package = "srml-metadata",  rev = "7c8bd73cef8c6afd60fec837d8f5e732a39a5615" }
 # These older metadata versions have correct pinned commit revision, but are not supported (they do not compile)
 # runtime-metadata06 = { git = "https://github.com/paritytech/substrate/", package = "srml-metadata",  rev = "c3be75da8daec396c763b692ed3d2d6a1d50f92a" } # not supported (yet)
 # runtime-metadata05 = { git = "https://github.com/paritytech/substrate/", package = "srml-metadata",  rev = "b1c50952704c89079c8df41cea2be2ef0825a90d" } # not supported (yet)
@@ -29,12 +31,13 @@ runtime-metadata07 = { git = "https://github.com/paritytech/substrate/", package
 # runtime-metadata01 = { git = "https://github.com/paritytech/substrate/", package = "srml-metadata",  rev = "a29f214132a81f82e8b833f4d941b6d57680989f" } # not supported (yet)
 
 runtime-version = { git = "https://github.com/paritytech/substrate/", package = "sp-version", branch = "polkadot-master" }
-substrate-primitives = { git = "https://github.com/paritytech/substrate/", package = "sp-core", branch = "polkadot-master" }
+pallet-indices = { git = "https://github.com/paritytech/substrate/", package = "pallet-indices"}
 derive_more = "0.99.2"
+env_logger = "0.7.1"
+
 
 [dev-dependencies]
 extras = { path = "../extras/", features = ["polkadot"], package = "desub-extras" }
-
 [features]
 # used because integration tests are external and not run under #[cfg(test)]
 # but all the mock data is under #[cfg(test)]

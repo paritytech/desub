@@ -13,22 +13,28 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Deserializes Polkadot Type Definitions into general struct defined in `core/lib.rs`
-
+// TODO: all type resolution should be refactored
+// this is a very confusing and inefficient warranty
+// but it works (for the most part)
 mod definitions;
+mod extrinsics;
 mod overrides;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::error::Error;
+use codec::{Decode, Encode, Input};
 use core::{regex, Decodable, RustTypeMarker, TypeDetective};
 
+use self::extrinsics::Extrinsics;
 use self::overrides::Overrides;
 
 #[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq)]
 pub struct PolkadotTypes {
     pub mods: Modules,
     pub overrides: Overrides,
+    pub extrinsics: Extrinsics,
 }
 
 impl PolkadotTypes {
@@ -36,6 +42,7 @@ impl PolkadotTypes {
         Ok(PolkadotTypes {
             mods: definitions::definitions(definitions::DEFS)?,
             overrides: Overrides::new(overrides::OVERRIDES)?,
+            extrinsics: Extrinsics::new(extrinsics::EXTRINSICS)?,
         })
     }
 
@@ -54,8 +61,10 @@ impl PolkadotTypes {
             ty.to_string()
         };
 
-        println!("{}", ty);
+        log::debug!("Getting Type: {}", ty);
         if let Some(t) = self.check_overrides(module, ty.as_str(), spec, chain) {
+            Some(&t)
+        } else if let Some(t) = self.check_extrinsics(ty.as_str(), spec, chain) {
             Some(&t)
         } else {
             self.resolve_helper(module, &RustTypeMarker::TypePointer(ty.to_string()))
@@ -81,6 +90,20 @@ impl PolkadotTypes {
 
         // if it isn't in modules, chain types is next
         self.overrides.get_chain_types(chain, spec)?.get(ty)
+    }
+
+    pub fn check_extrinsics(
+        &self,
+        ty: &str,
+        spec: u32,
+        chain: &str,
+    ) -> Option<&RustTypeMarker> {
+        if let Some(m) = self.extrinsics.get_chain_types(chain, spec) {
+            if let Some(ty) = m.get(ty) {
+                return Some(ty);
+            }
+        }
+        None
     }
 
     // TODO: Clean this up
@@ -143,6 +166,25 @@ impl TypeDetective for PolkadotTypes {
         Some(decodable as &dyn Decodable)
     }
 
+    fn get_extrinsic_ty(
+        &self,
+        spec: u32,
+        chain: &str,
+        ty: &str,
+    ) -> Option<&dyn Decodable> {
+        let ty = self.check_extrinsics(ty, spec, chain);
+
+        let ty = if let Some(t) = ty {
+            match t {
+                t @ RustTypeMarker::TypePointer(_) => self.resolve_helper("runtime", t),
+                t => Some(t),
+            }
+        } else {
+            None
+        };
+        ty.map(|t| t as &dyn Decodable)
+    }
+
     fn resolve(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker> {
         let ty = match ty {
             RustTypeMarker::TypePointer(v) => {
@@ -161,16 +203,30 @@ impl TypeDetective for PolkadotTypes {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core::{StructField, EnumField, StructUnitOrTuple};
+    use core::{EnumField, StructField, StructUnitOrTuple};
 
     #[test]
     fn should_get_type_from_module() -> Result<(), Error> {
         let post_1031_dispatch_error = RustTypeMarker::Enum(vec![
-                EnumField::new(Some("Other".into()), StructUnitOrTuple::Tuple(RustTypeMarker::Null)),
-                EnumField::new(Some("CannotLookup".into()), StructUnitOrTuple::Tuple(RustTypeMarker::Null)),
-                EnumField::new(Some("BadOrigin".into()), StructUnitOrTuple::Tuple(RustTypeMarker::Null)),
-                EnumField::new(Some("Module".into()), StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer("DispatchErrorModule".to_string())))
-            ]);
+            EnumField::new(
+                Some("Other".into()),
+                StructUnitOrTuple::Tuple(RustTypeMarker::Null),
+            ),
+            EnumField::new(
+                Some("CannotLookup".into()),
+                StructUnitOrTuple::Tuple(RustTypeMarker::Null),
+            ),
+            EnumField::new(
+                Some("BadOrigin".into()),
+                StructUnitOrTuple::Tuple(RustTypeMarker::Null),
+            ),
+            EnumField::new(
+                Some("Module".into()),
+                StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer(
+                    "DispatchErrorModule".to_string(),
+                )),
+            ),
+        ]);
         let types = PolkadotTypes::new()?;
         let t = types
             .get("system", "DispatchError", 1040, "kusama")
