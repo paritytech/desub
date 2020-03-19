@@ -28,7 +28,7 @@
 
 #[cfg(test)]
 pub mod test_suite;
-mod version_07;
+// mod version_07;
 mod version_08;
 mod version_09;
 mod version_10;
@@ -121,11 +121,11 @@ impl Metadata {
         let version = bytes[4];
 
         match version {
-            0x07 => {
+            /* 0x07 => {
                 let meta: runtime_metadata07::RuntimeMetadataPrefixed =
                     OldDecode::decode(&mut &bytes[..]).expect("Decode failed");
                 meta.try_into().expect("Conversion failed")
-            }
+            } */
             0x08 => {
                 let meta: runtime_metadata08::RuntimeMetadataPrefixed =
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
