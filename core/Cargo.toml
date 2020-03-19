@@ -21,7 +21,7 @@ runtime-metadata10 = { git = "https://github.com/paritytech/substrate/", package
 runtime-metadata09 = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", rev = "a512dcdd3931aa571c92c8550a0e079d5b27239a" }
 runtime-metadata08 = { git = "https://github.com/paritytech/substrate/", package = "srml-metadata", rev = "ac11c330a95827211e1999781b5f691e72387c9e" }
 # meta version is before Kusama
-runtime-metadata07 = { git = "https://github.com/paritytech/substrate/", package = "srml-metadata",  rev = "7c8bd73cef8c6afd60fec837d8f5e732a39a5615" }
+# runtime-metadata07 = { git = "https://github.com/paritytech/substrate/", package = "srml-metadata",  rev = "7c8bd73cef8c6afd60fec837d8f5e732a39a5615" }
 # These older metadata versions have correct pinned commit revision, but are not supported (they do not compile)
 # runtime-metadata06 = { git = "https://github.com/paritytech/substrate/", package = "srml-metadata",  rev = "c3be75da8daec396c763b692ed3d2d6a1d50f92a" } # not supported (yet)
 # runtime-metadata05 = { git = "https://github.com/paritytech/substrate/", package = "srml-metadata",  rev = "b1c50952704c89079c8df41cea2be2ef0825a90d" } # not supported (yet)
