@@ -205,7 +205,7 @@ impl From<StorageEntryTypeTemp> for runtime_metadata_latest::StorageEntryType {
                 hasher: TempStorageHasher(hasher).into(),
                 key: TempDecodeDifferentStr(key).into(),
                 value: TempDecodeDifferentStr(value).into(),
-                is_linked,
+                unused: is_linked,
             },
             StorageEntryType::DoubleMap {
                 hasher,
