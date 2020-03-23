@@ -24,6 +24,7 @@ mod substrate_types;
 pub mod test_suite;
 
 pub use self::substrate_types::SubstrateType;
+pub use self::error::Error;
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
 
