@@ -15,17 +15,28 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Stucture for registering substrate types
+//! Generic SubstrateType enum
+//! Serialization and Deserialization Implementations (to serialize as if it were a native type)
+//! Display Implementation
 
 use crate::SetField;
 use std::fmt;
-
+use serde::{Serialize, Deserialize};
 use primitives::crypto::{AccountId32, Ss58AddressFormat, Ss58Codec};
 pub type Address = pallet_indices::address::Address<AccountId32, u32>;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "Address")]
+pub enum RemoteAddress {
+    Id(AccountId32),
+    Index(u32)
+}
+
 /// a 'stateful' Rust Type marker
 /// 'Std' variant is not here like in RustTypeMarker
 /// Instead common types are just apart fo the original enum
+#[derive(Debug, PartialEq, Clone, Serialize)]
+#[serde(untagged)]
 pub enum SubstrateType {
     /// 512-bit hash type
     H512(primitives::H512),
@@ -38,6 +49,7 @@ pub enum SubstrateType {
     /// Substrate Indices Address Type
     // TODO: this is not generic for any chain that doesn't use a
     // u32 and [u8; 32] for its index/id
+    #[serde(with = "RemoteAddress")]
     Address(Address),
 
     /// SignedExtension Type
@@ -157,7 +169,8 @@ impl fmt::Display for SubstrateType {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
+#[serde(untagged)]
 pub enum StructUnitOrTuple {
     Struct(Vec<StructField>),
     Unit(String),
@@ -185,7 +198,7 @@ impl fmt::Display for StructUnitOrTuple {
 }
 
 /// Type with an associated name
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct StructField {
     /// name of a field, if any
     /// this is an option, because IE a Tuple-enum Variant
@@ -194,6 +207,16 @@ pub struct StructField {
     /// Type of field
     pub ty: SubstrateType,
 }
+/*
+impl Serialize for StructField {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> 
+    where
+        S: Serializer,
+    {
+        
+    }
+}
+*/
 
 impl fmt::Display for StructField {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

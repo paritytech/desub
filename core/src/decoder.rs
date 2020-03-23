@@ -24,6 +24,7 @@
 //! to different applications that need the type data
 
 mod metadata;
+mod extrinsics;
 
 #[cfg(test)]
 pub use self::metadata::test_suite;
@@ -33,6 +34,7 @@ use crate::{
     substrate_types::{self, StructField, StructUnitOrTuple, SubstrateType},
     CommonTypes, RustTypeMarker, TypeDetective,
 };
+use self::extrinsics::GenericExtrinsic;
 use codec::{Compact, CompactLen, Decode};
 // use serde::Serialize;
 use std::{collections::HashMap, convert::TryFrom};
@@ -65,45 +67,6 @@ pub enum Entry {
     Storage,
     Event,
     Constant,
-}
-
-#[derive(Debug)]
-pub struct GenericExtrinsic {
-    signature: Option<SubstrateType>,
-    call: Vec<(String, SubstrateType)>,
-}
-
-impl std::fmt::Display for GenericExtrinsic {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut s = String::from("");
-        if let Some(v) = &self.signature {
-            s.push_str(&format!("{}", v));
-        } else {
-            s.push_str(&"None".to_string());
-        }
-
-        for val in self.call.iter() {
-            s.push_str("\n");
-            s.push_str("CALL");
-            s.push_str("\n");
-            s.push_str(&format!("arg: {}, Ty: {}", val.0, val.1))
-        }
-
-        write!(f, "{}", s)
-    }
-}
-
-impl GenericExtrinsic {
-    pub fn new(sig: Option<SubstrateType>, call: Vec<(String, SubstrateType)>) -> Self {
-        Self {
-            signature: sig,
-            call,
-        }
-    }
-
-    pub fn call(&self) -> &Vec<(String, SubstrateType)> {
-        &self.call
-    }
 }
 
 impl<T> Decoder<T>
@@ -209,14 +172,7 @@ where
             types.push((arg.name.to_string(), val));
         }
         log::debug!("{:?}", &data[cursor]);
-        Ok(GenericExtrinsic::new(signature, types))
-
-        // TODO
-        // should have a list of 'guess type' where
-        // types like <T::Lookup as StaticLookup>::Source
-        // are 'guessed' to be `Address`
-        // this is sort of a hack
-        // and should instead be handled in the definitions.json
+        Ok(GenericExtrinsic::new(signature, types, call_meta.name(), module.name().into()))
     }
 
     /// Internal function to handle

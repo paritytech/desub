@@ -83,5 +83,6 @@ pub fn should_decode_ext_106284() {
         println!("{:X?}", e);
         let decoded = decoder.decode_extrinsic(1042, e.as_slice()).expect("should decode");
         println!("{}", decoded);
+        println!("{}", serde_json::to_string(&decoded).unwrap());
     }
 }

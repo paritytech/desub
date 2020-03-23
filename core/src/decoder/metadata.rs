@@ -366,6 +366,9 @@ impl CallMetadata {
     pub fn arguments(&self) -> impl Iterator<Item = &CallArgMetadata> {
         self.arguments.iter()
     }
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
 }
 
 impl fmt::Display for CallMetadata {
