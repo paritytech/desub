@@ -49,6 +49,7 @@ impl fmt::Display for GenericCall {
     }
 }
 
+/// Generic Extrinsic Type
 #[derive(Debug, Serialize)]
 pub struct GenericExtrinsic {
     signature: Option<SubstrateType>,
@@ -93,6 +94,14 @@ impl GenericExtrinsic {
 
     pub fn call(&self) -> &GenericCall {
         &self.call
+    }
+
+    pub fn ext_module(&self) -> &str {
+        &self.call.module
+    }
+    
+    pub fn ext_name(&self) -> &str {
+        &self.call.name
     }
 }
 
