@@ -109,6 +109,10 @@ impl GenericExtrinsic {
     pub fn ext_name(&self) -> &str {
         &self.call.name
     }
+    
+    pub fn args(&self) -> &[ExtrinsicArgument] {
+        &self.call.args
+    }
 }
 
 #[cfg(test)]
