@@ -20,8 +20,8 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 #[derive(Debug, Serialize)]
 pub struct ExtrinsicArgument {
-    name: String,
-    arg: SubstrateType,
+    pub name: String,
+    pub arg: SubstrateType,
 }
 
 impl fmt::Display for ExtrinsicArgument {
