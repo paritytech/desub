@@ -29,6 +29,7 @@ mod extrinsics;
 #[cfg(test)]
 pub use self::metadata::test_suite;
 pub use self::metadata::{Metadata, MetadataError, ModuleIndex};
+pub use self::extrinsic::GenericExtrinsic;
 use crate::{
     error::Error,
     substrate_types::{self, StructField, StructUnitOrTuple, SubstrateType},
