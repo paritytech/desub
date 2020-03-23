@@ -15,13 +15,13 @@
 
 //! Generic Extrinsic Type and Functions
 
-use serde::{Serialize, Deserialize};
-use std::fmt;
 use crate::substrate_types::SubstrateType;
+use serde::{Deserialize, Serialize};
+use std::fmt;
 #[derive(Debug, Serialize)]
 pub struct ExtrinsicArgument {
     name: String,
-    arg: SubstrateType
+    arg: SubstrateType,
 }
 
 impl fmt::Display for ExtrinsicArgument {
@@ -34,7 +34,7 @@ impl fmt::Display for ExtrinsicArgument {
 pub struct GenericCall {
     name: String,
     module: String,
-    args: Vec<ExtrinsicArgument>
+    args: Vec<ExtrinsicArgument>,
 }
 
 impl fmt::Display for GenericCall {
@@ -74,17 +74,23 @@ impl fmt::Display for GenericExtrinsic {
 
 impl GenericExtrinsic {
     /// create a new generic extrinsic type
-    pub fn new(sig: Option<SubstrateType>, call: Vec<(String, SubstrateType)>, name: String, module: String) -> Self {
-        let call = call.into_iter().map(|c| {
-            ExtrinsicArgument {
+    pub fn new(
+        sig: Option<SubstrateType>,
+        call: Vec<(String, SubstrateType)>,
+        name: String,
+        module: String,
+    ) -> Self {
+        let call = call
+            .into_iter()
+            .map(|c| ExtrinsicArgument {
                 name: c.0,
-                arg: c.1
-            }
-        }).collect::<Vec<ExtrinsicArgument>>();
+                arg: c.1,
+            })
+            .collect::<Vec<ExtrinsicArgument>>();
         let call = GenericCall {
             name,
             module,
-            args: call
+            args: call,
         };
         Self {
             signature: sig,
@@ -99,7 +105,7 @@ impl GenericExtrinsic {
     pub fn ext_module(&self) -> &str {
         &self.call.module
     }
-    
+
     pub fn ext_name(&self) -> &str {
         &self.call.name
     }
@@ -114,13 +120,22 @@ mod tests {
         let call = GenericCall {
             name: "set".to_string(),
             module: "Timestamp".to_string(),
-            args: vec![ExtrinsicArgument {name: "Some Arg".to_string(), arg: SubstrateType::U32(32) }]
+            args: vec![ExtrinsicArgument {
+                name: "Some Arg".to_string(),
+                arg: SubstrateType::U32(32),
+            }],
         };
         let ext = GenericExtrinsic {
-            signature: Some(SubstrateType::Composite(vec![SubstrateType::U32(32), SubstrateType::U64(64)])),
+            signature: Some(SubstrateType::Composite(vec![
+                SubstrateType::U32(32),
+                SubstrateType::U64(64),
+            ])),
             call,
         };
         let serialized = serde_json::to_string(&ext).unwrap();
-        assert_eq!(serialized, r#"{"signature":[32,64],"call":{"name":"set","module":"Timestamp","args":[{"name":"Some Arg","arg":32}]}}"#);
+        assert_eq!(
+            serialized,
+            r#"{"signature":[32,64],"call":{"name":"set","module":"Timestamp","args":[{"name":"Some Arg","arg":32}]}}"#
+        );
     }
 }

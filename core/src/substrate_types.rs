@@ -20,16 +20,16 @@
 //! Display Implementation
 
 use crate::SetField;
-use std::fmt;
-use serde::{Serialize, Deserialize};
 use primitives::crypto::{AccountId32, Ss58AddressFormat, Ss58Codec};
+use serde::{Deserialize, Serialize};
+use std::fmt;
 pub type Address = pallet_indices::address::Address<AccountId32, u32>;
 
 #[derive(Serialize, Deserialize)]
 #[serde(remote = "Address")]
 pub enum RemoteAddress {
     Id(AccountId32),
-    Index(u32)
+    Index(u32),
 }
 
 /// a 'stateful' Rust Type marker
@@ -209,11 +209,11 @@ pub struct StructField {
 }
 /*
 impl Serialize for StructField {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> 
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        
+
     }
 }
 */

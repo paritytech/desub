@@ -23,13 +23,13 @@
 //! Theoretically, one could upload the deserialized decoder JSON to distribute
 //! to different applications that need the type data
 
-mod metadata;
 mod extrinsics;
+mod metadata;
 
+pub use self::extrinsics::{ExtrinsicArgument, GenericCall, GenericExtrinsic};
 #[cfg(test)]
 pub use self::metadata::test_suite;
 pub use self::metadata::{Metadata, MetadataError, ModuleIndex};
-pub use self::extrinsics::{GenericExtrinsic, GenericCall, ExtrinsicArgument};
 use crate::{
     error::Error,
     substrate_types::{self, StructField, StructUnitOrTuple, SubstrateType},
@@ -172,7 +172,12 @@ where
             types.push((arg.name.to_string(), val));
         }
         log::debug!("{:?}", &data[cursor]);
-        Ok(GenericExtrinsic::new(signature, types, call_meta.name(), module.name().into()))
+        Ok(GenericExtrinsic::new(
+            signature,
+            types,
+            call_meta.name(),
+            module.name().into(),
+        ))
     }
 
     /// Internal function to handle
@@ -198,7 +203,7 @@ where
                     let new_type = self
                         .types
                         .get(module, v, spec, self.chain.as_str())
-                        .ok_or_else(||Error::from("Name Resolution Failure"))?
+                        .ok_or_else(|| Error::from("Name Resolution Failure"))?
                         .as_type();
                     self.decode_single(module, spec, new_type, data, cursor, is_compact)?
                 }

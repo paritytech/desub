@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 #[forbid(unsafe_code)]
-
 pub mod decoder;
 mod error;
 pub mod regex;
@@ -23,8 +22,8 @@ mod substrate_types;
 #[cfg(test)]
 pub mod test_suite;
 
-pub use self::substrate_types::SubstrateType;
 pub use self::error::Error;
+pub use self::substrate_types::SubstrateType;
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
 

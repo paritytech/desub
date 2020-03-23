@@ -447,7 +447,7 @@ impl<K: Encode, V: Decode + Clone> StorageMap<K, V> {
             StorageHasher::Twox256 => primitives::twox_256(&bytes).to_vec(),
             StorageHasher::Twox64Concat => primitives::twox_64(&bytes).to_vec(),
             // TODO figure out which substrate hash function is the 'identity' function
-            StorageHasher::Identity => panic!("Unkown Hash"), 
+            StorageHasher::Identity => panic!("Unkown Hash"),
         };
         StorageKey(hash)
     }
