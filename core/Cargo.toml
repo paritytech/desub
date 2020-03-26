@@ -11,7 +11,6 @@ codec = { version = "1.2", package = "parity-scale-codec" }
 codec411 = { version = "4.1.1", package = "parity-codec", features = ["derive"] } # for backwards compatibility with v 7
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
-num = "0.2"
 onig = "5.0"
 
 primitives = { git = "https://github.com/paritytech/substrate", package = "sp-core" }
