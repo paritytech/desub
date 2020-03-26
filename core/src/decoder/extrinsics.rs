@@ -114,7 +114,7 @@ impl GenericExtrinsic {
         &self.call.module
     }
 
-    pub fn ext_name(&self) -> &str {
+    pub fn ext_call(&self) -> &str {
         &self.call.name
     }
     

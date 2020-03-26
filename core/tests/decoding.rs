@@ -21,6 +21,7 @@ pub fn should_decode_ext342962() {
     for e in ext.iter() {
         println!("{:?}", e);
         let decoded = decoder.decode_extrinsic(1031, e.as_slice()).expect("should decode");
+        println!("{:?}", decoded);
         println!("{}", decoded);
     }
 
