@@ -29,7 +29,6 @@ use runtime_metadata08::{
 use std::{
     collections::{HashMap, HashSet},
     convert::TryFrom,
-    rc::Rc,
 };
 
 type DecodeDifferentStr = DecodeDifferent<&'static str, String>;
@@ -63,7 +62,7 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
                 event_index += 1;
             }
             let module_metadata = convert_module(i, module)?;
-            modules.insert(module_name, Rc::new(module_metadata));
+            modules.insert(module_name, module_metadata);
         }
         Ok(Metadata {
             modules,

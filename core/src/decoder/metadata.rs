@@ -47,7 +47,6 @@ use std::{
     convert::TryInto,
     fmt,
     marker::PhantomData,
-    rc::Rc,
     str::FromStr,
 };
 
@@ -95,7 +94,7 @@ pub enum ModuleIndex {
 /// Metadata struct encompassing calls, storage, and events
 pub struct Metadata {
     /// Hashmap of Modules (name -> module-specific metadata)
-    modules: HashMap<String, Rc<ModuleMetadata>>,
+    modules: HashMap<String, ModuleMetadata>,
     /// modules by their index in the event enum
     modules_by_event_index: HashMap<u8, String>,
     /// modules by their index in the Call Enum
@@ -152,12 +151,12 @@ impl Metadata {
     }
 
     /// returns an iterate over all Modules
-    pub fn modules(&self) -> impl Iterator<Item = &Rc<ModuleMetadata>> {
+    pub fn modules(&self) -> impl Iterator<Item = &ModuleMetadata> {
         self.modules.values()
     }
 
     /// returns a weak reference to a module from it's name
-    pub fn module<S>(&self, name: S) -> Result<Rc<ModuleMetadata>, MetadataError>
+    pub fn module<S>(&self, name: S) -> Result<ModuleMetadata, MetadataError>
     where
         S: ToString,
     {
@@ -191,7 +190,7 @@ impl Metadata {
     pub fn module_by_index(
         &self,
         module_index: ModuleIndex,
-    ) -> Result<Rc<ModuleMetadata>, MetadataError> {
+    ) -> Result<ModuleMetadata, MetadataError> {
         Ok(match module_index {
             ModuleIndex::Call(i) => {
                 let name = self

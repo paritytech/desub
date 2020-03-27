@@ -29,40 +29,40 @@ pub fn test_metadata() -> Metadata {
     }
 }
 
-fn module_metadata_mock() -> HashMap<String, Rc<ModuleMetadata>> {
+fn module_metadata_mock() -> HashMap<String, ModuleMetadata> {
     let mut map = HashMap::new();
 
     map.insert(
         "TestModule0".to_string(),
-        Rc::new(ModuleMetadata {
+        ModuleMetadata {
             index: 0,
             name: "TestModule0".to_string(),
             storage: storage_mock(),
             calls: call_mock(),
             events: event_mock(),
-        }),
+        },
     );
 
     map.insert(
         "TestModule1".to_string(),
-        Rc::new(ModuleMetadata {
+        ModuleMetadata {
             index: 1,
             name: "TestModule1".to_string(),
             storage: storage_mock(),
             calls: call_mock(),
             events: event_mock(),
-        }),
+        },
     );
 
     map.insert(
         "TestModule2".to_string(),
-        Rc::new(ModuleMetadata {
+        ModuleMetadata {
             index: 2,
             name: "TestModule2".to_string(),
             storage: storage_mock(),
             calls: call_mock(),
             events: event_mock(),
-        }),
+        },
     );
 
     map

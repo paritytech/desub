@@ -40,7 +40,6 @@ use runtime_metadata_latest::{
 use std::{
     collections::{HashMap, HashSet},
     convert::TryFrom,
-    rc::Rc,
 };
 
 impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
@@ -70,7 +69,7 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
                 event_index += 1;
             }
             let module_metadata = convert_module(i, module)?;
-            modules.insert(module_name, Rc::new(module_metadata));
+            modules.insert(module_name, module_metadata);
         }
         Ok(Metadata {
             modules,
