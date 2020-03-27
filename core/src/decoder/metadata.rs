@@ -37,7 +37,7 @@ mod versions;
 
 use crate::RustTypeMarker;
 use codec::{Decode, Encode, EncodeAsRef, HasCompact};
-use codec411::Decode as OldDecode;
+// use codec411::Decode as OldDecode;
 use failure::Fail;
 use runtime_metadata_latest::{StorageEntryModifier, StorageEntryType, StorageHasher};
 
