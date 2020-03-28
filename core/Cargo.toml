@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 log = "0.4"
 failure = "0.1"
-codec = { version = "1.2", package = "parity-scale-codec" }
+codec = { version = "1.3", package = "parity-scale-codec" }
 # codec411 = { version = "4.1.1", package = "parity-codec", features = ["derive"] } # for backwards compatibility with v 7
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
