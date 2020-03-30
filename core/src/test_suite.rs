@@ -87,3 +87,4 @@ pub fn extrinsics_block10994() -> [Vec<u8>; 3] {
 
     [ext0, ext1, ext2]
 }
+

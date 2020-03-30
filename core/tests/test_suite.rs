@@ -149,3 +149,39 @@ pub fn extrinsics_block106284() -> (Vec<u8>, [Vec<u8>; 4]) {
 
     (meta, [ext0, ext1, ext2, ext3])
 }
+
+pub fn extrinsics_block1674683() -> (Vec<u8>, [Vec<u8>; 3]) {
+    let path: String = format!("{}{}", EXT_PATH, "spec1055_block1674683/");
+
+    let mut f = File::open(format!(
+        "{}{}",
+        path, "EXTRINSIC_spec_1055_block_1674683_index_0.bin"
+    ))
+    .expect("Opening file failed");
+    let mut ext0 = Vec::new();
+    f.read_to_end(&mut ext0).expect("Reading file failed");
+
+    let mut f = File::open(format!(
+        "{}{}",
+        path, "EXTRINSIC_spec_1055_block_1674683_index_1.bin"
+    ))
+    .expect("Opening file failed");
+    let mut ext1 = Vec::new();
+    f.read_to_end(&mut ext1).expect("Reading file failed");
+
+    let mut f = File::open(format!(
+        "{}{}",
+        path, "EXTRINSIC_spec_1055_block_1674683_index_2.bin"
+    ))
+    .expect("Opening file failed");
+    let mut ext2 = Vec::new();
+    f.read_to_end(&mut ext2).expect("Reading file failed");
+
+
+    let mut f = File::open(format!("{}{}", path, "spec_1055_block_1674683_METADATA.bin"))
+        .expect("Opening file failed");
+    let mut meta = Vec::new();
+    f.read_to_end(&mut meta).expect("Reading file failed");
+
+    (meta, [ext0, ext1, ext2])
+}

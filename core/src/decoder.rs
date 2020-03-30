@@ -130,7 +130,6 @@ where
                 .get_extrinsic_ty(spec, self.chain.as_str(), "signature")
                 .expect("Signature must not be empty")
                 .as_type();
-            println!("HEREHERE");
             log::debug!("TYPE: {:?}", signature);
             Some(self.decode_single(
                 "runtime",
@@ -171,7 +170,7 @@ where
             )?;
             types.push((arg.name.to_string(), val));
         }
-        log::debug!("{:?}", &data[cursor]);
+        // log::debug!("{:?}", &data[cursor]);
         Ok(GenericExtrinsic::new(
             signature,
             types,
