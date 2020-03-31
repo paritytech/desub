@@ -3,6 +3,10 @@ use std::{fs::File, io::prelude::*};
 
 fn extrinsic_test(spec: String, block: String, num: usize) -> (Vec<u8>, Vec<Vec<u8>>) {
     let mut exts: Vec<Vec<u8>> = Vec::new();
+    if std::path::Path::new("./core").exists() {
+        std::env::set_current_dir("./core").is_ok();
+    }
+    println!("{}", std::env::current_dir().unwrap().to_str().unwrap());
     let path = &format!("{}spec{}_block{}/", EXT_PATH, spec, block);
     for i in 0..num {
         let ext_path = &format!("{}EXTRINSIC_spec_{}_block_{}_index_{}.bin", &path, spec, block, i);

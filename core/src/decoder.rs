@@ -130,7 +130,6 @@ where
                 .get_extrinsic_ty(spec, self.chain.as_str(), "signature")
                 .expect("Signature must not be empty")
                 .as_type();
-            log::debug!("TYPE: {:?}", signature);
             Some(self.decode_single(
                 "runtime",
                 spec,
@@ -208,12 +207,14 @@ where
                 }
             }
             RustTypeMarker::Struct(v) => {
+                log::debug!("cursor = {:?}", cursor);
                 let ty =
                     self.decode_structlike(v, module, spec, data, cursor, is_compact)?;
                 SubstrateType::Struct(ty)
             }
             // TODO: test
             RustTypeMarker::Set(v) => {
+                log::debug!("cursor = {:?}", cursor);
                 // a set item must be an u8
                 // can decode this right away
                 let index = data[*cursor];
@@ -221,6 +222,7 @@ where
                 SubstrateType::Set(v[index as usize].clone())
             }
             RustTypeMarker::Tuple(v) => {
+                log::debug!("cursor = {:?}", cursor);
                 let ty = v
                     .iter()
                     .map(|v| {
@@ -234,6 +236,7 @@ where
                 *cursor += 1;
                 log::debug!("HERE");
                 log::debug!("data = {:?}", data[*cursor]);
+                log::debug!("cursor = {:?}", cursor);
                 let variant = &v[index as usize];
                 log::debug!("Don't get here");
                 match &variant.ty {
@@ -259,6 +262,7 @@ where
                 }
             }
             RustTypeMarker::Array { size, ty } => {
+                log::debug!("cursor = {:?}", cursor);
                 let mut decoded_arr = Vec::with_capacity(*size);
                 if *size == 0 as usize {
                     log::trace!("Returning Empty Vector");
@@ -277,6 +281,7 @@ where
             }
             RustTypeMarker::Std(v) => match v {
                 CommonTypes::Vec(v) => {
+                    log::debug!("cursor = {:?}", cursor);
                     let length = Self::scale_length(&data[*cursor..])?;
                     *cursor += length.1;
                     // we can just decode this as an "array" now
@@ -293,6 +298,7 @@ where
                     )?
                 }
                 CommonTypes::Option(v) => {
+                    log::debug!("cursor = {:?}", cursor);
                     match data[*cursor] {
                         // None
                         0x00 => {
@@ -313,6 +319,7 @@ where
                     }
                 }
                 CommonTypes::Result(v, e) => {
+                    log::debug!("cursor = {:?}", cursor);
                     match data[*cursor] {
                         // Ok
                         0x00 => {
@@ -337,6 +344,7 @@ where
                 }
                 // TODO: test
                 CommonTypes::Compact(v) => {
+                    log::debug!("cursor = {:?}", cursor);
                     self.decode_single(module, spec, v, data, cursor, true)?
                 }
             },

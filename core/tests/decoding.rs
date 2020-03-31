@@ -107,3 +107,24 @@ pub fn should_decode_ext_1674683() {
         println!("{}", serde_json::to_string(&decoded).unwrap());
     }
 }
+
+#[test]
+pub fn should_decode_ext_1677621() {
+    init();
+
+    let types = extras::polkadot::PolkadotTypes::new().unwrap();
+    let mut decoder = Decoder::new(types, "kusama");
+
+    let (meta, ext) = test_suite::extrinsics_block1677621();
+    let meta = Metadata::new(meta.as_slice());
+
+    decoder.register_version(1055, meta);
+
+    for e in ext.iter() {
+        println!("{:?}", e);
+        println!("{:X?}", e);
+        let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
+        println!("{}", decoded);
+        println!("{}", serde_json::to_string(&decoded).unwrap());
+    }
+}

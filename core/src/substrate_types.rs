@@ -120,8 +120,8 @@ impl fmt::Display for SubstrateType {
             SubstrateType::Address(v) => {
                 match v {
                     pallet_indices::address::Address::Id(ref i) => {
-                        // write!(f, "Account::Id({})", i.to_ss58check_with_version(Ss58AddressFormat::KusamaAccount))
-                        write!(f, "Account::Id({})", i)
+                        write!(f, "Account::Id({})", i.to_ss58check_with_version(Ss58AddressFormat::KusamaAccount))
+                        //write!(f, "Account::Id({})", i)
                     }
                     pallet_indices::address::Address::Index(i) => {
                         write!(f, "Index: {:?}", i)
