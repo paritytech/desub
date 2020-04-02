@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
+// TODO: write tests for all 'parse_xxx' functions
 use super::{CommonTypes, RustTypeMarker};
 use onig::{Regex, Region, SearchOptions};
 
@@ -811,11 +812,6 @@ mod tests {
             ],
             caps.iter().collect::<Vec<Option<&str>>>()
         );
-    }
-
-    #[test]
-    fn should_parse_arbitrary_type() {
-
     }
 
     #[test]

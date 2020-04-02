@@ -235,6 +235,7 @@ where
                 let index = data[*cursor];
                 *cursor += 1;
                 log::debug!("HERE");
+                log::debug!("Decoding enum {:?}", v);
                 log::debug!("data = {:?}", data[*cursor]);
                 log::debug!("cursor = {:?}", cursor);
                 let variant = &v[index as usize];
