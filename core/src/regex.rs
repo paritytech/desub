@@ -25,6 +25,7 @@ enum RegexSet {
     Result,
     Compact,
     Tuple,
+    Generic,
 }
 
 impl RegexSet {
@@ -43,6 +44,8 @@ impl RegexSet {
             Some(RegexSet::Compact)
         } else if rust_tuple_decl().is_match(s) {
             Some(RegexSet::Tuple)
+        } else if rust_generic_decl().is_match(s) {
+            Some(RegexSet::Generic)
         } else {
             None
         }
@@ -56,6 +59,7 @@ impl RegexSet {
             RegexSet::Result => parse_regex_result(s),
             RegexSet::Compact => parse_regex_compact(s),
             RegexSet::Tuple => parse_regex_tuple(s),
+            RegexSet::Generic => parse_regex_generic(s),
         }
     }
 }
@@ -311,6 +315,24 @@ fn parse_regex_tuple(s: &str) -> Option<RustTypeMarker> {
         .collect::<Vec<RustTypeMarker>>();
 
     Some(RustTypeMarker::Tuple(ty))
+}
+
+fn parse_regex_generic(s: &str) -> Option<RustTypeMarker> {
+    let re = rust_generic_decl();
+    if !re.is_match(s) {
+        return None;
+    }
+    let ty_outer = re.captures(s)?.at(1)?; 
+    let ty_inner = re.captures(s)?.at(2)?;
+    let ty_outer = parse(ty_outer).expect("Must be a type; qed");
+    // NOTE:
+    // ty_inner may be a throwaway type in some cases where the inner type are part of 
+    // the already-defined definitions in the JSON
+    // for example, the "HeartBeat" definition in Polkadot JSON definitions already takes into 
+    // account that a HeartBeat type in Polkadot is HeartBeat<T::BlockNumber>
+    let ty_inner = parse(ty_inner).expect("Must be a type; qed");
+
+    Some(RustTypeMarker::Generic((Box::new(ty_outer), Box::new(ty_inner))))
 }
 
 /// recursively parses a regex set
@@ -789,6 +811,11 @@ mod tests {
             ],
             caps.iter().collect::<Vec<Option<&str>>>()
         );
+    }
+
+    #[test]
+    fn should_parse_arbitrary_type() {
+
     }
 
     #[test]

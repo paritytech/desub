@@ -248,6 +248,9 @@ pub enum RustTypeMarker {
     /// type definitions
     Std(CommonTypes),
 
+    /// A Generic Type, EX: HeartBeat<BlockNumber>
+    /// Tuple of (OuterType, InnerType)
+    Generic((Box<RustTypeMarker>, Box<RustTypeMarker>)),
     /// primitive unsigned 8 bit integer
     U8,
     /// primtiive unsigned 16 bit integer
@@ -328,6 +331,9 @@ impl Display for RustTypeMarker {
                 type_marker.push_str(&format!("[{};{}], ", ty, size))
             }
             RustTypeMarker::Std(t) => type_marker.push_str(&t.to_string()),
+            RustTypeMarker::Generic((outer, inner)) => {
+                type_marker.push_str(&format!("{}<{}>", outer, inner))
+            }
             RustTypeMarker::U8 => type_marker.push_str("u8"),
             RustTypeMarker::U16 => type_marker.push_str("u16"),
             RustTypeMarker::U32 => type_marker.push_str("u32"),

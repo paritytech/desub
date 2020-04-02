@@ -28,6 +28,7 @@
       "Block": "GenericBlock",
       "BlockNumber": "u32",
       "Call": "GenericCall",
+      "Bytes": "Vec<u8>",
       "ChangesTrieConfiguration": {
         "digestInterval": "u32",
         "digestLevels": "u32"
@@ -392,7 +393,7 @@
       }
     }
   },
-  "genericAsset": {
+  "genericasset": {
     "types": {
       "AssetOptions": {
         "initalIssuance": "Compact<Balance>",
@@ -486,7 +487,7 @@
       }
     }
   },
-  "imOnline": {
+  "imonline": {
     "types": {
       "AuthIndex": "u32",
       "AuthoritySignature": "Signature",

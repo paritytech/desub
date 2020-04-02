@@ -55,7 +55,7 @@ pub struct Decoder<T: TypeDetective> {
 }
 
 /// The type of Entry
-///
+//1677621
 /// # Note
 ///
 /// not entirely sure if necessary as of yet
@@ -158,7 +158,7 @@ where
         // TODO: tuple of argument name -> value
         let mut types: Vec<(String, SubstrateType)> = Vec::new();
         for arg in call_meta.arguments() {
-            log::trace!("arg = {:?}", arg);
+            log::debug!("arg = {:?}", arg);
             let val = self.decode_single(
                 module.name(),
                 spec,
@@ -348,6 +348,11 @@ where
                     self.decode_single(module, spec, v, data, cursor, true)?
                 }
             },
+            RustTypeMarker::Generic((outer, inner)) => {
+                log::debug!("Generic Type");
+                // disregard 'inner' type of a generic
+                self.decode_single(module, spec, outer, data, cursor, is_compact)?
+            }
             RustTypeMarker::U8 => {
                 let num: u8 = if is_compact {
                     let num: Compact<u8> = Decode::decode(&mut &data[*cursor..])?;
@@ -397,6 +402,7 @@ where
                 num.into()
             }
             RustTypeMarker::U128 => {
+                log::debug!("data = {:?}", &data[*cursor..]);
                 let num: u128 = if is_compact {
                     let num: Compact<u128> = Decode::decode(&mut &data[*cursor..])?;
                     *cursor += Compact::compact_len(&u128::from(num));
@@ -573,7 +579,7 @@ where
                 let val: primitives::H512 = Decode::decode(&mut &data[*cursor..]).ok()?;
                 *cursor += 64;
                 Some(SubstrateType::H512(val))
-            }
+            },
             _ => None,
         }
     }

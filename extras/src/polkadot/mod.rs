@@ -55,19 +55,23 @@ impl PolkadotTypes {
         spec: u32,
         chain: &str,
     ) -> Option<&RustTypeMarker> {
+        log::debug!("Getting Type: {}, module: {}, spec: {}", ty, module, spec);
+       
         let ty = if let Some(un_prefixed) = regex::remove_prefix(ty) {
             un_prefixed
         } else {
             ty.to_string()
         };
 
-        log::debug!("Getting Type: {}", ty);
         if let Some(t) = self.check_overrides(module, ty.as_str(), spec, chain) {
+            log::debug!("Resolving to Override");
             Some(&t)
         } else if let Some(t) = self.check_extrinsics(ty.as_str(), spec, chain) {
+            log::debug!("Resolving to Extrinsic Type");
             Some(&t)
         } else {
-            self.resolve_helper(module, &RustTypeMarker::TypePointer(ty.to_string()))
+            log::debug!("Resolving to Type Pointer");
+            self.resolve_helper(module, &ty)
         }
     }
 
@@ -106,30 +110,38 @@ impl PolkadotTypes {
         None
     }
 
-    // TODO: Clean this up
-    /// try to resolve a type pointer
+    /// Try to resolve a type pointer
     fn resolve_helper(
         &self,
         module: &str,
-        ty: &RustTypeMarker,
+        ty_pointer: &str,
     ) -> Option<&RustTypeMarker> {
-        match ty {
-            RustTypeMarker::TypePointer(p) => {
-                if self.mods.modules.get(module).is_none() {
-                    self.mods.modules.get("runtime")?.types.get(p)
-                } else {
-                    if let Some(t) = self.mods.modules.get(module)?.types.get(p) {
-                        Some(t)
-                    } else if let Some(t) = self.mods.modules.get("runtime")?.types.get(p)
-                    {
-                        Some(t)
-                    } else {
-                        None
-                    }
+        if self.mods.modules.get(module).is_none() {
+            self.mods.modules.get("runtime")?.types.get(ty_pointer)
+        } else {
+            if let Some(t) = self.mods.modules.get(module)?.types.get(ty_pointer) {
+                Some(t)
+            } else if let Some(t) = self.mods.modules.get("runtime")?.types.get(ty_pointer)
+            {
+                Some(t)
+            } else if let Some(t) = self.check_other_modules(ty_pointer) {
+                Some(t)
+            } else {
+                None
+            }
+        }
+    }
+
+    fn check_other_modules(&self, ty_pointer: &str) -> Option<&RustTypeMarker> {
+
+        for m in self.mods.modules.values() {
+            for (n, t) in m.types.iter() {
+                if n == ty_pointer {
+                    return Some(t)
                 }
             }
-            _ => None,
         }
+        None
     }
 }
 
@@ -176,7 +188,7 @@ impl TypeDetective for PolkadotTypes {
 
         let ty = if let Some(t) = ty {
             match t {
-                t @ RustTypeMarker::TypePointer(_) => self.resolve_helper("runtime", t),
+                RustTypeMarker::TypePointer(t) => self.resolve_helper("runtime", t),
                 t => Some(t),
             }
         } else {
@@ -196,7 +208,7 @@ impl TypeDetective for PolkadotTypes {
             }
             v => v.clone(),
         };
-        self.resolve_helper(module, &ty)
+        self.resolve_helper(module, ty.as_type_pointer()?)
     }
 }
 
