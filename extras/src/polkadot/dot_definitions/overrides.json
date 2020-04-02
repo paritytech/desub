@@ -1,33 +1,47 @@
 {
   "TYPES_MODULES": {
-    "contracts": {
-      "StorageKey": "ContractStorageKey"
-    },
-    "identity": {
-      "Judgement": "IdentityJudgement"
-    },
-    "society": {
-      "Judgement": "SocietyJudgement",
-      "Vote": "SocietyVote"
-    },
-    "treasury": {
-      "Proposal": "TreasuryProposal"
-    }
-  },
-  "TYPES_CHAIN": {},
-  "TYPES_META": [
-    {
-      "minmax": [
-        0,
-        4
-      ],
-      "types": {
-        "BlockNumber": "u64",
-        "Index": "u64",
-        "EventRecord": "EventRecordTo76",
-        "ValidatorPrefs": "ValidatorPrefsTo145"
+      "balances": {
+        "Releases": "ReleasesBalances"
+      },
+      "contract": {
+        "AccountInfo": "ContractAccountInfo"
+      },
+      "contracts": {
+        "StorageKey": "ContractStorageKey"
+      },
+      "identity": {
+        "Judgement": "IdentityJudgement"
+      },
+      "parachains": {
+        "Id": "ParaId"
+      },
+      "society": {
+        "Judgement": "SocietyJudgement",
+        "Vote": "SocietyVote"
+      },
+      "staking": {
+        "Compact": "CompactAssignments",
+        "Releases": "ReleasesStaking"
+      },
+      "treasury": {
+        "Proposal": "TreasuryProposal"
       }
-    }
+  },
+  "TYPES_META": [
+      {
+        "minmax": [
+          0,
+          4
+        ],
+        "types": {
+          "Address": "GenericAddress",
+          "BlockNumber": "u64",
+          "EventRecord": "EventRecordTo76",
+          "Index": "u64",
+          "StakingLedger": "StakingLedgerTo223",
+          "ValidatorPrefs": "ValidatorPrefsTo145"
+        }
+      }
   ],
   "TYPES_SPEC": {
     "kusama": [
@@ -37,10 +51,15 @@
           1031
         ],
         "types": {
+          "Address": "GenericAddress",
           "BalanceLock": "BalanceLockTo212",
           "DispatchError": "DispatchErrorTo198",
           "Keys": "SessionKeys5",
-          "SlashingSpans": "SlashingSpansTo204"
+          "LookupSource": "Address",
+          "ReferendumInfo": "ReferendumInfoTo239",
+          "SlashingSpans": "SlashingSpansTo204",
+          "StakingLedger": "StakingLedgerTo223",
+          "Votes": "VotesTo230"
         }
       },
       {
@@ -49,30 +68,52 @@
           1042
         ],
         "types": {
+          "Address": "GenericAddress",
           "BalanceLock": "BalanceLockTo212",
           "Keys": "SessionKeys5",
-          "SlashingSpans": "SlashingSpansTo204"
+          "LookupSource": "Address",
+          "ReferendumInfo": "ReferendumInfoTo239",
+          "SlashingSpans": "SlashingSpansTo204",
+          "StakingLedger": "StakingLedgerTo223",
+          "Votes": "VotesTo230"
         }
       },
       {
         "minmax": [
           1043,
-          null
+          1045
         ],
         "types": {
+          "Address": "GenericAddress",
           "BalanceLock": "BalanceLockTo212",
-          "Keys": "SessionKeys5"
+          "Keys": "SessionKeys5",
+          "LookupSource": "Address",
+          "ReferendumInfo": "ReferendumInfoTo239",
+          "StakingLedger": "StakingLedgerTo223",
+          "Votes": "VotesTo230"
         }
-      }
-    ],
-    "polkadot": [
+      },
       {
         "minmax": [
-          1000,
+          1046,
+          1054
+        ],
+        "types": {
+          "Address": "AccountId",
+          "Keys": "SessionKeys5",
+          "LookupSource": "AccountId",
+          "ReferendumInfo": "ReferendumInfoTo239"
+        }
+      },
+      {
+        "minmax": [
+          1055,
           null
         ],
         "types": {
-          "Keys": "SessionKeys5"
+          "Address": "AccountId",
+          "Keys": "SessionKeys5",
+          "LookupSource": "AccountId"
         }
       }
     ]
