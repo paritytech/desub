@@ -548,7 +548,7 @@ where
                 let types = self.decode_call(spec, data, cursor).ok()?;
                 Some(SubstrateType::Call(types))
             },
-            "Lookup" => {
+            "Lookup" | "GenericAddress" => { // a specific type that is <T as StaticSource>::Lookup concatenated to just 'Lookup'
                 let inc: usize;
                 // TODO: requires more investigation
                 // cursor increments for 0x00 .. 0xfe may be incorrect

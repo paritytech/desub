@@ -340,13 +340,6 @@ mod tests {
             t,
             &RustTypeMarker::TypePointer("BalanceLockTo212".to_string())
         );
-        let t = types
-            .get("balances", "BalanceLock", 9999, "kusama")
-            .unwrap();
-        assert_eq!(
-            t,
-            &RustTypeMarker::TypePointer("BalanceLockTo212".to_string())
-        );
         Ok(())
     }
 }
