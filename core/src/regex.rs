@@ -113,7 +113,7 @@ pub fn rust_generic_decl() -> Regex {
 pub fn remove_prefix<'a, S: Into<&'a str>>(s: S) -> Option<String> {
     let s: &str = s.into();
 
-    let re = Regex::new(r"[\w]::([\w><]+)")
+    let re = Regex::new(r"[\w><]::([\w><]+)")
         .expect("Regex expressions should be infallible; qed");
     let caps = re.captures(s)?;
     caps.iter().nth(1)?.map(|s| s.to_string())

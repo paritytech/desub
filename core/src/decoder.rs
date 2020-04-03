@@ -105,6 +105,7 @@ where
         spec: SpecVersion,
         data: &[u8],
     ) -> Result<GenericExtrinsic, Error> {
+        
         let meta = self.versions.get(&spec).expect("Spec does not exist");
 
         // first byte -> vector length
@@ -145,15 +146,35 @@ where
             log::debug!("Signature: \n{}", s);
             log::debug!("End Signature");
         }
-        log::debug!("data = {:?}", &data[cursor..]);
+        
+        let mut temp_cursor = cursor;
+        let module = meta.module_by_index(ModuleIndex::Call(data[temp_cursor]))?;
+        temp_cursor += 1;
+        let call_meta = module.call(data[temp_cursor])?;
+
+        let types = self.decode_call(spec, data, &mut cursor)?;
+        
+        Ok(GenericExtrinsic::new(
+            signature,
+            types,
+            call_meta.name(),
+            module.name().into(),
+        ))
+    }
+
+    fn decode_call(&self, spec: SpecVersion, data: &[u8], cursor: &mut usize) -> Result<Vec<(String, SubstrateType)>, Error> {
+         
+        let meta = self.versions.get(&spec).expect("Spec does not exist");
+
+        log::debug!("data = {:?}", &data[*cursor..]);
         log::debug!("cursor = {}", cursor);
-        let module = meta.module_by_index(ModuleIndex::Call(data[cursor]))?;
-        cursor += 1;
+        let module = meta.module_by_index(ModuleIndex::Call(data[*cursor]))?;
+        *cursor += 1;
         log::debug!("cursor = {}", cursor);
-        let call_meta = module.call(data[cursor])?;
-        cursor += 1;
+        let call_meta = module.call(data[*cursor])?;
+        *cursor += 1;
         log::debug!("cursor = {}", cursor);
-        log::debug!("data = {:X?}", &data[cursor..]);
+        log::debug!("data = {:X?}", &data[*cursor..]);
 
         // TODO: tuple of argument name -> value
         let mut types: Vec<(String, SubstrateType)> = Vec::new();
@@ -164,18 +185,12 @@ where
                 spec,
                 &arg.ty,
                 data,
-                &mut cursor,
+                cursor,
                 false,
             )?;
             types.push((arg.name.to_string(), val));
         }
-        // log::debug!("{:?}", &data[cursor]);
-        Ok(GenericExtrinsic::new(
-            signature,
-            types,
-            call_meta.name(),
-            module.name().into(),
-        ))
+        Ok(types)
     }
 
     /// Internal function to handle
@@ -522,13 +537,17 @@ where
     // TODO: test this with the substrate types used
     fn decode_sub_type(
         &self,
-        _spec: SpecVersion,
+        spec: SpecVersion,
         ty: &str,
         data: &[u8],
         cursor: &mut usize,
         _is_compact: bool,
     ) -> Option<SubstrateType> {
         match ty {
+            "Call" | "GenericCall" => {
+                let types = self.decode_call(spec, data, cursor).ok()?;
+                Some(SubstrateType::Call(types))
+            },
             "Lookup" => {
                 let inc: usize;
                 // TODO: requires more investigation

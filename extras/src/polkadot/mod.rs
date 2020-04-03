@@ -62,7 +62,7 @@ impl PolkadotTypes {
         } else {
             ty.to_string()
         };
-
+        log::debug!("Getting possibly de-prefixed type: {}", ty);
         if let Some(t) = self.check_overrides(module, ty.as_str(), spec, chain) {
             log::debug!("Resolving to Override");
             Some(&t)

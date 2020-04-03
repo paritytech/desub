@@ -42,7 +42,9 @@ pub enum SubstrateType {
     H512(primitives::H512),
     /// 256-bit hash type
     H256(primitives::H256),
-
+    
+    /// Recursive Call Type
+    Call(Vec<(String, SubstrateType)>), 
     /// Era
     Era(runtime_primitives::generic::Era),
 
@@ -111,6 +113,13 @@ impl fmt::Display for SubstrateType {
         match self {
             SubstrateType::H512(v) => write!(f, "{}", v),
             SubstrateType::H256(v) => write!(f, "{}", v),
+            SubstrateType::Call(c) => {
+                write!(f, "CALL")?;
+                for arg in c.iter() {
+                    write!(f, "{}: {}", arg.0, arg.1)?;
+                }
+                Ok(())
+            },
             SubstrateType::Era(v) => match v {
                 runtime_primitives::generic::Era::Mortal(s, e) => {
                     write!(f, "Era {}..{}", s, e)

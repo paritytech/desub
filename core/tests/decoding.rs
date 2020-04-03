@@ -171,3 +171,42 @@ fn should_decode_ext_1714495() {
     }
 }
 
+#[test]
+fn should_decode_ext_1717926() {
+    init();
+    let types = extras::polkadot::PolkadotTypes::new().unwrap();
+    let mut decoder = Decoder::new(types, "kusama");
+
+    let (meta, ext) = test_suite::extrinsics_block1717926();
+    let meta = Metadata::new(meta.as_slice());
+
+    decoder.register_version(1055, meta);
+
+    for e in ext.iter() {
+        println!("{:?}", e);
+        println!("{:X?}", e);
+        let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
+        println!("{}", decoded);
+        println!("{}", serde_json::to_string(&decoded).unwrap());
+    }
+}
+
+#[test]
+fn should_decode_ext_1718223() {
+    init();
+    let types = extras::polkadot::PolkadotTypes::new().unwrap();
+    let mut decoder = Decoder::new(types, "kusama");
+
+    let (meta, ext) = test_suite::extrinsics_block1718223();
+    let meta = Metadata::new(meta.as_slice());
+
+    decoder.register_version(1055, meta);
+
+    for e in ext.iter() {
+        println!("{:?}", e);
+        println!("{:X?}", e);
+        let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
+        println!("{}", decoded);
+        println!("{}", serde_json::to_string(&decoded).unwrap());
+    }
+}
