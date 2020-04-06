@@ -42,9 +42,9 @@ pub enum SubstrateType {
     H512(primitives::H512),
     /// 256-bit hash type
     H256(primitives::H256),
-    
+
     /// Recursive Call Type
-    Call(Vec<(String, SubstrateType)>), 
+    Call(Vec<(String, SubstrateType)>),
     /// Era
     Era(runtime_primitives::generic::Era),
 
@@ -119,7 +119,7 @@ impl fmt::Display for SubstrateType {
                     write!(f, "{}: {}", arg.0, arg.1)?;
                 }
                 Ok(())
-            },
+            }
             SubstrateType::Era(v) => match v {
                 runtime_primitives::generic::Era::Mortal(s, e) => {
                     write!(f, "Era {}..{}", s, e)
@@ -129,7 +129,11 @@ impl fmt::Display for SubstrateType {
             SubstrateType::Address(v) => {
                 match v {
                     pallet_indices::address::Address::Id(ref i) => {
-                        write!(f, "Account::Id({})", i.to_ss58check_with_version(Ss58AddressFormat::KusamaAccount))
+                        write!(
+                            f,
+                            "Account::Id({})",
+                            i.to_ss58check_with_version(Ss58AddressFormat::KusamaAccount)
+                        )
                         //write!(f, "Account::Id({})", i)
                     }
                     pallet_indices::address::Address::Index(i) => {

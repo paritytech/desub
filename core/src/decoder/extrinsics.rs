@@ -97,7 +97,7 @@ impl GenericExtrinsic {
             call,
         }
     }
-    
+
     pub fn is_signed(&self) -> bool {
         self.signature.is_some()
     }
@@ -105,7 +105,7 @@ impl GenericExtrinsic {
     pub fn signature(&self) -> Option<&SubstrateType> {
         self.signature.as_ref()
     }
-    
+
     pub fn call(&self) -> &GenericCall {
         &self.call
     }
@@ -117,7 +117,7 @@ impl GenericExtrinsic {
     pub fn ext_call(&self) -> &str {
         &self.call.name
     }
-    
+
     pub fn args(&self) -> &[ExtrinsicArgument] {
         &self.call.args
     }

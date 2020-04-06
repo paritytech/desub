@@ -105,7 +105,6 @@ where
         spec: SpecVersion,
         data: &[u8],
     ) -> Result<GenericExtrinsic, Error> {
-        
         let meta = self.versions.get(&spec).expect("Spec does not exist");
 
         // first byte -> vector length
@@ -146,14 +145,14 @@ where
             log::debug!("Signature: \n{}", s);
             log::debug!("End Signature");
         }
-        
+
         let mut temp_cursor = cursor;
         let module = meta.module_by_index(ModuleIndex::Call(data[temp_cursor]))?;
         temp_cursor += 1;
         let call_meta = module.call(data[temp_cursor])?;
 
         let types = self.decode_call(spec, data, &mut cursor)?;
-        
+
         Ok(GenericExtrinsic::new(
             signature,
             types,
@@ -162,8 +161,12 @@ where
         ))
     }
 
-    fn decode_call(&self, spec: SpecVersion, data: &[u8], cursor: &mut usize) -> Result<Vec<(String, SubstrateType)>, Error> {
-         
+    fn decode_call(
+        &self,
+        spec: SpecVersion,
+        data: &[u8],
+        cursor: &mut usize,
+    ) -> Result<Vec<(String, SubstrateType)>, Error> {
         let meta = self.versions.get(&spec).expect("Spec does not exist");
 
         log::debug!("data = {:?}", &data[*cursor..]);
@@ -180,14 +183,8 @@ where
         let mut types: Vec<(String, SubstrateType)> = Vec::new();
         for arg in call_meta.arguments() {
             log::debug!("arg = {:?}", arg);
-            let val = self.decode_single(
-                module.name(),
-                spec,
-                &arg.ty,
-                data,
-                cursor,
-                false,
-            )?;
+            let val =
+                self.decode_single(module.name(), spec, &arg.ty, data, cursor, false)?;
             types.push((arg.name.to_string(), val));
         }
         Ok(types)
@@ -547,8 +544,9 @@ where
             "Call" | "GenericCall" => {
                 let types = self.decode_call(spec, data, cursor).ok()?;
                 Some(SubstrateType::Call(types))
-            },
-            "Lookup" | "GenericAddress" => { // a specific type that is <T as StaticSource>::Lookup concatenated to just 'Lookup'
+            }
+            "Lookup" | "GenericAddress" => {
+                // a specific type that is <T as StaticSource>::Lookup concatenated to just 'Lookup'
                 let inc: usize;
                 // TODO: requires more investigation
                 // cursor increments for 0x00 .. 0xfe may be incorrect
@@ -599,7 +597,7 @@ where
                 let val: primitives::H512 = Decode::decode(&mut &data[*cursor..]).ok()?;
                 *cursor += 64;
                 Some(SubstrateType::H512(val))
-            },
+            }
             _ => None,
         }
     }

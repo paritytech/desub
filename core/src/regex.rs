@@ -323,17 +323,20 @@ fn parse_regex_generic(s: &str) -> Option<RustTypeMarker> {
     if !re.is_match(s) {
         return None;
     }
-    let ty_outer = re.captures(s)?.at(1)?; 
+    let ty_outer = re.captures(s)?.at(1)?;
     let ty_inner = re.captures(s)?.at(2)?;
     let ty_outer = parse(ty_outer).expect("Must be a type; qed");
     // NOTE:
-    // ty_inner may be a throwaway type in some cases where the inner type are part of 
+    // ty_inner may be a throwaway type in some cases where the inner type are part of
     // the already-defined definitions in the JSON
-    // for example, the "HeartBeat" definition in Polkadot JSON definitions already takes into 
+    // for example, the "HeartBeat" definition in Polkadot JSON definitions already takes into
     // account that a HeartBeat type in Polkadot is HeartBeat<T::BlockNumber>
     let ty_inner = parse(ty_inner).expect("Must be a type; qed");
 
-    Some(RustTypeMarker::Generic((Box::new(ty_outer), Box::new(ty_inner))))
+    Some(RustTypeMarker::Generic((
+        Box::new(ty_outer),
+        Box::new(ty_inner),
+    )))
 }
 
 /// recursively parses a regex set

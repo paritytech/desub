@@ -56,7 +56,7 @@ impl PolkadotTypes {
         chain: &str,
     ) -> Option<&RustTypeMarker> {
         log::debug!("Getting Type: {}, module: {}, spec: {}", ty, module, spec);
-       
+
         let ty = if let Some(un_prefixed) = regex::remove_prefix(ty) {
             un_prefixed
         } else {
@@ -111,17 +111,14 @@ impl PolkadotTypes {
     }
 
     /// Try to resolve a type pointer
-    fn resolve_helper(
-        &self,
-        module: &str,
-        ty_pointer: &str,
-    ) -> Option<&RustTypeMarker> {
+    fn resolve_helper(&self, module: &str, ty_pointer: &str) -> Option<&RustTypeMarker> {
         if self.mods.modules.get(module).is_none() {
             self.mods.modules.get("runtime")?.types.get(ty_pointer)
         } else {
             if let Some(t) = self.mods.modules.get(module)?.types.get(ty_pointer) {
                 Some(t)
-            } else if let Some(t) = self.mods.modules.get("runtime")?.types.get(ty_pointer)
+            } else if let Some(t) =
+                self.mods.modules.get("runtime")?.types.get(ty_pointer)
             {
                 Some(t)
             } else if let Some(t) = self.check_other_modules(ty_pointer) {
@@ -133,11 +130,10 @@ impl PolkadotTypes {
     }
 
     fn check_other_modules(&self, ty_pointer: &str) -> Option<&RustTypeMarker> {
-
         for m in self.mods.modules.values() {
             for (n, t) in m.types.iter() {
                 if n == ty_pointer {
-                    return Some(t)
+                    return Some(t);
                 }
             }
         }
