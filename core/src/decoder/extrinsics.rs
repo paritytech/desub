@@ -52,7 +52,7 @@ impl fmt::Display for GenericCall {
 /// Generic Extrinsic Type
 #[derive(Debug, Serialize)]
 pub struct GenericExtrinsic {
-    signature: Option<SubstrateType>,
+    signature: Option<GenericSignature>,
     call: GenericCall,
 }
 
@@ -93,7 +93,7 @@ impl GenericExtrinsic {
             args: call,
         };
         Self {
-            signature: sig,
+            signature: sig.map(|s| GenericSignature::new(s)),
             call,
         }
     }
@@ -102,7 +102,7 @@ impl GenericExtrinsic {
         self.signature.is_some()
     }
 
-    pub fn signature(&self) -> Option<&SubstrateType> {
+    pub fn signature(&self) -> Option<&GenericSignature> {
         self.signature.as_ref()
     }
 
@@ -123,6 +123,40 @@ impl GenericExtrinsic {
     }
 }
 
+#[derive(Debug, Serialize)]
+pub struct GenericSignature {
+    address: SubstrateType,
+    signature: SubstrateType,
+    extra: SubstrateType
+}
+
+impl GenericSignature {
+    pub fn new(signature: SubstrateType) -> Self {
+        Self::split(signature)
+    }
+
+    fn split(sig: SubstrateType) -> Self {
+        match sig {
+            SubstrateType::Composite(v) => {
+                Self {
+                    address: v[0].clone(),
+                    signature: v[1].clone(),
+                    extra: v[2].clone()
+                }
+            },
+            _ => {
+                panic!("Signature should always be a tuple of Address, Signature, Extra")
+            }
+        }
+    }
+}
+
+impl fmt::Display for GenericSignature {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "EXTRINSIC SIGNATURE: ({}, {}, {})", self.address, self.signature, self.extra)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -138,10 +172,12 @@ mod tests {
             }],
         };
         let ext = GenericExtrinsic {
-            signature: Some(SubstrateType::Composite(vec![
-                SubstrateType::U32(32),
-                SubstrateType::U64(64),
-            ])),
+            signature: Some(GenericSignature::new(
+                SubstrateType::Composite(vec![
+                    SubstrateType::U32(32),
+                    SubstrateType::U64(64),
+                    SubstrateType::U64(128)
+                ]))),
             call,
         };
         let serialized = serde_json::to_string(&ext).unwrap();
