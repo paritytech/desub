@@ -19,7 +19,7 @@ use super::ModuleTypes;
 use crate::error::Error;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-pub const EXTRINSICS: &'static str = include_str!("./dot_definitions/extrinsics.json");
+pub const EXTRINSICS: &str = include_str!("./dot_definitions/extrinsics.json");
 
 #[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
 pub struct Types {

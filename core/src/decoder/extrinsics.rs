@@ -16,7 +16,7 @@
 //! Generic Extrinsic Type and Functions
 
 use crate::substrate_types::SubstrateType;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::fmt;
 #[derive(Debug, Serialize)]
 pub struct ExtrinsicArgument {

@@ -24,7 +24,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::error::Error;
-use codec::{Decode, Encode, Input};
 use core::{regex, Decodable, RustTypeMarker, TypeDetective};
 
 use self::extrinsics::Extrinsics;
@@ -114,18 +113,14 @@ impl PolkadotTypes {
     fn resolve_helper(&self, module: &str, ty_pointer: &str) -> Option<&RustTypeMarker> {
         if self.mods.modules.get(module).is_none() {
             self.mods.modules.get("runtime")?.types.get(ty_pointer)
+        } else if let Some(t) = self.mods.modules.get(module)?.types.get(ty_pointer) {
+            Some(t)
+        } else if let Some(t) = self.mods.modules.get("runtime")?.types.get(ty_pointer) {
+            Some(t)
+        } else if let Some(t) = self.check_other_modules(ty_pointer) {
+            Some(t)
         } else {
-            if let Some(t) = self.mods.modules.get(module)?.types.get(ty_pointer) {
-                Some(t)
-            } else if let Some(t) =
-                self.mods.modules.get("runtime")?.types.get(ty_pointer)
-            {
-                Some(t)
-            } else if let Some(t) = self.check_other_modules(ty_pointer) {
-                Some(t)
-            } else {
-                None
-            }
+            None
         }
     }
 

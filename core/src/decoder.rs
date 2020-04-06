@@ -361,7 +361,7 @@ where
                     self.decode_single(module, spec, v, data, cursor, true)?
                 }
             },
-            RustTypeMarker::Generic((outer, inner)) => {
+            RustTypeMarker::Generic((outer, _)) => {
                 log::debug!("Generic Type");
                 // disregard 'inner' type of a generic
                 self.decode_single(module, spec, outer, data, cursor, is_compact)?
