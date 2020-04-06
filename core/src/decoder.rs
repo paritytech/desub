@@ -26,7 +26,7 @@
 mod extrinsics;
 mod metadata;
 
-pub use self::extrinsics::{ExtrinsicArgument, GenericCall, GenericExtrinsic};
+pub use self::extrinsics::{ExtrinsicArgument, GenericCall, GenericExtrinsic, GenericSignature};
 #[cfg(test)]
 pub use self::metadata::test_suite;
 pub use self::metadata::{Metadata, MetadataError, ModuleIndex};

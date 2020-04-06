@@ -135,6 +135,11 @@ impl GenericSignature {
         Self::split(signature)
     }
 
+    /// returns address signature and extra as a tuple
+    pub fn parts(&self) -> (&SubstrateType, &SubstrateType, &SubstrateType) {
+        (&self.address, &self.signature, &self.extra)
+    }
+
     fn split(sig: SubstrateType) -> Self {
         match sig {
             SubstrateType::Composite(v) => {
