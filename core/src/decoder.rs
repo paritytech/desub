@@ -245,11 +245,11 @@ where
             }
             RustTypeMarker::Enum(v) => {
                 let index = data[*cursor];
-                *cursor += 1;
                 log::debug!("HERE");
                 log::debug!("Decoding enum {:?}", v);
                 log::debug!("data = {:?}", data[*cursor]);
                 log::debug!("cursor = {:?}", cursor);
+                *cursor += 1;
                 let variant = &v[index as usize];
                 log::debug!("Don't get here");
                 match &variant.ty {
