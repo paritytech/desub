@@ -27,7 +27,7 @@ pub use self::substrate_types::SubstrateType;
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
 
-pub trait TypeDetective: fmt::Debug {
+pub trait TypeDetective: fmt::Debug + Clone {
     /// Get a 'Decodable' type
     fn get(
         &self,

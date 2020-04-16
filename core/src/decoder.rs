@@ -45,7 +45,7 @@ type SpecVersion = u32;
 /// hold information about the Runtime Metadata
 /// and maps types inside the runtime metadata to self-describing types in
 /// type-metadata
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Decoder<T: TypeDetective> {
     // reference to an item in 'versions' vector
     // NOTE: possibly a concurrent HashMap
