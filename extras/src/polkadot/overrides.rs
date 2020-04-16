@@ -20,7 +20,7 @@ use std::collections::HashMap;
 // TODO: open this file or pass it via CLI to reduce binary size
 pub const OVERRIDES: &str = include_str!("./dot_definitions/overrides.json");
 
-#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq, Clone)]
 pub struct SingleOverride {
     /// the spec these overrides are relevant for
     #[serde(rename = "minmax")]
@@ -30,7 +30,7 @@ pub struct SingleOverride {
     types: ModuleTypes,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq, Clone)]
 pub struct Overrides {
     /// Type Overrides for modules (where duplication between modules exist)
     #[serde(rename = "TYPES_MODULES")]

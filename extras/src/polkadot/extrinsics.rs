@@ -21,7 +21,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 pub const EXTRINSICS: &str = include_str!("./dot_definitions/extrinsics.json");
 
-#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq, Clone)]
 pub struct Types {
     /// the spec these types are relevant for
     #[serde(rename = "minmax")]
@@ -30,7 +30,7 @@ pub struct Types {
     types: ModuleTypes,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq, Clone)]
 pub struct Extrinsics(HashMap<String, Vec<Types>>);
 
 impl Extrinsics {

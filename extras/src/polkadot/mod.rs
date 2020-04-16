@@ -29,7 +29,7 @@ use core::{regex, Decodable, RustTypeMarker, TypeDetective};
 use self::extrinsics::Extrinsics;
 use self::overrides::Overrides;
 
-#[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone)]
 pub struct PolkadotTypes {
     pub mods: Modules,
     pub overrides: Overrides,
@@ -136,13 +136,13 @@ impl PolkadotTypes {
     }
 }
 
-#[derive(Serialize, Default, Debug, PartialEq, Eq)]
+#[derive(Serialize, Default, Debug, PartialEq, Eq, Clone)]
 pub struct Modules {
     // module name -> Type Map of module
     pub modules: HashMap<String, ModuleTypes>,
 }
 
-#[derive(Serialize, Debug, Default, PartialEq, Eq)]
+#[derive(Serialize, Debug, Default, PartialEq, Eq, Clone)]
 pub struct ModuleTypes {
     // Type Name -> Type
     pub types: HashMap<String, RustTypeMarker>,

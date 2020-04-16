@@ -84,8 +84,8 @@ where
 
     /// Insert a Metadata with Version attached
     /// If version exists, it's corresponding metadata will be updated
-    pub fn register_version(&mut self, version: SpecVersion, metadata: Metadata) {
-        self.versions.insert(version, metadata);
+    pub fn register_version(&mut self, version: SpecVersion, metadata: &Metadata) {
+        self.versions.insert(version, metadata.clone());
     }
 
     /// internal api to get runtime version
