@@ -188,7 +188,7 @@ mod tests {
         let serialized = serde_json::to_string(&ext).unwrap();
         assert_eq!(
             serialized,
-            r#"{"signature":[32,64],"call":{"name":"set","module":"Timestamp","args":[{"name":"Some Arg","arg":32}]}}"#
+            r#"{"signature":{"address":32,"signature":64,"extra":128},"call":{"name":"set","module":"Timestamp","args":[{"name":"Some Arg","arg":32}]}}"#
         );
     }
 }

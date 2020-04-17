@@ -1,7 +1,7 @@
 extern crate extras;
 mod test_suite;
 
-use desub_core::{decoder::{Decoder, Metadata}};
+use desub_core::decoder::{Decoder, Metadata};
 
 pub fn init() {
     env_logger::try_init();
@@ -17,7 +17,7 @@ pub fn should_decode_ext342962() {
     let meta = Metadata::new(meta.as_slice());
 
     // block 6 of KSM CC3 is spec 1020
-    decoder.register_version(1031, meta);
+    decoder.register_version(1031, &meta);
     for e in ext.iter() {
         println!("{:?}", e);
         let decoded = decoder.decode_extrinsic(1031, e.as_slice()).expect("should decode");
@@ -39,7 +39,7 @@ pub fn should_decode_ext422871() {
 
     let (meta, ext) = test_suite::extrinsics_block422871();
     let meta = Metadata::new(meta.as_slice());
-    decoder.register_version(1031, meta);
+    decoder.register_version(1031, &meta);
 
     println!("{}", ext.len());
     for e in ext.iter() {
@@ -59,7 +59,7 @@ pub fn should_decode_ext50970() {
     let (meta, ext) = test_suite::extrinsics_block50970();
     let meta = Metadata::new(meta.as_slice());
 
-    decoder.register_version(1031, meta);
+    decoder.register_version(1031, &meta);
     for e in ext.iter() {
         println!("{:?}", e);
         println!("{:X?}", e);
@@ -78,7 +78,7 @@ pub fn should_decode_ext_106284() {
     let (meta, ext) = test_suite::extrinsics_block106284();
     let meta = Metadata::new(meta.as_slice());
 
-    decoder.register_version(1042, meta);
+    decoder.register_version(1042, &meta);
     for e in ext.iter() {
         println!("{:?}", e);
         println!("{:X?}", e);
@@ -98,7 +98,7 @@ pub fn should_decode_ext_1674683() {
     let (meta, ext) = test_suite::extrinsics_block1674683();
     let meta = Metadata::new(meta.as_slice());
 
-    decoder.register_version(1055, meta);
+    decoder.register_version(1055, &meta);
     for e in ext.iter() {
         println!("{:?}", e);
         println!("{:X?}", e);
@@ -118,7 +118,7 @@ pub fn should_decode_ext_1677621() {
     let (meta, ext) = test_suite::extrinsics_block1677621();
     let meta = Metadata::new(meta.as_slice());
 
-    decoder.register_version(1055, meta);
+    decoder.register_version(1055, &meta);
 
     for e in ext.iter() {
         println!("{:?}", e);
@@ -139,7 +139,7 @@ fn should_decode_ext_1702023() {
     let (meta, ext) = test_suite::extrinsics_block1702023();
     let meta = Metadata::new(meta.as_slice());
 
-    decoder.register_version(1055, meta);
+    decoder.register_version(1055, &meta);
 
     for e in ext.iter() {
         println!("{:?}", e);
@@ -160,7 +160,7 @@ fn should_decode_ext_1714495() {
     let (meta, ext) = test_suite::extrinsics_block1714495();
     let meta = Metadata::new(meta.as_slice());
 
-    decoder.register_version(1055, meta);
+    decoder.register_version(1055, &meta);
 
     for e in ext.iter() {
         println!("{:?}", e);
@@ -180,7 +180,7 @@ fn should_decode_ext_1717926() {
     let (meta, ext) = test_suite::extrinsics_block1717926();
     let meta = Metadata::new(meta.as_slice());
 
-    decoder.register_version(1055, meta);
+    decoder.register_version(1055, &meta);
 
     for e in ext.iter() {
         println!("{:?}", e);
@@ -200,7 +200,7 @@ fn should_decode_ext_1718223() {
     let (meta, ext) = test_suite::extrinsics_block1718223();
     let meta = Metadata::new(meta.as_slice());
 
-    decoder.register_version(1055, meta);
+    decoder.register_version(1055, &meta);
 
     for e in ext.iter() {
         println!("{:?}", e);
@@ -221,7 +221,7 @@ fn should_decode_ext_1732321() {
     let (meta, ext) = test_suite::extrinsics_block1732321();
     let meta = Metadata::new(meta.as_slice());
 
-    decoder.register_version(1055, meta);
+    decoder.register_version(1055, &meta);
 
     for e in ext.iter() {
         println!("{:?}", e);
@@ -242,7 +242,7 @@ fn should_decode_ext_1731904() {
     let (meta, ext) = test_suite::extrinsics_block1731904();
     let meta = Metadata::new(meta.as_slice());
 
-    decoder.register_version(1055, meta);
+    decoder.register_version(1055, &meta);
 
     for e in ext.iter() {
         println!("{:?}", e);
@@ -263,7 +263,7 @@ fn should_decode_ext_1768321() {
     let (meta, ext) = test_suite::extrinsics_block1768321();
     let meta = Metadata::new(meta.as_slice());
 
-    decoder.register_version(1055, meta);
+    decoder.register_version(1055, &meta);
 
     for e in ext.iter() {
         println!("{:?}", e);
