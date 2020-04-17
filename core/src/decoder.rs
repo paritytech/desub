@@ -649,7 +649,9 @@ mod tests {
     };
     use codec::Encode;
 
+    #[derive(Debug, Clone)]
     struct GenericTypes;
+   
     impl TypeDetective for GenericTypes {
         fn get(
             &self,
@@ -687,15 +689,15 @@ mod tests {
         let mut decoder = Decoder::new(GenericTypes, "kusama");
         decoder.register_version(
             test_suite::mock_runtime(0).spec_version,
-            meta_test_suite::test_metadata(),
+            &meta_test_suite::test_metadata(),
         );
         decoder.register_version(
             test_suite::mock_runtime(1).spec_version,
-            meta_test_suite::test_metadata(),
+            &meta_test_suite::test_metadata(),
         );
         decoder.register_version(
             test_suite::mock_runtime(2).spec_version,
-            meta_test_suite::test_metadata(),
+            &meta_test_suite::test_metadata(),
         );
         assert!(decoder
             .versions
@@ -714,7 +716,7 @@ mod tests {
         let mut decoder = Decoder::new(GenericTypes, "kusama");
         let rt_version = test_suite::mock_runtime(0);
         let meta = meta_test_suite::test_metadata();
-        decoder.register_version(rt_version.spec_version.clone(), meta.clone());
+        decoder.register_version(rt_version.spec_version.clone(), &meta);
         let _other_meta = decoder.get_version_metadata(rt_version.spec_version);
         assert_eq!(Some(&meta), _other_meta.clone())
     }
