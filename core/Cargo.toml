@@ -13,9 +13,12 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 onig = "5.0"
 
-primitives = { package = "sp-core", version = "2.0.0-alpha.5" }
-runtime-primitives = { package = "sp-runtime", version = "2.0.0-alpha.5" }
-runtime-metadata-latest = { package = "frame-metadata", version = "11.0.0-alpha.5" }
+runtime-version = { package = "sp-version", git = "https://github.com/insipx/substrate", branch = "insipx/update-kvdb" }
+pallet-indices = { package = "pallet-indices", git = "https://github.com/insipx/substrate", branch = "insipx/update-kvdb" }
+primitives = { package = "sp-core",  git = "https://github.com/insipx/substrate", branch = "insipx/update-kvdb" }
+runtime-primitives = { package = "sp-runtime", git = "https://github.com/insipx/substrate", branch = "insipx/update-kvdb" }
+
+runtime-metadata-latest = { package = "frame-metadata", git = "https://github.com/insipx/substrate", branch = "insipx/update-kvdb" }
 runtime-metadata10 = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", rev = "e931f9e5c2ae165658587f04d075c59a338061fb"}
 runtime-metadata09 = { git = "https://github.com/paritytech/substrate/", package = "frame-metadata", rev = "a512dcdd3931aa571c92c8550a0e079d5b27239a" }
 runtime-metadata08 = { git = "https://github.com/paritytech/substrate/", package = "srml-metadata", rev = "ac11c330a95827211e1999781b5f691e72387c9e" }
@@ -28,9 +31,6 @@ runtime-metadata08 = { git = "https://github.com/paritytech/substrate/", package
 # runtime-metadata03 = { git = "https://github.com/paritytech/substrate/", package = "srml-metadata",  rev = "0e6a407a13fbc5a5ad200645aed72bb8a8e528d7" } # not supported (yet)
 # runtime-metadata02 = { git = "https://github.com/paritytech/substrate/", package = "srml-metadata",  rev = "6160ea5ac3bd7e1d1154b45a027ec9732ad59237" } # not supported (yet)
 # runtime-metadata01 = { git = "https://github.com/paritytech/substrate/", package = "srml-metadata",  rev = "a29f214132a81f82e8b833f4d941b6d57680989f" } # not supported (yet)
-
-runtime-version = { package = "sp-version", version = "2.0.0-alpha.5" }
-pallet-indices = { package = "pallet-indices", version = "2.0.0-alpha.5" }
 
 derive_more = "0.99.3"
 env_logger = "0.7.1"

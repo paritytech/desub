@@ -59,7 +59,8 @@
           "ReferendumInfo": "ReferendumInfoTo239",
           "SlashingSpans": "SlashingSpansTo204",
           "StakingLedger": "StakingLedgerTo223",
-          "Votes": "VotesTo230"
+          "Votes": "VotesTo230",
+          "Weight": "u32"
         }
       },
       {
@@ -75,7 +76,8 @@
           "ReferendumInfo": "ReferendumInfoTo239",
           "SlashingSpans": "SlashingSpansTo204",
           "StakingLedger": "StakingLedgerTo223",
-          "Votes": "VotesTo230"
+          "Votes": "VotesTo230",
+          "Weight": "u32"
         }
       },
       {
@@ -90,7 +92,8 @@
           "LookupSource": "Address",
           "ReferendumInfo": "ReferendumInfoTo239",
           "StakingLedger": "StakingLedgerTo223",
-          "Votes": "VotesTo230"
+          "Votes": "VotesTo230",
+          "Weight": "u32"
         }
       },
       {
@@ -102,12 +105,27 @@
           "Address": "AccountId",
           "Keys": "SessionKeys5",
           "LookupSource": "AccountId",
-          "ReferendumInfo": "ReferendumInfoTo239"
+          "ReferendumInfo": "ReferendumInfoTo239",
+          "StakingLedger": "StakingLedgerTo240",
+          "Weight": "u32"
         }
       },
       {
         "minmax": [
           1055,
+          1056
+        ],
+        "types": {
+          "Address": "AccountId",
+          "Keys": "SessionKeys5",
+          "LookupSource": "AccountId",
+          "StakingLedger": "StakingLedgerTo240",
+          "Weight": "u32"
+        }
+      },
+      {
+        "minmax": [
+          1057,
           null
         ],
         "types": {

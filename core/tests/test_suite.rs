@@ -86,3 +86,7 @@ pub fn extrinsics_block1731904() -> (Vec<u8>, Vec<Vec<u8>>) {
 pub fn extrinsics_block1768321() -> (Vec<u8>, Vec<Vec<u8>>) {
     extrinsic_test("1055".to_string(), "1768321".to_string(), 3)
 }
+
+pub fn extrinsics_block6144() -> (Vec<u8>, Vec<Vec<u8>>) {
+    extrinsic_test("1020".to_string(), "6144".to_string(), 3)
+}

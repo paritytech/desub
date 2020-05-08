@@ -207,6 +207,7 @@ where
     ) -> Result<SubstrateType, Error> {
         let ty = match ty {
             RustTypeMarker::TypePointer(v) => {
+                log::trace!("Resolving: {}", v);
                 if let Some(t) = self.decode_sub_type(spec, v, data, cursor, is_compact) {
                     t
                 } else {
