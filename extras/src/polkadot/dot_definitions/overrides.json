@@ -1,6 +1,5 @@
 {
   "TYPES_MODULES": {
-    "default": {
       "balances": {
         "Releases": "ReleasesBalances"
       },
@@ -27,10 +26,8 @@
       "treasury": {
         "Proposal": "TreasuryProposal"
       }
-    }
   },
-  "TYPES_META": {
-    "default": [
+  "TYPES_META": [
       {
         "minmax": [
           0,
@@ -45,8 +42,7 @@
           "ValidatorPrefs": "ValidatorPrefsTo145"
         }
       }
-    ]
-  },
+  ],
   "TYPES_SPEC": {
     "kusama": [
       {
