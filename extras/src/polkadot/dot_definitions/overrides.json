@@ -1,5 +1,6 @@
 {
   "TYPES_MODULES": {
+    "default": {
       "balances": {
         "Releases": "ReleasesBalances"
       },
@@ -26,8 +27,10 @@
       "treasury": {
         "Proposal": "TreasuryProposal"
       }
+    }
   },
-  "TYPES_META": [
+  "TYPES_META": {
+    "default": [
       {
         "minmax": [
           0,
@@ -42,7 +45,8 @@
           "ValidatorPrefs": "ValidatorPrefsTo145"
         }
       }
-  ],
+    ]
+  },
   "TYPES_SPEC": {
     "kusama": [
       {
@@ -59,8 +63,7 @@
           "ReferendumInfo": "ReferendumInfoTo239",
           "SlashingSpans": "SlashingSpansTo204",
           "StakingLedger": "StakingLedgerTo223",
-          "Votes": "VotesTo230",
-          "Weight": "u32"
+          "Votes": "VotesTo230"
         }
       },
       {
@@ -76,8 +79,7 @@
           "ReferendumInfo": "ReferendumInfoTo239",
           "SlashingSpans": "SlashingSpansTo204",
           "StakingLedger": "StakingLedgerTo223",
-          "Votes": "VotesTo230",
-          "Weight": "u32"
+          "Votes": "VotesTo230"
         }
       },
       {
@@ -92,8 +94,7 @@
           "LookupSource": "Address",
           "ReferendumInfo": "ReferendumInfoTo239",
           "StakingLedger": "StakingLedgerTo223",
-          "Votes": "VotesTo230",
-          "Weight": "u32"
+          "Votes": "VotesTo230"
         }
       },
       {
@@ -105,27 +106,12 @@
           "Address": "AccountId",
           "Keys": "SessionKeys5",
           "LookupSource": "AccountId",
-          "ReferendumInfo": "ReferendumInfoTo239",
-          "StakingLedger": "StakingLedgerTo240",
-          "Weight": "u32"
+          "ReferendumInfo": "ReferendumInfoTo239"
         }
       },
       {
         "minmax": [
           1055,
-          1056
-        ],
-        "types": {
-          "Address": "AccountId",
-          "Keys": "SessionKeys5",
-          "LookupSource": "AccountId",
-          "StakingLedger": "StakingLedgerTo240",
-          "Weight": "u32"
-        }
-      },
-      {
-        "minmax": [
-          1057,
           null
         ],
         "types": {

@@ -549,7 +549,7 @@ dependencies = [
 [[package]]
 name = "frame-metadata"
 version = "11.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "parity-scale-codec",
  "serde",
@@ -560,7 +560,7 @@ dependencies = [
 [[package]]
 name = "frame-support"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "bitmask",
  "frame-metadata 11.0.0-dev",
@@ -584,7 +584,7 @@ dependencies = [
 [[package]]
 name = "frame-support-procedural"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "frame-support-procedural-tools",
  "proc-macro2 1.0.12",
@@ -595,7 +595,7 @@ dependencies = [
 [[package]]
 name = "frame-support-procedural-tools"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "frame-support-procedural-tools-derive",
  "proc-macro-crate",
@@ -607,7 +607,7 @@ dependencies = [
 [[package]]
 name = "frame-support-procedural-tools-derive"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "proc-macro2 1.0.12",
  "quote 1.0.4",
@@ -617,7 +617,7 @@ dependencies = [
 [[package]]
 name = "frame-system"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "frame-support",
  "impl-trait-for-tuples",
@@ -1160,7 +1160,7 @@ checksum = "2839e79665f131bdb5782e51f2c6c9599c133c6098982a54c794358bf432529c"
 [[package]]
 name = "pallet-indices"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -1861,7 +1861,7 @@ checksum = "c7cb5678e1615754284ec264d9bb5b4c27d2018577fd90ac0ceb578591ed5ee4"
 [[package]]
 name = "sp-application-crypto"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "parity-scale-codec",
  "serde",
@@ -1873,7 +1873,7 @@ dependencies = [
 [[package]]
 name = "sp-arithmetic"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "integer-sqrt",
  "num-traits",
@@ -1887,11 +1887,12 @@ dependencies = [
 [[package]]
 name = "sp-core"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "base58",
  "blake2-rfc",
  "byteorder",
+ "derive_more",
  "ed25519-dalek 1.0.0-pre.3",
  "futures",
  "hash-db",
@@ -1967,7 +1968,7 @@ dependencies = [
 [[package]]
 name = "sp-debug-derive"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "proc-macro2 1.0.12",
  "quote 1.0.4",
@@ -1987,7 +1988,7 @@ dependencies = [
 [[package]]
 name = "sp-externalities"
 version = "0.8.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "environmental",
  "parity-scale-codec",
@@ -2008,7 +2009,7 @@ dependencies = [
 [[package]]
 name = "sp-inherents"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "derive_more",
  "parity-scale-codec",
@@ -2020,7 +2021,7 @@ dependencies = [
 [[package]]
 name = "sp-io"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "futures",
  "hash-db",
@@ -2040,7 +2041,7 @@ dependencies = [
 [[package]]
 name = "sp-keyring"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "lazy_static",
  "sp-core 2.0.0-dev",
@@ -2051,7 +2052,7 @@ dependencies = [
 [[package]]
 name = "sp-panic-handler"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "backtrace",
  "log",
@@ -2060,7 +2061,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "hash256-std-hasher",
  "impl-trait-for-tuples",
@@ -2081,7 +2082,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "parity-scale-codec",
  "primitive-types 0.7.2",
@@ -2110,7 +2111,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface-proc-macro"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "Inflector",
  "proc-macro-crate",
@@ -2134,7 +2135,7 @@ dependencies = [
 [[package]]
 name = "sp-state-machine"
 version = "0.8.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "hash-db",
  "log",
@@ -2153,7 +2154,7 @@ dependencies = [
 [[package]]
 name = "sp-std"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 
 [[package]]
 name = "sp-std"
@@ -2163,7 +2164,7 @@ source = "git+https://github.com/paritytech/substrate/?rev=e931f9e5c2ae165658587
 [[package]]
 name = "sp-storage"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "impl-serde 0.2.3",
  "ref-cast",
@@ -2186,7 +2187,7 @@ dependencies = [
 [[package]]
 name = "sp-tracing"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "tracing",
 ]
@@ -2194,7 +2195,7 @@ dependencies = [
 [[package]]
 name = "sp-trie"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "hash-db",
  "memory-db",
@@ -2208,7 +2209,7 @@ dependencies = [
 [[package]]
 name = "sp-version"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "impl-serde 0.2.3",
  "parity-scale-codec",
@@ -2220,7 +2221,7 @@ dependencies = [
 [[package]]
 name = "sp-wasm-interface"
 version = "2.0.0-dev"
-source = "git+https://github.com/insipx/substrate?branch=insipx/update-kvdb#bc187c655f15d764bd28f746b891ce0be786af45"
+source = "git+https://github.com/paritytech/substrate#61a72486dfcfc09dd2ea6265bcd406dc8406d5ac"
 dependencies = [
  "impl-trait-for-tuples",
  "parity-scale-codec",

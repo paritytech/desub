@@ -56,7 +56,7 @@
         "CheckWeight<Runtime>": "[u8; 0]",
         "ChargeTransactionPayment<Runtime>": "Compact<BalanceOf>",
         "LimitParathreadCommits<Runtime>": "[u8; 0]",
-	      "Lookup": "LookupSource"
+	"Lookup": "LookupSource"
       }
     }
   ]

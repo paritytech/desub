@@ -17,9 +17,7 @@
         "digestLevels": "u32"
       },
       "ConsensusEngineId": "GenericConsensusEngineId",
-      "Digest": {
-        "logs": "Vec<DigestItem>"
-      },
+      "Digest": "GenericDigest",
       "DigestItem": {
         "_enum": {
           "Other": "Bytes",
@@ -34,8 +32,7 @@
       "DispatchClass": {
         "_enum": [
           "Normal",
-          "Operational",
-          "Mandatory"
+          "Operational"
         ]
       },
       "DispatchInfo": {
@@ -48,7 +45,6 @@
         "class": "DispatchClass"
       },
       "Fixed64": "Int<64, Fixed64>",
-      "Fixed128": "Int<128, Fixed128>",
       "H160": "[u8; 20; H160]",
       "H256": "[u8; 32; H256]",
       "H512": "[u8; 64; H512]",
@@ -67,26 +63,21 @@
       "LockIdentifier": "[u8; 8]",
       "LookupSource": "Address",
       "LookupTarget": "AccountId",
-      "ModuleId": "LockIdentifier",
       "Moment": "u64",
-      "Origin": "DoNotConstruct<Origin>",
+      "Origin": "GenericOrigin",
       "Perbill": "u32",
       "Percent": "u8",
       "Permill": "u32",
       "Perquintill": "u64",
       "Phantom": "Null",
       "PhantomData": "Null",
-      "RuntimeDbWeight": {
-        "read": "Weight",
-        "write": "Weight"
-      },
       "SignedBlock": {
         "block": "Block",
         "justification": "Justification"
       },
       "StorageData": "Bytes",
       "ValidatorId": "AccountId",
-      "Weight": "u64",
+      "Weight": "u32",
       "WeightMultiplier": "Fixed64",
       "PreRuntime": "(ConsensusEngineId, Bytes)",
       "SealV0": "(u64, Signature)",
@@ -115,7 +106,6 @@
     "types": {
       "BabeAuthorityWeight": "u64",
       "BabeBlockWeight": "u32",
-      "MaybeRandomness": "Option<Randomness>",
       "MaybeVrf": "Option<VrfData>",
       "BabeWeight": "u64",
       "EpochAuthorship": {
@@ -358,19 +348,6 @@
         "votes": "Balance",
         "capital": "Balance"
       },
-      "PreimageStatus": {
-        "_enum": {
-          "Missing": "BlockNumber",
-          "Available": "PreimageStatusAvailable"
-        }
-      },
-      "PreimageStatusAvailable": {
-        "data": "Bytes",
-        "provider": "AccountId",
-        "deposit": "Balance",
-        "since": "BlockNumber",
-        "expiry": "Option<BlockNumber>"
-      },
       "PriorLock": "(BlockNumber, Balance)",
       "PropIndex": "u32",
       "Proposal": "Call",
@@ -543,27 +520,6 @@
       "AuthorityIndex": "u64",
       "AuthorityList": "Vec<NextAuthority>",
       "AuthorityWeight": "u64",
-      "Equivocation": {
-        "_enum": {
-          "Prevote": "GrandpaEquivocation",
-          "Precommit": "GrandpaEquivocation"
-        }
-      },
-      "EquivocationProof": {
-        "setId": "SetId",
-        "equivocation": "Equivocation"
-      },
-      "GrandpaEquivocation": {
-        "roundNumber": "u64",
-        "identity": "AuthorityId",
-        "first": "(GrandpaPrevote, AuthoritySignature)",
-        "second": "(GrandpaPrevote, AuthoritySignature)"
-      },
-      "GrandpaPrevote": {
-        "targetHash": "Hash",
-        "targetNumber": "BlockNumber"
-      },
-      "KeyOwnerProof": "MembershipProof",
       "NextAuthority": "(AuthorityId, AuthorityWeight)",
       "PendingPause": {
         "scheduledAt": "BlockNumber",
@@ -572,26 +528,6 @@
       "PendingResume": {
         "scheduledAt": "BlockNumber",
         "delay": "BlockNumber"
-      },
-      "Precommits": {
-        "currentWeight": "u32",
-        "missing": "BTreeSet<AuthorityId>"
-      },
-      "Prevotes": {
-        "currentWeight": "u32",
-        "missing": "BTreeSet<AuthorityId>"
-      },
-      "ReportedRoundStates": {
-        "setId": "u32",
-        "best": "RoundState",
-        "background": "Vec<RoundState>"
-      },
-      "RoundState": {
-        "round": "u32",
-        "totalWeight": "u32",
-        "thresholdWeight": "u32",
-        "prevotes": "Prevotes",
-        "precommits": "Precommits"
       },
       "SetId": "u64",
       "StoredPendingChange": {
@@ -669,13 +605,6 @@
         "blockNumber": "BlockNumber",
         "networkState": "OpaqueNetworkState",
         "sessionIndex": "SessionIndex",
-        "authorityIndex": "AuthIndex",
-        "validatorsLen": "u32"
-      },
-      "HeartbeatTo244": {
-        "blockNumber": "BlockNumber",
-        "networkState": "OpaqueNetworkState",
-        "sessionIndex": "SessionIndex",
         "authorityIndex": "AuthIndex"
       },
       "OpaqueMultiaddr": "Bytes",
@@ -715,19 +644,6 @@
       }
     }
   },
-  "scheduler": {
-    "types": {
-      "SchedulePeriod": "(BlockNumber, u32)",
-      "SchedulePriority": "u8",
-      "Scheduled": {
-        "maybeId": "Option<Bytes>",
-        "priority": "SchedulePriority",
-        "call": "Call",
-        "maybePeriodic": "Option<SchedulePeriod>"
-      },
-      "TaskAddress": "(BlockNumber, u32)"
-    }
-  },
   "session": {
     "types": {
       "Keys": "SessionKeys4",
@@ -739,13 +655,7 @@
       "SessionKeys6": "(AccountId, AccountId, AccountId, AccountId, AccountId, AccountId)",
       "FullIdentification": "Exposure",
       "IdentificationTuple": "(ValidatorId, FullIdentification)",
-      "MembershipProof": {
-        "session": "SessionIndex",
-        "trieNodes": "Vec<Vec<u8>>",
-        "validatorCount": "ValidatorCount"
-      },
-      "SessionIndex": "u32",
-      "ValidatorCount": "u32"
+      "SessionIndex": "u32"
     }
   },
   "society": {
@@ -796,24 +706,24 @@
         "start": "Option<Moment>"
       },
       "CompactAssignments": {
-        "votes1": "Vec<(NominatorIndex, [CompactScore; 0], ValidatorIndex)>",
-        "votes2": "Vec<(NominatorIndex, [CompactScore; 1], ValidatorIndex)>",
-        "votes3": "Vec<(NominatorIndex, [CompactScore; 2], ValidatorIndex)>",
-        "votes4": "Vec<(NominatorIndex, [CompactScore; 3], ValidatorIndex)>",
-        "votes5": "Vec<(NominatorIndex, [CompactScore; 4], ValidatorIndex)>",
-        "votes6": "Vec<(NominatorIndex, [CompactScore; 5], ValidatorIndex)>",
-        "votes7": "Vec<(NominatorIndex, [CompactScore; 6], ValidatorIndex)>",
-        "votes8": "Vec<(NominatorIndex, [CompactScore; 7], ValidatorIndex)>",
-        "votes9": "Vec<(NominatorIndex, [CompactScore; 8], ValidatorIndex)>",
-        "votes10": "Vec<(NominatorIndex, [CompactScore; 9], ValidatorIndex)>",
-        "votes11": "Vec<(NominatorIndex, [CompactScore; 10], ValidatorIndex)>",
-        "votes12": "Vec<(NominatorIndex, [CompactScore; 11], ValidatorIndex)>",
-        "votes13": "Vec<(NominatorIndex, [CompactScore; 12], ValidatorIndex)>",
-        "votes14": "Vec<(NominatorIndex, [CompactScore; 13], ValidatorIndex)>",
-        "votes15": "Vec<(NominatorIndex, [CompactScore; 14], ValidatorIndex)>",
-        "votes16": "Vec<(NominatorIndex, [CompactScore; 15], ValidatorIndex)>"
+        "votes1": "Vec<(AccountId, [CompactScore; 0], AccountId)>",
+        "votes2": "Vec<(AccountId, [CompactScore; 1], AccountId)>",
+        "votes3": "Vec<(AccountId, [CompactScore; 2], AccountId)>",
+        "votes4": "Vec<(AccountId, [CompactScore; 3], AccountId)>",
+        "votes5": "Vec<(AccountId, [CompactScore; 4], AccountId)>",
+        "votes6": "Vec<(AccountId, [CompactScore; 5], AccountId)>",
+        "votes7": "Vec<(AccountId, [CompactScore; 6], AccountId)>",
+        "votes8": "Vec<(AccountId, [CompactScore; 7], AccountId)>",
+        "votes9": "Vec<(AccountId, [CompactScore; 8], AccountId)>",
+        "votes10": "Vec<(AccountId, [CompactScore; 9], AccountId)>",
+        "votes11": "Vec<(AccountId, [CompactScore; 10], AccountId)>",
+        "votes12": "Vec<(AccountId, [CompactScore; 11], AccountId)>",
+        "votes13": "Vec<(AccountId, [CompactScore; 12], AccountId)>",
+        "votes14": "Vec<(AccountId, [CompactScore; 13], AccountId)>",
+        "votes15": "Vec<(AccountId, [CompactScore; 14], AccountId)>",
+        "votes16": "Vec<(AccountId, [CompactScore; 15], AccountId)>"
       },
-      "CompactScore": "(ValidatorIndex, OffchainAccuracy)",
+      "CompactScore": "(AccountId, u128)",
       "ElectionCompute": {
         "_enum": [
           "OnChain",
@@ -866,9 +776,6 @@
         "submittedIn": "EraIndex",
         "suppressed": "bool"
       },
-      "NominatorIndex": "u32",
-      "OffchainAccuracy": "PerU16",
-      "PerU16": "u16",
       "PhragmenScore": "[u128; 3]",
       "ReleasesStaking": {
         "_enum": [
@@ -912,19 +819,12 @@
         "active": "Compact<Balance>",
         "unlocking": "Vec<UnlockChunk>"
       },
-      "StakingLedgerTo240": {
-        "stash": "AccountId",
-        "total": "Compact<Balance>",
-        "active": "Compact<Balance>",
-        "unlocking": "Vec<UnlockChunk>",
-        "lastReward": "Option<EraIndex>"
-      },
       "StakingLedger": {
         "stash": "AccountId",
         "total": "Compact<Balance>",
         "active": "Compact<Balance>",
         "unlocking": "Vec<UnlockChunk>",
-        "claimedRewards": "Vec<EraIndex>"
+        "lastReward": "Option<EraIndex>"
       },
       "UnappliedSlashOther": "(AccountId, Balance)",
       "UnappliedSlash": {
@@ -962,14 +862,6 @@
         "ss58Format": "Option<u8>",
         "tokenDecimals": "Option<u32>",
         "tokenSymbol": "Option<Text>"
-      },
-      "ChainType": {
-        "_enum": {
-          "Development": "Null",
-          "Local": "Null",
-          "Live": "Null",
-          "Custom": "Text"
-        }
       },
       "DigestOf": "Digest",
       "DispatchError": {
@@ -1056,7 +948,7 @@
         "listening": "PeerEndpointAddr"
       },
       "PeerEndpointAddr": {
-        "localAddr": "Text",
+	"localAddr": "Text",
         "sendBackAddr": "Text"
       },
       "PeerPing": {
@@ -1106,7 +998,6 @@
   },
   "utility": {
     "types": {
-      "CallHash": "H256",
       "Multisig": {
         "when": "Timepoint",
         "deposit": "Balance",
@@ -1177,18 +1068,6 @@
       },
       "CollatorId": "H256",
       "CollatorSignature": "Signature",
-      "DoubleVoteReport": {
-        "identity": "ValidatorId",
-        "first": "DoubleVoteReportStatement",
-        "second": "DoubleVoteReportStatement",
-        "proof": "DoubleVoteReportProof",
-        "signingContext": "SigningContext"
-      },
-      "DoubleVoteReportProof": {
-        "session": "SessionIndex",
-        "trieNodes": "Vec<Bytes>"
-      },
-      "DoubleVoteReportStatement": "(Statement, ValidatorSignature)",
       "EgressQueueRoot": "(ParaId, Hash)",
       "HeadData": "Bytes",
       "IncomingParachainDeploy": {
@@ -1217,10 +1096,6 @@
       "ParaInfo": {
         "scheduling": "ParaScheduling"
       },
-      "ParaPastCodeMeta": {
-        "upgradeTimes": "Vec<BlockNumber>",
-        "lastPruned": "Option<BlockNumber>"
-      },
       "ParachainDispatchOrigin": {
         "_enum": [
           "Signed",
@@ -1239,10 +1114,6 @@
           "WithRetries": "u32"
         }
       },
-      "SigningContext": {
-        "sessionIndex": "SessionIndex",
-        "parentHash": "Hash"
-      },
       "SlotRange": {
         "_enum": [
           "ZeroZero",
@@ -1257,28 +1128,18 @@
           "ThreeThree"
         ]
       },
-      "Statement": {
-        "_enum": {
-          "Never": "Null",
-          "Candidate": "Hash",
-          "Valid": "Hash",
-          "Invalid": "Hash"
-        }
-      },
       "SubId": "u32",
       "UpwardMessage": {
         "origin": "ParachainDispatchOrigin",
         "data": "Bytes"
       },
-      "ValidationCode": "Bytes",
       "ValidityAttestation": {
         "_enum": {
-          "Never": "Null",
-          "Implicit": "ValidatorSignature",
-          "Explicit": "ValidatorSignature"
+          "None": "Null",
+          "Implicit": "CollatorSignature",
+          "Explicit": "CollatorSignature"
         }
       },
-      "ValidatorSignature": "Signature",
       "WinningDataEntry": "(AccountId, ParaIdOf, BalanceOf)",
       "WinningData": "[WinningDataEntry; 10]"
     }
@@ -1852,10 +1713,6 @@
     "types": {
       "ApiId": "[u8; 8]",
       "KeyValueOption": "(StorageKey, Option<StorageData>)",
-      "ReadProof": {
-        "at": "Hash",
-        "proof": "Vec<Bytes>"
-      },
       "RuntimeVersionApi": "(ApiId, u32)",
       "RuntimeVersion": {
         "specName": "Text",
@@ -1863,8 +1720,7 @@
         "authoringVersion": "u32",
         "specVersion": "u32",
         "implVersion": "u32",
-        "apis": "Vec<RuntimeVersionApi>",
-        "transactionVersion": "u32"
+        "apis": "Vec<RuntimeVersionApi>"
       },
       "StorageChangeSet": {
         "block": "Hash",

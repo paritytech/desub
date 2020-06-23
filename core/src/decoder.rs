@@ -24,9 +24,11 @@
 //! to different applications that need the type data
 
 mod extrinsics;
-mod metadata;
+pub mod metadata;
 
-pub use self::extrinsics::{ExtrinsicArgument, GenericCall, GenericExtrinsic, GenericSignature};
+pub use self::extrinsics::{
+    ExtrinsicArgument, GenericCall, GenericExtrinsic, GenericSignature,
+};
 #[cfg(test)]
 pub use self::metadata::test_suite;
 pub use self::metadata::{Metadata, MetadataError, ModuleIndex};
@@ -652,7 +654,7 @@ mod tests {
 
     #[derive(Debug, Clone)]
     struct GenericTypes;
-   
+
     impl TypeDetective for GenericTypes {
         fn get(
             &self,
