@@ -1,8 +1,0 @@
-[package]
-name = "desub-cli"
-version = "0.0.1"
-authors = [ "Andrew Plaza <insi@hyaki>" ]
-
-[[bin]]
-path = "src/main.rs"
-name = "desub"
