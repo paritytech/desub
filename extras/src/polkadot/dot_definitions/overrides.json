@@ -1,44 +1,42 @@
 {
   "TYPES_MODULES": {
-    "default": {
-      "babe": {
-        "EquivocationProof": "BabeEquivocationProof"
-      },
-      "balances": {
-        "Status": "BalanceStatus"
-      },
-      "contract": {
-        "AccountInfo": "ContractAccountInfo"
-      },
-      "contracts": {
-        "StorageKey": "ContractStorageKey"
-      },
-      "grandpa": {
-        "Equivocation": "GrandpaEquivocation",
-        "EquivocationProof": "GrandpaEquivocationProof"
-      },
-      "identity": {
-        "Judgement": "IdentityJudgement"
-      },
-      "parachains": {
-        "Id": "ParaId"
-      },
-      "proposeParachain": {
-        "Proposal": "ParachainProposal"
-      },
-      "proxy": {
-        "Announcement": "ProxyAnnouncement"
-      },
-      "society": {
-        "Judgement": "SocietyJudgement",
-        "Vote": "SocietyVote"
-      },
-      "staking": {
-        "Compact": "CompactAssignments"
-      },
-      "treasury": {
-        "Proposal": "TreasuryProposal"
-      }
+    "babe": {
+      "EquivocationProof": "BabeEquivocationProof"
+    },
+    "balances": {
+      "Status": "BalanceStatus"
+    },
+    "contract": {
+      "AccountInfo": "ContractAccountInfo"
+    },
+    "contracts": {
+      "StorageKey": "ContractStorageKey"
+    },
+    "grandpa": {
+      "Equivocation": "GrandpaEquivocation",
+      "EquivocationProof": "GrandpaEquivocationProof"
+    },
+    "identity": {
+      "Judgement": "IdentityJudgement"
+    },
+    "parachains": {
+      "Id": "ParaId"
+    },
+    "proposeParachain": {
+      "Proposal": "ParachainProposal"
+    },
+    "proxy": {
+      "Announcement": "ProxyAnnouncement"
+    },
+    "society": {
+      "Judgement": "SocietyJudgement",
+      "Vote": "SocietyVote"
+    },
+    "staking": {
+      "Compact": "CompactAssignments"
+    },
+    "treasury": {
+      "Proposal": "TreasuryProposal"
     }
   },
   "TYPES_META": [

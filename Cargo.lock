@@ -342,10 +342,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "desub-cli"
-version = "0.0.1"
-
-[[package]]
 name = "desub-core"
 version = "0.0.1"
 dependencies = [
