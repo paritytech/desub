@@ -216,7 +216,7 @@ where
                     let new_type = self
                         .types
                         .get(module, v, spec, self.chain.as_str())
-                        .ok_or_else(|| Error::from("Name Resolution Failure"))?
+                        .ok_or_else(|| Error::from(format!("Name Resolution Failure: module={}, v={}, spec={}, chain={}", module, v, spec, self.chain.as_str())))?
                         .as_type();
                     self.decode_single(module, spec, new_type, data, cursor, is_compact)?
                 }
@@ -548,7 +548,7 @@ where
                 let types = self.decode_call(spec, data, cursor).ok()?;
                 Some(SubstrateType::Call(types))
             }
-            "Lookup" | "GenericAddress" => {
+            "Lookup" | "GenericAddress" | "GenericLookupSource" => {
                 // a specific type that is <T as StaticSource>::Lookup concatenated to just 'Lookup'
                 let inc: usize;
                 // TODO: requires more investigation

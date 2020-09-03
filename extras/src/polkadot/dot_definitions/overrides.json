@@ -1,7 +1,11 @@
 {
   "TYPES_MODULES": {
+    "default": {
+      "babe": {
+        "EquivocationProof": "BabeEquivocationProof"
+      },
       "balances": {
-        "Releases": "ReleasesBalances"
+        "Status": "BalanceStatus"
       },
       "contract": {
         "AccountInfo": "ContractAccountInfo"
@@ -9,23 +13,33 @@
       "contracts": {
         "StorageKey": "ContractStorageKey"
       },
+      "grandpa": {
+        "Equivocation": "GrandpaEquivocation",
+        "EquivocationProof": "GrandpaEquivocationProof"
+      },
       "identity": {
         "Judgement": "IdentityJudgement"
       },
       "parachains": {
         "Id": "ParaId"
       },
+      "proposeParachain": {
+        "Proposal": "ParachainProposal"
+      },
+      "proxy": {
+        "Announcement": "ProxyAnnouncement"
+      },
       "society": {
         "Judgement": "SocietyJudgement",
         "Vote": "SocietyVote"
       },
       "staking": {
-        "Compact": "CompactAssignments",
-        "Releases": "ReleasesStaking"
+        "Compact": "CompactAssignments"
       },
       "treasury": {
         "Proposal": "TreasuryProposal"
       }
+    }
   },
   "TYPES_META": [
       {
@@ -42,7 +56,7 @@
           "ValidatorPrefs": "ValidatorPrefsTo145"
         }
       }
-  ],
+    ],
   "TYPES_SPEC": {
     "kusama": [
       {
@@ -51,15 +65,20 @@
           1031
         ],
         "types": {
-          "Address": "GenericAddress",
+          "Address": "LookupSource",
           "BalanceLock": "BalanceLockTo212",
+          "CompactAssignments": "CompactAssignmentsTo257",
           "DispatchError": "DispatchErrorTo198",
+          "DispatchInfo": "DispatchInfoTo244",
           "Keys": "SessionKeys5",
-          "LookupSource": "Address",
+          "Multiplier": "Fixed64",
+          "OpenTip": "OpenTipTo225",
           "ReferendumInfo": "ReferendumInfoTo239",
+          "RewardDestination": "RewardDestinationTo257",
           "SlashingSpans": "SlashingSpansTo204",
           "StakingLedger": "StakingLedgerTo223",
-          "Votes": "VotesTo230"
+          "Votes": "VotesTo230",
+          "Weight": "u32"
         }
       },
       {
@@ -68,14 +87,19 @@
           1042
         ],
         "types": {
-          "Address": "GenericAddress",
+          "Address": "LookupSource",
           "BalanceLock": "BalanceLockTo212",
+          "CompactAssignments": "CompactAssignmentsTo257",
+          "DispatchInfo": "DispatchInfoTo244",
           "Keys": "SessionKeys5",
-          "LookupSource": "Address",
+          "Multiplier": "Fixed64",
+          "OpenTip": "OpenTipTo225",
           "ReferendumInfo": "ReferendumInfoTo239",
+          "RewardDestination": "RewardDestinationTo257",
           "SlashingSpans": "SlashingSpansTo204",
           "StakingLedger": "StakingLedgerTo223",
-          "Votes": "VotesTo230"
+          "Votes": "VotesTo230",
+          "Weight": "u32"
         }
       },
       {
@@ -84,13 +108,18 @@
           1045
         ],
         "types": {
-          "Address": "GenericAddress",
+          "Address": "LookupSource",
           "BalanceLock": "BalanceLockTo212",
+          "CompactAssignments": "CompactAssignmentsTo257",
+          "DispatchInfo": "DispatchInfoTo244",
           "Keys": "SessionKeys5",
-          "LookupSource": "Address",
+          "Multiplier": "Fixed64",
+          "OpenTip": "OpenTipTo225",
           "ReferendumInfo": "ReferendumInfoTo239",
+          "RewardDestination": "RewardDestinationTo257",
           "StakingLedger": "StakingLedgerTo223",
-          "Votes": "VotesTo230"
+          "Votes": "VotesTo230",
+          "Weight": "u32"
         }
       },
       {
@@ -102,18 +131,139 @@
           "Address": "AccountId",
           "Keys": "SessionKeys5",
           "LookupSource": "AccountId",
-          "ReferendumInfo": "ReferendumInfoTo239"
+          "ProxyType": {
+            "_enum": [
+              "Any",
+              "NonTransfer",
+              "Governance",
+              "Staking",
+              "IdentityJudgement"
+            ]
+          },
+          "CompactAssignments": "CompactAssignmentsTo257",
+          "DispatchInfo": "DispatchInfoTo244",
+          "Multiplier": "Fixed64",
+          "OpenTip": "OpenTipTo225",
+          "ReferendumInfo": "ReferendumInfoTo239",
+          "RewardDestination": "RewardDestinationTo257",
+          "StakingLedger": "StakingLedgerTo240",
+          "Weight": "u32"
         }
       },
       {
         "minmax": [
           1055,
+          1056
+        ],
+        "types": {
+          "Address": "AccountId",
+          "Keys": "SessionKeys5",
+          "LookupSource": "AccountId",
+          "ProxyType": {
+            "_enum": [
+              "Any",
+              "NonTransfer",
+              "Governance",
+              "Staking",
+              "IdentityJudgement"
+            ]
+          },
+          "CompactAssignments": "CompactAssignmentsTo257",
+          "DispatchInfo": "DispatchInfoTo244",
+          "Multiplier": "Fixed64",
+          "OpenTip": "OpenTipTo225",
+          "RewardDestination": "RewardDestinationTo257",
+          "StakingLedger": "StakingLedgerTo240",
+          "Weight": "u32"
+        }
+      },
+      {
+        "minmax": [
+          1057,
+          1061
+        ],
+        "types": {
+          "Address": "AccountId",
+          "Keys": "SessionKeys5",
+          "LookupSource": "AccountId",
+          "ProxyType": {
+            "_enum": [
+              "Any",
+              "NonTransfer",
+              "Governance",
+              "Staking",
+              "IdentityJudgement"
+            ]
+          },
+          "CompactAssignments": "CompactAssignmentsTo257",
+          "DispatchInfo": "DispatchInfoTo244",
+          "OpenTip": "OpenTipTo225",
+          "RewardDestination": "RewardDestinationTo257"
+        }
+      },
+      {
+        "minmax": [
+          1062,
+          2012
+        ],
+        "types": {
+          "Address": "AccountId",
+          "Keys": "SessionKeys5",
+          "LookupSource": "AccountId",
+          "ProxyType": {
+            "_enum": [
+              "Any",
+              "NonTransfer",
+              "Governance",
+              "Staking",
+              "IdentityJudgement"
+            ]
+          },
+          "CompactAssignments": "CompactAssignmentsTo257",
+          "OpenTip": "OpenTipTo225",
+          "RewardDestination": "RewardDestinationTo257"
+        }
+      },
+      {
+        "minmax": [
+          2013,
+          2022
+        ],
+        "types": {
+          "Address": "AccountId",
+          "Keys": "SessionKeys5",
+          "LookupSource": "AccountId",
+          "ProxyType": {
+            "_enum": [
+              "Any",
+              "NonTransfer",
+              "Governance",
+              "Staking",
+              "IdentityJudgement"
+            ]
+          },
+          "CompactAssignments": "CompactAssignmentsTo257",
+          "RewardDestination": "RewardDestinationTo257"
+        }
+      },
+      {
+        "minmax": [
+          2023,
           null
         ],
         "types": {
           "Address": "AccountId",
           "Keys": "SessionKeys5",
-          "LookupSource": "AccountId"
+          "LookupSource": "AccountId",
+          "ProxyType": {
+            "_enum": [
+              "Any",
+              "NonTransfer",
+              "Governance",
+              "Staking",
+              "IdentityJudgement"
+            ]
+          }
         }
       }
     ]
