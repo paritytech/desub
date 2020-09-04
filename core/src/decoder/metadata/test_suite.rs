@@ -34,35 +34,35 @@ fn module_metadata_mock() -> HashMap<String, ModuleMetadata> {
 
     map.insert(
         "TestModule0".to_string(),
-        ModuleMetadata {
+        Arc::new(ModuleMetadata {
             index: 0,
             name: "TestModule0".to_string(),
             storage: storage_mock(),
             calls: call_mock(),
             events: event_mock(),
-        },
+        }),
     );
 
     map.insert(
         "TestModule1".to_string(),
-        ModuleMetadata {
+        Arc::new(ModuleMetadata {
             index: 1,
             name: "TestModule1".to_string(),
             storage: storage_mock(),
             calls: call_mock(),
             events: event_mock(),
-        },
+        }),
     );
 
     map.insert(
         "TestModule2".to_string(),
-        ModuleMetadata {
+        Arc::new(ModuleMetadata {
             index: 2,
             name: "TestModule2".to_string(),
             storage: storage_mock(),
             calls: call_mock(),
             events: event_mock(),
-        },
+        }),
     );
 
     map

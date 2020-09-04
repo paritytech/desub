@@ -30,6 +30,18 @@ pub fn mock_runtime(num: u32) -> RuntimeVersion {
     }
 }
 
+/// Get some runtime metadata from KusamaCC3 from block 3,901,874
+/// Block hash 0x1d65a4c67817c4f32f99f7247f070a2f3fd58baf81d4e533c9be9d1aa8c4e65a
+/// 
+/// # Panics
+/// Panics on std::io::Error
+pub fn runtime_v11() -> Vec<u8> {
+    let mut f = File::open("./test/metadata_v11.bin").expect("Opening file failed");
+    let mut buffer = Vec::new();
+    f.read_to_end(&mut buffer).expect("Reading file failed");
+    buffer
+}
+
 /// Get some runtime metadata from KusamaCC3 around block 361,0000
 /// Block hash
 /// 0x627a6a8e7698dd360bd44e7816e7f8c5321fa31e0a3f39324d93ec5716a57fb5

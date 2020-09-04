@@ -5,124 +5,49 @@ use std::collections::HashMap;
 
 use codec::{Decode, Encode};
 use runtime_metadata_latest::{DecodeDifferent, StorageEntryType, StorageHasher};
+use super::metadata::{Metadata, StorageMetadata, ModuleMetadata};
+use std::sync::Arc;
 
-use super::metadata::{Metadata, StorageMetadata};
+pub struct StorageInfo {
+    pub meta: StorageMetadata,
+    pub module: Arc<ModuleMetadata>
+}
 
-////////////////////////////////////////////////////////////////////////
-//    Storage Key/Value decode
-////////////////////////////////////////////////////////////////////////
+impl StorageInfo {
+    pub fn new(meta: StorageMetadata, module: Arc<ModuleMetadata>) -> Self {
+        Self { meta, module }
+    }
+}
 
-/// module prefix and storage prefix both use twx_128 hasher. One twox_128
-/// hasher is 32 chars in hex string, i.e, the prefix length is 32 * 2.
-pub const PREFIX_LENGTH: usize = 32 * 2;
+pub struct StorageLookupTable {
+    table: HashMap<Vec<u8>, StorageInfo>,
+}
+
+impl StorageLookupTable {
+    pub fn new(map: HashMap<Vec<u8>, StorageInfo>) -> Self {
+        Self {
+            table: map,
+            // module: module.clone()
+        }
+    }
+
+    /// Returns the StorageMetadata given the `prefix` of a StorageKey.
+    pub fn lookup(&self, prefix: &[u8]) -> Option<&StorageInfo> {
+        self.table.get(prefix)
+    }
+        
+    pub fn meta_for_key(&self, key: &[u8]) -> Option<&StorageInfo> {
+        let key = self.table.keys().find(|&k| {
+            &key[..k.len()] == k.as_slice()
+        });
+        key.map(|k| self.lookup(k)).flatten()
+    }
+}
 
 /*
-/// Map of StorageKey prefix (module_prefix++storage_prefix) in hex string to StorageMetadata.
-///
-/// So that we can know about the StorageMetadata given a complete StorageKey.
-#[derive(Debug, Clone)]
-pub struct StorageMetadataLookupTable(pub HashMap<String, StorageMetadata>);
-
-impl From<Metadata> for StorageMetadataLookupTable {
-    fn from(metadata: Metadata) -> Self {
-        Self(
-            metadata
-                .modules
-                .into_iter()
-                .map(|(_, module_metadata)| {
-                    module_metadata
-                        .storage
-                        .into_iter()
-                        .map(|(_, storage_metadata)| {
-                            let storage_prefix = storage_metadata.prefix();
-                            (hex::encode(storage_prefix.0), storage_metadata)
-                        })
-                })
-                .flatten()
-                .collect(),
-        )
-    }
-}
-*/
-
-// Transparent type of decoded StorageKey.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum TransparentStorageType {
-    Plain {
-        /// "u32"
-        value_ty: String,
-    },
-    Map {
-        /// value of key, e.g, "be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f" for T::AccountId
-        key: String,
-        /// type of value, e.g., "AccountInfo<T::Index, T::AccountData>"
-        value_ty: String,
-    },
-    DoubleMap {
-        key1: String,
-        key1_ty: String,
-        key2: String,
-        key2_ty: String,
-        value_ty: String,
-    },
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct TransparentStorageKey {
-    pub module_prefix: String,
-    pub storage_prefix: String,
-    pub ty: TransparentStorageType,
-}
-
-impl TransparentStorageKey {
-    pub fn get_value_type(&self) -> String {
-        match &self.ty {
-            TransparentStorageType::Plain { value_ty } => value_ty.into(),
-            TransparentStorageType::Map { value_ty, .. } => value_ty.into(),
-            TransparentStorageType::DoubleMap { value_ty, .. } => value_ty.into(),
-        }
-    }
-}
-
-/// Converts the inner of `DecodeDifferent::Decoded(_)` to String.
-fn as_decoded_type<B: 'static, O: 'static + Into<String>>(value: DecodeDifferent<B, O>) -> String {
-    match value {
-        DecodeDifferent::Encode(_b) => unreachable!("TODO: really unreachable?"),
-        DecodeDifferent::Decoded(o) => o.into(),
-    }
-}
-
-fn build_transparent_storage_key(
-    storage_metadata: &StorageMetadata,
-    ty: TransparentStorageType,
-) -> TransparentStorageKey {
-    TransparentStorageKey {
-        module_prefix: String::from(&storage_metadata.module_prefix),
-        storage_prefix: String::from(&storage_metadata.storage_prefix),
-        ty,
-    }
-}
-
-impl StorageMetadataLookupTable {
-    /// Returns the StorageMetadata given the `prefix` of a StorageKey.
-    pub fn lookup(&self, prefix: &str) -> Option<&StorageMetadata> {
-        self.0.get(prefix)
-    }
-
     /// Converts `storage_key` in hex string to a _readable_ format.
-    pub fn parse_storage_key(&self, storage_key: String) -> Option<TransparentStorageKey> {
-        let key_length = storage_key.chars().count();
-        if key_length == 32 {
-            println!("--------------- unknown 32 storage key:{:?}", storage_key);
-            return None;
-        }
-
-        if key_length < 64 {
-            println!("--------------- unknown < 64 storage key:{:?}", storage_key);
-            return None;
-        }
-
-        let storage_prefix = &storage_key[..PREFIX_LENGTH];
+    pub fn parse_storage_key(&self, key: Vec<u8>) -> Option<TransparentStorageKey> {
+        self.meta_for_key(key.as_slice());
 
         if let Some(storage_metadata) = self.lookup(storage_prefix) {
             match &storage_metadata.ty {
@@ -224,8 +149,7 @@ impl StorageMetadataLookupTable {
             None
         }
     }
-}
-
+    */
 /// TODO: ensure all key1 in DoubleMap are included in this table.
 ///
 /// NOTE: The lucky thing is that key1 of double_map normally uses the fixed size encoding.
@@ -276,167 +200,14 @@ fn hash_length_of(hasher: &StorageHasher) -> usize {
     }
 }
 
-fn generic_decode<T: codec::Decode>(encoded: Vec<u8>) -> Result<T, codec::Error> {
-    Decode::decode(&mut encoded.as_slice())
-}
-
-// Filter out (key1, key2) pairs of all DoubleMap.
-pub fn filter_double_map(metadata: Metadata) -> Vec<(String, String)> {
-    metadata
-        .modules
-        .into_iter()
-        .map(|(_, module_metadata)| {
-            module_metadata
-                .storage
-                .into_iter()
-                .filter_map(|(_, storage_metadata)| {
-                    if let StorageEntryType::DoubleMap {
-                        ref key1, ref key2, ..
-                    } = storage_metadata.ty
-                    {
-                        let key1_ty = as_decoded_type(key1.clone());
-                        let key2_ty = as_decoded_type(key2.clone());
-                        Some((key1_ty, key2_ty))
-                    } else {
-                        None
-                    }
-                })
-        })
-        .flatten()
-        .collect()
-}
-
-pub fn filter_double_map_key1_types(metadata: Metadata) -> Vec<String> {
-    let keys_map: HashMap<String, String> = filter_double_map(metadata).into_iter().collect();
-    let key1_type_set = keys_map.keys();
-    key1_type_set.into_iter().map(|x| x.clone()).collect()
-}
-
-fn get_value_type(ty: StorageEntryType) -> String {
-    match ty {
-        StorageEntryType::Plain(value) => as_decoded_type(value),
-        StorageEntryType::Map { value, .. } => as_decoded_type(value),
-        StorageEntryType::DoubleMap { value, .. } => as_decoded_type(value),
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn asdf() {
+        println!("Hello");
     }
 }
-
-pub fn filter_storage_value_types(metadata: Metadata) -> Vec<String> {
-    let mut value_types = metadata
-        .modules
-        .into_iter()
-        .map(|(_, module_metadata)| {
-            module_metadata
-                .storage
-                .into_iter()
-                .map(|(_, storage_metadata)| get_value_type(storage_metadata.ty))
-        })
-        .flatten()
-        .collect::<Vec<_>>();
-
-    value_types.sort();
-    value_types.dedup();
-    value_types
-}
-
-/*
-TODO: use a script to generate this function automatically.
-[
-    "(BalanceOf<T>, BalanceOf<T>, T::BlockNumber)",
-    "(BalanceOf<T>, Vec<T::AccountId>)",
-    "(OpaqueCall, T::AccountId, BalanceOf<T>)",
-    "(Perbill, BalanceOf<T>)",
-    "(T::AccountId, BalanceOf<T>, bool)",
-    "(T::AccountId, Data)",
-    "(T::BlockNumber, T::BlockNumber)",
-    "(T::BlockNumber, Vec<T::AccountId>)",
-    "(T::Hash, VoteThreshold)",
-    "(Vec<(T::AccountId, T::ProxyType)>, BalanceOf<T>)",
-    "(Vec<T::AccountId>, BalanceOf<T>)",
-    "<T as Trait<I>>::Proposal",
-    "AccountData<T::Balance>",
-    "AccountInfo<T::Index, T::AccountData>",
-    "AccountStatus<BalanceOf<T>>",
-    "ActiveEraInfo",
-    "BalanceOf<T>",
-    "DigestOf<T>",
-    "ElectionResult<T::AccountId, BalanceOf<T>>",
-    "ElectionScore",
-    "ElectionStatus<T::BlockNumber>",
-    "EraIndex",
-    "EraRewardPoints<T::AccountId>",
-    "EthereumAddress",
-    "EventIndex",
-    "Exposure<T::AccountId, BalanceOf<T>>",
-    "Forcing",
-    "LastRuntimeUpgradeInfo",
-    "MaybeRandomness",
-    "Multiplier",
-    "Multisig<T::BlockNumber, BalanceOf<T>, T::AccountId>",
-    "NextConfigDescriptor",
-    "Nominations<T::AccountId>",
-    "OffenceDetails<T::AccountId, T::IdentificationTuple>",
-    "OpenTip<T::AccountId, BalanceOf<T>, T::BlockNumber, T::Hash>",
-    "Perbill",
-    "Phase",
-    "PreimageStatus<T::AccountId, BalanceOf<T>, T::BlockNumber>",
-    "PropIndex",
-    "Proposal<T::AccountId, BalanceOf<T>>",
-    "ProposalIndex",
-    "ReferendumIndex",
-    "ReferendumInfo<T::BlockNumber, T::Hash, BalanceOf<T>>",
-    "Registration<BalanceOf<T>>",
-    "Releases",
-    "RewardDestination",
-    "SessionIndex",
-    "SetId",
-    "StakingLedger<T::AccountId, BalanceOf<T>>",
-    "StatementKind",
-    "StoredPendingChange<T::BlockNumber>",
-    "StoredState<T::BlockNumber>",
-    "T::AccountId",
-    "T::Balance",
-    "T::BlockNumber",
-    "T::Hash",
-    "T::Keys",
-    "T::Moment",
-    "T::ValidatorId",
-    "TaskAddress<T::BlockNumber>",
-    "ValidatorPrefs",
-    "Vec<(AuthorityId, BabeAuthorityWeight)>",
-    "Vec<(EraIndex, SessionIndex)>",
-    "Vec<(PropIndex, T::Hash, T::AccountId)>",
-    "Vec<(T::AccountId, BalanceOf<T>)>",
-    "Vec<(T::BlockNumber, EventIndex)>",
-    "Vec<(T::ValidatorId, T::Keys)>",
-    "Vec<BalanceLock<T::Balance>>",
-    "Vec<DeferredOffenceOf<T>>",
-    "Vec<EventRecord<T::Event, T::Hash>>",
-    "Vec<Option<RegistrarInfo<BalanceOf<T>, T::AccountId>>>",
-    "Vec<Option<Scheduled<<T as Trait>::Call, T::BlockNumber, T::\nPalletsOrigin, T::AccountId>>>",
-    "Vec<ProposalIndex>",
-    "Vec<ReportIdOf<T>>",
-    "Vec<T::AccountId>",
-    "Vec<T::AuthorityId>",
-    "Vec<T::BlockNumber>",
-    "Vec<T::Hash>",
-    "Vec<T::ValidatorId>",
-    "Vec<UnappliedSlash<T::AccountId, BalanceOf<T>>>",
-    "Vec<UncleEntryItem<T::BlockNumber, T::Hash, T::AccountId>>",
-    "Vec<schnorrkel::Randomness>",
-    "Vec<u32>",
-    "Vec<u8>",
-    "VestingInfo<BalanceOf<T>, T::BlockNumber>",
-    "Votes<T::AccountId, T::BlockNumber>",
-    "Voting<BalanceOf<T>, T::AccountId, T::BlockNumber>",
-    "bool",
-    "schnorrkel::Randomness",
-    "slashing::SlashingSpans",
-    "slashing::SpanRecord<BalanceOf<T>>",
-    "u32",
-    "u64",
-    "weights::ExtrinsicsWeight",
-]
-*/
 
 /*
 #[cfg(test)]
@@ -444,7 +215,7 @@ mod tests {
     use super::*;
     use frame_metadata::RuntimeMetadataPrefixed;
     use frame_system::AccountInfo;
-    use pallet_balances::AccountData;
+    use pallet_balances::AccountData;AccountIndex
     use polkadot_primitives::v1::{AccountIndex, Balance};
     use std::convert::TryInto;
     fn get_metadata() -> Metadata {
@@ -647,3 +418,4 @@ mod tests {
     }
 }
 */
+

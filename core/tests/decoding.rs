@@ -2,6 +2,8 @@ extern crate extras;
 mod test_suite;
 
 use desub_core::decoder::{Decoder, Metadata};
+use primitives::twox_128;
+use codec::{Encode, Decode};
 
 pub fn init() {
     env_logger::try_init();
@@ -292,4 +294,44 @@ fn should_decode_ext_6144() {
         println!("{}", decoded);
         println!("{}", serde_json::to_string(&decoded).unwrap());
     }
+}
+
+use frame_system::AccountInfo;
+use pallet_balances::AccountData;
+// hex(encoded): 010000000864000000000000000000000000000000c80000000000000000000000000000002c01000000000000000000000000000090010000000000000000000000000000
+fn mock_account_info_data() -> (Vec<u8>, AccountInfo<u32, AccountData<u128>>) {
+    let mock_account_data: AccountData<Balance> = AccountData {
+        free: 100,
+        reserved: 200,
+        misc_frozen: 300,
+        fee_frozen: 400,
+    };
+    let mock_account_info: AccountInfo<u32, AccountData<u128>> = AccountInfo {
+        nonce: 1,
+        refcount: 8,
+        data: mock_account_data,
+    };
+    (mock_account_info.encode(), mock_account_info)
+}
+
+/// T::BlockNumber in meta V11 Block 1768321
+fn get_plain_value() -> (Vec<u8>, Vec<u8>){
+    let mut key = twox_128("System".as_bytes()).to_vec();
+    key.extend(twox_128("Number".as_bytes()).iter());
+    let value = 1768321.encode();
+    (key, value)
+}
+
+#[test]
+fn should_decode_plain() {
+    init();
+    
+    let types = extras::polkadot::PolkadotTypes::new().unwrap();
+    let mut decoder = Decoder::new(types, "kusama");
+
+    let meta = test_suite::runtime_v11();
+    let meta = Metadata::new(meta.as_slice());
+    decoder.register_version(2023);
+    
+    decoder.decode_storage(2023, get_plain_value()).unwrap();
 }

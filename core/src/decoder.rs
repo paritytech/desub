@@ -24,6 +24,7 @@
 //! to different applications that need the type data
 
 mod extrinsics;
+mod storage;
 pub mod metadata;
 
 pub use self::extrinsics::{
@@ -31,7 +32,9 @@ pub use self::extrinsics::{
 };
 #[cfg(test)]
 pub use self::metadata::test_suite;
-pub use self::metadata::{Metadata, MetadataError, ModuleIndex};
+pub use self::metadata::{Metadata, MetadataError, ModuleIndex, StorageType};
+pub use runtime_metadata_latest::{StorageEntryModifier, StorageEntryType, StorageHasher};
+
 use crate::{
     error::Error,
     substrate_types::{self, StructField, StructUnitOrTuple, SubstrateType},
@@ -99,6 +102,25 @@ where
     /// Returns None if version is nonexistant
     pub fn get_version_metadata(&self, version: SpecVersion) -> Option<&Metadata> {
         self.versions.get(&version)
+    }
+    
+    /// Decode the Key/Value pair of a storage entry
+    pub fn decode_storage(&self, spec: SpecVersion, data: (Vec<u8>, Vec<u8>)) -> Result<(), Error> {
+        let (key, value) = data;
+        let meta = self.versions.get(&spec).expect("Spec does not exist");
+        let lookup_table = meta.storage_lookup_table();
+        
+        if let Some(storage_info) = lookup_table.meta_for_key(key.as_slice()) {
+            match &storage_info.meta.ty {
+                StorageType::Plain(rtype) => {
+                    let mut cursor = 0;
+                    let value = self.decode_single(storage_info.module.name(), spec, &rtype, value.as_slice(), &mut cursor, false)?;
+                    println!("{:?}", value);
+                }
+                _ => panic!("Can't decode yet!")
+            }
+        }
+        Ok(())
     }
 
     /// Decode an extrinsic

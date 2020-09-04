@@ -41,3 +41,6 @@ env_logger = "0.7.1"
 
 [dev-dependencies]
 extras = { path = "../extras/", features = ["polkadot"], package = "desub-extras" }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "master" }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "master" }
+

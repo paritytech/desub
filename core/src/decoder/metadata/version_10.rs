@@ -16,7 +16,7 @@
 
 use super::{
     CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata,
-    ModuleMetadata, StorageMetadata,
+    ModuleMetadata, StorageMetadata, StorageType
 };
 use crate::regex;
 use runtime_metadata10::{
@@ -25,7 +25,7 @@ use runtime_metadata10::{
 };
 use std::{
     collections::{HashMap, HashSet},
-    convert::TryFrom,
+    convert::{TryFrom, TryInto},
 };
 
 type DecodeDifferentStr = DecodeDifferent<&'static str, String>;
@@ -59,7 +59,7 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
                 event_index += 1;
             }
             let module_metadata = convert_module(i, module)?;
-            modules.insert(module_name, module_metadata);
+            modules.insert(module_name, std::sync::Arc::new(module_metadata));
         }
         Ok(Metadata {
             modules,
@@ -152,7 +152,7 @@ fn convert_entry(
     Ok(StorageMetadata {
         prefix,
         modifier: StorageEntryModifierTemp(entry.modifier).into(),
-        ty: StorageEntryTypeTemp(entry.ty).into(),
+        ty: entry.ty.try_into()?,
         default,
         documentation: documentation
             .iter()
@@ -176,46 +176,6 @@ impl From<StorageEntryModifierTemp> for runtime_metadata_latest::StorageEntryMod
             StorageEntryModifier::Default => {
                 runtime_metadata_latest::StorageEntryModifier::Default
             }
-        }
-    }
-}
-
-/// Temporary struct for converting between `StorageEntryType`
-/// and `runtime_metadata_latest::StorageEntryType`
-struct StorageEntryTypeTemp(StorageEntryType);
-impl From<StorageEntryTypeTemp> for runtime_metadata_latest::StorageEntryType {
-    fn from(entry: StorageEntryTypeTemp) -> runtime_metadata_latest::StorageEntryType {
-        let entry = entry.0;
-        match entry {
-            StorageEntryType::Plain(d) => {
-                runtime_metadata_latest::StorageEntryType::Plain(
-                    TempDecodeDifferentStr(d).into(),
-                )
-            }
-            StorageEntryType::Map {
-                hasher,
-                key,
-                value,
-                is_linked,
-            } => runtime_metadata_latest::StorageEntryType::Map {
-                hasher: TempStorageHasher(hasher).into(),
-                key: TempDecodeDifferentStr(key).into(),
-                value: TempDecodeDifferentStr(value).into(),
-                unused: is_linked,
-            },
-            StorageEntryType::DoubleMap {
-                hasher,
-                key1,
-                key2,
-                value,
-                key2_hasher,
-            } => runtime_metadata_latest::StorageEntryType::DoubleMap {
-                hasher: TempStorageHasher(hasher).into(),
-                key1: TempDecodeDifferentStr(key1).into(),
-                key2: TempDecodeDifferentStr(key2).into(),
-                value: TempDecodeDifferentStr(value).into(),
-                key2_hasher: TempStorageHasher(key2_hasher).into(),
-            },
         }
     }
 }
@@ -251,9 +211,7 @@ struct TempDecodeDifferentStr(DecodeDifferentStr);
 impl From<TempDecodeDifferentStr> for LatestDecodeDifferentStr {
     fn from(decode_str: TempDecodeDifferentStr) -> LatestDecodeDifferentStr {
         let decode_str = decode_str.0;
-        match decode_str {
-            DecodeDifferent::Encode(b) => {
-                runtime_metadata_latest::DecodeDifferent::Encode(b)
+        match decode_str { DecodeDifferent::Encode(b) => { runtime_metadata_latest::DecodeDifferent::Encode(b)
             }
             DecodeDifferent::Decoded(o) => {
                 runtime_metadata_latest::DecodeDifferent::Decoded(o)
@@ -261,3 +219,39 @@ impl From<TempDecodeDifferentStr> for LatestDecodeDifferentStr {
         }
     }
 }
+
+impl TryFrom<StorageEntryType> for StorageType {
+    type Error = Error;
+    fn try_from(entry: StorageEntryType) -> Result<StorageType, Self::Error> {
+        let entry = match entry {
+            StorageEntryType::Plain(v) => {
+                let ty = convert(v)?;
+                StorageType::Plain(regex::parse(&ty).ok_or(Error::InvalidType(ty))?)
+            },
+            StorageEntryType::Map { hasher, key, value, is_linked } => {
+                let key = convert(key)?;
+                let value = convert(value)?;
+                StorageType::Map {
+                    hasher: TempStorageHasher(hasher).into(),
+                    key: regex::parse(&key).ok_or(Error::InvalidType(key))?,
+                    value: regex::parse(&value).ok_or(Error::InvalidType(value))?,
+                    unused: is_linked,
+                }
+            },
+            StorageEntryType::DoubleMap { hasher, key1, key2, value, key2_hasher } => {
+                let key1 = convert(key1)?;
+                let key2 = convert(key2)?;
+                let value = convert(value)?;
+                StorageType::DoubleMap {
+                    hasher: TempStorageHasher(hasher).into(),
+                    key1: regex::parse(&key1).ok_or(Error::InvalidType(key1))?,
+                    key2: regex::parse(&key2).ok_or(Error::InvalidType(key2))?,
+                    value: regex::parse(&value).ok_or(Error::InvalidType(value))?,
+                    key2_hasher: TempStorageHasher(key2_hasher).into(),
+                }
+            }
+        };
+        Ok(entry)
+    }
+}
+
