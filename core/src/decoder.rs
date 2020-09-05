@@ -30,6 +30,10 @@ pub mod metadata;
 pub use self::extrinsics::{
     ExtrinsicArgument, GenericCall, GenericExtrinsic, GenericSignature,
 };
+pub use self::storage::{
+    StorageKey, StorageValue, GenericStorage
+};
+
 #[cfg(test)]
 pub use self::metadata::test_suite;
 pub use self::metadata::{Metadata, MetadataError, ModuleIndex, StorageType};
@@ -105,22 +109,34 @@ where
     }
     
     /// Decode the Key/Value pair of a storage entry
-    pub fn decode_storage(&self, spec: SpecVersion, data: (Vec<u8>, Vec<u8>)) -> Result<(), Error> {
+    pub fn decode_storage(&self, spec: SpecVersion, data: (Vec<u8>, Vec<u8>)) -> Result<GenericStorage, Error> {
         let (key, value) = data;
         let meta = self.versions.get(&spec).expect("Spec does not exist");
         let lookup_table = meta.storage_lookup_table();
-        
-        if let Some(storage_info) = lookup_table.meta_for_key(key.as_slice()) {
+        let key_meta = lookup_table.meta_for_key(key.as_slice());
+
+        if let Some(storage_info) = key_meta {
             match &storage_info.meta.ty {
                 StorageType::Plain(rtype) => {
+                    log::debug!("{:?}, module {}, spec {}", rtype, storage_info.module.name(), spec);
                     let mut cursor = 0;
                     let value = self.decode_single(storage_info.module.name(), spec, &rtype, value.as_slice(), &mut cursor, false)?;
                     println!("{:?}", value);
+
+                    let key = StorageKey {
+                        module: storage_info.module.name().into(),
+                        prefix: storage_info.meta.prefix().to_string(),
+                        // FIXME
+                        extra: key.clone(),
+                    };
+                    let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
+                    Ok(storage)
                 }
                 _ => panic!("Can't decode yet!")
             }
+        } else {
+            panic!("Storage info not found")
         }
-        Ok(())
     }
 
     /// Decode an extrinsic
@@ -220,6 +236,7 @@ where
     ///
     /// # Panics
     /// panics if a type cannot be decoded
+    #[track_caller] 
     fn decode_single(
         &self,
         module: &str,
@@ -229,6 +246,7 @@ where
         cursor: &mut usize,
         is_compact: bool,
     ) -> Result<SubstrateType, Error> {
+        println!("{:?}", ty);
         let ty = match ty {
             RustTypeMarker::TypePointer(v) => {
                 log::trace!("Resolving: {}", v);
@@ -673,6 +691,7 @@ mod tests {
         test_suite, Decodable, EnumField,
     };
     use codec::Encode;
+    use primitives::twox_128;
 
     #[derive(Debug, Clone)]
     struct GenericTypes;
@@ -1025,3 +1044,4 @@ mod tests {
         );
     }
 }
+

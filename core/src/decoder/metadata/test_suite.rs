@@ -18,8 +18,8 @@
 
 use super::*;
 use runtime_metadata_latest::DecodeDifferent;
-
-type DecodeDifferentStr = DecodeDifferent<&'static str, String>;
+use crate::RustTypeMarker;
+use std::sync::Arc;
 
 pub fn test_metadata() -> Metadata {
     Metadata {
@@ -29,7 +29,7 @@ pub fn test_metadata() -> Metadata {
     }
 }
 
-fn module_metadata_mock() -> HashMap<String, ModuleMetadata> {
+fn module_metadata_mock() -> HashMap<String, Arc<ModuleMetadata>> {
     let mut map = HashMap::new();
 
     map.insert(
@@ -70,18 +70,16 @@ fn module_metadata_mock() -> HashMap<String, ModuleMetadata> {
 
 fn storage_mock() -> HashMap<String, StorageMetadata> {
     let mut map = HashMap::new();
-    let moment = DecodeDifferentStr::Decoded("T::Moment".to_string());
-    let usize_t = DecodeDifferentStr::Decoded("usize".to_string());
-    // TODO supposed to be float type but type-metadata does not support
-    // floats yet
-    let precision = DecodeDifferentStr::Decoded("F::Precision".to_string());
+    let moment = RustTypeMarker::TypePointer("T::Moment".to_string());
+    let precision = RustTypeMarker::U32;
+    let usize_t = RustTypeMarker::USize; 
 
     map.insert(
         "TestStorage0".to_string(),
         StorageMetadata {
             prefix: "TestStorage0".to_string(),
             modifier: StorageEntryModifier::Default,
-            ty: StorageEntryType::Plain(moment.clone()),
+            ty: StorageType::Plain(moment.clone()),
             default: vec![112, 23, 0, 0, 0, 0, 0, 0],
             documentation: vec!["Some Kind of docs".to_string()],
         },
@@ -92,7 +90,7 @@ fn storage_mock() -> HashMap<String, StorageMetadata> {
         StorageMetadata {
             prefix: "TestStorage1".to_string(),
             modifier: StorageEntryModifier::Default,
-            ty: StorageEntryType::Plain(usize_t),
+            ty: StorageType::Plain(usize_t),
             default: vec![0, 0, 0, 0, 0, 0, 0, 0],
             documentation: vec!["Some Kind of docs 2".to_string()],
         },
@@ -103,7 +101,7 @@ fn storage_mock() -> HashMap<String, StorageMetadata> {
         StorageMetadata {
             prefix: "TestStorage2".to_string(),
             modifier: StorageEntryModifier::Optional,
-            ty: StorageEntryType::Plain(moment),
+            ty: StorageType::Plain(moment),
             default: vec![0, 0, 0, 0, 0, 0, 0, 0],
             documentation: vec!["Some Kind of docs 2".to_string()],
         },
@@ -114,7 +112,7 @@ fn storage_mock() -> HashMap<String, StorageMetadata> {
         StorageMetadata {
             prefix: "TestStorage3".to_string(),
             modifier: StorageEntryModifier::Optional,
-            ty: StorageEntryType::Plain(precision),
+            ty: StorageType::Plain(precision),
             default: vec![0, 0, 0, 0, 0, 0, 0, 0],
             documentation: vec!["Some Kind of docs 3".to_string()],
         },

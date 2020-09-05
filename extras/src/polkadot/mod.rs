@@ -55,7 +55,7 @@ impl PolkadotTypes {
         chain: &str,
     ) -> Option<&RustTypeMarker> {
         log::debug!("Getting Type: {}, module: {}, spec: {}", ty, module, spec);
-
+        println!("HEREERERER");
         let ty = if let Some(un_prefixed) = regex::remove_prefix(ty) {
             un_prefixed
         } else {

@@ -445,6 +445,12 @@ pub struct StorageMetadata {
     documentation: Vec<String>,
 }
 
+impl StorageMetadata {
+    pub fn prefix(&self) -> &str {
+        &self.prefix
+    }
+}
+
 /*
 impl StorageMetadata {
     pub fn get_map<K: Encode, V: Decode + Clone>( &self,) -> Result<StorageMap<K, V>, MetadataError> { match &self.ty {
@@ -616,7 +622,7 @@ pub mod tests {
         key.extend(twox_128("Account".as_bytes()).iter());
         let storage_entry = lookup_table.lookup(&key);
         println!("{:?}", storage_entry);
-        assert_eq!(storage_entry.unwrap().prefix, "System Account");
+        assert_eq!(storage_entry.unwrap().meta.prefix, "System Account");
     }
 
     #[test]

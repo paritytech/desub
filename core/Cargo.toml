@@ -36,7 +36,7 @@ runtime-metadata08 = { git = "https://github.com/insipx/substrate-metadata-versi
 # runtime-metadata01 = { git = "https://github.com/paritytech/substrate/", package = "srml-metadata",  rev = "a29f214132a81f82e8b833f4d941b6d57680989f" } # not supported (yet)
 
 derive_more = "0.99.3"
-env_logger = "0.7.1"
+pretty_env_logger = "0.4"
 
 
 [dev-dependencies]
