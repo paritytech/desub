@@ -24,7 +24,7 @@ Supports Metadata versions from v8, which means all of Kusama (from CC1). Older 
 
 |  Chain       | Extrinsics | Storage | Map | Double Map | Blake\_2* hashes | Twox_* Hashes | Identity Hash |
 | ------------ | ---------- | ---     | --- | ---------- | ---------------- | ------------- | ------------- |
-|  Kusama      |  ✅	    | ✅      |     |     ✅     |        ✅        |        ✅     |       ✅      |
+|  Kusama      |  ✅	    | ✅      |     |     ✅     |        ✅        |        ✅     |               |
 |  Polkadot    |   	    |         |     |            |                  |               |               |
 |  Westend     |   	    |         |     |            |                  |               |               |
 |  Kulupu      |   	    |         |     |            |                  |               |               |
