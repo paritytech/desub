@@ -121,9 +121,7 @@ impl fmt::Display for SubstrateType {
                 Ok(())
             }
             SubstrateType::Era(v) => match v {
-                runtime_primitives::generic::Era::Mortal(s, e) => {
-                    write!(f, "Era {}..{}", s, e)
-                }
+                runtime_primitives::generic::Era::Mortal(s, e) => write!(f, "Era {}..{}", s, e),
                 runtime_primitives::generic::Era::Immortal => write!(f, "Immortal Era"),
             },
             SubstrateType::Address(v) => {
@@ -136,9 +134,7 @@ impl fmt::Display for SubstrateType {
                         )
                         //write!(f, "Account::Id({})", i)
                     }
-                    pallet_indices::address::Address::Index(i) => {
-                        write!(f, "Index: {:?}", i)
-                    }
+                    pallet_indices::address::Address::Index(i) => write!(f, "Index: {:?}", i),
                 }
             }
             SubstrateType::SignedExtra(v) => write!(f, "{}", v),
@@ -201,9 +197,7 @@ impl fmt::Display for StructUnitOrTuple {
                 }
             }
             Self::Unit(v) => _enum.push_str(&format!("{}, ", v)),
-            Self::Tuple(name, v) => {
-                _enum.push_str(&format!(" {}:{} ", name, v.to_string()))
-            }
+            Self::Tuple(name, v) => _enum.push_str(&format!(" {}:{} ", name, v.to_string())),
         }
         _enum.push_str(" ]");
         write!(f, "{}", _enum)

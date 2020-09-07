@@ -14,18 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::collections::HashMap;
-use super::metadata::{StorageMetadata, ModuleMetadata};
-use std::sync::Arc;
+use super::metadata::{ModuleMetadata, StorageMetadata};
+use crate::RustTypeMarker;
+use runtime_metadata_latest::StorageHasher;
 use serde::Serialize;
-
+use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::substrate_types::SubstrateType;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct StorageInfo {
     pub meta: StorageMetadata,
-    pub module: Arc<ModuleMetadata>
+    pub module: Arc<ModuleMetadata>,
 }
 
 impl StorageInfo {
@@ -51,20 +52,44 @@ impl StorageLookupTable {
     pub fn lookup(&self, prefix: &[u8]) -> Option<&StorageInfo> {
         self.table.get(prefix)
     }
-        
+
     pub fn meta_for_key(&self, key: &[u8]) -> Option<&StorageInfo> {
-        let key = self.table.keys().find(|&k| {
-            &key[..k.len()] == k.as_slice()
-        });
+        let key = self.table.keys().find(|&k| &key[..k.len()] == k.as_slice());
         key.map(|k| self.lookup(k)).flatten()
     }
+
+    pub fn extra_key_data<'a>(&self, key: &'a [u8]) -> Option<&'a [u8]> {
+        let k = self.table.keys().find(|k| &key[..k.len()] == k.as_slice());
+
+        k.map(|k| &key[k.len()..])
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub enum StorageKeyData {
+    Map {
+        hasher: StorageHasher,
+        /// hashed and scale-encoded key
+        key: Vec<u8>,
+        key_type: RustTypeMarker,
+    },
+    DoubleMap {
+        hasher: StorageHasher,
+        /// hashed and scale-encoded key
+        key1: Vec<u8>,
+        key1_type: RustTypeMarker,
+        /// hashed and scale-encoded key
+        key2: Vec<u8>,
+        key2_type: RustTypeMarker,
+        key2_hasher: StorageHasher,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct StorageKey {
     pub module: String,
     pub prefix: String,
-    pub extra: Vec<u8>
+    pub extra: Option<StorageKeyData>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -72,7 +97,7 @@ pub struct StorageValue(SubstrateType);
 
 impl StorageValue {
     pub fn new(val: SubstrateType) -> Self {
-        Self ( val )
+        Self(val)
     }
 
     pub fn ty(&self) -> &SubstrateType {
@@ -83,7 +108,7 @@ impl StorageValue {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct GenericStorage {
     key: StorageKey,
-    value: Option<StorageValue>
+    value: Option<StorageValue>,
 }
 
 impl GenericStorage {
@@ -108,4 +133,3 @@ mod tests {
         println!("Hello");
     }
 }
-

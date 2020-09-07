@@ -18,8 +18,8 @@
 // https://github.com/paritytech/substrate-subxt
 
 use super::{
-    CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata,
-    ModuleMetadata, StorageMetadata, StorageType
+    CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata,
+    StorageMetadata, StorageType,
 };
 use crate::regex;
 use runtime_metadata09::{
@@ -32,8 +32,7 @@ use std::{
 };
 
 type DecodeDifferentStr = DecodeDifferent<&'static str, String>;
-type LatestDecodeDifferentStr =
-    runtime_metadata_latest::DecodeDifferent<&'static str, String>;
+type LatestDecodeDifferentStr = runtime_metadata_latest::DecodeDifferent<&'static str, String>;
 
 impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
     type Error = Error;
@@ -135,9 +134,7 @@ fn convert_module(
     })
 }
 
-fn convert_event(
-    event: runtime_metadata09::EventMetadata,
-) -> Result<ModuleEventMetadata, Error> {
+fn convert_event(event: runtime_metadata09::EventMetadata) -> Result<ModuleEventMetadata, Error> {
     let name = convert(event.name)?;
     let mut arguments = HashSet::new();
     for arg in convert(event.arguments)? {
@@ -169,17 +166,13 @@ fn convert_entry(
 /// and `runtime_metadata_latest::StorageEntryModifier`
 struct StorageEntryModifierTemp(StorageEntryModifier);
 impl From<StorageEntryModifierTemp> for runtime_metadata_latest::StorageEntryModifier {
-    fn from(
-        entry: StorageEntryModifierTemp,
-    ) -> runtime_metadata_latest::StorageEntryModifier {
+    fn from(entry: StorageEntryModifierTemp) -> runtime_metadata_latest::StorageEntryModifier {
         let entry = entry.0;
         match entry {
             StorageEntryModifier::Optional => {
                 runtime_metadata_latest::StorageEntryModifier::Optional
             }
-            StorageEntryModifier::Default => {
-                runtime_metadata_latest::StorageEntryModifier::Default
-            }
+            StorageEntryModifier::Default => runtime_metadata_latest::StorageEntryModifier::Default,
         }
     }
 }
@@ -191,17 +184,11 @@ impl From<TempStorageHasher> for runtime_metadata_latest::StorageHasher {
     fn from(hasher: TempStorageHasher) -> runtime_metadata_latest::StorageHasher {
         let hasher = hasher.0;
         match hasher {
-            StorageHasher::Blake2_128 => {
-                runtime_metadata_latest::StorageHasher::Blake2_128
-            }
-            StorageHasher::Blake2_256 => {
-                runtime_metadata_latest::StorageHasher::Blake2_256
-            }
+            StorageHasher::Blake2_128 => runtime_metadata_latest::StorageHasher::Blake2_128,
+            StorageHasher::Blake2_256 => runtime_metadata_latest::StorageHasher::Blake2_256,
             StorageHasher::Twox128 => runtime_metadata_latest::StorageHasher::Twox128,
             StorageHasher::Twox256 => runtime_metadata_latest::StorageHasher::Twox256,
-            StorageHasher::Twox64Concat => {
-                runtime_metadata_latest::StorageHasher::Twox64Concat
-            }
+            StorageHasher::Twox64Concat => runtime_metadata_latest::StorageHasher::Twox64Concat,
         }
     }
 }
@@ -213,12 +200,8 @@ impl From<TempDecodeDifferentStr> for LatestDecodeDifferentStr {
     fn from(decode_str: TempDecodeDifferentStr) -> LatestDecodeDifferentStr {
         let decode_str = decode_str.0;
         match decode_str {
-            DecodeDifferent::Encode(b) => {
-                runtime_metadata_latest::DecodeDifferent::Encode(b)
-            }
-            DecodeDifferent::Decoded(o) => {
-                runtime_metadata_latest::DecodeDifferent::Decoded(o)
-            }
+            DecodeDifferent::Encode(b) => runtime_metadata_latest::DecodeDifferent::Encode(b),
+            DecodeDifferent::Decoded(o) => runtime_metadata_latest::DecodeDifferent::Decoded(o),
         }
     }
 }
@@ -230,8 +213,13 @@ impl TryFrom<StorageEntryType> for StorageType {
             StorageEntryType::Plain(v) => {
                 let ty = convert(v)?;
                 StorageType::Plain(regex::parse(&ty).ok_or(Error::InvalidType(ty))?)
-            },
-            StorageEntryType::Map { hasher, key, value, is_linked } => {
+            }
+            StorageEntryType::Map {
+                hasher,
+                key,
+                value,
+                is_linked,
+            } => {
                 let key = convert(key)?;
                 let value = convert(value)?;
                 StorageType::Map {
@@ -240,8 +228,14 @@ impl TryFrom<StorageEntryType> for StorageType {
                     value: regex::parse(&value).ok_or(Error::InvalidType(value))?,
                     unused: is_linked,
                 }
-            },
-            StorageEntryType::DoubleMap { hasher, key1, key2, value, key2_hasher } => {
+            }
+            StorageEntryType::DoubleMap {
+                hasher,
+                key1,
+                key2,
+                value,
+                key2_hasher,
+            } => {
                 let key1 = convert(key1)?;
                 let key2 = convert(key2)?;
                 let value = convert(value)?;
@@ -257,4 +251,3 @@ impl TryFrom<StorageEntryType> for StorageType {
         Ok(entry)
     }
 }
-

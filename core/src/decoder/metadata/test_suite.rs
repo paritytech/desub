@@ -17,8 +17,8 @@
 //! Functions creating data to mock the `Metadata` struct
 
 use super::*;
-use runtime_metadata_latest::DecodeDifferent;
 use crate::RustTypeMarker;
+use runtime_metadata_latest::DecodeDifferent;
 use std::sync::Arc;
 
 pub fn test_metadata() -> Metadata {
@@ -72,7 +72,7 @@ fn storage_mock() -> HashMap<String, StorageMetadata> {
     let mut map = HashMap::new();
     let moment = RustTypeMarker::TypePointer("T::Moment".to_string());
     let precision = RustTypeMarker::U32;
-    let usize_t = RustTypeMarker::USize; 
+    let usize_t = RustTypeMarker::USize;
 
     map.insert(
         "TestStorage0".to_string(),

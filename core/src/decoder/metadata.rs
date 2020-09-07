@@ -35,13 +35,13 @@ mod version_10;
 mod version_11;
 mod versions;
 
-use crate::{RustTypeMarker, regex};
-use super::storage::{StorageLookupTable, StorageInfo};
+use super::storage::{StorageInfo, StorageLookupTable};
+use crate::{regex, RustTypeMarker};
 use codec::{Decode, Encode, EncodeAsRef, HasCompact};
 // use codec411::Decode as OldDecode;
 use failure::Fail;
-use runtime_metadata_latest::{StorageEntryModifier, StorageHasher};
 use primitives::{storage::StorageKey, twox_128};
+use runtime_metadata_latest::{StorageEntryModifier, StorageHasher};
 use std::{
     collections::{HashMap, HashSet},
     convert::TryInto,
@@ -63,8 +63,7 @@ impl Encode for Encoded {
 
 #[allow(dead_code)]
 pub fn compact<T: HasCompact>(t: T) -> Encoded {
-    let encodable: <<T as HasCompact>::Type as EncodeAsRef<'_, T>>::RefType =
-        From::from(&t);
+    let encodable: <<T as HasCompact>::Type as EncodeAsRef<'_, T>>::RefType = From::from(&t);
     Encoded(encodable.encode())
 }
 
@@ -219,7 +218,7 @@ impl Metadata {
             }
         })
     }
-    
+
     /// Returns a hashmap of a Hash -> StorageMetadata
     /// Hash is prefix of storage entries in metadata
     pub fn storage_lookup_table(&self) -> StorageLookupTable {
@@ -235,11 +234,11 @@ impl Metadata {
 
     fn generate_key<S: Into<String>>(prefix: S) -> Vec<u8> {
         let prefix: String = prefix.into();
-        prefix.split_ascii_whitespace().map(|s| {
-            twox_128(s.as_bytes()).to_vec()
-        })
-        .flatten()
-        .collect()
+        prefix
+            .split_ascii_whitespace()
+            .map(|s| twox_128(s.as_bytes()).to_vec())
+            .flatten()
+            .collect()
     }
 
     /// print out a detailed but human readable description of the module
@@ -433,7 +432,7 @@ pub enum StorageType {
         key2: RustTypeMarker,
         value: RustTypeMarker,
         key2_hasher: StorageHasher,
-    }
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -628,7 +627,7 @@ pub mod tests {
     #[test]
     fn should_generate_correct_key() {
         let first_key = Metadata::generate_key("System Account");
-        
+
         let mut key = twox_128("System".as_bytes()).to_vec();
         key.extend(twox_128("Account".as_bytes()).to_vec());
         assert_eq!(first_key, key);

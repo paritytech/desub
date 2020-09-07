@@ -43,4 +43,5 @@ pretty_env_logger = "0.4"
 extras = { path = "../extras/", features = ["polkadot"], package = "desub-extras" }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "master" }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "master" }
+hex = "0.4"
 

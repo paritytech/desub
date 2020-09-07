@@ -44,7 +44,7 @@ impl PolkadotTypes {
             extrinsics: Extrinsics::new(extrinsics::EXTRINSICS)?,
         })
     }
-
+    
     /// get a types definition
     /// goes through override check
     pub fn get(
@@ -55,13 +55,12 @@ impl PolkadotTypes {
         chain: &str,
     ) -> Option<&RustTypeMarker> {
         log::debug!("Getting Type: {}, module: {}, spec: {}", ty, module, spec);
-        println!("HEREERERER");
-        let ty = if let Some(un_prefixed) = regex::remove_prefix(ty) {
-            un_prefixed
+        let ty = if let Some(un_prefixed) = regex::remove_prefix(ty) { // remove prefix
+                un_prefixed
         } else {
-            ty.to_string()
+                ty.to_string()
         };
-        log::debug!("Getting possibly de-prefixed type: {}", ty);
+        log::debug!("Possibly de-prefixed type: {}", ty);
         if let Some(t) = self.check_overrides(module, ty.as_str(), spec, chain) {
             log::debug!("Resolving to Override");
             Some(&t)
@@ -111,13 +110,18 @@ impl PolkadotTypes {
 
     /// Try to resolve a type pointer
     fn resolve_helper(&self, module: &str, ty_pointer: &str) -> Option<&RustTypeMarker> {
+        log::debug!("Helper resolving {}, {}", module, ty_pointer);
         if self.mods.modules.get(module).is_none() {
+            log::debug!("Module None, Trying Runtime for type {}", ty_pointer);
             self.mods.modules.get("runtime")?.types.get(ty_pointer)
         } else if let Some(t) = self.mods.modules.get(module)?.types.get(ty_pointer) {
+            log::debug!("Trying module {}", module);
             Some(t)
         } else if let Some(t) = self.mods.modules.get("runtime")?.types.get(ty_pointer) {
+            log::debug!("Trying Runtime for type {}", ty_pointer);
             Some(t)
         } else if let Some(t) = self.check_other_modules(ty_pointer) {
+            log::debug!("trying other modules");
             Some(t)
         } else {
             None

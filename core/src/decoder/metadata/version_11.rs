@@ -30,13 +30,12 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata,
-    ModuleMetadata, StorageMetadata, StorageType
+    CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata,
+    StorageMetadata, StorageType,
 };
 use crate::regex;
 use runtime_metadata_latest::{
-    DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, META_RESERVED,
-    StorageEntryType
+    DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryType, META_RESERVED,
 };
 use std::{
     collections::{HashMap, HashSet},
@@ -179,8 +178,13 @@ impl TryFrom<StorageEntryType> for StorageType {
             StorageEntryType::Plain(v) => {
                 let ty = convert(v)?;
                 StorageType::Plain(regex::parse(&ty).ok_or(Error::InvalidType(ty))?)
-            },
-            StorageEntryType::Map { hasher, key, value, unused } => {
+            }
+            StorageEntryType::Map {
+                hasher,
+                key,
+                value,
+                unused,
+            } => {
                 let key = convert(key)?;
                 let value = convert(value)?;
                 StorageType::Map {
@@ -189,8 +193,14 @@ impl TryFrom<StorageEntryType> for StorageType {
                     value: regex::parse(&value).ok_or(Error::InvalidType(value))?,
                     unused,
                 }
-            },
-            StorageEntryType::DoubleMap { hasher, key1, key2, value, key2_hasher } => {
+            }
+            StorageEntryType::DoubleMap {
+                hasher,
+                key1,
+                key2,
+                value,
+                key2_hasher,
+            } => {
                 let key1 = convert(key1)?;
                 let key2 = convert(key2)?;
                 let value = convert(value)?;
@@ -206,4 +216,3 @@ impl TryFrom<StorageEntryType> for StorageType {
         Ok(entry)
     }
 }
-
