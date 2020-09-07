@@ -17,9 +17,9 @@
 //! Functions creating data to mock the `Metadata` struct
 
 use super::*;
+use crate::RustTypeMarker;
 use runtime_metadata_latest::DecodeDifferent;
-
-type DecodeDifferentStr = DecodeDifferent<&'static str, String>;
+use std::sync::Arc;
 
 pub fn test_metadata() -> Metadata {
     Metadata {
@@ -29,40 +29,40 @@ pub fn test_metadata() -> Metadata {
     }
 }
 
-fn module_metadata_mock() -> HashMap<String, ModuleMetadata> {
+fn module_metadata_mock() -> HashMap<String, Arc<ModuleMetadata>> {
     let mut map = HashMap::new();
 
     map.insert(
         "TestModule0".to_string(),
-        ModuleMetadata {
+        Arc::new(ModuleMetadata {
             index: 0,
             name: "TestModule0".to_string(),
             storage: storage_mock(),
             calls: call_mock(),
             events: event_mock(),
-        },
+        }),
     );
 
     map.insert(
         "TestModule1".to_string(),
-        ModuleMetadata {
+        Arc::new(ModuleMetadata {
             index: 1,
             name: "TestModule1".to_string(),
             storage: storage_mock(),
             calls: call_mock(),
             events: event_mock(),
-        },
+        }),
     );
 
     map.insert(
         "TestModule2".to_string(),
-        ModuleMetadata {
+        Arc::new(ModuleMetadata {
             index: 2,
             name: "TestModule2".to_string(),
             storage: storage_mock(),
             calls: call_mock(),
             events: event_mock(),
-        },
+        }),
     );
 
     map
@@ -70,18 +70,16 @@ fn module_metadata_mock() -> HashMap<String, ModuleMetadata> {
 
 fn storage_mock() -> HashMap<String, StorageMetadata> {
     let mut map = HashMap::new();
-    let moment = DecodeDifferentStr::Decoded("T::Moment".to_string());
-    let usize_t = DecodeDifferentStr::Decoded("usize".to_string());
-    // TODO supposed to be float type but type-metadata does not support
-    // floats yet
-    let precision = DecodeDifferentStr::Decoded("F::Precision".to_string());
+    let moment = RustTypeMarker::TypePointer("T::Moment".to_string());
+    let precision = RustTypeMarker::U32;
+    let usize_t = RustTypeMarker::USize;
 
     map.insert(
         "TestStorage0".to_string(),
         StorageMetadata {
             prefix: "TestStorage0".to_string(),
             modifier: StorageEntryModifier::Default,
-            ty: StorageEntryType::Plain(moment.clone()),
+            ty: StorageType::Plain(moment.clone()),
             default: vec![112, 23, 0, 0, 0, 0, 0, 0],
             documentation: vec!["Some Kind of docs".to_string()],
         },
@@ -92,7 +90,7 @@ fn storage_mock() -> HashMap<String, StorageMetadata> {
         StorageMetadata {
             prefix: "TestStorage1".to_string(),
             modifier: StorageEntryModifier::Default,
-            ty: StorageEntryType::Plain(usize_t),
+            ty: StorageType::Plain(usize_t),
             default: vec![0, 0, 0, 0, 0, 0, 0, 0],
             documentation: vec!["Some Kind of docs 2".to_string()],
         },
@@ -103,7 +101,7 @@ fn storage_mock() -> HashMap<String, StorageMetadata> {
         StorageMetadata {
             prefix: "TestStorage2".to_string(),
             modifier: StorageEntryModifier::Optional,
-            ty: StorageEntryType::Plain(moment),
+            ty: StorageType::Plain(moment),
             default: vec![0, 0, 0, 0, 0, 0, 0, 0],
             documentation: vec!["Some Kind of docs 2".to_string()],
         },
@@ -114,7 +112,7 @@ fn storage_mock() -> HashMap<String, StorageMetadata> {
         StorageMetadata {
             prefix: "TestStorage3".to_string(),
             modifier: StorageEntryModifier::Optional,
-            ty: StorageEntryType::Plain(precision),
+            ty: StorageType::Plain(precision),
             default: vec![0, 0, 0, 0, 0, 0, 0, 0],
             documentation: vec!["Some Kind of docs 3".to_string()],
         },

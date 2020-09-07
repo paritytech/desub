@@ -127,7 +127,7 @@ impl GenericExtrinsic {
 pub struct GenericSignature {
     address: SubstrateType,
     signature: SubstrateType,
-    extra: SubstrateType
+    extra: SubstrateType,
 }
 
 impl GenericSignature {
@@ -142,23 +142,23 @@ impl GenericSignature {
 
     fn split(sig: SubstrateType) -> Self {
         match sig {
-            SubstrateType::Composite(v) => {
-                Self {
-                    address: v[0].clone(),
-                    signature: v[1].clone(),
-                    extra: v[2].clone()
-                }
+            SubstrateType::Composite(v) => Self {
+                address: v[0].clone(),
+                signature: v[1].clone(),
+                extra: v[2].clone(),
             },
-            _ => {
-                panic!("Signature should always be a tuple of Address, Signature, Extra")
-            }
+            _ => panic!("Signature should always be a tuple of Address, Signature, Extra"),
         }
     }
 }
 
 impl fmt::Display for GenericSignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "EXTRINSIC SIGNATURE: ({}, {}, {})", self.address, self.signature, self.extra)
+        write!(
+            f,
+            "EXTRINSIC SIGNATURE: ({}, {}, {})",
+            self.address, self.signature, self.extra
+        )
     }
 }
 
@@ -177,12 +177,11 @@ mod tests {
             }],
         };
         let ext = GenericExtrinsic {
-            signature: Some(GenericSignature::new(
-                SubstrateType::Composite(vec![
-                    SubstrateType::U32(32),
-                    SubstrateType::U64(64),
-                    SubstrateType::U64(128)
-                ]))),
+            signature: Some(GenericSignature::new(SubstrateType::Composite(vec![
+                SubstrateType::U32(32),
+                SubstrateType::U64(64),
+                SubstrateType::U64(128),
+            ]))),
             call,
         };
         let serialized = serde_json::to_string(&ext).unwrap();
