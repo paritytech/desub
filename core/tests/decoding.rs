@@ -1,7 +1,7 @@
 extern crate extras;
 mod test_suite;
 
-use desub_core::{decoder::{Decoder, Metadata}, SubstrateType};
+use desub_core::{decoder::{Decoder, Metadata, GenericStorage, StorageKey, StorageValue, StorageHasher}, SubstrateType};
 use primitives::twox_128;
 use codec::{Encode, Decode};
 
@@ -355,6 +355,24 @@ fn should_decode_map() {
     
     let res = decoder.decode_storage(2023, (storage_key, encoded_account)).unwrap();
     println!("{:?}", res);
-    
 }
+
+#[test]
+fn should_decode_double_map() {
+    pretty_env_logger::try_init();
+    let types = extras::polkadot::PolkadotTypes::new().unwrap();
+    let mut decoder = Decoder::new(types, "kusama");
+
+    let meta = test_suite::runtime_v11();
+    let meta = Metadata::new(meta.as_slice());
+    decoder.register_version(2023, &meta);
+    // THIS STORAGE KEY IS WRONG for "ImOnline AuthoredBlocks" type
+    let storage_key = hex::decode("2b06af9719ac64d755623cda8ddd9b94b1c371ded9e9c565e89ba783c4d5f5f9b4def25cfda6ef3a00000000e535263148daaf49be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f").unwrap();
+    let authored_blocks: u32 = 250;
+    
+    let res = decoder.decode_storage(2023, (storage_key, authored_blocks.encode())).unwrap();
+    println!("{:?}", res);
+}
+
+
 
