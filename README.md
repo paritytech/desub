@@ -22,9 +22,12 @@ Supports Metadata versions from v8, which means all of Kusama (from CC1). Older 
       - type definitions for Polkadot (Kusama) are taken from Polkadot.js and deserialized into Rust (extras/polkadot)
 
 
-| Library      | Extrinsics | Storage | Map | Double Map | Blake\_2* hashes | Twox_* Hashes | Identity Hash |
+|  Chain       | Extrinsics | Storage | Map | Double Map | Blake\_2* hashes | Twox_* Hashes | Identity Hash |
 | ------------ | ---------- | ---     | --- | ---------- | ---------------- | ------------- | ------------- |
-|  Desub       |  ✅	    | ✅      | ✅  |     ✅     |        ✅        |        ✅     |       ✅      |
+|  Kusama      |  ✅	    | ✅      |     |     ✅     |        ✅        |        ✅     |       ✅      |
+|  Polkadot    |   	    |         |     |            |                  |               |               |
+|  Westend     |   	    |         |     |            |                  |               |               |
+|  Kulupu      |   	    |         |     |            |                  |               |               |
 
 
 
