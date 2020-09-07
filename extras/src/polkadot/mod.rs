@@ -16,18 +16,16 @@
 // TODO: all type resolution should be refactored
 // this is a very confusing and inefficient warranty
 // but it works (for the most part)
-mod definitions;
-mod extrinsics;
-mod overrides;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::error::Error;
+use crate::{error::Error, Extrinsics, Overrides, Modules, definitions};
 use core::{regex, Decodable, RustTypeMarker, TypeDetective};
 
-use self::extrinsics::Extrinsics;
-use self::overrides::Overrides;
+pub const DEFINITIONS: &str = include_str!("./dot_definitions/definitions.json");
+pub const OVERRIDES: &str = include_str!("./dot_definitions/overrides.json");
+pub const EXTRINSICS: &str = include_str!("./dot_definitions/extrinsics.json");
 
 #[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone)]
 pub struct PolkadotTypes {
@@ -39,9 +37,9 @@ pub struct PolkadotTypes {
 impl PolkadotTypes {
     pub fn new() -> Result<Self, Error> {
         Ok(PolkadotTypes {
-            mods: definitions::definitions(definitions::DEFS)?,
-            overrides: Overrides::new(overrides::OVERRIDES)?,
-            extrinsics: Extrinsics::new(extrinsics::EXTRINSICS)?,
+            mods: definitions(DEFINITIONS)?,
+            overrides: Overrides::new(OVERRIDES)?,
+            extrinsics: Extrinsics::new(EXTRINSICS)?,
         })
     }
     
@@ -137,25 +135,6 @@ impl PolkadotTypes {
             }
         }
         None
-    }
-}
-
-#[derive(Serialize, Default, Debug, PartialEq, Eq, Clone)]
-pub struct Modules {
-    // module name -> Type Map of module
-    pub modules: HashMap<String, ModuleTypes>,
-}
-
-#[derive(Serialize, Debug, Default, PartialEq, Eq, Clone)]
-pub struct ModuleTypes {
-    // Type Name -> Type
-    pub types: HashMap<String, RustTypeMarker>,
-}
-
-impl ModuleTypes {
-    /// alias to HashMap::get(&self, key: K)
-    pub fn get(&self, ty: &str) -> Option<&RustTypeMarker> {
-        self.types.get(ty)
     }
 }
 

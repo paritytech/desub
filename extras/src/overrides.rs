@@ -12,13 +12,13 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::ModuleTypes;
+use crate::ModuleTypes;
 use crate::error::Error;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 // TODO: open this file or pass it via CLI to reduce binary size
-pub const OVERRIDES: &str = include_str!("./dot_definitions/overrides.json");
+// pub const OVERRIDES: &str = include_str!("./dot_definitions/overrides.json"); 
 
 #[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq, Clone)]
 pub struct SingleOverride {
