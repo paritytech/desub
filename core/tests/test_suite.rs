@@ -90,3 +90,16 @@ pub fn extrinsics_block1768321() -> (Vec<u8>, Vec<Vec<u8>>) {
 pub fn extrinsics_block6144() -> (Vec<u8>, Vec<Vec<u8>>) {
     extrinsic_test("1020".to_string(), "6144".to_string(), 3)
 }
+
+/// Get some runtime metadata from KusamaCC3 from block 3,901,874
+/// Block hash 0x1d65a4c67817c4f32f99f7247f070a2f3fd58baf81d4e533c9be9d1aa8c4e65a
+/// 
+/// # Panics
+/// Panics on std::io::Error
+pub fn runtime_v11() -> Vec<u8> {
+    let mut f = File::open("./test/metadata_v11.bin").expect("Opening file failed");
+    let mut buffer = Vec::new();
+    f.read_to_end(&mut buffer).expect("Reading file failed");
+    buffer
+}
+

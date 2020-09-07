@@ -25,13 +25,18 @@
 
 mod extrinsics;
 pub mod metadata;
+mod storage;
 
-pub use self::extrinsics::{
-    ExtrinsicArgument, GenericCall, GenericExtrinsic, GenericSignature,
+pub use self::extrinsics::{ExtrinsicArgument, GenericCall, GenericExtrinsic, GenericSignature};
+pub use self::storage::{
+    GenericStorage, StorageInfo, StorageKey, StorageKeyData, StorageLookupTable, StorageValue,
 };
+
 #[cfg(test)]
 pub use self::metadata::test_suite;
-pub use self::metadata::{Metadata, MetadataError, ModuleIndex};
+pub use self::metadata::{Metadata, MetadataError, ModuleIndex, StorageType};
+pub use runtime_metadata_latest::{StorageEntryModifier, StorageEntryType, StorageHasher};
+
 use crate::{
     error::Error,
     substrate_types::{self, StructField, StructUnitOrTuple, SubstrateType},
@@ -101,6 +106,157 @@ where
         self.versions.get(&version)
     }
 
+    fn decode_key_len(&self, key: &[u8], hasher: &StorageHasher) -> Vec<u8> {
+        match hasher {
+            StorageHasher::Blake2_128 | StorageHasher::Twox128 | StorageHasher::Blake2_128Concat => key[..16].to_vec(),
+            StorageHasher::Blake2_256 | StorageHasher::Twox256 => key[..32].to_vec(),
+            StorageHasher::Twox64Concat => {
+                key[..8].to_vec()
+            },
+            StorageHasher::Identity => todo!(),
+        }
+    }
+
+    fn get_key_data(
+        &self,
+        key: &[u8],
+        info: &StorageInfo,
+        lookup_table: &StorageLookupTable,
+    ) -> StorageKey {
+        let key = if let Some(k) = lookup_table.extra_key_data(key) {
+            k
+        } else {
+            return StorageKey {
+                module: info.module.name().into(),
+                prefix: info.meta.prefix().to_string(),
+                extra: None,
+            };
+        };
+
+        match &info.meta.ty {
+            StorageType::Plain(_) => StorageKey {
+                module: info.module.name().into(),
+                prefix: info.meta.prefix().to_string(),
+                extra: None,
+            },
+            StorageType::Map {
+                hasher,
+                key: key_type,
+                ..
+            } => {
+                let key = self.decode_key_len(key, &hasher);
+                StorageKey {
+                    module: info.module.name().into(),
+                    prefix: info.meta.prefix().to_string(),
+                    extra: Some(StorageKeyData::Map {
+                        key: key.to_vec(),
+                        hasher: hasher.clone(),
+                        key_type: key_type.clone(),
+                    }),
+                }
+            }
+            StorageType::DoubleMap {
+                hasher,
+                key1,
+                key2,
+                key2_hasher,
+                ..
+            } => {
+                let key1_bytes = self.decode_key_len(key, &hasher);
+                let key2_bytes = self.decode_key_len(&key[key1_bytes.len()..], &key2_hasher);
+                StorageKey {
+                    module: info.module.name().into(),
+                    prefix: info.meta.prefix().to_string(),
+                    extra: Some(StorageKeyData::DoubleMap {
+                        hasher: hasher.clone(),
+                        key2_hasher: key2_hasher.clone(),
+                        key1: key1_bytes,
+                        key2: key2_bytes,
+                        key1_type: key1.clone(),
+                        key2_type: key2.clone(),
+                    }),
+                }
+            }
+        }
+    }
+
+    /// Decode the Key/Value pair of a storage entry
+    pub fn decode_storage(
+        &self,
+        spec: SpecVersion,
+        data: (Vec<u8>, Vec<u8>),
+    ) -> Result<GenericStorage, Error> {
+        let (key, value) = data;
+        let meta = self.versions.get(&spec).expect("Spec does not exist");
+        let lookup_table = meta.storage_lookup_table();
+        let storage_info = lookup_table.meta_for_key(key.as_slice()).ok_or_else(|| {
+            Error::from(format!(
+                "Storage not found key={:#X?}, spec={}, chain={}",
+                key.as_slice(),
+                spec,
+                self.chain.as_str()
+            ))
+        })?;
+
+        match &storage_info.meta.ty {
+            StorageType::Plain(rtype) => {
+                log::debug!(
+                    "{:?}, module {}, spec {}",
+                    rtype,
+                    storage_info.module.name(),
+                    spec
+                );
+                let mut cursor = 0;
+                let value = self.decode_single(
+                    storage_info.module.name(),
+                    spec,
+                    &rtype,
+                    value.as_slice(),
+                    &mut cursor,
+                    false,
+                )?;
+                println!("{:?}", value);
+                let key = self.get_key_data(key.as_slice(), &storage_info, &lookup_table);
+                let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
+                Ok(storage)
+            }
+            StorageType::Map {
+                value: val_rtype,
+                unused: _unused,
+                ..
+            } => {
+                let key = self.get_key_data(key.as_slice(), &storage_info, &lookup_table);
+                let mut cursor = 0;
+                let value = self.decode_single(
+                    storage_info.module.name(),
+                    spec,
+                    &val_rtype,
+                    value.as_slice(),
+                    &mut cursor,
+                    false,
+                )?;
+                let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
+                Ok(storage)
+            }
+            StorageType::DoubleMap {
+                value: val_rtype, ..
+            } => {
+                let key = self.get_key_data(key.as_slice(), &storage_info, &lookup_table);
+                let mut cursor = 0;
+                let value = self.decode_single(
+                    storage_info.module.name(),
+                    spec,
+                    &val_rtype,
+                    value.as_slice(),
+                    &mut cursor,
+                    false,
+                )?;
+                let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
+                Ok(storage)
+            }
+        }
+    }
+
     /// Decode an extrinsic
     pub fn decode_extrinsic(
         &self,
@@ -132,14 +288,7 @@ where
                 .get_extrinsic_ty(spec, self.chain.as_str(), "signature")
                 .expect("Signature must not be empty")
                 .as_type();
-            Some(self.decode_single(
-                "runtime",
-                spec,
-                signature,
-                data,
-                &mut cursor,
-                false,
-            )?)
+            Some(self.decode_single("runtime", spec, signature, data, &mut cursor, false)?)
         } else {
             None
         };
@@ -185,8 +334,7 @@ where
         let mut types: Vec<(String, SubstrateType)> = Vec::new();
         for arg in call_meta.arguments() {
             log::debug!("arg = {:?}", arg);
-            let val =
-                self.decode_single(module.name(), spec, &arg.ty, data, cursor, false)?;
+            let val = self.decode_single(module.name(), spec, &arg.ty, data, cursor, false)?;
             types.push((arg.name.to_string(), val));
         }
         Ok(types)
@@ -198,6 +346,7 @@ where
     ///
     /// # Panics
     /// panics if a type cannot be decoded
+    #[track_caller]
     fn decode_single(
         &self,
         module: &str,
@@ -207,24 +356,33 @@ where
         cursor: &mut usize,
         is_compact: bool,
     ) -> Result<SubstrateType, Error> {
+        println!("{:?}", ty);
         let ty = match ty {
             RustTypeMarker::TypePointer(v) => {
-                log::trace!("Resolving: {}", v);
+                log::debug!("Resolving: {}", v);
                 if let Some(t) = self.decode_sub_type(spec, v, data, cursor, is_compact) {
                     t
                 } else {
                     let new_type = self
                         .types
                         .get(module, v, spec, self.chain.as_str())
-                        .ok_or_else(|| Error::from(format!("Name Resolution Failure: module={}, v={}, spec={}, chain={}", module, v, spec, self.chain.as_str())))?
+                        .ok_or_else(|| {
+                            Error::from(format!(
+                                "Name Resolution Failure: module={}, v={}, spec={}, chain={}",
+                                module,
+                                v,
+                                spec,
+                                self.chain.as_str()
+                            ))
+                        })?
                         .as_type();
+                    log::debug!("Resolved {:?}", new_type);
                     self.decode_single(module, spec, new_type, data, cursor, is_compact)?
                 }
             }
             RustTypeMarker::Struct(v) => {
                 log::debug!("cursor = {:?}", cursor);
-                let ty =
-                    self.decode_structlike(v, module, spec, data, cursor, is_compact)?;
+                let ty = self.decode_structlike(v, module, spec, data, cursor, is_compact)?;
                 SubstrateType::Struct(ty)
             }
             // TODO: test
@@ -240,9 +398,7 @@ where
                 log::debug!("cursor = {:?}", cursor);
                 let ty = v
                     .iter()
-                    .map(|v| {
-                        self.decode_single(module, spec, &v, data, cursor, is_compact)
-                    })
+                    .map(|v| self.decode_single(module, spec, &v, data, cursor, is_compact))
                     .collect::<Result<Vec<SubstrateType>, Error>>();
                 SubstrateType::Composite(ty?)
             }
@@ -257,17 +413,15 @@ where
                 log::debug!("Don't get here");
                 match &variant.ty {
                     crate::StructUnitOrTuple::Struct(ref v) => {
-                        let ty = self.decode_structlike(
-                            v, module, spec, data, cursor, is_compact,
-                        )?;
+                        let ty =
+                            self.decode_structlike(v, module, spec, data, cursor, is_compact)?;
                         SubstrateType::Enum(StructUnitOrTuple::Struct(ty))
                     }
                     crate::StructUnitOrTuple::Unit(v) => {
                         SubstrateType::Enum(StructUnitOrTuple::Unit(v.clone()))
                     }
                     crate::StructUnitOrTuple::Tuple(ref v) => {
-                        let ty = self
-                            .decode_single(module, spec, v, data, cursor, is_compact)?;
+                        let ty = self.decode_single(module, spec, v, data, cursor, is_compact)?;
                         let name = variant
                             .variant_name
                             .as_ref()
@@ -285,11 +439,8 @@ where
                     return Ok(SubstrateType::Composite(Vec::new()));
                 } else {
                     for _ in 0..*size {
-                        decoded_arr.push(
-                            self.decode_single(
-                                module, spec, ty, &data, cursor, is_compact,
-                            )?,
-                        )
+                        decoded_arr
+                            .push(self.decode_single(module, spec, ty, &data, cursor, is_compact)?)
                     }
                 }
                 // rely on cursor increments in sub-types (U32/substrate specific types)
@@ -324,9 +475,8 @@ where
                         // Some
                         0x01 => {
                             *cursor += 1;
-                            let ty = self.decode_single(
-                                module, spec, v, data, cursor, is_compact,
-                            )?;
+                            let ty =
+                                self.decode_single(module, spec, v, data, cursor, is_compact)?;
                             SubstrateType::Option(Box::new(Some(ty)))
                         }
                         _ => {
@@ -340,17 +490,15 @@ where
                         // Ok
                         0x00 => {
                             *cursor += 1;
-                            let ty = self.decode_single(
-                                module, spec, v, data, cursor, is_compact,
-                            )?;
+                            let ty =
+                                self.decode_single(module, spec, v, data, cursor, is_compact)?;
                             SubstrateType::Result(Box::new(Ok(ty)))
                         }
                         // Err
                         0x01 => {
                             *cursor += 1;
-                            let ty = self.decode_single(
-                                module, spec, e, data, cursor, is_compact,
-                            )?;
+                            let ty =
+                                self.decode_single(module, spec, e, data, cursor, is_compact)?;
                             SubstrateType::Result(Box::new(Err(ty)))
                         }
                         _ => {
@@ -574,8 +722,7 @@ where
                         return None;
                     }
                 };
-                let val: substrate_types::Address =
-                    Decode::decode(&mut &data[*cursor..]).ok()?;
+                let val: substrate_types::Address = Decode::decode(&mut &data[*cursor..]).ok()?;
 
                 *cursor += inc + 1; // +1 for byte 0x00-0xff
                 Some(SubstrateType::Address(val))
@@ -632,8 +779,7 @@ where
         fields
             .iter()
             .map(|field| {
-                let ty = self
-                    .decode_single(module, spec, &field.ty, data, cursor, is_compact)?;
+                let ty = self.decode_single(module, spec, &field.ty, data, cursor, is_compact)?;
                 Ok(StructField {
                     name: Some(field.name.clone()),
                     ty,
@@ -647,10 +793,11 @@ where
 mod tests {
     use super::*;
     use crate::{
-        decoder::metadata::test_suite as meta_test_suite, substrate_types::StructField,
-        test_suite, Decodable, EnumField,
+        decoder::metadata::test_suite as meta_test_suite, substrate_types::StructField, test_suite,
+        Decodable, EnumField,
     };
     use codec::Encode;
+    use primitives::twox_128;
 
     #[derive(Debug, Clone)]
     struct GenericTypes;
@@ -666,20 +813,11 @@ mod tests {
             Some(&RustTypeMarker::I128)
         }
 
-        fn get_extrinsic_ty(
-            &self,
-            spec: u32,
-            chain: &str,
-            ty: &str,
-        ) -> Option<&dyn Decodable> {
+        fn get_extrinsic_ty(&self, spec: u32, chain: &str, ty: &str) -> Option<&dyn Decodable> {
             None
         }
 
-        fn resolve(
-            &self,
-            _module: &str,
-            _ty: &RustTypeMarker,
-        ) -> Option<&RustTypeMarker> {
+        fn resolve(&self, _module: &str, _ty: &RustTypeMarker) -> Option<&RustTypeMarker> {
             Some(&RustTypeMarker::I128)
         }
     }
@@ -850,9 +988,7 @@ mod tests {
                 },
                 crate::StructField {
                     name: "name".to_string(),
-                    ty: RustTypeMarker::Std(CommonTypes::Vec(Box::new(
-                        RustTypeMarker::U8,
-                    ))),
+                    ty: RustTypeMarker::Std(CommonTypes::Vec(Box::new(RustTypeMarker::U8,))),
                 },
             ]),
             SubstrateType::Struct(vec![
@@ -967,9 +1103,7 @@ mod tests {
                     crate::StructUnitOrTuple::Struct(vec![
                         crate::StructField::new(
                             "name",
-                            RustTypeMarker::Std(CommonTypes::Vec(Box::new(
-                                RustTypeMarker::U8,
-                            ))),
+                            RustTypeMarker::Std(CommonTypes::Vec(Box::new(RustTypeMarker::U8,))),
                         ),
                         crate::StructField::new("id", RustTypeMarker::U32),
                     ]),
@@ -979,9 +1113,7 @@ mod tests {
                     crate::StructUnitOrTuple::Struct(vec![
                         crate::StructField::new(
                             "name",
-                            RustTypeMarker::Std(CommonTypes::Vec(Box::new(
-                                RustTypeMarker::U16,
-                            ))),
+                            RustTypeMarker::Std(CommonTypes::Vec(Box::new(RustTypeMarker::U16,))),
                         ),
                         crate::StructField::new("id", RustTypeMarker::U64),
                     ]),

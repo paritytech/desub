@@ -29,21 +29,10 @@ use std::fmt::{self, Display};
 
 pub trait TypeDetective: fmt::Debug + Clone {
     /// Get a 'Decodable' type
-    fn get(
-        &self,
-        module: &str,
-        ty: &str,
-        spec: u32,
-        chain: &str,
-    ) -> Option<&dyn Decodable>;
+    fn get(&self, module: &str, ty: &str, spec: u32, chain: &str) -> Option<&dyn Decodable>;
 
     /// get a type specific to decoding extrinsics
-    fn get_extrinsic_ty(
-        &self,
-        spec: u32,
-        chain: &str,
-        ty: &str,
-    ) -> Option<&dyn Decodable>;
+    fn get_extrinsic_ty(&self, spec: u32, chain: &str, ty: &str) -> Option<&dyn Decodable>;
 
     /// Resolve a type pointer into the type it points to
     fn resolve(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker>;

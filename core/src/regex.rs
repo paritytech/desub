@@ -76,8 +76,7 @@ pub fn rust_array_decl() -> Regex {
 /// Match a rust vector
 /// allowed to be nested within, or have other (ie Option<>) nested within
 pub fn rust_vec_decl() -> Regex {
-    Regex::new(r"^Vec<(?<type>[\w><,(): ]+)>")
-        .expect("Regex expression should be infallible; qed")
+    Regex::new(r"^Vec<(?<type>[\w><,(): ]+)>").expect("Regex expression should be infallible; qed")
 }
 
 /// Match a Rust Option
@@ -102,10 +101,8 @@ pub fn rust_compact_decl() -> Regex {
 /// Match a Rust Generic Type Declaration
 /// Excudes types Vec/Option/Compact from matches
 pub fn rust_generic_decl() -> Regex {
-    Regex::new(
-        r"\b(?!(?:Vec|Option|Compact)\b)(?<outer_type>\w+)<(?<inner_type>[\w<>,:]+)>",
-    )
-    .expect("Regex expressions should be infallible; qed")
+    Regex::new(r"\b(?!(?:Vec|Option|Compact)\b)(?<outer_type>\w+)<(?<inner_type>[\w<>,: ]+)>")
+        .expect("Regex expressions should be infallible; qed")
 }
 
 /// Transforms a prefixed generic type (EX: T::Moment)
@@ -113,8 +110,7 @@ pub fn rust_generic_decl() -> Regex {
 pub fn remove_prefix<'a, S: Into<&'a str>>(s: S) -> Option<String> {
     let s: &str = s.into();
 
-    let re = Regex::new(r"[\w><]::([\w><]+)")
-        .expect("Regex expressions should be infallible; qed");
+    let re = Regex::new(r"[\w><]::([\w><]+)").expect("Regex expressions should be infallible; qed");
     let caps = re.captures(s)?;
     caps.iter().nth(1)?.map(|s| s.to_string())
 }
@@ -774,9 +770,7 @@ mod tests {
         assert!(re.is_match("Result<(), FooError>"));
         assert!(re.is_match("Result<Foo, (WeirdError, PogError)>"));
         assert!(re.is_match("Result<Vec<WeirdType>, FooError>"));
-        assert!(
-            re.is_match("Result<(Vec<WeirdType>, Weird), (FooError, WeirdErrorFormat)>")
-        );
+        assert!(re.is_match("Result<(Vec<WeirdType>, Weird), (FooError, WeirdErrorFormat)>"));
     }
 
     #[test]
@@ -896,9 +890,9 @@ mod tests {
 
         assert_eq!(
             parse("Option<Foo>").unwrap(),
-            RustTypeMarker::Std(CommonTypes::Option(Box::new(
-                RustTypeMarker::TypePointer("Foo".to_string())
-            )))
+            RustTypeMarker::Std(CommonTypes::Option(Box::new(RustTypeMarker::TypePointer(
+                "Foo".to_string()
+            ))))
         );
         assert_eq!(
             parse("Compact<Vec<Option<Foo>>>").unwrap(),

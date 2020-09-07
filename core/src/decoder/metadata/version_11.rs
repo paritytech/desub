@@ -30,16 +30,16 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata,
-    ModuleMetadata, StorageMetadata,
+    CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata,
+    StorageMetadata, StorageType,
 };
 use crate::regex;
 use runtime_metadata_latest::{
-    DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, META_RESERVED,
+    DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryType, META_RESERVED,
 };
 use std::{
     collections::{HashMap, HashSet},
-    convert::TryFrom,
+    convert::{TryFrom, TryInto},
 };
 
 impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
@@ -69,7 +69,7 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
                 event_index += 1;
             }
             let module_metadata = convert_module(i, module)?;
-            modules.insert(module_name, module_metadata);
+            modules.insert(module_name, std::sync::Arc::new(module_metadata));
         }
         Ok(Metadata {
             modules,
@@ -162,11 +162,57 @@ fn convert_entry(
     Ok(StorageMetadata {
         prefix,
         modifier: entry.modifier,
-        ty: entry.ty,
+        ty: entry.ty.try_into()?,
         default,
         documentation: documentation
             .iter()
             .map(|s| s.to_string())
             .collect::<Vec<String>>(),
     })
+}
+
+impl TryFrom<StorageEntryType> for StorageType {
+    type Error = Error;
+    fn try_from(entry: StorageEntryType) -> Result<StorageType, Self::Error> {
+        let entry = match entry {
+            StorageEntryType::Plain(v) => {
+                let ty = convert(v)?;
+                StorageType::Plain(regex::parse(&ty).ok_or(Error::InvalidType(ty))?)
+            }
+            StorageEntryType::Map {
+                hasher,
+                key,
+                value,
+                unused,
+            } => {
+                let key = convert(key)?;
+                let value = convert(value)?;
+                StorageType::Map {
+                    hasher,
+                    key: regex::parse(&key).ok_or(Error::InvalidType(key))?,
+                    value: regex::parse(&value).ok_or(Error::InvalidType(value))?,
+                    unused,
+                }
+            }
+            StorageEntryType::DoubleMap {
+                hasher,
+                key1,
+                key2,
+                value,
+                key2_hasher,
+            } => {
+                let key1 = convert(key1)?;
+                let key2 = convert(key2)?;
+                let value = convert(value)?;
+                StorageType::DoubleMap {
+                    hasher,
+                    key1: regex::parse(&key1).ok_or(Error::InvalidType(key1))?,
+                    key2: regex::parse(&key2).ok_or(Error::InvalidType(key2))?,
+                    value: regex::parse(&value).ok_or(Error::InvalidType(value))?,
+                    key2_hasher,
+                }
+            }
+        };
+        Ok(entry)
+    }
 }

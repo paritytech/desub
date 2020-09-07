@@ -35,19 +35,20 @@ mod version_10;
 mod version_11;
 mod versions;
 
-use crate::RustTypeMarker;
+use super::storage::{StorageInfo, StorageLookupTable};
+use crate::{regex, RustTypeMarker};
 use codec::{Decode, Encode, EncodeAsRef, HasCompact};
 // use codec411::Decode as OldDecode;
 use failure::Fail;
-use runtime_metadata_latest::{StorageEntryModifier, StorageEntryType, StorageHasher};
-
-use primitives::storage::StorageKey;
+use primitives::{storage::StorageKey, twox_128};
+use runtime_metadata_latest::{StorageEntryModifier, StorageHasher};
 use std::{
     collections::{HashMap, HashSet},
     convert::TryInto,
     fmt,
     marker::PhantomData,
     str::FromStr,
+    sync::Arc,
 };
 
 /// Newtype struct around a Vec<u8> (vector of bytes)
@@ -62,8 +63,7 @@ impl Encode for Encoded {
 
 #[allow(dead_code)]
 pub fn compact<T: HasCompact>(t: T) -> Encoded {
-    let encodable: <<T as HasCompact>::Type as EncodeAsRef<'_, T>>::RefType =
-        From::from(&t);
+    let encodable: <<T as HasCompact>::Type as EncodeAsRef<'_, T>>::RefType = From::from(&t);
     Encoded(encodable.encode())
 }
 
@@ -94,7 +94,7 @@ pub enum ModuleIndex {
 /// Metadata struct encompassing calls, storage, and events
 pub struct Metadata {
     /// Hashmap of Modules (name -> module-specific metadata)
-    modules: HashMap<String, ModuleMetadata>,
+    modules: HashMap<String, std::sync::Arc<ModuleMetadata>>,
     /// modules by their index in the event enum
     modules_by_event_index: HashMap<u8, String>,
     /// modules by their index in the Call Enum
@@ -152,11 +152,11 @@ impl Metadata {
 
     /// returns an iterate over all Modules
     pub fn modules(&self) -> impl Iterator<Item = &ModuleMetadata> {
-        self.modules.values()
+        self.modules.values().map(|v| v.as_ref())
     }
 
     /// returns a weak reference to a module from it's name
-    pub fn module<S>(&self, name: S) -> Result<ModuleMetadata, MetadataError>
+    pub fn module<S>(&self, name: S) -> Result<Arc<ModuleMetadata>, MetadataError>
     where
         S: ToString,
     {
@@ -190,7 +190,7 @@ impl Metadata {
     pub fn module_by_index(
         &self,
         module_index: ModuleIndex,
-    ) -> Result<ModuleMetadata, MetadataError> {
+    ) -> Result<Arc<ModuleMetadata>, MetadataError> {
         Ok(match module_index {
             ModuleIndex::Call(i) => {
                 let name = self
@@ -217,6 +217,28 @@ impl Metadata {
                 panic!("No storage index stored")
             }
         })
+    }
+
+    /// Returns a hashmap of a Hash -> StorageMetadata
+    /// Hash is prefix of storage entries in metadata
+    pub fn storage_lookup_table(&self) -> StorageLookupTable {
+        let mut lookup = HashMap::new();
+        for module in self.modules.values() {
+            for (name, storage_meta) in module.storage.iter() {
+                let key = Self::generate_key(&storage_meta.prefix);
+                lookup.insert(key, StorageInfo::new(storage_meta.clone(), module.clone()));
+            }
+        }
+        StorageLookupTable::new(lookup)
+    }
+
+    fn generate_key<S: Into<String>>(prefix: S) -> Vec<u8> {
+        let prefix: String = prefix.into();
+        prefix
+            .split_ascii_whitespace()
+            .map(|s| twox_128(s.as_bytes()).to_vec())
+            .flatten()
+            .collect()
     }
 
     /// print out a detailed but human readable description of the module
@@ -280,7 +302,7 @@ pub struct ModuleMetadata {
     /// name of the module
     name: String,
     /// Name of storage entry -> Metadata of storage entry
-    storage: HashMap<String, StorageMetadata>,
+    pub storage: HashMap<String, StorageMetadata>,
     /// Calls in the module, CallName -> encoded calls
     calls: HashMap<String, CallMetadata>,
     events: HashMap<u8, ModuleEventMetadata>,
@@ -396,19 +418,41 @@ impl fmt::Display for CallArgMetadata {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub enum StorageType {
+    Plain(RustTypeMarker),
+    Map {
+        hasher: StorageHasher,
+        key: RustTypeMarker,
+        value: RustTypeMarker,
+        unused: bool,
+    },
+    DoubleMap {
+        hasher: StorageHasher,
+        key1: RustTypeMarker,
+        key2: RustTypeMarker,
+        value: RustTypeMarker,
+        key2_hasher: StorageHasher,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct StorageMetadata {
     prefix: String,
     modifier: StorageEntryModifier,
-    ty: StorageEntryType,
+    pub ty: StorageType,
     default: Vec<u8>,
     documentation: Vec<String>,
 }
 
 impl StorageMetadata {
-    pub fn get_map<K: Encode, V: Decode + Clone>(
-        &self,
-    ) -> Result<StorageMap<K, V>, MetadataError> {
-        match &self.ty {
+    pub fn prefix(&self) -> &str {
+        &self.prefix
+    }
+}
+
+/*
+impl StorageMetadata {
+    pub fn get_map<K: Encode, V: Decode + Clone>( &self,) -> Result<StorageMap<K, V>, MetadataError> { match &self.ty {
             StorageEntryType::Map { hasher, .. } => {
                 let prefix = self.prefix.as_bytes().to_vec();
                 let hasher = hasher.to_owned();
@@ -425,6 +469,7 @@ impl StorageMetadata {
         }
     }
 }
+*/
 
 #[derive(Clone, Debug)]
 pub struct StorageMap<K, V> {
@@ -565,5 +610,26 @@ pub mod tests {
         let meta = test_suite::runtime_v10();
         let meta: Metadata = Metadata::new(meta.as_slice());
         println!("{}", meta.pretty());
+    }
+
+    #[test]
+    fn should_get_correct_lookup_table() {
+        let meta = test_suite::runtime_v11();
+        let meta: Metadata = Metadata::new(meta.as_slice());
+        let lookup_table = meta.storage_lookup_table();
+        let mut key = twox_128("System".as_bytes()).to_vec();
+        key.extend(twox_128("Account".as_bytes()).iter());
+        let storage_entry = lookup_table.lookup(&key);
+        println!("{:?}", storage_entry);
+        assert_eq!(storage_entry.unwrap().meta.prefix, "System Account");
+    }
+
+    #[test]
+    fn should_generate_correct_key() {
+        let first_key = Metadata::generate_key("System Account");
+
+        let mut key = twox_128("System".as_bytes()).to_vec();
+        key.extend(twox_128("Account".as_bytes()).to_vec());
+        assert_eq!(first_key, key);
     }
 }
