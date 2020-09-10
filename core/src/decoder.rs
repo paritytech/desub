@@ -34,6 +34,7 @@ pub use self::storage::{
 
 #[cfg(test)]
 pub use self::metadata::test_suite;
+
 pub use self::metadata::{Metadata, MetadataError, ModuleIndex, StorageType};
 pub use runtime_metadata_latest::{StorageEntryModifier, StorageEntryType, StorageHasher};
 
@@ -89,11 +90,11 @@ pub enum Chain {
 impl std::fmt::Display for Chain {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Chain::Polkadot => write!(f, "{}", "polkadot"),
-            Chain::Kusama => write!(f, "{}", "kusama"),
-            Chain::Centrifuge => write!(f, "{}", "centrifuge-chain"),
-            Chain::Westend => write!(f, "{}", "westend"),
-            Chain::Rococo => write!(f, "{}", "rococo"),
+            Chain::Polkadot => write!(f, "polkadot"),
+            Chain::Kusama => write!(f, "kusama"),
+            Chain::Centrifuge => write!(f, "centrifuge-chain"),
+            Chain::Westend => write!(f, "westend"),
+            Chain::Rococo => write!(f, "rococo"),
             Chain::Custom(s) => write!(f, "{}", s)
         }
     }
@@ -818,7 +819,6 @@ mod tests {
         EnumField,
     };
     use codec::Encode;
-    use primitives::twox_128;
 
     #[derive(Debug, Clone)]
     struct GenericTypes;
@@ -834,7 +834,7 @@ mod tests {
             Some(&RustTypeMarker::I128)
         }
 
-        fn get_extrinsic_ty(&self, chain: &str, spec: u32, ty: &str) -> Option<&RustTypeMarker> {
+        fn get_extrinsic_ty(&self, _chain: &str, _spec: u32, _ty: &str) -> Option<&RustTypeMarker> {
             None
         }
     }

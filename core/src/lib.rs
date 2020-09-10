@@ -74,8 +74,6 @@ impl SetField {
     }
 }
 
-type GenericStruct = Vec<StructField>;
-
 /// TODO: Allow mixed struct-unit types
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct EnumField {

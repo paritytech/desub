@@ -449,27 +449,6 @@ impl StorageMetadata {
     }
 }
 
-/*
-impl StorageMetadata {
-    pub fn get_map<K: Encode, V: Decode + Clone>( &self,) -> Result<StorageMap<K, V>, MetadataError> { match &self.ty {
-            StorageEntryType::Map { hasher, .. } => {
-                let prefix = self.prefix.as_bytes().to_vec();
-                let hasher = hasher.to_owned();
-                let default = Decode::decode(&mut &self.default[..])
-                    .map_err(|_| MetadataError::MapValueTypeError)?;
-                Ok(StorageMap {
-                    _marker: PhantomData,
-                    prefix,
-                    hasher,
-                    default,
-                })
-            }
-            _ => Err(MetadataError::StorageTypeError),
-        }
-    }
-}
-*/
-
 #[derive(Clone, Debug)]
 pub struct StorageMap<K, V> {
     _marker: PhantomData<K>,
@@ -593,35 +572,6 @@ pub enum Error {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::test_suite;
-
-    #[test]
-    fn should_create_metadata_v9() {
-        let meta = test_suite::runtime_v9();
-        let meta: Metadata = Metadata::new(meta.as_slice());
-        println!("{}", meta.pretty());
-        let meta = test_suite::runtime_v9_block6();
-        let _meta: Metadata = Metadata::new(meta.as_slice());
-    }
-
-    #[test]
-    fn should_create_metadata_v10() {
-        let meta = test_suite::runtime_v10();
-        let meta: Metadata = Metadata::new(meta.as_slice());
-        println!("{}", meta.pretty());
-    }
-
-    #[test]
-    fn should_get_correct_lookup_table() {
-        let meta = test_suite::runtime_v11();
-        let meta: Metadata = Metadata::new(meta.as_slice());
-        let lookup_table = meta.storage_lookup_table();
-        let mut key = twox_128("System".as_bytes()).to_vec();
-        key.extend(twox_128("Account".as_bytes()).iter());
-        let storage_entry = lookup_table.lookup(&key);
-        println!("{:?}", storage_entry);
-        assert_eq!(storage_entry.unwrap().meta.prefix, "System Account");
-    }
 
     #[test]
     fn should_generate_correct_key() {

@@ -93,7 +93,7 @@ impl GenericExtrinsic {
             args: call,
         };
         Self {
-            signature: sig.map(|s| GenericSignature::new(s)),
+            signature: sig.map(GenericSignature::new),
             call,
         }
     }

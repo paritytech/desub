@@ -124,12 +124,3 @@ impl GenericStorage {
         self.value.as_ref()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn asdf() {
-        println!("Hello");
-    }
-}
