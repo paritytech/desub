@@ -16,6 +16,7 @@
 
 // TODO: write tests for all 'parse_xxx' functions
 use super::{CommonTypes, RustTypeMarker};
+use crate::error::Error;
 use onig::{Regex, Region, SearchOptions};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -28,6 +29,7 @@ enum RegexSet {
     Tuple,
     Generic,
 }
+
 
 impl RegexSet {
     /// Checks if string matches any of the patterns defined
@@ -117,7 +119,7 @@ pub fn remove_prefix<'a, S: Into<&'a str>>(s: S) -> Option<String> {
 
 /// Only captures text within the tuples,
 /// need to use 'Matches' (ie `find_iter`) iterator to get all matches
-/// max tuple size is 64
+/// max tuple size is 32
 ///
 /// # Note
 /// this does not contain named capture groups
@@ -126,24 +128,16 @@ pub fn remove_prefix<'a, S: Into<&'a str>>(s: S) -> Option<String> {
 pub fn rust_tuple_decl() -> Regex {
     Regex::new(
         [
-            r#"^\(([\w><:\n]+)"#,
-            r#",? *([\w><:\n]+)*,? *([\w><:\n]+)*"#,
-            r#",? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*"#,
-            r#",? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*"#,
-            r#",? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*"#,
-            r#",? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*"#,
-            r#",? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*"#,
-            r#",? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*"#,
-            r#",? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*"#,
-            r#",? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*"#,
-            r#",? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*"#,
-            r#",? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*"#,
-            r#",? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*"#,
-            r#",? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*"#,
-            r#",? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*"#,
-            r#",? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*"#,
-            r#",? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*,? *([\w><:\n]+)*"#,
-            r#",? *([\w><:\n]+)*\)$"#,
+            r#"^\(([\w><:()\n]+)"#,
+            r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
+            r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
+            r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
+            r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
+            r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
+            r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#, 
+            r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
+            r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
+            r#",? *([\w><:()\n]+)*\)$"#,
         ]
         .join("")
         .as_str(),
@@ -819,9 +813,7 @@ mod tests {
         assert!(re.is_match("(u32,ApiKey,AnotherType)"));
         // assert the upper match limit
         assert!(re.is_match(["(StorageKey, Option<StorageData>, Foo, Bar, Aoo, Raw, Car, Dar, Eoo, Foo, Goo, Foo, Foo, Foo, Foo, Foo,",
-                             "Hoo, Ioo, Joo, Koo, Loo, Moo, Noo, Ooo, Poo, Qoo, Roo, Soo, Too, Uoo, Voo, Xoo,",
-                             "Hoo, Ioo, Joo, Koo, Loo, Moo, Noo, Ooo, Poo, Qoo, Roo, Soo, Too, Uoo, Voo, Xoo,",
-                             "Hoo, Ioo, Joo, Koo, Loo, Moo, Noo, Ooo, Poo, Qoo, Roo, Soo, Too, Uoo, Voo, Xoo)"
+                             "Hoo, Ioo, Joo, Koo, Loo, Moo, Noo, Ooo, Poo, Qoo, Roo, Soo, Too, Uoo, Xoo)"
                              ].join("").as_str()));
         assert!(re.is_match(
             ["(StorageKey, Option<StorageData>, Foo,
@@ -829,6 +821,13 @@ mod tests {
             .join("")
             .as_str()
         ));
+    }
+
+    #[test]
+    fn should_not_overflow_retry_limit() {
+        let re = rust_tuple_decl();
+        let tuple = "(ParaId, Option<(CollatorId, Retriable)>)";
+        assert!(re.is_match(tuple)) 
     }
 
     #[test]

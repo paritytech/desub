@@ -24,6 +24,9 @@ pub fn definitions(raw_json: &str) -> Result<Modules, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ModuleTypes;
+    use core::{RustTypeMarker, SetField, EnumField, StructUnitOrTuple, StructField};
+    use std::collections::HashMap;
     const RAW_JSON: &'static str = r#"
 {
 	"runtime": {
@@ -67,13 +70,6 @@ mod tests {
 	}
 }
 "#;
-
-    #[test]
-    fn should_deserialize() -> Result<(), Error> {
-        let types = definitions(DEFS)?;
-        dbg!(&types);
-        Ok(())
-    }
 
     #[test]
     fn should_deserialize_correctly() -> Result<(), Error> {

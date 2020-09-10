@@ -39,9 +39,9 @@ use super::storage::{StorageInfo, StorageLookupTable};
 use crate::{regex, RustTypeMarker};
 use codec::{Decode, Encode, EncodeAsRef, HasCompact};
 // use codec411::Decode as OldDecode;
-use failure::Fail;
 use primitives::{storage::StorageKey, twox_128};
 use runtime_metadata_latest::{StorageEntryModifier, StorageHasher};
+use thiserror::Error;
 use std::{
     collections::{HashMap, HashSet},
     convert::TryInto,
@@ -67,19 +67,19 @@ pub fn compact<T: HasCompact>(t: T) -> Encoded {
     Encoded(encodable.encode())
 }
 
-#[derive(Debug, Clone, Fail)]
+#[derive(Debug, Clone, Error)]
 pub enum MetadataError {
-    #[fail(display = "{}", _0)]
+    #[error("{0}")]
     ModuleNotFound(String),
-    #[fail(display = "{}", _0)]
+    #[error("{0}")]
     CallNotFound(&'static str),
-    #[fail(display = "{}", _0)]
+    #[error("{0}")]
     ModuleIndexNotFound(ModuleIndex),
-    #[fail(display = "{}", _0)]
+    #[error("{0}")]
     StorageNotFound(&'static str),
-    #[fail(display = "StorageType Error")]
+    #[error("StorageType Error")]
     StorageTypeError,
-    #[fail(display = "MapValueType Error")]
+    #[error("MapValueType Error")]
     MapValueTypeError,
 }
 
@@ -577,17 +577,17 @@ impl EventArg {
     }
 }
 
-#[derive(Fail, Debug)]
+#[derive(Error, Debug)]
 pub enum Error {
-    #[fail(display = "Invalid Prefix")]
+    #[error("Invalid Prefix")]
     InvalidPrefix,
-    #[fail(display = " Invalid Version")]
+    #[error(" Invalid Version")]
     InvalidVersion,
-    #[fail(display = "Expected Decoded")]
+    #[error("Expected Decoded")]
     ExpectedDecoded,
-    #[fail(display = "Invalid Event {}:{}", _0, _1)]
+    #[error("Invalid Event {0}:{1}")]
     InvalidEventArg(String, &'static str),
-    #[fail(display = "Invalid Type {}", _0)]
+    #[error("Invalid Type {0}")]
     InvalidType(String),
 }
 

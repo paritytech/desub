@@ -316,4 +316,33 @@ mod tests {
         );
         Ok(())
     }
+    
+    #[test]
+    fn should_deserialize_overrides() {
+        let overrides = Overrides::new(OVERRIDES).unwrap();
+        dbg!(overrides);
+    }
+    
+    #[test]
+    fn should_deserialize_ext_definitions() {
+        let extrinsics = Extrinsics::new(EXTRINSICS).unwrap();
+        dbg!(extrinsics);
+    }
+
+    #[test]
+    fn should_get_types_from_json() {
+        let extrinsics = Extrinsics::new(EXTRINSICS).unwrap();
+        extrinsics.get_chain_types("kusama", 1031);
+        extrinsics.get_chain_types("kusama", 1007);
+        extrinsics.get_chain_types("kusama", 1006);
+        let tys = extrinsics.get_chain_types("kusama", 1003);
+        dbg!(tys);
+    }
+
+    #[test]
+    fn should_deserialize_definitions() -> Result<(), Error> {
+        let types = definitions(DEFINITIONS)?;
+        dbg!(&types);
+        Ok(())
+    }
 }

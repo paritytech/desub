@@ -20,8 +20,6 @@ use crate::error::Error;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-// pub const EXTRINSICS: &str = include_str!("./dot_definitions/extrinsics.json");
-
 #[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq, Clone)]
 pub struct Types {
     /// the spec these types are relevant for
@@ -56,25 +54,5 @@ impl Extrinsics {
             // so for every spec
             [None, None] => true,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn should_deserialize_ext_definitions() {
-        let extrinsics = Extrinsics::new(EXTRINSICS).unwrap();
-        dbg!(extrinsics);
-    }
-
-    #[test]
-    fn should_get_types_from_json() {
-        let extrinsics = Extrinsics::new(EXTRINSICS).unwrap();
-        extrinsics.get_chain_types("kusama", 1031);
-        extrinsics.get_chain_types("kusama", 1007);
-        extrinsics.get_chain_types("kusama", 1006);
-        let tys = extrinsics.get_chain_types("kusama", 1003);
-        dbg!(tys);
     }
 }

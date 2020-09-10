@@ -12,8 +12,7 @@
         "AccountId": "[u8; 32]",
         "AnySignature": "H512",
         "SignedExtra": "(OnlyStakingAndClaims, system::CheckVersion<Runtime>, system::CheckGenesis<Runtime>, system::CheckEra<Runtime>, system::CheckNonce<Runtime>, system::CheckWeight<Runtime>, balances::TakeFees<Runtime>)"
-      }
-    },
+      } },
     {
       "minmax": [
         1007,
@@ -34,7 +33,7 @@
         "CheckWeight<Runtime>": "[u8; 0]",
         "ChargeTransactionPayment<Runtime>": "Compact<BalanceOf>",
         "LimitParathreadCommits<Runtime>": "[u8; 0]",
-	      "Lookup": "LookupSource"
+	"Lookup": "LookupSource"
       }
     },
     {

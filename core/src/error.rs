@@ -1,38 +1,29 @@
 use crate::decoder::MetadataError;
 use codec::Error as CodecError;
-use failure::Fail;
+use thiserror::Error;
 
-#[derive(Debug, Fail)]
+#[derive(Error, Debug)]
 pub enum Error {
-    #[fail(display = "Codec {:?}", _0)]
-    Codec(#[fail(cause)] CodecError),
-    #[fail(display = "{:?}", _0)]
-    Metadata(#[fail(cause)] MetadataError),
-    #[fail(display = "decoding failed")]
+    #[error("Codec {0}")]
+    Codec(#[from] CodecError),
+    #[error("{0}")]
+    Metadata(#[from] MetadataError),
+    #[error("decoding failed")]
     DecodeFail,
-    #[fail(display = "error: {}", _0)]
+    #[error("error: {0}")]
     Fail(String),
-}
-impl From<String> for Error {
-    fn from(err: String) -> Error {
-        Error::Fail(err)
-    }
+    #[error("parse error {0}")]
+    Regex(#[from] onig::Error)
 }
 
 impl From<&str> for Error {
-    fn from(err: &str) -> Error {
-        Error::Fail(err.to_string())
+    fn from(e: &str) -> Error {
+        Error::Fail(e.to_string())
     }
 }
 
-impl From<CodecError> for Error {
-    fn from(err: CodecError) -> Error {
-        Error::Codec(err)
-    }
-}
-
-impl From<MetadataError> for Error {
-    fn from(err: MetadataError) -> Error {
-        Error::Metadata(err)
+impl From<String> for Error {
+    fn from(e: String) -> Error {
+        Error::Fail(e)
     }
 }

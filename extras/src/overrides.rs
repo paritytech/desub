@@ -17,9 +17,6 @@ use crate::error::Error;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-// TODO: open this file or pass it via CLI to reduce binary size
-// pub const OVERRIDES: &str = include_str!("./dot_definitions/overrides.json"); 
-
 #[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq, Clone)]
 pub struct SingleOverride {
     /// the spec these overrides are relevant for
@@ -83,12 +80,6 @@ impl Overrides {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn should_deserialize_overrides() {
-        let overrides = Overrides::new(OVERRIDES).unwrap();
-        dbg!(overrides);
-    }
 
     #[test]
     fn should_deserialize_into_single_override() {
