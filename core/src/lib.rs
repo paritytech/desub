@@ -29,10 +29,10 @@ use std::fmt::{self, Display};
 
 pub trait TypeDetective: fmt::Debug + Clone {
     /// Get a 'RustTypeMarker'
-    fn get(&self, module: &str, chain: &str, ty: &str, spec: u32) -> Option<&RustTypeMarker>;
+    fn get(&self, chain: &str, spec: u32, module: &str, ty: &str) -> Option<&RustTypeMarker>;
 
     /// get a type specific to decoding extrinsics
-    fn get_extrinsic_ty(&self, chain: &str, ty: &str, spec: u32) -> Option<&RustTypeMarker>;
+    fn get_extrinsic_ty(&self, chain: &str, spec: u32, ty: &str) -> Option<&RustTypeMarker>;
 }
 
 /// A field with an associated name

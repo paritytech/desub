@@ -94,6 +94,12 @@ impl Default for Builder {
         }
     }
 }
+#[cfg(feature = "default_definitions")]
+impl Default for TypeResolver {
+    fn default() -> Self {
+        Builder::default().build()
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct TypeResolver {
@@ -125,7 +131,7 @@ impl TypeResolver {
     /// 
     /// # Return
     /// returns None if the type cannot be resolved
-    pub fn get(&self, module: &str, chain: &str, ty: &str, spec: u32) -> Option<&RustTypeMarker> {
+    pub fn get(&self, chain: &str, spec: u32, module: &str, ty: &str) -> Option<&RustTypeMarker> {
         let (module, ty, chain) = sanitize_types(module, ty, chain);
         log::debug!("Getting Type: {}, module: {}, spec: {}", ty, module, spec);
         
@@ -141,7 +147,7 @@ impl TypeResolver {
         }       
     }
 
-    pub fn get_ext_ty(&self, chain: &str, ty: &str, spec: u32) -> Option<&RustTypeMarker> {
+    pub fn get_ext_ty(&self, chain: &str, spec: u32, ty: &str) -> Option<&RustTypeMarker> {
         if let Some(t) = self.check_extrinsics(ty, spec, chain) {
             match t {
                 RustTypeMarker::TypePointer(t) => self.resolve_helper("runtime", t),
@@ -228,22 +234,23 @@ fn sanitize_types(module: &str, ty: &str, chain: &str) -> (String, String, Strin
 }
 
 impl TypeDetective for TypeResolver {
-    fn get(&self, module: &str, chain: &str, ty: &str, spec: u32) -> Option<&RustTypeMarker> {
-        TypeResolver::get(self, module, chain, ty, spec)
+    fn get(&self, chain: &str, spec: u32, module: &str, ty: &str) -> Option<&RustTypeMarker> {
+        TypeResolver::get(self, chain, spec, module, ty)
     }
 
-    fn get_extrinsic_ty(&self, chain: &str, ty: &str, spec: u32) -> Option<&RustTypeMarker> {
-        TypeResolver::get_ext_ty(self, chain, ty, spec)
+    fn get_extrinsic_ty(&self, chain: &str, spec: u32, ty: &str) -> Option<&RustTypeMarker> {
+        TypeResolver::get_ext_ty(self, chain, spec, ty)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::default::*;
     use core::{EnumField, StructField, StructUnitOrTuple};
 
     #[test]
-    fn should_get_type_from_module() -> Result<(), Error> {
+    fn should_get_type_from_module() -> Result<()> {
         let post_1031_dispatch_error = RustTypeMarker::Enum(vec![
             EnumField::new(
                 Some("Other".into()),
@@ -264,17 +271,16 @@ mod tests {
                 )),
             ),
         ]);
-        let types = PolkadotTypes::new()?;
+        let types = TypeResolver::default();
         let t = types
-            .get("system", "DispatchError", 1040, "kusama")
+            .get("kusama", 1040, "system", "DispatchError")
             .unwrap();
         assert_eq!(t, &post_1031_dispatch_error);
         Ok(())
     }
 
     #[test]
-    fn should_resolve_a_type() -> Result<(), Error> {
-        let t_pointer = RustTypeMarker::TypePointer("BalanceLockTo212".to_string());
+    fn should_resolve_a_type() -> Result<()> {
         let correct = RustTypeMarker::Struct(vec![
             StructField {
                 name: "id".to_string(),
@@ -293,17 +299,17 @@ mod tests {
                 ty: RustTypeMarker::TypePointer("WithdrawReasons".to_string()),
             },
         ]);
-        let types = PolkadotTypes::new()?;
-        let resolved = types.resolve("balances", &t_pointer).unwrap();
+        let types = TypeResolver::default();
+        let resolved = types.get("kusama", 1040, "balances",  "BalanceLockTo212").unwrap();
         assert_eq!(&correct, resolved);
         Ok(())
     }
 
     #[test]
-    fn should_get_duplicated_types() -> Result<(), Error> {
-        let types = PolkadotTypes::new()?;
+    fn should_get_duplicated_types() -> Result<()> {
+        let types = TypeResolver::default();
         let t = types
-            .get("contracts", "StorageKey", 1040, "kusama")
+            .get("kusama", 1040, "contracts", "StorageKey")
             .unwrap();
         assert_eq!(
             t,
@@ -313,7 +319,7 @@ mod tests {
     }
 
     #[test]
-    fn should_adhere_to_spec() -> Result<(), Error> {
+    fn should_adhere_to_spec() -> Result<()> {
         let pre_1019_balance_lock = RustTypeMarker::Struct(vec![
             StructField {
                 name: "id".to_string(),
@@ -328,44 +334,57 @@ mod tests {
                 ty: RustTypeMarker::TypePointer("Reasons".to_string()),
             },
         ]);
-        let types = PolkadotTypes::new()?;
+        let types = TypeResolver::default();
         let t = types
-            .get("balances", "BalanceLock", 1000, "kusama")
+            .get( "kusama", 1000, "balances", "BalanceLock")
             .unwrap();
         assert_eq!(t, &pre_1019_balance_lock);
         let t = types
-            .get("balances", "BalanceLock", 1018, "kusama")
+            .get("kusama", 1018, "balances", "BalanceLock")
             .unwrap();
         assert_eq!(t, &pre_1019_balance_lock);
         let t = types
-            .get("balances", "BalanceLock", 1031, "kusama")
+            .get("kusama", 1031, "balances", "BalanceLock")
             .unwrap();
         assert_eq!(
             t,
             &RustTypeMarker::TypePointer("BalanceLockTo212".to_string())
         );
         let t = types
-            .get("balances", "BalanceLock", 1019, "kusama")
+            .get("kusama", 1019, "balances", "BalanceLock")
             .unwrap();
         assert_eq!(
             t,
             &RustTypeMarker::TypePointer("BalanceLockTo212".to_string())
         );
         let t = types
-            .get("balances", "BalanceLock", 1032, "kusama")
+            .get("kusama", 1032, "balances", "BalanceLock")
             .unwrap();
         assert_eq!(
             t,
             &RustTypeMarker::TypePointer("BalanceLockTo212".to_string())
         );
         let t = types
-            .get("balances", "BalanceLock", 1042, "kusama")
+            .get("kusama", 1042, "balances", "BalanceLock")
             .unwrap();
         assert_eq!(
             t,
             &RustTypeMarker::TypePointer("BalanceLockTo212".to_string())
         );
         Ok(())
+    }
+
+    #[test]
+    fn should_differentiate_chains() {  
+        let types = TypeResolver::default();
+        let dot_t = types
+            .get("polkadot", 5, "runtime", "LookupSource")
+            .unwrap();
+        let ksm_t = types
+            .get("kusama", 5, "runtime", "LookupSource")
+            .unwrap();
+        assert_eq!(dot_t, &RustTypeMarker::TypePointer("AccountId".to_string()));
+        assert_ne!(dot_t, ksm_t);
     }
     
     #[test]
@@ -391,8 +410,8 @@ mod tests {
     }
 
     #[test]
-    fn should_deserialize_definitions() -> Result<(), Error> {
-        let types = definitions(DEFINITIONS)?;
+    fn should_deserialize_definitions() -> Result<()> {
+        let types = Modules::new(DEFINITIONS)?;
         dbg!(&types);
         Ok(())
     }

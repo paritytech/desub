@@ -302,7 +302,7 @@ mod tests {
 
     #[test]
     fn should_deserialize_correctly() -> Result<(), Error> {
-        let deser_dot_types = definitions(RAW_JSON)?;
+        let deser_dot_types = Modules::new(RAW_JSON)?;
         let mut modules = HashMap::new();
         let mut types = HashMap::new();
         types.insert(
