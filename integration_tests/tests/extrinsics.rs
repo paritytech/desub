@@ -1,7 +1,7 @@
 extern crate extras;
-mod test_suite;
 
-use desub_core::{decoder::{Decoder, Metadata, GenericStorage, StorageKey, StorageValue, StorageHasher}, SubstrateType};
+use desub_core::{decoder::{Decoder, Metadata, GenericStorage, StorageKey, StorageValue, StorageHasher, Chain}, SubstrateType};
+use crate::test_suite;
 use primitives::twox_128;
 use codec::{Encode, Decode};
 
@@ -12,8 +12,8 @@ pub fn init() {
 #[test]
 pub fn should_decode_ext342962() {
     init();
-    let types = extras::polkadot::PolkadotTypes::new().unwrap();
-    let mut decoder = Decoder::new(types, "kusama");
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Kusama);
 
     let (meta, ext) = test_suite::extrinsics_block342962();
     let meta = Metadata::new(meta.as_slice());
@@ -36,8 +36,8 @@ pub fn should_decode_ext342962() {
 #[test]
 pub fn should_decode_ext422871() {
     init();
-    let types = extras::polkadot::PolkadotTypes::new().unwrap();
-    let mut decoder = Decoder::new(types, "kusama");
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Kusama);
 
     let (meta, ext) = test_suite::extrinsics_block422871();
     let meta = Metadata::new(meta.as_slice());
@@ -55,8 +55,8 @@ pub fn should_decode_ext422871() {
 #[test]
 pub fn should_decode_ext50970() {
     init();
-    let types = extras::polkadot::PolkadotTypes::new().unwrap();
-    let mut decoder = Decoder::new(types, "kusama");
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Kusama);
 
     let (meta, ext) = test_suite::extrinsics_block50970();
     let meta = Metadata::new(meta.as_slice());
@@ -74,8 +74,8 @@ pub fn should_decode_ext50970() {
 pub fn should_decode_ext_106284() {
     init();
 
-    let types = extras::polkadot::PolkadotTypes::new().unwrap();
-    let mut decoder = Decoder::new(types, "kusama");
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Kusama);
 
     let (meta, ext) = test_suite::extrinsics_block106284();
     let meta = Metadata::new(meta.as_slice());
@@ -94,8 +94,8 @@ pub fn should_decode_ext_106284() {
 pub fn should_decode_ext_1674683() {
     init();
  
-    let types = extras::polkadot::PolkadotTypes::new().unwrap();
-    let mut decoder = Decoder::new(types, "kusama");
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Kusama);
 
     let (meta, ext) = test_suite::extrinsics_block1674683();
     let meta = Metadata::new(meta.as_slice());
@@ -114,8 +114,8 @@ pub fn should_decode_ext_1674683() {
 pub fn should_decode_ext_1677621() {
     init();
 
-    let types = extras::polkadot::PolkadotTypes::new().unwrap();
-    let mut decoder = Decoder::new(types, "kusama");
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Kusama);
 
     let (meta, ext) = test_suite::extrinsics_block1677621();
     let meta = Metadata::new(meta.as_slice());
@@ -135,8 +135,8 @@ pub fn should_decode_ext_1677621() {
 fn should_decode_ext_1702023() {
     init();
     
-    let types = extras::polkadot::PolkadotTypes::new().unwrap();
-    let mut decoder = Decoder::new(types, "kusama");
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Kusama);
 
     let (meta, ext) = test_suite::extrinsics_block1702023();
     let meta = Metadata::new(meta.as_slice());
@@ -156,8 +156,8 @@ fn should_decode_ext_1702023() {
 fn should_decode_ext_1714495() {
     init();
     
-    let types = extras::polkadot::PolkadotTypes::new().unwrap();
-    let mut decoder = Decoder::new(types, "kusama");
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Kusama);
 
     let (meta, ext) = test_suite::extrinsics_block1714495();
     let meta = Metadata::new(meta.as_slice());
@@ -176,8 +176,8 @@ fn should_decode_ext_1714495() {
 #[test]
 fn should_decode_ext_1717926() {
     init();
-    let types = extras::polkadot::PolkadotTypes::new().unwrap();
-    let mut decoder = Decoder::new(types, "kusama");
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Kusama);
 
     let (meta, ext) = test_suite::extrinsics_block1717926();
     let meta = Metadata::new(meta.as_slice());
@@ -196,8 +196,8 @@ fn should_decode_ext_1717926() {
 #[test]
 fn should_decode_ext_1718223() {
     init();
-    let types = extras::polkadot::PolkadotTypes::new().unwrap();
-    let mut decoder = Decoder::new(types, "kusama");
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Kusama);
 
     let (meta, ext) = test_suite::extrinsics_block1718223();
     let meta = Metadata::new(meta.as_slice());
@@ -217,8 +217,8 @@ fn should_decode_ext_1718223() {
 fn should_decode_ext_1732321() {
     init();
 
-    let types = extras::polkadot::PolkadotTypes::new().unwrap();
-    let mut decoder = Decoder::new(types, "kusama");
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Kusama);
 
     let (meta, ext) = test_suite::extrinsics_block1732321();
     let meta = Metadata::new(meta.as_slice());
@@ -238,8 +238,8 @@ fn should_decode_ext_1732321() {
 fn should_decode_ext_1731904() {
     init();
 
-    let types = extras::polkadot::PolkadotTypes::new().unwrap();
-    let mut decoder = Decoder::new(types, "kusama");
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Kusama);
 
     let (meta, ext) = test_suite::extrinsics_block1731904();
     let meta = Metadata::new(meta.as_slice());
@@ -259,8 +259,8 @@ fn should_decode_ext_1731904() {
 fn should_decode_ext_1768321() {
     init();
 
-    let types = extras::polkadot::PolkadotTypes::new().unwrap();
-    let mut decoder = Decoder::new(types, "kusama");
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Kusama);
 
     let (meta, ext) = test_suite::extrinsics_block1768321();
     let meta = Metadata::new(meta.as_slice());
@@ -280,8 +280,8 @@ fn should_decode_ext_1768321() {
 fn should_decode_ext_6144() {
     init();
 
-    let types = extras::polkadot::PolkadotTypes::new().unwrap();
-    let mut decoder = Decoder::new(types, "kusama");
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Kusama);
 
     let (meta, ext) = test_suite::extrinsics_block6144();
     let meta = Metadata::new(meta.as_slice());
@@ -295,84 +295,3 @@ fn should_decode_ext_6144() {
         println!("{}", serde_json::to_string(&decoded).unwrap());
     }
 }
-
-use frame_system::AccountInfo; 
-use pallet_balances::AccountData;
-// hex(encoded): 010000000864000000000000000000000000000000c80000000000000000000000000000002c01000000000000000000000000000090010000000000000000000000000000
-fn mock_account_info() -> AccountInfo<u32, AccountData<u128>> {
-    let mock_account_data: AccountData<u128> = AccountData {
-        free: 100,
-        reserved: 200,
-        misc_frozen: 300,
-        fee_frozen: 400,
-    };
-    let mock_account_info: AccountInfo<u32, AccountData<u128>> = AccountInfo {
-        nonce: 1,
-        refcount: 8,
-        data: mock_account_data,
-    };
-    mock_account_info
-}
-
-    
-/// T::BlockNumber in meta V11 Block 1768321
-fn get_plain_value() -> (Vec<u8>, Vec<u8>){
-    let mut key = twox_128("System".as_bytes()).to_vec();
-    key.extend(twox_128("Number".as_bytes()).iter());
-    let value = 1768321u32.encode();
-    (key, value)
-}
-
-#[test]
-fn should_decode_plain() {
-    pretty_env_logger::try_init();
-    
-    let types = extras::polkadot::PolkadotTypes::new().unwrap();
-    let mut decoder = Decoder::new(types, "kusama");
-
-    let meta = test_suite::runtime_v11();
-    let meta = Metadata::new(meta.as_slice());
-    decoder.register_version(2023, &meta);
-    
-    let res = decoder.decode_storage(2023, get_plain_value()).unwrap();
-    assert_eq!(&SubstrateType::U32(1768321), res.value().unwrap().ty());
-}
-
-#[test]
-fn should_decode_map() {
-    pretty_env_logger::try_init();
-    
-    let types = extras::polkadot::PolkadotTypes::new().unwrap();
-    let mut decoder = Decoder::new(types, "kusama");
-
-    let meta = test_suite::runtime_v11();
-    let meta = Metadata::new(meta.as_slice());
-    decoder.register_version(2023, &meta);
-    
-    let account = mock_account_info();
-    let encoded_account = account.encode();
-    let storage_key = hex::decode("26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da932a5935f6edc617ae178fef9eb1e211fbe5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f").unwrap();
-    
-    let res = decoder.decode_storage(2023, (storage_key, encoded_account)).unwrap();
-    println!("{:?}", res);
-}
-
-#[test]
-fn should_decode_double_map() {
-    pretty_env_logger::try_init();
-    let types = extras::polkadot::PolkadotTypes::new().unwrap();
-    let mut decoder = Decoder::new(types, "kusama");
-
-    let meta = test_suite::runtime_v11();
-    let meta = Metadata::new(meta.as_slice());
-    decoder.register_version(2023, &meta);
-    // THIS STORAGE KEY IS WRONG for "ImOnline AuthoredBlocks" type
-    let storage_key = hex::decode("2b06af9719ac64d755623cda8ddd9b94b1c371ded9e9c565e89ba783c4d5f5f9b4def25cfda6ef3a00000000e535263148daaf49be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f").unwrap();
-    let authored_blocks: u32 = 250;
-    
-    let res = decoder.decode_storage(2023, (storage_key, authored_blocks.encode())).unwrap();
-    println!("{:?}", res);
-}
-
-
-

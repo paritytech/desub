@@ -40,22 +40,65 @@
     }
   },
   "TYPES_META": [
+    {
+      "minmax": [
+        0,
+        4
+      ],
+      "types": {
+        "Address": "GenericAddress",
+        "BlockNumber": "u64",
+        "EventRecord": "EventRecordTo76",
+        "Index": "u64",
+        "StakingLedger": "StakingLedgerTo223",
+        "ValidatorPrefs": "ValidatorPrefsTo145"
+      }
+    }
+  ],
+  "TYPES_SPEC": {
+    "centrifuge-chain": [
       {
         "minmax": [
-          0,
-          4
+          229,
+          null
         ],
         "types": {
-          "Address": "GenericAddress",
-          "BlockNumber": "u64",
-          "EventRecord": "EventRecordTo76",
-          "Index": "u64",
-          "StakingLedger": "StakingLedgerTo223",
-          "ValidatorPrefs": "ValidatorPrefsTo145"
+          "Address": "LookupSource",
+          "AnchorData": {
+            "anchoredBlock": "u64",
+            "docRoot": "H256",
+            "id": "H256"
+          },
+          "Fee": {
+            "key": "Hash",
+            "price": "Balance"
+          },
+          "MultiAccountData": {
+            "deposit": "Balance",
+            "depositor": "AccountId",
+            "signatories": "Vec<AccountId>",
+            "threshold": "u16"
+          },
+          "Multiplier": "Fixed64",
+          "PreCommitData": {
+            "expirationBlock": "u64",
+            "identity": "H256",
+            "signingRoot": "H256"
+          },
+          "Proof": {
+            "leafHash": "H256",
+            "sortedHashes": "H256"
+          },
+          "ReferendumInfo": "ReferendumInfoTo239",
+          "StakingLedger": "StakingLedgerTo240",
+          "Weight": "u32",
+          "ChainId": "u8",
+          "DepositNonce": "u64",
+          "ResourceId": "[u8; 32]",
+          "chainbridge::ChainId": "u8"
         }
       }
     ],
-  "TYPES_SPEC": {
     "kusama": [
       {
         "minmax": [
@@ -259,6 +302,183 @@
               "NonTransfer",
               "Governance",
               "Staking",
+              "IdentityJudgement"
+            ]
+          }
+        }
+      }
+    ],
+    "polkadot": [
+      {
+        "minmax": [
+          0,
+          12
+        ],
+        "types": {
+          "Address": "AccountId",
+          "Keys": "SessionKeys5",
+          "LookupSource": "AccountId",
+          "ProxyType": {
+            "_enum": [
+              "Any",
+              "NonTransfer",
+              "Governance",
+              "Staking",
+              "Unused",
+              "IdentityJudgement"
+            ]
+          },
+          "CompactAssignments": "CompactAssignmentsTo257",
+          "OpenTip": "OpenTipTo225",
+          "RewardDestination": "RewardDestinationTo257"
+        }
+      },
+      {
+        "minmax": [
+          13,
+          22
+        ],
+        "types": {
+          "Address": "AccountId",
+          "Keys": "SessionKeys5",
+          "LookupSource": "AccountId",
+          "ProxyType": {
+            "_enum": [
+              "Any",
+              "NonTransfer",
+              "Governance",
+              "Staking",
+              "Unused",
+              "IdentityJudgement"
+            ]
+          },
+          "CompactAssignments": "CompactAssignmentsTo257",
+          "RewardDestination": "RewardDestinationTo257"
+        }
+      },
+      {
+        "minmax": [
+          23,
+          null
+        ],
+        "types": {
+          "Address": "AccountId",
+          "Keys": "SessionKeys5",
+          "LookupSource": "AccountId",
+          "ProxyType": {
+            "_enum": [
+              "Any",
+              "NonTransfer",
+              "Governance",
+              "Staking",
+              "Unused",
+              "IdentityJudgement"
+            ]
+          }
+        }
+      }
+    ],
+    "rococo": [
+      {
+        "minmax": [
+          0,
+          null
+        ],
+        "types": {
+          "Address": "AccountId",
+          "Keys": "SessionKeys5",
+          "LookupSource": "AccountId",
+          "RewardDestination": "RewardDestinationTo257",
+          "CompactAssignments": "CompactAssignmentsTo257"
+        }
+      }
+    ],
+    "westend": [
+      {
+        "minmax": [
+          1,
+          2
+        ],
+        "types": {
+          "Address": "AccountId",
+          "Keys": "SessionKeys5",
+          "LookupSource": "AccountId",
+          "ProxyType": {
+            "_enum": [
+              "Any",
+              "NonTransfer",
+              "Staking",
+              "Unused",
+              "IdentityJudgement"
+            ]
+          },
+          "CompactAssignments": "CompactAssignmentsTo257",
+          "Multiplier": "Fixed64",
+          "OpenTip": "OpenTipTo225",
+          "RewardDestination": "RewardDestinationTo257",
+          "Weight": "u32"
+        }
+      },
+      {
+        "minmax": [
+          3,
+          22
+        ],
+        "types": {
+          "Address": "AccountId",
+          "Keys": "SessionKeys5",
+          "LookupSource": "AccountId",
+          "ProxyType": {
+            "_enum": [
+              "Any",
+              "NonTransfer",
+              "Staking",
+              "Unused",
+              "IdentityJudgement"
+            ]
+          },
+          "CompactAssignments": "CompactAssignmentsTo257",
+          "OpenTip": "OpenTipTo225",
+          "RewardDestination": "RewardDestinationTo257"
+        }
+      },
+      {
+        "minmax": [
+          23,
+          42
+        ],
+        "types": {
+          "Address": "AccountId",
+          "Keys": "SessionKeys5",
+          "LookupSource": "AccountId",
+          "ProxyType": {
+            "_enum": [
+              "Any",
+              "NonTransfer",
+              "Staking",
+              "Unused",
+              "IdentityJudgement"
+            ]
+          },
+          "CompactAssignments": "CompactAssignmentsTo257",
+          "RewardDestination": "RewardDestinationTo257"
+        }
+      },
+      {
+        "minmax": [
+          43,
+          null
+        ],
+        "types": {
+          "Address": "AccountId",
+          "Keys": "SessionKeys5",
+          "LookupSource": "AccountId",
+          "ProxyType": {
+            "_enum": [
+              "Any",
+              "NonTransfer",
+              "Staking",
+              "Unused",
               "IdentityJudgement"
             ]
           }

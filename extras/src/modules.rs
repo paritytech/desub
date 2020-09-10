@@ -12,19 +12,50 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{ModuleTypes, Modules};
-use crate::error::Error;
+use serde::{Serialize, Deserialize, de::{Deserializer, MapAccess, Visitor}};
 use core::{regex, EnumField, RustTypeMarker, SetField, StructField, StructUnitOrTuple};
-use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
 use std::{collections::HashMap, fmt};
+use crate::error::Error;
 
-// TODO: open this file or pass it via CLI to reduce binary size
-pub const DEFS: &str = include_str!("./dot_definitions/definitions.json");
+/// Types for each substrate Module
+#[derive(Serialize, Default, Debug, PartialEq, Eq, Clone)]
+pub struct Modules {
+    /// module name -> Type Map of module
+    modules: HashMap<String, ModuleTypes>,
+}
 
-/// deserializes raw json definitions into modules
-pub fn definitions(raw_json: &str) -> Result<Modules, Error> {
-    let types: Modules = serde_json::from_str(raw_json)?;
-    Ok(types)
+impl Modules {
+    /// Construct this struct from JSON
+    pub fn new(raw_json: &str) -> Result<Self, Error> {
+        let modules: Modules = serde_json::from_str(raw_json)?;
+        Ok(modules)
+    }
+
+    pub fn get(&self, ty: &str) -> Option<&ModuleTypes> {
+        self.modules.get(ty) 
+    }
+
+    pub fn get_type(&self, module: &str, ty: &str) -> Option<&RustTypeMarker> {
+        self.modules.get(module)?.types.get(ty)
+    }
+    
+    /// Iterate over all the types in each module
+    pub fn iter_types(&self) -> impl Iterator<Item = (&String, &RustTypeMarker)> {
+        self.modules.values().map(|v| v.types.iter()).flatten()
+    }
+}
+
+/// Map of types to their Type Markers
+#[derive(Serialize, Debug, Default, PartialEq, Eq, Clone)]
+pub struct ModuleTypes {
+    /// Type Name -> Type
+    types: HashMap<String, RustTypeMarker>,
+}
+
+impl ModuleTypes {
+    pub fn get(&self, ty: &str) -> Option<&RustTypeMarker> {
+        self.types.get(ty)
+    }
 }
 
 impl<'de> Deserialize<'de> for Modules {
@@ -128,6 +159,20 @@ fn parse_mod_types(
         } else if obj.contains_key("_set") {
             let obj = obj["_set"].as_object().expect("_set is a map");
             module_types.insert(key.to_string(), parse_set(obj));
+        } else if obj.contains_key("_alias") {
+            let mut fields = Vec::new();
+            for (key, val) in obj.iter() {
+                if key == "_alias" {
+                    continue;
+                } else {
+                    let field = StructField::new(
+                        key,
+                        regex::parse(&val_to_str(val)).expect("Not a type"),
+                    );
+                    fields.push(field);
+                }
+            }
+            module_types.insert(key.to_string(), RustTypeMarker::Struct(fields));
         } else {
             let mut fields = Vec::new();
             for (key, val) in obj.iter() {
@@ -205,7 +250,12 @@ fn parse_enum(obj: &serde_json::Value) -> RustTypeMarker {
 
 #[cfg(test)]
 mod tests {
+    use super::Modules;
+    use crate::error::Error;
     use super::*;
+    use crate::ModuleTypes;
+    use core::{RustTypeMarker, SetField, EnumField, StructUnitOrTuple, StructField};
+    use std::collections::HashMap;
     const RAW_JSON: &'static str = r#"
 {
 	"runtime": {
@@ -251,15 +301,8 @@ mod tests {
 "#;
 
     #[test]
-    fn should_deserialize() -> Result<(), Error> {
-        let types = definitions(DEFS)?;
-        dbg!(&types);
-        Ok(())
-    }
-
-    #[test]
     fn should_deserialize_correctly() -> Result<(), Error> {
-        let deser_dot_types = definitions(RAW_JSON)?;
+        let deser_dot_types = Modules::new(RAW_JSON)?;
         let mut modules = HashMap::new();
         let mut types = HashMap::new();
         types.insert(

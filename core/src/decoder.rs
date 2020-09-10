@@ -34,6 +34,7 @@ pub use self::storage::{
 
 #[cfg(test)]
 pub use self::metadata::test_suite;
+
 pub use self::metadata::{Metadata, MetadataError, ModuleIndex, StorageType};
 pub use runtime_metadata_latest::{StorageEntryModifier, StorageEntryType, StorageHasher};
 
@@ -76,12 +77,35 @@ pub enum Entry {
     Constant,
 }
 
+#[derive(Debug, Clone)]
+pub enum Chain {
+    Polkadot,
+    Kusama,
+    Centrifuge,
+    Westend,
+    Rococo,
+    Custom(String)
+}
+
+impl std::fmt::Display for Chain {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Chain::Polkadot => write!(f, "polkadot"),
+            Chain::Kusama => write!(f, "kusama"),
+            Chain::Centrifuge => write!(f, "centrifuge-chain"),
+            Chain::Westend => write!(f, "westend"),
+            Chain::Rococo => write!(f, "rococo"),
+            Chain::Custom(s) => write!(f, "{}", s)
+        }
+    }
+}
+
 impl<T> Decoder<T>
 where
     T: TypeDetective,
 {
     /// Create new Decoder with specified types
-    pub fn new(types: T, chain: &str) -> Self {
+    pub fn new(types: T, chain: Chain) -> Self {
         Self {
             versions: HashMap::default(),
             types,
@@ -285,9 +309,8 @@ where
             log::debug!("SIGNED EXTRINSIC");
             let signature = self
                 .types
-                .get_extrinsic_ty(spec, self.chain.as_str(), "signature")
-                .expect("Signature must not be empty")
-                .as_type();
+                .get_extrinsic_ty(self.chain.as_str(), spec, "signature")
+                .expect("Signature must not be empty");
             Some(self.decode_single("runtime", spec, signature, data, &mut cursor, false)?)
         } else {
             None
@@ -365,7 +388,7 @@ where
                 } else {
                     let new_type = self
                         .types
-                        .get(module, v, spec, self.chain.as_str())
+                        .get(self.chain.as_str(), spec, module, v)
                         .ok_or_else(|| {
                             Error::from(format!(
                                 "Name Resolution Failure: module={}, v={}, spec={}, chain={}",
@@ -374,8 +397,7 @@ where
                                 spec,
                                 self.chain.as_str()
                             ))
-                        })?
-                        .as_type();
+                        })?;
                     log::debug!("Resolved {:?}", new_type);
                     self.decode_single(module, spec, new_type, data, cursor, is_compact)?
                 }
@@ -794,10 +816,9 @@ mod tests {
     use super::*;
     use crate::{
         decoder::metadata::test_suite as meta_test_suite, substrate_types::StructField, test_suite,
-        Decodable, EnumField,
+        EnumField,
     };
     use codec::Encode;
-    use primitives::twox_128;
 
     #[derive(Debug, Clone)]
     struct GenericTypes;
@@ -805,29 +826,22 @@ mod tests {
     impl TypeDetective for GenericTypes {
         fn get(
             &self,
+            _chain: &str,
+            _spec: u32,
             _module: &str,
             _ty: &str,
-            _spec: u32,
-            _chain: &str,
-        ) -> Option<&dyn Decodable> {
+        ) -> Option<&RustTypeMarker> {
             Some(&RustTypeMarker::I128)
         }
 
-        fn get_extrinsic_ty(&self, spec: u32, chain: &str, ty: &str) -> Option<&dyn Decodable> {
+        fn get_extrinsic_ty(&self, _chain: &str, _spec: u32, _ty: &str) -> Option<&RustTypeMarker> {
             None
-        }
-
-        fn resolve(&self, _module: &str, _ty: &RustTypeMarker) -> Option<&RustTypeMarker> {
-            Some(&RustTypeMarker::I128)
         }
     }
 
     #[test]
     fn should_insert_metadata() {
-        // let types = PolkadotTypes::new().unwrap();
-        // types.get("balances", "BalanceLock", 1042, "kusama");
-
-        let mut decoder = Decoder::new(GenericTypes, "kusama");
+        let mut decoder = Decoder::new(GenericTypes, Chain::Kusama);
         decoder.register_version(
             test_suite::mock_runtime(0).spec_version,
             &meta_test_suite::test_metadata(),
@@ -854,7 +868,7 @@ mod tests {
     #[test]
     fn should_get_version_metadata() {
         // let types = PolkadotTypes::new().unwrap();
-        let mut decoder = Decoder::new(GenericTypes, "kusama");
+        let mut decoder = Decoder::new(GenericTypes, Chain::Kusama);
         let rt_version = test_suite::mock_runtime(0);
         let meta = meta_test_suite::test_metadata();
         decoder.register_version(rt_version.spec_version.clone(), &meta);
@@ -875,7 +889,7 @@ mod tests {
     macro_rules! decode_test {
         ( $v: expr, $x:expr, $r: expr) => {{
             let val = $v.encode();
-            let decoder = Decoder::new(GenericTypes, "kusama");
+            let decoder = Decoder::new(GenericTypes, Chain::Kusama);
             let res = decoder
                 .decode_single("", 1031, &$x, val.as_slice(), &mut 0, false)
                 .unwrap();

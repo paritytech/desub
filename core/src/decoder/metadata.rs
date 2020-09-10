@@ -28,7 +28,6 @@
 
 #[cfg(test)]
 pub mod test_suite;
-// mod version_07;
 mod version_08;
 mod version_09;
 mod version_10;
@@ -36,12 +35,12 @@ mod version_11;
 mod versions;
 
 use super::storage::{StorageInfo, StorageLookupTable};
-use crate::{regex, RustTypeMarker};
+use crate::RustTypeMarker;
 use codec::{Decode, Encode, EncodeAsRef, HasCompact};
 // use codec411::Decode as OldDecode;
-use failure::Fail;
 use primitives::{storage::StorageKey, twox_128};
 use runtime_metadata_latest::{StorageEntryModifier, StorageHasher};
+use thiserror::Error;
 use std::{
     collections::{HashMap, HashSet},
     convert::TryInto,
@@ -67,19 +66,19 @@ pub fn compact<T: HasCompact>(t: T) -> Encoded {
     Encoded(encodable.encode())
 }
 
-#[derive(Debug, Clone, Fail)]
+#[derive(Debug, Clone, Error)]
 pub enum MetadataError {
-    #[fail(display = "{}", _0)]
+    #[error("{0}")]
     ModuleNotFound(String),
-    #[fail(display = "{}", _0)]
+    #[error("{0}")]
     CallNotFound(&'static str),
-    #[fail(display = "{}", _0)]
+    #[error("{0}")]
     ModuleIndexNotFound(ModuleIndex),
-    #[fail(display = "{}", _0)]
+    #[error("{0}")]
     StorageNotFound(&'static str),
-    #[fail(display = "StorageType Error")]
+    #[error("StorageType Error")]
     StorageTypeError,
-    #[fail(display = "MapValueType Error")]
+    #[error("MapValueType Error")]
     MapValueTypeError,
 }
 
@@ -224,7 +223,7 @@ impl Metadata {
     pub fn storage_lookup_table(&self) -> StorageLookupTable {
         let mut lookup = HashMap::new();
         for module in self.modules.values() {
-            for (name, storage_meta) in module.storage.iter() {
+            for (_name, storage_meta) in module.storage.iter() {
                 let key = Self::generate_key(&storage_meta.prefix);
                 lookup.insert(key, StorageInfo::new(storage_meta.clone(), module.clone()));
             }
@@ -450,27 +449,6 @@ impl StorageMetadata {
     }
 }
 
-/*
-impl StorageMetadata {
-    pub fn get_map<K: Encode, V: Decode + Clone>( &self,) -> Result<StorageMap<K, V>, MetadataError> { match &self.ty {
-            StorageEntryType::Map { hasher, .. } => {
-                let prefix = self.prefix.as_bytes().to_vec();
-                let hasher = hasher.to_owned();
-                let default = Decode::decode(&mut &self.default[..])
-                    .map_err(|_| MetadataError::MapValueTypeError)?;
-                Ok(StorageMap {
-                    _marker: PhantomData,
-                    prefix,
-                    hasher,
-                    default,
-                })
-            }
-            _ => Err(MetadataError::StorageTypeError),
-        }
-    }
-}
-*/
-
 #[derive(Clone, Debug)]
 pub struct StorageMap<K, V> {
     _marker: PhantomData<K>,
@@ -577,52 +555,23 @@ impl EventArg {
     }
 }
 
-#[derive(Fail, Debug)]
+#[derive(Error, Debug)]
 pub enum Error {
-    #[fail(display = "Invalid Prefix")]
+    #[error("Invalid Prefix")]
     InvalidPrefix,
-    #[fail(display = " Invalid Version")]
+    #[error(" Invalid Version")]
     InvalidVersion,
-    #[fail(display = "Expected Decoded")]
+    #[error("Expected Decoded")]
     ExpectedDecoded,
-    #[fail(display = "Invalid Event {}:{}", _0, _1)]
+    #[error("Invalid Event {0}:{1}")]
     InvalidEventArg(String, &'static str),
-    #[fail(display = "Invalid Type {}", _0)]
+    #[error("Invalid Type {0}")]
     InvalidType(String),
 }
 
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::test_suite;
-
-    #[test]
-    fn should_create_metadata_v9() {
-        let meta = test_suite::runtime_v9();
-        let meta: Metadata = Metadata::new(meta.as_slice());
-        println!("{}", meta.pretty());
-        let meta = test_suite::runtime_v9_block6();
-        let _meta: Metadata = Metadata::new(meta.as_slice());
-    }
-
-    #[test]
-    fn should_create_metadata_v10() {
-        let meta = test_suite::runtime_v10();
-        let meta: Metadata = Metadata::new(meta.as_slice());
-        println!("{}", meta.pretty());
-    }
-
-    #[test]
-    fn should_get_correct_lookup_table() {
-        let meta = test_suite::runtime_v11();
-        let meta: Metadata = Metadata::new(meta.as_slice());
-        let lookup_table = meta.storage_lookup_table();
-        let mut key = twox_128("System".as_bytes()).to_vec();
-        key.extend(twox_128("Account".as_bytes()).iter());
-        let storage_entry = lookup_table.lookup(&key);
-        println!("{:?}", storage_entry);
-        assert_eq!(storage_entry.unwrap().meta.prefix, "System Account");
-    }
 
     #[test]
     fn should_generate_correct_key() {
