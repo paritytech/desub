@@ -12,75 +12,177 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Deserializes Polkadot Type Definitions into general struct defined in `core/lib.rs`
-// TODO: all type resolution should be refactored
-// this is a very confusing and inefficient warranty
-// but it works (for the most part)
 
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+//! Resolves types based on the JSON
 
-use crate::{error::Error, Extrinsics, Overrides, Modules, definitions};
-use core::{regex, Decodable, RustTypeMarker, TypeDetective};
+use crate::{Extrinsics, Overrides, Modules, Result};
+use core::{regex, RustTypeMarker, TypeDetective};
 
-pub const DEFINITIONS: &str = include_str!("./dot_definitions/definitions.json");
-pub const OVERRIDES: &str = include_str!("./dot_definitions/overrides.json");
-pub const EXTRINSICS: &str = include_str!("./dot_definitions/extrinsics.json");
-
-#[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone)]
-pub struct PolkadotTypes {
-    pub mods: Modules,
-    pub overrides: Overrides,
-    pub extrinsics: Extrinsics,
+#[cfg(feature = "default_definitions")]
+mod default {
+    pub const DEFINITIONS: &str = include_str!("./definitions/definitions.json");
+    pub const OVERRIDES: &str = include_str!("./definitions/overrides.json");
+    pub const EXTRINSICS: &str = include_str!("./definitions/extrinsics.json");
 }
 
-impl PolkadotTypes {
-    pub fn new() -> Result<Self, Error> {
-        Ok(PolkadotTypes {
-            mods: definitions(DEFINITIONS)?,
-            overrides: Overrides::new(OVERRIDES)?,
-            extrinsics: Extrinsics::new(EXTRINSICS)?,
-        })
+pub struct Builder {
+    mods: Modules,
+    overrides: Overrides,
+    extrinsics: Extrinsics,
+}
+
+impl Builder {
+    pub fn modules(mut self, modules: Modules) -> Self {
+        self.mods = modules;
+        self
+    }
+
+    pub fn modules_from_json(mut self, modules: &str) -> Result<Self> {
+        self.mods = Modules::new(modules)?;
+        Ok(self)
+    }
+
+    pub fn overrides(mut self, overrides: Overrides) -> Self {
+        self.overrides = overrides;
+        self
+    }
+
+    pub fn overrides_from_json(mut self, json: &str) -> Result<Self> {
+        self.overrides = Overrides::new(json)?;
+        Ok(self)
+    }
+
+    pub fn extrinsics(mut self, extrinsics: Extrinsics) -> Self {
+        self.extrinsics = extrinsics;
+        self
+    }
+
+    pub fn extrinsics_from_json(mut self, json: &str) -> Result<Self> {
+        self.extrinsics = Extrinsics::new(json)?;
+        Ok(self)
+    }
+
+    pub fn build(self) -> TypeResolver {
+        TypeResolver {
+            mods: self.mods,
+            overrides: self.overrides,
+            extrinsics: self.extrinsics
+        }
+    }
+}
+
+// we need a way to construct the builder when 
+// not using default features
+#[cfg(not(feature = "default_definitions"))]
+impl Builder {
+    fn new(modules: Modules, extrinsics: Extrinsics, overrides: Overrides) -> Self {
+        Self {
+            mods,
+            overrides,
+            extrinsics
+        }
+    }
+}
+
+#[cfg(feature = "default_definitions")]
+impl Default for Builder {
+    fn default() -> Self {
+        Self {
+            mods: Modules::new(default::DEFINITIONS).expect("Included definitions should not panic"),
+            overrides: Overrides::new(default::OVERRIDES).expect("Included overrides should not panic"),
+            extrinsics: Extrinsics::new(default::EXTRINSICS).expect("Included extrinsics should not panic"),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct TypeResolver {
+    mods: Modules,
+    overrides: Overrides,
+    extrinsics: Extrinsics,
+}
+
+impl TypeResolver {
+    /// Build the builder for `TypeResolver`
+    pub fn builder() -> Builder {
+        Builder::default()
+    }
+
+    /// Construct the TypeResolver from its parts
+    pub fn new(modules: Modules, extrinsics: Extrinsics, overrides: Overrides) -> Self {
+        Self {
+            mods: modules,
+            extrinsics,
+            overrides
+        }
     }
     
-    /// get a types definition
-    /// goes through override check
-    pub fn get(
-        &self,
-        module: &str,
-        ty: &str,
-        spec: u32,
-        chain: &str,
-    ) -> Option<&RustTypeMarker> {
+    /// Try to resolve a type
+    /// First, tries to resolve from the overrides (overrides.json),
+    /// then checks if extrinsics includes the type (extrinsics.json).
+    /// If none of the above contains the type that we are looking for,
+    /// we check if the modules includes it (definitions.json)
+    /// 
+    /// # Return
+    /// returns None if the type cannot be resolved
+    pub fn get(&self, module: &str, chain: &str, ty: &str, spec: u32) -> Option<&RustTypeMarker> {
+        let (module, ty, chain) = sanitize_types(module, ty, chain);
         log::debug!("Getting Type: {}, module: {}, spec: {}", ty, module, spec);
-        let ty = if let Some(un_prefixed) = regex::remove_prefix(ty) { // remove prefix
-                un_prefixed
-        } else {
-                ty.to_string()
-        };
-        log::debug!("Possibly de-prefixed type: {}", ty);
-        if let Some(t) = self.check_overrides(module, ty.as_str(), spec, chain) {
+        
+        if let Some(t) = self.check_overrides(&module, ty.as_str(), spec, &chain) {
             log::debug!("Resolving to Override");
             Some(&t)
-        } else if let Some(t) = self.check_extrinsics(ty.as_str(), spec, chain) {
+        } else if let Some(t) = self.check_extrinsics(ty.as_str(), spec, &chain) {
             log::debug!("Resolving to Extrinsic Type");
             Some(&t)
         } else {
             log::debug!("Resolving to Type Pointer");
-            self.resolve_helper(module, &ty)
+            self.resolve_helper(&module, &ty)
+        }       
+    }
+
+    pub fn get_ext_ty(&self, chain: &str, ty: &str, spec: u32) -> Option<&RustTypeMarker> {
+        if let Some(t) = self.check_extrinsics(ty, spec, chain) {
+            match t {
+                RustTypeMarker::TypePointer(t) => self.resolve_helper("runtime", t),
+                t => Some(t)
+            }
+        } else {
+            None
         }
     }
 
+    /// Try to resolve a type pointer from the default definitions (definitions.json)
+    fn resolve_helper(&self, module: &str, ty_pointer: &str) -> Option<&RustTypeMarker> {
+        log::trace!("Helper resolving {}, {}", module, ty_pointer);
+        if self.mods.get(module).is_none() {
+            log::trace!("Module None, Trying Runtime for type {}", ty_pointer);
+            self.mods.get_type("runtime", ty_pointer)
+        } else if let Some(t) = self.mods.get_type(module, ty_pointer) {
+            log::trace!("Trying module {}", module);
+            Some(t)
+        } else if let Some(t) = self.mods.get_type("runtime", ty_pointer) {
+            log::trace!("Trying Runtime for type {}", ty_pointer);
+            Some(t)
+        } else if let Some(t) = self.check_other_modules(ty_pointer) {
+            log::trace!("trying other modules");
+            Some(t)
+        } else {
+            None
+        }
+    }
+    
     /// check if an override exists for a given type
     ///
     /// if it does, return the types/type pointer
-    pub fn check_overrides(
+    fn check_overrides(
         &self,
         module: &str,
         ty: &str,
         spec: u32,
         chain: &str,
     ) -> Option<&RustTypeMarker> {
+        
         // check if the type is a module override first
         if let Some(m) = self.overrides.get_module_types(module) {
             if let Some(ty) = m.get(ty) {
@@ -92,7 +194,7 @@ impl PolkadotTypes {
         self.overrides.get_chain_types(chain, spec)?.get(ty)
     }
 
-    pub fn check_extrinsics(
+    fn check_extrinsics(
         &self,
         ty: &str,
         spec: u32,
@@ -105,84 +207,33 @@ impl PolkadotTypes {
         }
         None
     }
-
-    /// Try to resolve a type pointer
-    fn resolve_helper(&self, module: &str, ty_pointer: &str) -> Option<&RustTypeMarker> {
-        log::debug!("Helper resolving {}, {}", module, ty_pointer);
-        if self.mods.modules.get(module).is_none() {
-            log::debug!("Module None, Trying Runtime for type {}", ty_pointer);
-            self.mods.modules.get("runtime")?.types.get(ty_pointer)
-        } else if let Some(t) = self.mods.modules.get(module)?.types.get(ty_pointer) {
-            log::debug!("Trying module {}", module);
-            Some(t)
-        } else if let Some(t) = self.mods.modules.get("runtime")?.types.get(ty_pointer) {
-            log::debug!("Trying Runtime for type {}", ty_pointer);
-            Some(t)
-        } else if let Some(t) = self.check_other_modules(ty_pointer) {
-            log::debug!("trying other modules");
-            Some(t)
-        } else {
-            None
-        }
-    }
-
+    
+    /// Checks all modules for the types
     fn check_other_modules(&self, ty_pointer: &str) -> Option<&RustTypeMarker> {
-        for m in self.mods.modules.values() {
-            for (n, t) in m.types.iter() {
-                if n == ty_pointer {
-                    return Some(t);
-                }
-            }
-        }
-        None
+        self.mods.iter_types().find(|(n, _)| n.as_str() == ty_pointer).map(|(_, t)| t)
     }
 }
 
-impl TypeDetective for PolkadotTypes {
-    fn get(
-        &self,
-        module: &str,
-        ty: &str,
-        spec: u32,
-        chain: &str,
-    ) -> Option<&dyn Decodable> {
-        let module = module.to_ascii_lowercase();
-        let chain = chain.to_ascii_lowercase();
-        let decodable = self.get(&module, ty, spec, &chain)?;
-        Some(decodable as &dyn Decodable)
+fn sanitize_types(module: &str, ty: &str, chain: &str) -> (String, String, String) {
+    let module = module.to_ascii_lowercase();
+    let chain = chain.to_ascii_lowercase();
+    let ty = if let Some(un_prefixed) = regex::remove_prefix(ty) {
+        un_prefixed.to_string()
+    } else {
+        ty.to_string()
+    };
+    
+    log::debug!("Possibly de-prefixed type: {}", ty);
+    (module, ty, chain)
+}
+
+impl TypeDetective for TypeResolver {
+    fn get(&self, module: &str, chain: &str, ty: &str, spec: u32) -> Option<&RustTypeMarker> {
+        TypeResolver::get(self, module, chain, ty, spec)
     }
 
-    fn get_extrinsic_ty(
-        &self,
-        spec: u32,
-        chain: &str,
-        ty: &str,
-    ) -> Option<&dyn Decodable> {
-        let ty = self.check_extrinsics(ty, spec, chain);
-
-        let ty = if let Some(t) = ty {
-            match t {
-                RustTypeMarker::TypePointer(t) => self.resolve_helper("runtime", t),
-                t => Some(t),
-            }
-        } else {
-            None
-        };
-        ty.map(|t| t as &dyn Decodable)
-    }
-
-    fn resolve(&self, module: &str, ty: &RustTypeMarker) -> Option<&RustTypeMarker> {
-        let ty = match ty {
-            RustTypeMarker::TypePointer(v) => {
-                if let Some(un_prefixed) = regex::remove_prefix(v.as_str()) {
-                    RustTypeMarker::TypePointer(un_prefixed)
-                } else {
-                    RustTypeMarker::TypePointer(v.clone())
-                }
-            }
-            v => v.clone(),
-        };
-        self.resolve_helper(module, ty.as_type_pointer()?)
+    fn get_extrinsic_ty(&self, chain: &str, ty: &str, spec: u32) -> Option<&RustTypeMarker> {
+        TypeResolver::get_ext_ty(self, chain, ty, spec)
     }
 }
 

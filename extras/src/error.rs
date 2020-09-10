@@ -14,18 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use failure::Fail;
+use thiserror::Error;
 
-#[derive(Debug, Fail)]
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Debug, Error)]
 pub enum Error {
-    #[fail(display = "Decode {}", _0)]
-    Decode(#[fail(cause)] serde_json::Error),
-    #[fail(display = "{} Not Found", _0)]
+    #[error("Decode {0}")]
+    Decode(#[from] serde_json::Error),
+    #[error("{0} Not Found")]
     NotFound(String),
 }
 
-impl From<serde_json::Error> for Error {
-    fn from(err: serde_json::Error) -> Error {
-        Error::Decode(err)
-    }
-}

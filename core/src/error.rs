@@ -2,6 +2,8 @@ use crate::decoder::MetadataError;
 use codec::Error as CodecError;
 use thiserror::Error;
 
+type Result<T> = std::result::Result<T, Error>;
+
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("Codec {0}")]

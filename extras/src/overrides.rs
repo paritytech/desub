@@ -12,21 +12,11 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ModuleTypes;
-use crate::error::Error;
+use crate::{ModuleTypes, TypeRange, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq, Clone)]
-pub struct SingleOverride {
-    /// the spec these overrides are relevant for
-    #[serde(rename = "minmax")]
-    min_max: [Option<usize>; 2],
-    /// types that are being overriden
-    /// points to the types that should be used instead in definitions.json
-    types: ModuleTypes,
-}
-
+/// Types that are given priority over those defined in [Modules](struct.Modules.html)
 #[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq, Clone)]
 pub struct Overrides {
     /// Type Overrides for modules (where duplication between modules exist)
@@ -36,20 +26,20 @@ pub struct Overrides {
     /// this is for support of old testnets (Alexander)
     // this can be safely ignored for the most part
     #[serde(rename = "TYPES_META")]
-    types_meta: Vec<SingleOverride>,
+    types_meta: Vec<TypeRange>,
     /// these are override types for Polkadot & Kusama chains
     /// NOTE The SessionKeys definition for Polkadot and Substrate (OpaqueKeys
     /// implementation) are different. Detect Polkadot and inject the `Keys`
     /// definition as applicable. (4 keys in substrate vs 5 in Polkadot/CC3).
     #[serde(rename = "TYPES_SPEC")]
     // chain(e.g kusama/polkadot) -> Vector of overrides
-    types_spec: HashMap<String, Vec<SingleOverride>>,
+    types_spec: HashMap<String, Vec<TypeRange>>,
 }
 
 impl Overrides {
-    pub fn new(raw_json: &str) -> Result<Overrides, Error> {
-        let types: Overrides = serde_json::from_str(raw_json)?;
-        Ok(types)
+    /// Construct overrides from JSON
+    pub fn new(raw_json: &str) -> Result<Self> {
+        serde_json::from_str(raw_json).map_err(Into::into)
     }
 
     /// get a module types based upon spec
@@ -57,23 +47,13 @@ impl Overrides {
         self.types_spec
             .get(chain)?
             .iter()
-            .find(|f| Self::is_in_range(spec, f))
+            .find(|f| crate::is_in_range(spec, f))
             .map(|o| &o.types)
     }
-
+    
+    /// get types for a substrate module
     pub fn get_module_types(&self, module: &str) -> Option<&ModuleTypes> {
         self.types_modules.get(module)
-    }
-
-    fn is_in_range(spec: u32, over_ride: &SingleOverride) -> bool {
-        match over_ride.min_max {
-            [Some(min), Some(max)] => (min..=max).contains(&(spec as usize)),
-            [Some(min), None] => (spec as usize) > min,
-            [None, Some(max)] => (spec as usize) < max,
-            // presumably, this would be for null -> null,
-            // so for every spec
-            [None, None] => true,
-        }
     }
 }
 
@@ -98,7 +78,7 @@ mod tests {
         }
         "#;
 
-        let single_override: SingleOverride = serde_json::from_str(json).unwrap();
+        let single_override: TypeRange = serde_json::from_str(json).unwrap();
         dbg!(single_override);
     }
 
@@ -155,7 +135,7 @@ mod tests {
         }
         "#;
 
-        let types_spec: HashMap<String, Vec<SingleOverride>> =
+        let types_spec: HashMap<String, Vec<TypeRange>> =
             serde_json::from_str(json).unwrap();
         dbg!(types_spec);
     }
@@ -164,8 +144,7 @@ mod tests {
     fn should_deserialize_types_meta() {
         let json = r#"
         [
-            {
-            "minmax": [
+            { "minmax": [
                 0,
                 4
             ],
@@ -178,7 +157,7 @@ mod tests {
             }
         ]
         "#;
-        let types_meta: Vec<SingleOverride> = serde_json::from_str(json).unwrap();
+        let types_meta: Vec<TypeRange> = serde_json::from_str(json).unwrap();
         dbg!(types_meta);
     }
 }

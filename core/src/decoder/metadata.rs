@@ -35,7 +35,7 @@ mod version_11;
 mod versions;
 
 use super::storage::{StorageInfo, StorageLookupTable};
-use crate::{regex, RustTypeMarker};
+use crate::RustTypeMarker;
 use codec::{Decode, Encode, EncodeAsRef, HasCompact};
 // use codec411::Decode as OldDecode;
 use primitives::{storage::StorageKey, twox_128};
@@ -223,7 +223,7 @@ impl Metadata {
     pub fn storage_lookup_table(&self) -> StorageLookupTable {
         let mut lookup = HashMap::new();
         for module in self.modules.values() {
-            for (name, storage_meta) in module.storage.iter() {
+            for (_name, storage_meta) in module.storage.iter() {
                 let key = Self::generate_key(&storage_meta.prefix);
                 lookup.insert(key, StorageInfo::new(storage_meta.clone(), module.clone()));
             }

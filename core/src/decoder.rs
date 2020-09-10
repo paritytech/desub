@@ -76,12 +76,35 @@ pub enum Entry {
     Constant,
 }
 
+#[derive(Debug, Clone)]
+pub enum Chain {
+    Polkadot,
+    Kusama,
+    Centrifuge,
+    Westend,
+    Rococo,
+    Custom(String)
+}
+
+impl std::fmt::Display for Chain {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Chain::Polkadot => write!(f, "{}", "polkadot"),
+            Chain::Kusama => write!(f, "{}", "kusama"),
+            Chain::Centrifuge => write!(f, "{}", "centrifuge-chain"),
+            Chain::Westend => write!(f, "{}", "westend"),
+            Chain::Rococo => write!(f, "{}", "rococo"),
+            Chain::Custom(s) => write!(f, "{}", s)
+        }
+    }
+}
+
 impl<T> Decoder<T>
 where
     T: TypeDetective,
 {
     /// Create new Decoder with specified types
-    pub fn new(types: T, chain: &str) -> Self {
+    pub fn new(types: T, chain: Chain) -> Self {
         Self {
             versions: HashMap::default(),
             types,
@@ -285,9 +308,8 @@ where
             log::debug!("SIGNED EXTRINSIC");
             let signature = self
                 .types
-                .get_extrinsic_ty(spec, self.chain.as_str(), "signature")
-                .expect("Signature must not be empty")
-                .as_type();
+                .get_extrinsic_ty(self.chain.as_str(), "signature", spec)
+                .expect("Signature must not be empty");
             Some(self.decode_single("runtime", spec, signature, data, &mut cursor, false)?)
         } else {
             None
@@ -365,7 +387,7 @@ where
                 } else {
                     let new_type = self
                         .types
-                        .get(module, v, spec, self.chain.as_str())
+                        .get(module, self.chain.as_str(), v, spec)
                         .ok_or_else(|| {
                             Error::from(format!(
                                 "Name Resolution Failure: module={}, v={}, spec={}, chain={}",
@@ -374,8 +396,7 @@ where
                                 spec,
                                 self.chain.as_str()
                             ))
-                        })?
-                        .as_type();
+                        })?;
                     log::debug!("Resolved {:?}", new_type);
                     self.decode_single(module, spec, new_type, data, cursor, is_compact)?
                 }
@@ -794,7 +815,7 @@ mod tests {
     use super::*;
     use crate::{
         decoder::metadata::test_suite as meta_test_suite, substrate_types::StructField, test_suite,
-        Decodable, EnumField,
+        EnumField,
     };
     use codec::Encode;
     use primitives::twox_128;
@@ -809,16 +830,12 @@ mod tests {
             _ty: &str,
             _spec: u32,
             _chain: &str,
-        ) -> Option<&dyn Decodable> {
+        ) -> Option<&RustTypeMarker> {
             Some(&RustTypeMarker::I128)
         }
 
-        fn get_extrinsic_ty(&self, spec: u32, chain: &str, ty: &str) -> Option<&dyn Decodable> {
+        fn get_extrinsic_ty(&self, spec: u32, chain: &str, ty: &str) -> Option<&RustTypeMarker> {
             None
-        }
-
-        fn resolve(&self, _module: &str, _ty: &RustTypeMarker) -> Option<&RustTypeMarker> {
-            Some(&RustTypeMarker::I128)
         }
     }
 
