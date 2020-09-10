@@ -16,7 +16,6 @@
 
 // TODO: write tests for all 'parse_xxx' functions
 use super::{CommonTypes, RustTypeMarker};
-use crate::error::Error;
 use onig::{Regex, Region, SearchOptions};
 
 #[derive(Debug, Clone, PartialEq, Eq)]

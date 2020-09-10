@@ -134,6 +134,20 @@ fn parse_mod_types(
         } else if obj.contains_key("_set") {
             let obj = obj["_set"].as_object().expect("_set is a map");
             module_types.insert(key.to_string(), parse_set(obj));
+        } else if obj.contains_key("_alias") {
+            let mut fields = Vec::new();
+            for (key, val) in obj.iter() {
+                if key == "_alias" {
+                    continue;
+                } else {
+                    let field = StructField::new(
+                        key,
+                        regex::parse(&val_to_str(val)).expect("Not a type"),
+                    );
+                    fields.push(field);
+                }
+            }
+            module_types.insert(key.to_string(), RustTypeMarker::Struct(fields));
         } else {
             let mut fields = Vec::new();
             for (key, val) in obj.iter() {
