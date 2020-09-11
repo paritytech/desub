@@ -100,6 +100,18 @@ pub struct Metadata {
     modules_by_call_index: HashMap<u8, String>,
 }
 
+impl From<Vec<u8>> for Metadata {
+    fn from(bytes: Vec<u8>) -> Metadata {
+        Metadata::new(bytes.as_slice())
+    }
+}
+
+impl From<&[u8]> for Metadata {
+    fn from(bytes: &[u8]) -> Metadata {
+        Metadata::new(bytes) 
+    }
+}
+
 impl Metadata {
     /// Create a new Metadata type from raw encoded bytes
     ///
