@@ -32,9 +32,9 @@ pub enum RemoteAddress {
     Index(u32),
 }
 
-/// a 'stateful' Rust Type marker
-/// 'Std' variant is not here like in RustTypeMarker
-/// Instead common types are just apart fo the original enum
+/// A 'stateful' version of [RustTypeMarker](enum.RustTypeMarker.html).
+/// 'Std' variant is not here like in RustTypeMarker.
+/// Instead common types are just apart of the enum
 #[derive(Debug, PartialEq, Clone, Serialize)]
 #[serde(untagged)]
 pub enum SubstrateType {

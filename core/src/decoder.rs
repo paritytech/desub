@@ -112,6 +112,11 @@ where
             chain: chain.to_string(),
         }
     }
+    
+    /// Check if a metadata version has already been registered
+    pub fn has_version(&self, version: SpecVersion) -> bool {
+        self.versions.contains_key(&version)
+    }
 
     /// Insert a Metadata with Version attached
     /// If version exists, it's corresponding metadata will be updated
