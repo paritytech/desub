@@ -120,8 +120,9 @@ where
 
     /// Insert a Metadata with Version attached
     /// If version exists, it's corresponding metadata will be updated
-    pub fn register_version(&mut self, version: SpecVersion, metadata: &Metadata) {
-        self.versions.insert(version, metadata.clone());
+    pub fn register_version<M: Into<Metadata>>(&mut self, version: SpecVersion, metadata: M) {
+        let meta: Metadata = metadata.into();
+        self.versions.insert(version, meta);
     }
 
     /// internal api to get runtime version
