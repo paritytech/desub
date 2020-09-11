@@ -114,7 +114,7 @@ where
     }
     
     /// Check if a metadata version has already been registered
-    pub fn has_version(&self, version: SpecVersion) -> bool {
+    pub fn has_version(&self, version: &SpecVersion) -> bool {
         self.versions.contains_key(&version)
     }
 
