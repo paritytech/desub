@@ -27,7 +27,7 @@ pub use self::substrate_types::SubstrateType;
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
 
-pub trait TypeDetective: fmt::Debug + Clone {
+pub trait TypeDetective: fmt::Debug + Clone + Send + Sync {
     /// Get a 'RustTypeMarker'
     fn get(&self, chain: &str, spec: u32, module: &str, ty: &str) -> Option<&RustTypeMarker>;
 
