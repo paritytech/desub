@@ -35,7 +35,7 @@ pub enum RemoteAddress {
 /// A 'stateful' version of [RustTypeMarker](enum.RustTypeMarker.html).
 /// 'Std' variant is not here like in RustTypeMarker.
 /// Instead common types are just apart of the enum
-#[derive(Debug, PartialEq, Clone, Serialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum SubstrateType {
     /// 512-bit hash type
@@ -178,7 +178,7 @@ impl fmt::Display for SubstrateType {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum StructUnitOrTuple {
     Struct(Vec<StructField>),
@@ -205,7 +205,7 @@ impl fmt::Display for StructUnitOrTuple {
 }
 
 /// Type with an associated name
-#[derive(Debug, PartialEq, Clone, Serialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct StructField {
     /// name of a field, if any
     /// this is an option, because IE a Tuple-enum Variant

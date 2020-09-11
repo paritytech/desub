@@ -16,9 +16,9 @@
 //! Generic Extrinsic Type and Functions
 
 use crate::substrate_types::SubstrateType;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use std::fmt;
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ExtrinsicArgument {
     pub name: String,
     pub arg: SubstrateType,
@@ -30,7 +30,7 @@ impl fmt::Display for ExtrinsicArgument {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GenericCall {
     name: String,
     module: String,
@@ -50,7 +50,7 @@ impl fmt::Display for GenericCall {
 }
 
 /// Generic Extrinsic Type
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GenericExtrinsic {
     signature: Option<GenericSignature>,
     call: GenericCall,
@@ -123,7 +123,7 @@ impl GenericExtrinsic {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GenericSignature {
     address: SubstrateType,
     signature: SubstrateType,

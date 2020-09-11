@@ -112,6 +112,12 @@ impl From<&[u8]> for Metadata {
     }
 }
 
+impl From<&Metadata> for Metadata {
+    fn from(meta: &Metadata) -> Metadata {
+        meta.clone()
+    }
+} 
+
 impl Metadata {
     /// Create a new Metadata type from raw encoded bytes
     ///
