@@ -44,7 +44,6 @@ use crate::{
     CommonTypes, RustTypeMarker, TypeDetective,
 };
 use codec::{Compact, CompactLen, Decode};
-// use serde::Serialize;
 use std::{collections::HashMap, convert::TryFrom};
 
 type SpecVersion = u32;
@@ -53,13 +52,22 @@ type SpecVersion = u32;
 /// hold information about the Runtime Metadata
 /// and maps types inside the runtime metadata to self-describing types in
 /// type-metadata
-#[derive(Default, Debug, Clone)]
-pub struct Decoder<T: TypeDetective> {
+#[derive(Debug)]
+pub struct Decoder {
     // reference to an item in 'versions' vector
-    // NOTE: possibly a concurrent HashMap
     versions: HashMap<SpecVersion, Metadata>,
-    types: T,
+    types: Box<dyn TypeDetective>,
     chain: String,
+}
+
+impl Clone for Decoder {
+    fn clone(&self) -> Self {
+        Self {
+            versions: self.versions.clone(),
+            types: dyn_clone::clone_box(&*self.types),
+            chain: self.chain.clone()
+        }
+    }
 }
 
 /// The type of Entry
@@ -100,15 +108,12 @@ impl std::fmt::Display for Chain {
     }
 }
 
-impl<T> Decoder<T>
-where
-    T: TypeDetective,
-{
+impl Decoder {
     /// Create new Decoder with specified types
-    pub fn new(types: T, chain: Chain) -> Self {
+    pub fn new(types: impl TypeDetective + 'static, chain: Chain) -> Self {
         Self {
             versions: HashMap::default(),
-            types,
+            types: Box::new(types),
             chain: chain.to_string(),
         }
     }
@@ -888,7 +893,7 @@ mod tests {
         for v in encoded.iter() {
             print!("{:08b} ", v);
         }
-        let len = Decoder::<GenericTypes>::scale_length(encoded.as_slice()).unwrap();
+        let len = Decoder::scale_length(encoded.as_slice()).unwrap();
         assert_eq!(len.0, 2);
     }
 
