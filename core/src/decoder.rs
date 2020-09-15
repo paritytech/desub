@@ -728,7 +728,11 @@ impl Decoder {
             "Call" | "GenericCall" => {
                 let types = self.decode_call(spec, data, cursor).ok()?;
                 Some(SubstrateType::Call(types))
-            }
+            },
+            "GenericVote" => {
+                let vote: pallet_democracy::Vote = Decode::decode(&mut &data[*cursor..]).ok()?;
+                Some(SubstrateType::GenericVote(vote))
+            },
             "Lookup" | "GenericAddress" | "GenericLookupSource" => {
                 // a specific type that is <T as StaticSource>::Lookup concatenated to just 'Lookup'
                 let inc: usize;
@@ -780,7 +784,7 @@ impl Decoder {
                 let val: primitives::H512 = Decode::decode(&mut &data[*cursor..]).ok()?;
                 *cursor += 64;
                 Some(SubstrateType::H512(val))
-            }
+            },
             _ => None,
         }
     }

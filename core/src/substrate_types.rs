@@ -23,13 +23,43 @@ use crate::SetField;
 use primitives::crypto::{AccountId32, Ss58AddressFormat, Ss58Codec};
 use serde::{Deserialize, Serialize};
 use std::fmt;
+
 pub type Address = pallet_indices::address::Address<AccountId32, u32>;
+pub type Vote = pallet_democracy::Vote;
+pub type Conviction = pallet_democracy::Conviction;
 
 #[derive(Serialize, Deserialize)]
 #[serde(remote = "Address")]
 pub enum RemoteAddress {
     Id(AccountId32),
     Index(u32),
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "Vote")]
+pub struct RemoteVote {
+	pub aye: bool,
+    #[serde(with = "RemoteConviction")]
+	pub conviction: Conviction,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "Conviction")]
+pub enum RemoteConviction {
+	/// 0.1x votes, unlocked.
+	None,
+	/// 1x votes, locked for an enactment period following a successful vote.
+	Locked1x,
+	/// 2x votes, locked for 2x enactment periods following a successful vote.
+	Locked2x,
+	/// 3x votes, locked for 4x...
+	Locked3x,
+	/// 4x votes, locked for 8x...
+	Locked4x,
+	/// 5x votes, locked for 16x...
+	Locked5x,
+	/// 6x votes, locked for 32x...
+	Locked6x,
 }
 
 /// A 'stateful' version of [RustTypeMarker](enum.RustTypeMarker.html).
@@ -47,6 +77,10 @@ pub enum SubstrateType {
     Call(Vec<(String, SubstrateType)>),
     /// Era
     Era(runtime_primitives::generic::Era),
+    
+    /// Vote
+    #[serde(with = "RemoteVote")]
+    GenericVote(pallet_democracy::Vote),
 
     /// Substrate Indices Address Type
     // TODO: this is not generic for any chain that doesn't use a
@@ -123,6 +157,9 @@ impl fmt::Display for SubstrateType {
             SubstrateType::Era(v) => match v {
                 runtime_primitives::generic::Era::Mortal(s, e) => write!(f, "Era {}..{}", s, e),
                 runtime_primitives::generic::Era::Immortal => write!(f, "Immortal Era"),
+            },
+            SubstrateType::GenericVote(v) => {
+                write!(f, "Aye={}, Conviction={}", v.aye, v.conviction.lock_periods())
             },
             SubstrateType::Address(v) => {
                 match v {

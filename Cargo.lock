@@ -381,6 +381,7 @@ dependencies = [
  "hex",
  "log",
  "onig",
+ "pallet-democracy",
  "pallet-indices",
  "parity-scale-codec",
  "pretty_env_logger",
@@ -1292,6 +1293,21 @@ dependencies = [
  "frame-system",
  "parity-scale-codec",
  "serde",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-democracy"
+version = "2.0.0-rc6"
+source = "git+https://github.com/paritytech/substrate?rev=35fe3cd1bc4b64cadb0bc6196ae40173db65bb28#35fe3cd1bc4b64cadb0bc6196ae40173db65bb28"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "serde",
+ "sp-io",
  "sp-runtime",
  "sp-std",
 ]
@@ -2499,7 +2515,7 @@ version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3bfd5b7557925ce778ff9b9ef90e3ade34c524b5ff10e239c69a42d546d2af56"
 dependencies = [
- "rand 0.5.6",
+ "rand 0.7.3",
 ]
 
 [[package]]

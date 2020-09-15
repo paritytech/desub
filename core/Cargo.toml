@@ -16,6 +16,8 @@ dyn-clone = "1.0"
 
 runtime-version = { package = "sp-version", git = "https://github.com/paritytech/substrate", rev = "35fe3cd1bc4b64cadb0bc6196ae40173db65bb28" }
 pallet-indices = { package = "pallet-indices", git = "https://github.com/paritytech/substrate", rev = "35fe3cd1bc4b64cadb0bc6196ae40173db65bb28" }
+pallet-democracy = { package = "pallet-democracy", git = "https://github.com/paritytech/substrate", rev = "35fe3cd1bc4b64cadb0bc6196ae40173db65bb28" }
+
 primitives = { package = "sp-core",  git = "https://github.com/paritytech/substrate", rev = "35fe3cd1bc4b64cadb0bc6196ae40173db65bb28" }
 runtime-primitives = { package = "sp-runtime", git = "https://github.com/paritytech/substrate", rev = "35fe3cd1bc4b64cadb0bc6196ae40173db65bb28" }
 
