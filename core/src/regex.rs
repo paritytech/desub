@@ -25,6 +25,7 @@ enum RegexSet {
     Option,
     Result,
     Compact,
+    Box,
     Tuple,
     Generic,
 }
@@ -44,6 +45,8 @@ impl RegexSet {
             Some(RegexSet::Result)
         } else if rust_compact_decl().is_match(s) {
             Some(RegexSet::Compact)
+        } else if rust_box_decl().is_match(s) {
+            Some(RegexSet::Box)
         } else if rust_tuple_decl().is_match(s) {
             Some(RegexSet::Tuple)
         } else if rust_generic_decl().is_match(s) {
@@ -60,6 +63,7 @@ impl RegexSet {
             RegexSet::Option => parse_regex_option(s),
             RegexSet::Result => parse_regex_result(s),
             RegexSet::Compact => parse_regex_compact(s),
+            RegexSet::Box => parse_regex_box(s),
             RegexSet::Tuple => parse_regex_tuple(s),
             RegexSet::Generic => parse_regex_generic(s),
         }
@@ -99,10 +103,16 @@ pub fn rust_compact_decl() -> Regex {
         .expect("Regex expression should be infallible; qed")
 }
 
+/// Match a rust Boxed type
+pub fn rust_box_decl() -> Regex {
+    Regex::new(r"^Box<(?<type>[\w><,(): ]+)>")
+        .expect("Regex expression should be infallible; qed")
+}
+
 /// Match a Rust Generic Type Declaration
-/// Excudes types Vec/Option/Compact from matches
+/// Excudes types Vec/Option/Compact/Box from matches
 pub fn rust_generic_decl() -> Regex {
-    Regex::new(r"\b(?!(?:Vec|Option|Compact)\b)(?<outer_type>\w+)<(?<inner_type>[\w<>,: ]+)>")
+    Regex::new(r"\b(?!(?:Vec|Option|Compact|Box)\b)(?<outer_type>\w+)<(?<inner_type>[\w<>,: ]+)>")
         .expect("Regex expressions should be infallible; qed")
 }
 
@@ -282,6 +292,20 @@ fn parse_regex_compact(s: &str) -> Option<RustTypeMarker> {
 
     let ty = parse(ty).expect("Should always be some type; qed");
     Some(RustTypeMarker::Std(CommonTypes::Compact(Box::new(ty))))
+}
+
+/// Parse a Box
+/// Boxes are a purely rust memory-management phenomenon.
+/// We only care about the underlying data structure. 
+/// So we do not preserve the fact that this type is 'boxed'.
+fn parse_regex_box(s: &str) -> Option<RustTypeMarker> {
+    let re = rust_box_decl();
+    if !re.is_match(s) {
+        return None;
+    }
+    let ty = re.captures(s)?.at(1)?;
+    
+    Some(parse(ty).expect("Should always be some type; qed"))
 }
 
 fn parse_regex_tuple(s: &str) -> Option<RustTypeMarker> {
@@ -942,5 +966,13 @@ mod tests {
             remove_prefix("T::Generic<Runtime>").unwrap(),
             "Generic<Runtime>"
         );
+    }
+
+    #[test]
+    fn should_parse_box() {
+        assert_eq!(
+            parse("Box<T::Proposal>").unwrap(),
+            RustTypeMarker::TypePointer("T::Proposal".to_string())
+        )
     }
 }
