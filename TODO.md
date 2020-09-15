@@ -1,3 +1,2 @@
 - Don't expose regex public functions
-- Docs for `SubstrateType` need sentence structure and there is a type (fo -> of)
 - move `RustTypeMarker` into its own file

@@ -116,6 +116,22 @@ pub fn runtime_v9() -> Vec<u8> {
     buffer
 }
 
+/// Get the runtime metadata from KusamaCC3 around block 361,0000
+/// Block 500,000
+/// Block hash 0x166f5cc1a51a702b79171455c0f3aa3cc6ba010075c1aaa86e1b9e8067510806
+///
+//
+/// # Panics
+/// Panics on std::io::Error
+pub fn runtime_v9_block500k() -> Vec<u8> {
+    let mut f = File::open("./data/metadata_v9_block500000.bin").expect("Opening file failed");
+    let mut buffer = Vec::new();
+    f.read_to_end(&mut buffer).expect("Reading file failed");
+    buffer
+}
+
+
+
 /// Get the runtime metadata from KusamaCC3 for metadata version 10
 /// Block hash
 /// 0x627a6a8e7698dd360bd44e7816e7f8c5321fa31e0a3f39324d93ec5716a57fb5

@@ -19,6 +19,14 @@ fn should_create_metadata_v10() {
 }
 
 #[test]
+fn should_create_metadata_v9_block500000() {
+    pretty_env_logger::try_init();
+    let meta = test_suite::runtime_v9_block500k();
+    let meta: Metadata = Metadata::new(meta.as_slice());
+    println!("{}", meta.pretty());
+}
+
+#[test]
 fn should_get_correct_lookup_table() {
     let meta = test_suite::runtime_v11();
     let meta: Metadata = Metadata::new(meta.as_slice());

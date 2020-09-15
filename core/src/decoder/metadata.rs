@@ -40,6 +40,7 @@ use codec::{Decode, Encode, EncodeAsRef, HasCompact};
 // use codec411::Decode as OldDecode;
 use primitives::{storage::StorageKey, twox_128};
 use runtime_metadata_latest::{StorageEntryModifier, StorageHasher};
+use std::error::Error as _;
 use thiserror::Error;
 use std::{
     collections::{HashMap, HashSet},
@@ -123,7 +124,7 @@ impl Metadata {
     ///
     /// # Panics
     /// Panics is the metadata version is not supported,
-    /// or the version is invalid
+    /// or the versiondebug is invalid
     ///
     /// Panics if decoding into metadata prefixed fails
     pub fn new(bytes: &[u8]) -> Self {
@@ -149,8 +150,9 @@ impl Metadata {
             }
             0x09 => {
                 let meta: runtime_metadata09::RuntimeMetadataPrefixed =
-                    Decode::decode(&mut &bytes[..]).expect("Decode failed");
-                meta.try_into().expect("Conversion failed")
+                    Decode::decode(&mut &bytes[..])
+                    .expect("Decode Failed");
+                meta.try_into().expect("Conversion Failed")
             }
             0xA => {
                 let meta: runtime_metadata10::RuntimeMetadataPrefixed =

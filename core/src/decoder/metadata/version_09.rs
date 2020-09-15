@@ -186,6 +186,7 @@ impl From<TempStorageHasher> for runtime_metadata_latest::StorageHasher {
         match hasher {
             StorageHasher::Blake2_128 => runtime_metadata_latest::StorageHasher::Blake2_128,
             StorageHasher::Blake2_256 => runtime_metadata_latest::StorageHasher::Blake2_256,
+            StorageHasher::Blake2_128Concat => runtime_metadata_latest::StorageHasher::Blake2_128Concat,
             StorageHasher::Twox128 => runtime_metadata_latest::StorageHasher::Twox128,
             StorageHasher::Twox256 => runtime_metadata_latest::StorageHasher::Twox256,
             StorageHasher::Twox64Concat => runtime_metadata_latest::StorageHasher::Twox64Concat,
