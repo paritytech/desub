@@ -1,9 +1,12 @@
 extern crate extras;
 
-use desub_core::{decoder::{Decoder, Metadata, GenericStorage, StorageKey, StorageValue, StorageHasher, Chain}, SubstrateType};
 use crate::test_suite;
+use codec::{Decode, Encode};
+use desub_core::{
+    decoder::{Chain, Decoder, GenericStorage, Metadata, StorageHasher, StorageKey, StorageValue},
+    SubstrateType,
+};
 use primitives::twox_128;
-use codec::{Encode, Decode};
 
 pub fn init() {
     pretty_env_logger::try_init();
@@ -22,7 +25,9 @@ pub fn should_decode_ext342962() {
     decoder.register_version(1031, &meta);
     for e in ext.iter() {
         println!("{:?}", e);
-        let decoded = decoder.decode_extrinsic(1031, e.as_slice()).expect("should decode");
+        let decoded = decoder
+            .decode_extrinsic(1031, e.as_slice())
+            .expect("should decode");
         println!("{:?}", decoded);
         println!("{}", decoded);
     }
@@ -46,10 +51,11 @@ pub fn should_decode_ext422871() {
     println!("{}", ext.len());
     for e in ext.iter() {
         println!("{:?}", e);
-        let decoded = decoder.decode_extrinsic(1031, e.as_slice()).expect("should decode");
+        let decoded = decoder
+            .decode_extrinsic(1031, e.as_slice())
+            .expect("should decode");
         println!("{}", decoded);
     }
-
 }
 
 #[test]
@@ -65,7 +71,9 @@ pub fn should_decode_ext50970() {
     for e in ext.iter() {
         println!("{:?}", e);
         println!("{:X?}", e);
-        let decoded = decoder.decode_extrinsic(1031, e.as_slice()).expect("should decode");
+        let decoded = decoder
+            .decode_extrinsic(1031, e.as_slice())
+            .expect("should decode");
         println!("{}", decoded);
     }
 }
@@ -84,7 +92,9 @@ pub fn should_decode_ext_106284() {
     for e in ext.iter() {
         println!("{:?}", e);
         println!("{:X?}", e);
-        let decoded = decoder.decode_extrinsic(1042, e.as_slice()).expect("should decode");
+        let decoded = decoder
+            .decode_extrinsic(1042, e.as_slice())
+            .expect("should decode");
         println!("{}", decoded);
         println!("{}", serde_json::to_string(&decoded).unwrap());
     }
@@ -93,7 +103,7 @@ pub fn should_decode_ext_106284() {
 #[test]
 pub fn should_decode_ext_1674683() {
     init();
- 
+
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
@@ -104,7 +114,9 @@ pub fn should_decode_ext_1674683() {
     for e in ext.iter() {
         println!("{:?}", e);
         println!("{:X?}", e);
-        let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
+        let decoded = decoder
+            .decode_extrinsic(1055, e.as_slice())
+            .expect("should decode");
         println!("{}", decoded);
         println!("{}", serde_json::to_string(&decoded).unwrap());
     }
@@ -125,7 +137,9 @@ pub fn should_decode_ext_1677621() {
     for e in ext.iter() {
         println!("{:?}", e);
         println!("{:X?}", e);
-        let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
+        let decoded = decoder
+            .decode_extrinsic(1055, e.as_slice())
+            .expect("should decode");
         println!("{}", decoded);
         println!("{}", serde_json::to_string(&decoded).unwrap());
     }
@@ -134,7 +148,7 @@ pub fn should_decode_ext_1677621() {
 #[test]
 fn should_decode_ext_1702023() {
     init();
-    
+
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
@@ -146,7 +160,9 @@ fn should_decode_ext_1702023() {
     for e in ext.iter() {
         println!("{:?}", e);
         println!("{:X?}", e);
-        let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
+        let decoded = decoder
+            .decode_extrinsic(1055, e.as_slice())
+            .expect("should decode");
         println!("{}", decoded);
         println!("{}", serde_json::to_string(&decoded).unwrap());
     }
@@ -155,7 +171,7 @@ fn should_decode_ext_1702023() {
 #[test]
 fn should_decode_ext_1714495() {
     init();
-    
+
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
@@ -167,7 +183,9 @@ fn should_decode_ext_1714495() {
     for e in ext.iter() {
         println!("{:?}", e);
         println!("{:X?}", e);
-        let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
+        let decoded = decoder
+            .decode_extrinsic(1055, e.as_slice())
+            .expect("should decode");
         println!("{}", decoded);
         println!("{}", serde_json::to_string(&decoded).unwrap());
     }
@@ -187,7 +205,9 @@ fn should_decode_ext_1717926() {
     for e in ext.iter() {
         println!("{:?}", e);
         println!("{:X?}", e);
-        let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
+        let decoded = decoder
+            .decode_extrinsic(1055, e.as_slice())
+            .expect("should decode");
         println!("{}", decoded);
         println!("{}", serde_json::to_string(&decoded).unwrap());
     }
@@ -207,7 +227,9 @@ fn should_decode_ext_1718223() {
     for e in ext.iter() {
         println!("{:?}", e);
         println!("{:X?}", e);
-        let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
+        let decoded = decoder
+            .decode_extrinsic(1055, e.as_slice())
+            .expect("should decode");
         println!("{}", decoded);
         println!("{}", serde_json::to_string(&decoded).unwrap());
     }
@@ -228,7 +250,9 @@ fn should_decode_ext_1732321() {
     for e in ext.iter() {
         println!("{:?}", e);
         println!("{:X?}", e);
-        let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
+        let decoded = decoder
+            .decode_extrinsic(1055, e.as_slice())
+            .expect("should decode");
         println!("{}", decoded);
         println!("{}", serde_json::to_string(&decoded).unwrap());
     }
@@ -249,7 +273,9 @@ fn should_decode_ext_1731904() {
     for e in ext.iter() {
         println!("{:?}", e);
         println!("{:X?}", e);
-        let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
+        let decoded = decoder
+            .decode_extrinsic(1055, e.as_slice())
+            .expect("should decode");
         println!("{}", decoded);
         println!("{}", serde_json::to_string(&decoded).unwrap());
     }
@@ -270,7 +296,9 @@ fn should_decode_ext_1768321() {
     for e in ext.iter() {
         println!("{:?}", e);
         println!("{:X?}", e);
-        let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
+        let decoded = decoder
+            .decode_extrinsic(1055, e.as_slice())
+            .expect("should decode");
         println!("{}", decoded);
         println!("{}", serde_json::to_string(&decoded).unwrap());
     }
@@ -290,7 +318,31 @@ fn should_decode_ext_6144() {
     for e in ext.iter() {
         println!("{:?}", e);
         println!("{:X?}", e);
-        let decoded = decoder.decode_extrinsic(1020, e.as_slice()).expect("should decode");
+        let decoded = decoder
+            .decode_extrinsic(1020, e.as_slice())
+            .expect("should decode");
+        println!("{}", decoded);
+        println!("{}", serde_json::to_string(&decoded).unwrap());
+    }
+}
+
+#[test]
+fn should_decode_ext_779410_ksm() {
+    init();
+    
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Kusama);
+
+    let (meta, ext) = test_suite::extrinsics_block779410();
+    let meta = Metadata::new(meta.as_slice());
+
+    decoder.register_version(1042, &meta);
+    for e in ext.iter() {
+        println!("{:?}", e);
+        println!("{:X?}", e);
+        let decoded = decoder
+            .decode_extrinsic(1042, e.as_slice())
+            .expect("should decode");
         println!("{}", decoded);
         println!("{}", serde_json::to_string(&decoded).unwrap());
     }

@@ -17,6 +17,7 @@ primitives = { package = "sp-core",  git = "https://github.com/paritytech/substr
 frame-system = { git = "https://github.com/paritytech/substrate", rev = "35fe3cd1bc4b64cadb0bc6196ae40173db65bb28" }
 pallet-balances = { git = "https://github.com/paritytech/substrate", rev = "35fe3cd1bc4b64cadb0bc6196ae40173db65bb28" }
 pretty_env_logger = "0.4"
+log = "0.4"
 hex = "0.4"
 
 [[test]]

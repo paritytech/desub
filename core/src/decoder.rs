@@ -65,7 +65,7 @@ impl Clone for Decoder {
         Self {
             versions: self.versions.clone(),
             types: dyn_clone::clone_box(&*self.types),
-            chain: self.chain.clone()
+            chain: self.chain.clone(),
         }
     }
 }
@@ -92,7 +92,7 @@ pub enum Chain {
     Centrifuge,
     Westend,
     Rococo,
-    Custom(String)
+    Custom(String),
 }
 
 impl std::fmt::Display for Chain {
@@ -103,7 +103,7 @@ impl std::fmt::Display for Chain {
             Chain::Centrifuge => write!(f, "centrifuge-chain"),
             Chain::Westend => write!(f, "westend"),
             Chain::Rococo => write!(f, "rococo"),
-            Chain::Custom(s) => write!(f, "{}", s)
+            Chain::Custom(s) => write!(f, "{}", s),
         }
     }
 }
@@ -117,7 +117,7 @@ impl Decoder {
             chain: chain.to_string(),
         }
     }
-    
+
     /// Check if a metadata version has already been registered
     pub fn has_version(&self, version: &SpecVersion) -> bool {
         self.versions.contains_key(&version)
@@ -143,11 +143,11 @@ impl Decoder {
 
     fn decode_key_len(&self, key: &[u8], hasher: &StorageHasher) -> Vec<u8> {
         match hasher {
-            StorageHasher::Blake2_128 | StorageHasher::Twox128 | StorageHasher::Blake2_128Concat => key[..16].to_vec(),
+            StorageHasher::Blake2_128
+            | StorageHasher::Twox128
+            | StorageHasher::Blake2_128Concat => key[..16].to_vec(),
             StorageHasher::Blake2_256 | StorageHasher::Twox256 => key[..32].to_vec(),
-            StorageHasher::Twox64Concat => {
-                key[..8].to_vec()
-            },
+            StorageHasher::Twox64Concat => key[..8].to_vec(),
             StorageHasher::Identity => todo!(),
         }
     }
@@ -250,7 +250,6 @@ impl Decoder {
                     &mut cursor,
                     false,
                 )?;
-                println!("{:?}", value);
                 let key = self.get_key_data(key.as_slice(), &storage_info, &lookup_table);
                 let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
                 Ok(storage)
@@ -390,11 +389,11 @@ impl Decoder {
         cursor: &mut usize,
         is_compact: bool,
     ) -> Result<SubstrateType, Error> {
-        println!("{:?}", ty);
         let ty = match ty {
             RustTypeMarker::TypePointer(v) => {
                 log::debug!("Resolving: {}", v);
-                if let Some(t) = self.decode_sub_type(spec, v, data, cursor, is_compact) {
+                
+                if let Some(t) = self.decode_sub_type(spec, v, data, cursor, is_compact)? {
                     t
                 } else {
                     let new_type = self
@@ -723,16 +722,35 @@ impl Decoder {
         data: &[u8],
         cursor: &mut usize,
         _is_compact: bool,
-    ) -> Option<SubstrateType> {
+    ) -> Result<Option<SubstrateType>, Error> {
         match ty {
+            "Data" => {
+                let data: pallet_identity::Data = Decode::decode(&mut &data[*cursor..])?;
+                
+                // 1 byte for the enum
+                *cursor += 1;
+                match &data {
+                    pallet_identity::Data::None => (),
+                    pallet_identity::Data::Raw(v) => *cursor += v.len(),
+                    _ => *cursor += 32 
+                }
+                Ok(Some(SubstrateType::Data(data)))
+                // let len = Self::scale_length(&data[*cursor..])?;
+                // let data: Vec<u8> = Decode::decode(&mut &data[*cursor..])?;
+                // *cursor += len.0 + len.1;
+                // let data = data.into_iter().map(|d| SubstrateType::U8(d)).collect();
+                // Ok(Some(SubstrateType::Composite(data)))
+            }
             "Call" | "GenericCall" => {
-                let types = self.decode_call(spec, data, cursor).ok()?;
-                Some(SubstrateType::Call(types))
-            },
+                let types = self.decode_call(spec, data, cursor)?;
+                Ok(Some(SubstrateType::Call(types)))
+            }
             "GenericVote" => {
-                let vote: pallet_democracy::Vote = Decode::decode(&mut &data[*cursor..]).ok()?;
-                Some(SubstrateType::GenericVote(vote))
-            },
+                let vote: pallet_democracy::Vote = Decode::decode(&mut &data[*cursor..])?;
+                // a vote is one byte
+                *cursor += 1;
+                Ok(Some(SubstrateType::GenericVote(vote)))
+            }
             "Lookup" | "GenericAddress" | "GenericLookupSource" => {
                 // a specific type that is <T as StaticSource>::Lookup concatenated to just 'Lookup'
                 let inc: usize;
@@ -754,38 +772,34 @@ impl Decoder {
                     0xff => {
                         inc = 32;
                     }
-                    _ => {
-                        log::error!("Invalid Address");
-                        return None;
-                    }
-                };
-                let val: substrate_types::Address = Decode::decode(&mut &data[*cursor..]).ok()?;
+                    _ => return Err(Error::Fail("Invalid Address".to_string())),
+                }
+                let val: substrate_types::Address = Decode::decode(&mut &data[*cursor..])?;
 
                 *cursor += inc + 1; // +1 for byte 0x00-0xff
-                Some(SubstrateType::Address(val))
+                Ok(Some(SubstrateType::Address(val)))
             }
             "Era" => {
-                let val: runtime_primitives::generic::Era =
-                    Decode::decode(&mut &data[*cursor..]).ok()?;
+                let val: runtime_primitives::generic::Era = Decode::decode(&mut &data[*cursor..])?;
                 match val {
                     // although phase and period are both u64, era is Encoded
                     // in only two bytes
                     runtime_primitives::generic::Era::Immortal => *cursor += 1,
                     runtime_primitives::generic::Era::Mortal(_, _) => *cursor += 2,
                 };
-                Some(SubstrateType::Era(val))
+                Ok(Some(SubstrateType::Era(val)))
             }
             "H256" => {
-                let val: primitives::H256 = Decode::decode(&mut &data[*cursor..]).ok()?;
+                let val: primitives::H256 = Decode::decode(&mut &data[*cursor..])?;
                 *cursor += 32;
-                Some(SubstrateType::H256(val))
+                Ok(Some(SubstrateType::H256(val)))
             }
             "H512" => {
-                let val: primitives::H512 = Decode::decode(&mut &data[*cursor..]).ok()?;
+                let val: primitives::H512 = Decode::decode(&mut &data[*cursor..])?;
                 *cursor += 64;
-                Some(SubstrateType::H512(val))
-            },
-            _ => None,
+                Ok(Some(SubstrateType::H512(val)))
+            }
+            _ => Ok(None),
         }
     }
 

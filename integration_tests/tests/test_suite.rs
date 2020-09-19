@@ -9,15 +9,21 @@ fn extrinsic_test(spec: String, block: String, num: usize) -> (Vec<u8>, Vec<Vec<
     println!("{}", std::env::current_dir().unwrap().to_str().unwrap());
     let path = &format!("{}spec{}_block{}/", EXT_PATH, spec, block);
     for i in 0..num {
-        let ext_path = &format!("{}EXTRINSIC_spec_{}_block_{}_index_{}.bin", &path, spec, block, i);
+        let ext_path = &format!(
+            "{}EXTRINSIC_spec_{}_block_{}_index_{}.bin",
+            &path, spec, block, i
+        );
         let mut f = File::open(ext_path).expect("Opening extrinsic failed");
         let mut ext = Vec::new();
         f.read_to_end(&mut ext).expect("Reading file failed");
         exts.push(ext)
     }
 
-    let mut f = File::open(&format!("{}spec_{}_block_{}_METADATA.bin", &path, spec, block)) 
-        .expect("Opening Metadata file failed");
+    let mut f = File::open(&format!(
+        "{}spec_{}_block_{}_METADATA.bin",
+        &path, spec, block
+    ))
+    .expect("Opening Metadata file failed");
     let mut meta = Vec::new();
     f.read_to_end(&mut meta).expect("Reading file failed");
 
@@ -60,15 +66,15 @@ pub fn extrinsics_block1677621() -> (Vec<u8>, Vec<Vec<u8>>) {
 }
 
 pub fn extrinsics_block1702023() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test( "1055".to_string(), "1702023".to_string(), 17)
+    extrinsic_test("1055".to_string(), "1702023".to_string(), 17)
 }
 
 pub fn extrinsics_block1714495() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test("1055".to_string(), "1714495".to_string(), 4) 
+    extrinsic_test("1055".to_string(), "1714495".to_string(), 4)
 }
 
 pub fn extrinsics_block1717926() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test("1055".to_string(), "1717926".to_string(), 4) 
+    extrinsic_test("1055".to_string(), "1717926".to_string(), 4)
 }
 
 pub fn extrinsics_block1718223() -> (Vec<u8>, Vec<Vec<u8>>) {
@@ -91,9 +97,13 @@ pub fn extrinsics_block6144() -> (Vec<u8>, Vec<Vec<u8>>) {
     extrinsic_test("1020".to_string(), "6144".to_string(), 3)
 }
 
+pub fn extrinsics_block779410() -> (Vec<u8>, Vec<Vec<u8>>) {
+    extrinsic_test("1042".to_string(), "779410".to_string(), 4)
+}
+
 /// Get the runtime metadata from KusamaCC3 from block 3,901,874
 /// Block hash 0x1d65a4c67817c4f32f99f7247f070a2f3fd58baf81d4e533c9be9d1aa8c4e65a
-/// 
+///
 /// # Panics
 /// Panics on std::io::Error
 pub fn runtime_v11() -> Vec<u8> {
@@ -130,8 +140,6 @@ pub fn runtime_v9_block500k() -> Vec<u8> {
     buffer
 }
 
-
-
 /// Get the runtime metadata from KusamaCC3 for metadata version 10
 /// Block hash
 /// 0x627a6a8e7698dd360bd44e7816e7f8c5321fa31e0a3f39324d93ec5716a57fb5
@@ -157,4 +165,3 @@ pub fn runtime_v9_block6() -> Vec<u8> {
     f.read_to_end(&mut buffer).expect("Reading file failed");
     buffer
 }
-
