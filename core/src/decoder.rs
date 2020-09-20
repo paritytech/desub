@@ -726,7 +726,6 @@ impl Decoder {
         match ty {
             "Data" => {
                 let data: pallet_identity::Data = Decode::decode(&mut &data[*cursor..])?;
-                
                 // 1 byte for the enum
                 *cursor += 1;
                 match &data {
@@ -735,11 +734,6 @@ impl Decoder {
                     _ => *cursor += 32 
                 }
                 Ok(Some(SubstrateType::Data(data)))
-                // let len = Self::scale_length(&data[*cursor..])?;
-                // let data: Vec<u8> = Decode::decode(&mut &data[*cursor..])?;
-                // *cursor += len.0 + len.1;
-                // let data = data.into_iter().map(|d| SubstrateType::U8(d)).collect();
-                // Ok(Some(SubstrateType::Composite(data)))
             }
             "Call" | "GenericCall" => {
                 let types = self.decode_call(spec, data, cursor)?;

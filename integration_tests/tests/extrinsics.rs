@@ -347,3 +347,24 @@ fn should_decode_ext_779410_ksm() {
         println!("{}", serde_json::to_string(&decoded).unwrap());
     }
 }
+
+#[test]
+fn should_decode_ext_899638_ksm() {
+    init();
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Kusama);
+
+    let (meta, ext) = test_suite::extrinsics_block899638();
+    let meta = Metadata::new(meta.as_slice());
+
+    decoder.register_version(1042, &meta);
+    for e in ext.iter() {
+        println!("{:?}", e);
+        println!("{:X?}", e);
+        let decoded = decoder
+            .decode_extrinsic(1042, e.as_slice())
+            .expect("should decode");
+        println!("{}", decoded);
+        println!("{}", serde_json::to_string(&decoded).unwrap());
+    }
+}
