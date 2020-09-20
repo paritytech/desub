@@ -105,6 +105,10 @@ pub fn extrinsics_block899638() -> (Vec<u8>, Vec<Vec<u8>>) {
     extrinsic_test("1042".to_string(), "899638".to_string(), 4)
 }
 
+pub fn extrinsics_block233816() -> (Vec<u8>, Vec<Vec<u8>>) {
+    extrinsic_test("1030".to_string(), "233816".to_string(), 4)
+}
+
 /// Get the runtime metadata from KusamaCC3 from block 3,901,874
 /// Block hash 0x1d65a4c67817c4f32f99f7247f070a2f3fd58baf81d4e533c9be9d1aa8c4e65a
 ///

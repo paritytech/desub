@@ -40,7 +40,7 @@ use codec::{Decode, Encode, EncodeAsRef, HasCompact};
 // use codec411::Decode as OldDecode;
 use primitives::{storage::StorageKey, twox_128};
 use runtime_metadata_latest::{StorageEntryModifier, StorageHasher};
-use std::error::Error as _;
+
 use std::{
     collections::{HashMap, HashSet},
     convert::TryInto,

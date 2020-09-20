@@ -135,16 +135,16 @@ impl TypeResolver {
     /// returns None if the type cannot be resolved
     pub fn get(&self, chain: &str, spec: u32, module: &str, ty: &str) -> Option<&RustTypeMarker> {
         let (module, ty, chain) = sanitize_types(module, ty, chain);
-        log::debug!("Getting Type: {}, module: {}, spec: {}", ty, module, spec);
+        log::trace!("Getting Type: {}, module: {}, spec: {}", ty, module, spec);
 
         if let Some(t) = self.check_overrides(&module, ty.as_str(), spec, &chain) {
-            log::debug!("Resolving to Override");
+            log::trace!("Resolving to Override");
             Some(&t)
         } else if let Some(t) = self.check_extrinsics(ty.as_str(), spec, &chain) {
-            log::debug!("Resolving to Extrinsic Type");
+            log::trace!("Resolving to Extrinsic Type");
             Some(&t)
         } else {
-            log::debug!("Resolving to Type Pointer");
+            log::trace!("Resolving to Type Pointer");
             self.resolve_helper(&module, &ty)
         }
     }
@@ -230,7 +230,7 @@ fn sanitize_types(module: &str, ty: &str, chain: &str) -> (String, String, Strin
         ty.to_string()
     };
 
-    log::debug!("Possibly de-prefixed type: {}", ty);
+    log::trace!("Possibly de-prefixed type: {}", ty);
     (module, ty, chain)
 }
 

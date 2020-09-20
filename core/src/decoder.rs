@@ -235,7 +235,7 @@ impl Decoder {
 
         match &storage_info.meta.ty {
             StorageType::Plain(rtype) => {
-                log::debug!(
+                log::trace!(
                     "{:?}, module {}, spec {}",
                     rtype,
                     storage_info.module.name(),
@@ -309,14 +309,14 @@ impl Decoder {
         let version = data[cursor];
         let is_signed = version & 0b1000_0000 != 0;
         let version = version & 0b0111_1111;
-        log::debug!("Extrinsic Version: {}", version);
+        log::trace!("Extrinsic Version: {}", version);
         // the second byte will be the index of the call enum
         cursor += 1;
 
         // TODO: split into decode_signature
         let signature: Option<_> = if is_signed {
             // cursor += 1;
-            log::debug!("SIGNED EXTRINSIC");
+            log::trace!("SIGNED EXTRINSIC");
             let signature = self
                 .types
                 .get_extrinsic_ty(self.chain.as_str(), spec, "signature")
@@ -326,8 +326,7 @@ impl Decoder {
             None
         };
         if let Some(s) = &signature {
-            log::debug!("Signature: \n{}", s);
-            log::debug!("End Signature");
+            log::trace!("Signature: \n{}", s);
         }
 
         let mut temp_cursor = cursor;
@@ -353,20 +352,20 @@ impl Decoder {
     ) -> Result<Vec<(String, SubstrateType)>, Error> {
         let meta = self.versions.get(&spec).expect("Spec does not exist");
 
-        log::debug!("data = {:?}", &data[*cursor..]);
-        log::debug!("cursor = {}", cursor);
+        log::trace!("data = {:?}", &data[*cursor..]);
+        log::trace!("cursor = {}", cursor);
         let module = meta.module_by_index(ModuleIndex::Call(data[*cursor]))?;
         *cursor += 1;
-        log::debug!("cursor = {}", cursor);
+        log::trace!("cursor = {}", cursor);
         let call_meta = module.call(data[*cursor])?;
         *cursor += 1;
-        log::debug!("cursor = {}", cursor);
-        log::debug!("data = {:X?}", &data[*cursor..]);
+        log::trace!("cursor = {}", cursor);
+        log::trace!("data = {:X?}", &data[*cursor..]);
 
         // TODO: tuple of argument name -> value
         let mut types: Vec<(String, SubstrateType)> = Vec::new();
         for arg in call_meta.arguments() {
-            log::debug!("arg = {:?}", arg);
+            log::trace!("arg = {:?}", arg);
             let val = self.decode_single(module.name(), spec, &arg.ty, data, cursor, false)?;
             types.push((arg.name.to_string(), val));
         }
@@ -391,7 +390,7 @@ impl Decoder {
     ) -> Result<SubstrateType, Error> {
         let ty = match ty {
             RustTypeMarker::TypePointer(v) => {
-                log::debug!("Resolving: {}", v);
+                log::trace!("Resolving: {}", v);
 
                 if let Some(t) = self.decode_sub_type(spec, v, data, cursor, is_compact)? {
                     t
@@ -408,18 +407,18 @@ impl Decoder {
                                 self.chain.as_str()
                             ))
                         })?;
-                    log::debug!("Resolved {:?}", new_type);
+                    log::trace!("Resolved {:?}", new_type);
                     self.decode_single(module, spec, new_type, data, cursor, is_compact)?
                 }
             }
             RustTypeMarker::Struct(v) => {
-                log::debug!("cursor = {:?}", cursor);
+                log::trace!("cursor = {:?}", cursor);
                 let ty = self.decode_structlike(v, module, spec, data, cursor, is_compact)?;
                 SubstrateType::Struct(ty)
             }
             // TODO: test
             RustTypeMarker::Set(v) => {
-                log::debug!("cursor = {:?}", cursor);
+                log::trace!("cursor = {:?}", cursor);
                 // a set item must be an u8
                 // can decode this right away
                 let index = data[*cursor];
@@ -427,7 +426,7 @@ impl Decoder {
                 SubstrateType::Set(v[index as usize].clone())
             }
             RustTypeMarker::Tuple(v) => {
-                log::debug!("cursor = {:?}", cursor);
+                log::trace!("cursor = {:?}", cursor);
                 let ty = v
                     .iter()
                     .map(|v| self.decode_single(module, spec, &v, data, cursor, is_compact))
@@ -436,13 +435,9 @@ impl Decoder {
             }
             RustTypeMarker::Enum(v) => {
                 let index = data[*cursor];
-                log::debug!("HERE");
-                log::debug!("Decoding enum {:?}", v);
-                log::debug!("data = {:?}", data[*cursor]);
-                log::debug!("cursor = {:?}", cursor);
+                log::trace!("Decoding enum {:?}", v);
                 *cursor += 1;
                 let variant = &v[index as usize];
-                log::debug!("Don't get here");
                 match &variant.ty {
                     crate::StructUnitOrTuple::Struct(ref v) => {
                         let ty =
@@ -464,7 +459,7 @@ impl Decoder {
                 }
             }
             RustTypeMarker::Array { size, ty } => {
-                log::debug!("cursor = {:?}", cursor);
+                log::trace!("cursor = {:?}", cursor);
                 let mut decoded_arr = Vec::with_capacity(*size);
                 if *size == 0 as usize {
                     log::trace!("Returning Empty Vector");
@@ -480,7 +475,7 @@ impl Decoder {
             }
             RustTypeMarker::Std(v) => match v {
                 CommonTypes::Vec(v) => {
-                    log::debug!("cursor = {:?}", cursor);
+                    log::trace!("cursor = {:?}", cursor);
                     let length = Self::scale_length(&data[*cursor..])?;
                     *cursor += length.1;
                     // we can just decode this as an "array" now
@@ -497,7 +492,7 @@ impl Decoder {
                     )?
                 }
                 CommonTypes::Option(v) => {
-                    log::debug!("cursor = {:?}", cursor);
+                    log::trace!("cursor = {:?}", cursor);
                     match data[*cursor] {
                         // None
                         0x00 => {
@@ -517,7 +512,7 @@ impl Decoder {
                     }
                 }
                 CommonTypes::Result(v, e) => {
-                    log::debug!("cursor = {:?}", cursor);
+                    log::trace!("cursor = {:?}", cursor);
                     match data[*cursor] {
                         // Ok
                         0x00 => {
@@ -540,12 +535,12 @@ impl Decoder {
                 }
                 // TODO: test
                 CommonTypes::Compact(v) => {
-                    log::debug!("cursor = {:?}", cursor);
+                    log::trace!("cursor = {:?}", cursor);
                     self.decode_single(module, spec, v, data, cursor, true)?
                 }
             },
             RustTypeMarker::Generic((outer, _)) => {
-                log::debug!("Generic Type");
+                log::trace!("Generic Type");
                 // disregard 'inner' type of a generic
                 self.decode_single(module, spec, outer, data, cursor, is_compact)?
             }
@@ -598,7 +593,7 @@ impl Decoder {
                 num.into()
             }
             RustTypeMarker::U128 => {
-                log::debug!("data = {:?}", &data[*cursor..]);
+                log::trace!("data = {:?}", &data[*cursor..]);
                 let num: u128 = if is_compact {
                     let num: Compact<u128> = Decode::decode(&mut &data[*cursor..])?;
                     *cursor += Compact::compact_len(&u128::from(num));
@@ -726,12 +721,20 @@ impl Decoder {
         match ty {
             "Data" => {
                 let data: pallet_identity::Data = Decode::decode(&mut &data[*cursor..])?;
-                // 1 byte for the enum
-                *cursor += 1;
                 match &data {
                     pallet_identity::Data::None => (),
-                    pallet_identity::Data::Raw(v) => *cursor += v.len(),
-                    _ => *cursor += 32,
+                    pallet_identity::Data::Raw(v) => {
+                        // enum byte 
+                        *cursor += 1;
+                        // len of vec
+                        *cursor += v.len();
+                    }
+                    _ => {
+                        // for the enum byte
+                        *cursor += 1;
+                        // for the other bytes
+                        *cursor += 32;
+                    }
                 }
                 Ok(Some(SubstrateType::Data(data)))
             }
@@ -747,21 +750,18 @@ impl Decoder {
             }
             "Lookup" | "GenericAddress" | "GenericLookupSource" => {
                 // a specific type that is <T as StaticSource>::Lookup concatenated to just 'Lookup'
-                log::debug!("cursor={}, data={}", cursor, hex::encode(&data[*cursor..]));
+                log::trace!("cursor={}, data length={}", cursor, data.len());
                 let inc: usize;
                 // TODO: requires more investigation
                 // cursor increments for 0x00 .. 0xfe may be incorrect
                 match data[*cursor] {
                     0x00..=0xef => {
-                        inc = 1;
+                        inc = 0;
                     }
                     0xfc => {
                         inc = 2;
                     }
-                    0xfd => {
-                        inc = 4;
-                    }
-                    0xfe => {
+                    0xfd | 0xfe => {
                         inc = 4;
                     }
                     0xff => {
@@ -769,6 +769,7 @@ impl Decoder {
                     }
                     _ => return Err(Error::Fail("Invalid Address".to_string())),
                 }
+                
                 let val: substrate_types::Address = Decode::decode(&mut &data[*cursor..])?;
 
                 *cursor += inc + 1; // +1 for byte 0x00-0xff
