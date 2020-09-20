@@ -163,12 +163,16 @@ impl TypeResolver {
     /// Try to resolve a type pointer from the default definitions (definitions.json)
     fn resolve_helper(&self, module: &str, ty_pointer: &str) -> Option<&RustTypeMarker> {
         log::debug!("Helper resolving {}, {}", module, ty_pointer);
-        
+
         if let Some(t) = self.mods.get_type(module, ty_pointer) {
             log::info!("Type {} found in module {}", ty_pointer, module);
             Some(t)
         } else if let Some(t) = self.mods.get_type("runtime", ty_pointer) {
-            log::debug!("Type not found in {}, trying `runtime` for type {}", module, ty_pointer);
+            log::debug!(
+                "Type not found in {}, trying `runtime` for type {}",
+                module,
+                ty_pointer
+            );
             Some(t)
         } else if let Some(t) = self.check_other_modules(ty_pointer) {
             log::debug!("trying other modules");

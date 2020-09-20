@@ -322,4 +322,3 @@ impl Display for RustTypeMarker {
         write!(f, "{}", type_marker)
     }
 }
-

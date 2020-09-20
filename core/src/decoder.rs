@@ -392,7 +392,7 @@ impl Decoder {
         let ty = match ty {
             RustTypeMarker::TypePointer(v) => {
                 log::debug!("Resolving: {}", v);
-                
+
                 if let Some(t) = self.decode_sub_type(spec, v, data, cursor, is_compact)? {
                     t
                 } else {
@@ -731,7 +731,7 @@ impl Decoder {
                 match &data {
                     pallet_identity::Data::None => (),
                     pallet_identity::Data::Raw(v) => *cursor += v.len(),
-                    _ => *cursor += 32 
+                    _ => *cursor += 32,
                 }
                 Ok(Some(SubstrateType::Data(data)))
             }

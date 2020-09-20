@@ -13,7 +13,7 @@ pub enum Error {
     #[error("error: {0}")]
     Fail(String),
     #[error("parse error {0}")]
-    Regex(#[from] onig::Error)
+    Regex(#[from] onig::Error),
 }
 
 impl From<&str> for Error {

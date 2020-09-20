@@ -30,7 +30,6 @@ enum RegexSet {
     Generic,
 }
 
-
 impl RegexSet {
     /// Checks if string matches any of the patterns defined
     /// Returns none if it does not match
@@ -105,8 +104,7 @@ pub fn rust_compact_decl() -> Regex {
 
 /// Match a rust Boxed type
 pub fn rust_box_decl() -> Regex {
-    Regex::new(r"^Box<(?<type>[\w><,(): ]+)>")
-        .expect("Regex expression should be infallible; qed")
+    Regex::new(r"^Box<(?<type>[\w><,(): ]+)>").expect("Regex expression should be infallible; qed")
 }
 
 /// Match a Rust Generic Type Declaration
@@ -143,7 +141,7 @@ pub fn rust_tuple_decl() -> Regex {
             r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
             r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
             r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
-            r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#, 
+            r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
             r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
             r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
             r#",? *([\w><:()\n]+)*\)$"#,
@@ -296,7 +294,7 @@ fn parse_regex_compact(s: &str) -> Option<RustTypeMarker> {
 
 /// Parse a Box
 /// Boxes are a purely rust memory-management phenomenon.
-/// We only care about the underlying data structure. 
+/// We only care about the underlying data structure.
 /// So we do not preserve the fact that this type is 'boxed'.
 fn parse_regex_box(s: &str) -> Option<RustTypeMarker> {
     let re = rust_box_decl();
@@ -304,7 +302,7 @@ fn parse_regex_box(s: &str) -> Option<RustTypeMarker> {
         return None;
     }
     let ty = re.captures(s)?.at(1)?;
-    
+
     Some(parse(ty).expect("Should always be some type; qed"))
 }
 
@@ -850,7 +848,7 @@ mod tests {
     fn should_not_overflow_retry_limit() {
         let re = rust_tuple_decl();
         let tuple = "(ParaId, Option<(CollatorId, Retriable)>)";
-        assert!(re.is_match(tuple)) 
+        assert!(re.is_match(tuple))
     }
 
     #[test]

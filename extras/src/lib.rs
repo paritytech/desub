@@ -1,20 +1,19 @@
 #[cfg(feature = "default")]
 mod definitions;
 
-mod overrides;
+mod error;
 mod extrinsics;
 mod modules;
+mod overrides;
 mod resolver;
-mod error;
 
-pub use self::overrides::*;
+pub use self::error::*;
 pub use self::extrinsics::*;
 pub use self::modules::*;
-pub use self::error::*;
+pub use self::overrides::*;
 pub use self::resolver::{Builder as TypeResolverBuilder, TypeResolver};
 
-
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 /// An overrides for a range of runtime versions
 #[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq, Clone)]
 pub struct TypeRange {
@@ -37,4 +36,3 @@ fn is_in_range(spec: u32, over_ride: &TypeRange) -> bool {
         [None, None] => true,
     }
 }
-

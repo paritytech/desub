@@ -12,10 +12,13 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use serde::{Serialize, Deserialize, de::{Deserializer, MapAccess, Visitor}};
-use core::{regex, EnumField, RustTypeMarker, SetField, StructField, StructUnitOrTuple};
-use std::{collections::HashMap, fmt};
 use crate::error::Error;
+use core::{regex, EnumField, RustTypeMarker, SetField, StructField, StructUnitOrTuple};
+use serde::{
+    de::{Deserializer, MapAccess, Visitor},
+    Deserialize, Serialize,
+};
+use std::{collections::HashMap, fmt};
 
 /// Types for each substrate Module
 #[derive(Serialize, Default, Debug, PartialEq, Eq, Clone)]
@@ -32,13 +35,13 @@ impl Modules {
     }
 
     pub fn get(&self, ty: &str) -> Option<&ModuleTypes> {
-        self.modules.get(ty) 
+        self.modules.get(ty)
     }
 
     pub fn get_type(&self, module: &str, ty: &str) -> Option<&RustTypeMarker> {
         self.modules.get(module)?.types.get(ty)
     }
-    
+
     /// Iterate over all the types in each module
     pub fn iter_types(&self) -> impl Iterator<Item = (&String, &RustTypeMarker)> {
         self.modules.values().map(|v| v.types.iter()).flatten()
@@ -165,10 +168,8 @@ fn parse_mod_types(
                 if key == "_alias" {
                     continue;
                 } else {
-                    let field = StructField::new(
-                        key,
-                        regex::parse(&val_to_str(val)).expect("Not a type"),
-                    );
+                    let field =
+                        StructField::new(key, regex::parse(&val_to_str(val)).expect("Not a type"));
                     fields.push(field);
                 }
             }
@@ -176,10 +177,8 @@ fn parse_mod_types(
         } else {
             let mut fields = Vec::new();
             for (key, val) in obj.iter() {
-                let field = StructField::new(
-                    key,
-                    regex::parse(&val_to_str(val)).expect("Not a type"),
-                );
+                let field =
+                    StructField::new(key, regex::parse(&val_to_str(val)).expect("Not a type"));
                 fields.push(field);
             }
             module_types.insert(key.to_string(), RustTypeMarker::Struct(fields));
@@ -251,10 +250,10 @@ fn parse_enum(obj: &serde_json::Value) -> RustTypeMarker {
 #[cfg(test)]
 mod tests {
     use super::Modules;
-    use crate::error::Error;
     use super::*;
+    use crate::error::Error;
     use crate::ModuleTypes;
-    use core::{RustTypeMarker, SetField, EnumField, StructUnitOrTuple, StructField};
+    use core::{EnumField, RustTypeMarker, SetField, StructField, StructUnitOrTuple};
     use std::collections::HashMap;
     const RAW_JSON: &'static str = r#"
 {

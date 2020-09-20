@@ -21,12 +21,12 @@
 
 mod remote;
 
+use self::remote::*;
 use crate::SetField;
+use primitives::crypto::AccountId32;
 use primitives::crypto::{Ss58AddressFormat, Ss58Codec};
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use primitives::crypto::AccountId32;
-use self::remote::*;
 
 pub type Address = pallet_indices::address::Address<AccountId32, u32>;
 pub type Vote = pallet_democracy::Vote;
@@ -48,17 +48,17 @@ pub enum SubstrateType {
     Call(Vec<(String, SubstrateType)>),
     /// Era
     Era(runtime_primitives::generic::Era),
-    
+
     /// Vote
     #[serde(with = "RemoteVote")]
     GenericVote(pallet_democracy::Vote),
-    
+
     /// Substrate Indices Address Type
     // TODO: this is not generic for any chain that doesn't use a
     // u32 and [u8; 32] for its index/id
     #[serde(with = "RemoteAddress")]
     Address(Address),
-    
+
     #[serde(with = "RemoteData")]
     Data(Data),
 
@@ -132,9 +132,12 @@ impl fmt::Display for SubstrateType {
                 runtime_primitives::generic::Era::Mortal(s, e) => write!(f, "Era {}..{}", s, e),
                 runtime_primitives::generic::Era::Immortal => write!(f, "Immortal Era"),
             },
-            SubstrateType::GenericVote(v) => {
-                write!(f, "Aye={}, Conviction={}", v.aye, v.conviction.lock_periods())
-            },
+            SubstrateType::GenericVote(v) => write!(
+                f,
+                "Aye={}, Conviction={}",
+                v.aye,
+                v.conviction.lock_periods()
+            ),
             SubstrateType::Address(v) => {
                 match v {
                     pallet_indices::address::Address::Id(ref i) => {
@@ -147,10 +150,8 @@ impl fmt::Display for SubstrateType {
                     }
                     pallet_indices::address::Address::Index(i) => write!(f, "Index: {:?}", i),
                 }
-            },
-            SubstrateType::Data(d) => {
-                write!(f, "{:?}", d)
             }
+            SubstrateType::Data(d) => write!(f, "{:?}", d),
             SubstrateType::SignedExtra(v) => write!(f, "{}", v),
             SubstrateType::Composite(v) => {
                 let mut s = String::from("");

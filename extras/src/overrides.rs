@@ -12,7 +12,7 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{ModuleTypes, TypeRange, Result};
+use crate::{ModuleTypes, Result, TypeRange};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -50,7 +50,7 @@ impl Overrides {
             .find(|f| crate::is_in_range(spec, f))
             .map(|o| &o.types)
     }
-    
+
     /// get types for a substrate module
     pub fn get_module_types(&self, module: &str) -> Option<&ModuleTypes> {
         self.types_modules.get(module)
@@ -135,8 +135,7 @@ mod tests {
         }
         "#;
 
-        let types_spec: HashMap<String, Vec<TypeRange>> =
-            serde_json::from_str(json).unwrap();
+        let types_spec: HashMap<String, Vec<TypeRange>> = serde_json::from_str(json).unwrap();
         dbg!(types_spec);
     }
 

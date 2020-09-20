@@ -41,7 +41,6 @@ use codec::{Decode, Encode, EncodeAsRef, HasCompact};
 use primitives::{storage::StorageKey, twox_128};
 use runtime_metadata_latest::{StorageEntryModifier, StorageHasher};
 use std::error::Error as _;
-use thiserror::Error;
 use std::{
     collections::{HashMap, HashSet},
     convert::TryInto,
@@ -50,6 +49,7 @@ use std::{
     str::FromStr,
     sync::Arc,
 };
+use thiserror::Error;
 
 /// Newtype struct around a Vec<u8> (vector of bytes)
 #[derive(Clone)]
@@ -109,7 +109,7 @@ impl From<Vec<u8>> for Metadata {
 
 impl From<&[u8]> for Metadata {
     fn from(bytes: &[u8]) -> Metadata {
-        Metadata::new(bytes) 
+        Metadata::new(bytes)
     }
 }
 
@@ -117,7 +117,7 @@ impl From<&Metadata> for Metadata {
     fn from(meta: &Metadata) -> Metadata {
         meta.clone()
     }
-} 
+}
 
 impl Metadata {
     /// Create a new Metadata type from raw encoded bytes
@@ -150,8 +150,7 @@ impl Metadata {
             }
             0x09 => {
                 let meta: runtime_metadata09::RuntimeMetadataPrefixed =
-                    Decode::decode(&mut &bytes[..])
-                    .expect("Decode Failed");
+                    Decode::decode(&mut &bytes[..]).expect("Decode Failed");
                 meta.try_into().expect("Conversion Failed")
             }
             0xA => {
