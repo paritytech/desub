@@ -747,6 +747,7 @@ impl Decoder {
             }
             "Lookup" | "GenericAddress" | "GenericLookupSource" => {
                 // a specific type that is <T as StaticSource>::Lookup concatenated to just 'Lookup'
+                log::debug!("cursor={}, data={}", cursor, hex::encode(&data[*cursor..]));
                 let inc: usize;
                 // TODO: requires more investigation
                 // cursor increments for 0x00 .. 0xfe may be incorrect
