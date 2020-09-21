@@ -230,6 +230,13 @@ pub struct StructField {
     pub ty: SubstrateType,
 }
 
+impl StructField {
+    pub fn new<S: Into<String>>(name: Option<S>, ty: SubstrateType) -> Self {
+        let name: Option<String> = name.map(|s| s.into());
+        Self { name, ty }
+    }
+}
+
 impl fmt::Display for StructField {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "struct_field( {:?}: {} )", self.name, self.ty)

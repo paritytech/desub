@@ -130,6 +130,7 @@ impl Display for EnumField {
 /// Definitions for common patterns seen in Substrate/Polkadot
 /// type definitions
 /// Definitions for Vec/Option/Compact
+/// Boxed because self-referential otherwise
 pub enum CommonTypes {
     /// Rust std Vec<T> type
     Vec(Box<RustTypeMarker>),

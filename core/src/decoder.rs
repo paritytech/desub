@@ -326,7 +326,7 @@ impl Decoder {
             None
         };
         if let Some(s) = &signature {
-            log::trace!("Signature: \n{}", s);
+            log::trace!("signature={}", s);
         }
 
         let mut temp_cursor = cursor;
@@ -412,13 +412,13 @@ impl Decoder {
                 }
             }
             RustTypeMarker::Struct(v) => {
-                log::trace!("cursor = {:?}", cursor);
+                log::trace!("Struct::cursor = {:?}", cursor);
                 let ty = self.decode_structlike(v, module, spec, data, cursor, is_compact)?;
                 SubstrateType::Struct(ty)
             }
             // TODO: test
             RustTypeMarker::Set(v) => {
-                log::trace!("cursor = {:?}", cursor);
+                log::trace!("Set::cursor = {}", *cursor);
                 // a set item must be an u8
                 // can decode this right away
                 let index = data[*cursor];
@@ -426,7 +426,7 @@ impl Decoder {
                 SubstrateType::Set(v[index as usize].clone())
             }
             RustTypeMarker::Tuple(v) => {
-                log::trace!("cursor = {:?}", cursor);
+                log::trace!("Tuple::cursor={}", *cursor);
                 let ty = v
                     .iter()
                     .map(|v| self.decode_single(module, spec, &v, data, cursor, is_compact))
@@ -434,8 +434,8 @@ impl Decoder {
                 SubstrateType::Composite(ty?)
             }
             RustTypeMarker::Enum(v) => {
+                log::trace!("Enum::cursor={}", *cursor);
                 let index = data[*cursor];
-                log::trace!("Decoding enum {:?}", v);
                 *cursor += 1;
                 let variant = &v[index as usize];
                 match &variant.ty {
@@ -459,7 +459,7 @@ impl Decoder {
                 }
             }
             RustTypeMarker::Array { size, ty } => {
-                log::trace!("cursor = {:?}", cursor);
+                log::trace!("Array::cursor={}", *cursor);
                 let mut decoded_arr = Vec::with_capacity(*size);
                 if *size == 0 as usize {
                     log::trace!("Returning Empty Vector");
@@ -475,7 +475,7 @@ impl Decoder {
             }
             RustTypeMarker::Std(v) => match v {
                 CommonTypes::Vec(v) => {
-                    log::trace!("cursor = {:?}", cursor);
+                    log::trace!("Vec::cursor={}", *cursor);
                     let length = Self::scale_length(&data[*cursor..])?;
                     *cursor += length.1;
                     // we can just decode this as an "array" now
@@ -492,7 +492,7 @@ impl Decoder {
                     )?
                 }
                 CommonTypes::Option(v) => {
-                    log::trace!("cursor = {:?}", cursor);
+                    log::trace!("Option::cursor={}", *cursor);
                     match data[*cursor] {
                         // None
                         0x00 => {
@@ -512,7 +512,7 @@ impl Decoder {
                     }
                 }
                 CommonTypes::Result(v, e) => {
-                    log::trace!("cursor = {:?}", cursor);
+                    log::trace!("Result::cursor={}", *cursor);
                     match data[*cursor] {
                         // Ok
                         0x00 => {
@@ -535,7 +535,7 @@ impl Decoder {
                 }
                 // TODO: test
                 CommonTypes::Compact(v) => {
-                    log::trace!("cursor = {:?}", cursor);
+                    log::trace!("Compact::cursor={}", cursor);
                     self.decode_single(module, spec, v, data, cursor, true)?
                 }
             },
@@ -571,7 +571,9 @@ impl Decoder {
             RustTypeMarker::U32 => {
                 let num: u32 = if is_compact {
                     let num: Compact<u32> = Decode::decode(&mut &data[*cursor..])?;
-                    *cursor += Compact::compact_len(&u32::from(num));
+                    let len = Compact::compact_len(&u32::from(num));
+                    log::trace!("Compact len: {}", len);
+                    *cursor += len;
                     num.into()
                 } else {
                     let num: u32 = Decode::decode(&mut &data[*cursor..])?;
@@ -704,6 +706,7 @@ impl Decoder {
     }
 
     /// internal API to decode substrate type
+    /// these types override anything defined in JSON
     /// Tries to decode a type that is native to substrate
     /// for example, H256. Returns none if type cannot be deduced
     /// Supported types:
@@ -716,27 +719,48 @@ impl Decoder {
         ty: &str,
         data: &[u8],
         cursor: &mut usize,
-        _is_compact: bool,
+        is_compact: bool,
     ) -> Result<Option<SubstrateType>, Error> {
         match ty {
+            // identity info may be added to in the future
+            "IdentityInfo" => {
+                let additional = self.decode_single(
+                   "identity", 
+                   spec, 
+                   &RustTypeMarker::Std(CommonTypes::Vec(Box::new(RustTypeMarker::TypePointer("IdentityInfoAdditional".to_string())))),
+                   data, cursor, is_compact)?;
+                let display = self.decode_sub_type(spec, "Data", data, cursor, is_compact)?.ok_or(Error::from("Data not resolved"))?;
+                let legal = self.decode_sub_type(spec, "Data", data, cursor, is_compact)?.ok_or(Error::from("Data not resolved"))?;
+                let web = self.decode_sub_type(spec, "Data", data, cursor, is_compact)?.ok_or(Error::from("Data not resolved"))?;
+                let riot = self.decode_sub_type(spec, "Data", data, cursor, is_compact)?.ok_or(Error::from("Data not resolved"))?;
+                let email = self.decode_sub_type(spec, "Data", data, cursor, is_compact)?.ok_or(Error::from("Data not resolved"))?;
+                let pgp_fingerprint = self.decode_single("identity", spec, &RustTypeMarker::Std(CommonTypes::Option(Box::new(RustTypeMarker::TypePointer("H160".to_string())))), data, cursor, is_compact)?;
+                let image = self.decode_sub_type(spec, "Data", data, cursor, is_compact)?.ok_or(Error::from("Data not resolved"))?;
+                let twitter = self.decode_sub_type(spec, "Data", data, cursor, is_compact);
+
+                Ok(Some(SubstrateType::Struct(vec![
+                    StructField::new(Some("additional"), additional),
+                    StructField::new(Some("display"), display),
+                    StructField::new(Some("legal"), legal),
+                    StructField::new(Some("web"), web),
+                    StructField::new(Some("riot"), riot),
+                    StructField::new(Some("email"), email),
+                    StructField::new(Some("pgpFingerprint"), pgp_fingerprint),
+                    StructField::new(Some("image"), image),
+                    StructField::new(Some("twitter"), twitter.unwrap_or(Some(SubstrateType::Null)).ok_or(Error::from("Data not resolved"))?)
+                ])))
+            },
             "Data" => {
-                let data: pallet_identity::Data = Decode::decode(&mut &data[*cursor..])?;
-                match &data {
+                log::trace!("Data::cursor={}", *cursor);
+                let identity_data: pallet_identity::Data = Decode::decode(&mut &data[*cursor..])?;
+                match &identity_data {
                     pallet_identity::Data::None => (),
-                    pallet_identity::Data::Raw(v) => {
-                        // enum byte 
-                        *cursor += 1;
-                        // len of vec
-                        *cursor += v.len();
-                    }
-                    _ => {
-                        // for the enum byte
-                        *cursor += 1;
-                        // for the other bytes
-                        *cursor += 32;
-                    }
-                }
-                Ok(Some(SubstrateType::Data(data)))
+                    pallet_identity::Data::Raw(v) => *cursor += v.len(),
+                    _ => *cursor += 32, 
+                };
+                // for the enum byte
+                *cursor += 1;
+                Ok(Some(SubstrateType::Data(identity_data)))
             }
             "Call" | "GenericCall" => {
                 let types = self.decode_call(spec, data, cursor)?;
@@ -761,8 +785,11 @@ impl Decoder {
                     0xfc => {
                         inc = 2;
                     }
-                    0xfd | 0xfe => {
+                    0xfd => {
                         inc = 4;
+                    }
+                    0xfe => {
+                        inc = 8;
                     }
                     0xff => {
                         inc = 32;
@@ -776,7 +803,9 @@ impl Decoder {
                 Ok(Some(SubstrateType::Address(val)))
             }
             "Era" => {
+                log::trace!("ERA DATA: {:X?}",&data[*cursor..]);
                 let val: runtime_primitives::generic::Era = Decode::decode(&mut &data[*cursor..])?;
+                log::trace!("Resolved Era: {:?}", val);
                 match val {
                     // although phase and period are both u64, era is Encoded
                     // in only two bytes
@@ -792,9 +821,10 @@ impl Decoder {
             }
             "H512" => {
                 let val: primitives::H512 = Decode::decode(&mut &data[*cursor..])?;
+                log::trace!("H512: {}", hex::encode(val.as_bytes()));
                 *cursor += 64;
                 Ok(Some(SubstrateType::H512(val)))
-            }
+            },
             _ => Ok(None),
         }
     }
@@ -813,7 +843,6 @@ impl Decoder {
     }
 
     /// internal api to decode a vector of struct IdentityFields
-    /// avoids code duplications when dealing with structfields in structs/enums
     fn decode_structlike(
         &self,
         fields: &[crate::StructField],
@@ -826,6 +855,7 @@ impl Decoder {
         fields
             .iter()
             .map(|field| {
+                log::trace!("name={:?}, field={}", field.name, field.ty);
                 let ty = self.decode_single(module, spec, &field.ty, data, cursor, is_compact)?;
                 Ok(StructField {
                     name: Some(field.name.clone()),

@@ -381,8 +381,7 @@ fn should_decode_ext_233816_ksm() {
 
     decoder.register_version(1030, &meta);
     for e in ext.iter() {
-        println!("{:?}", e);
-        println!("{:X?}", e);
+        println!("DECODING --------------------- \n {:X?} \n ------", e);
         let decoded = decoder
             .decode_extrinsic(1030, e.as_slice())
             .expect("should decode");
@@ -390,3 +389,26 @@ fn should_decode_ext_233816_ksm() {
         println!("{}", serde_json::to_string(&decoded).unwrap());
     }
 }
+
+#[test]
+fn should_decode_ext_607421_ksm() {
+    init();
+    
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Kusama);
+
+    let (meta, ext) = test_suite::extrinsics_block607421();
+    let meta = Metadata::new(meta.as_slice());
+
+    decoder.register_version(1039, &meta);
+    for e in ext.iter() {
+        println!("DECODING: \n ------ {:X?} \n ------", e);
+        let decoded = decoder
+            .decode_extrinsic(1039, e.as_slice())
+            .expect("should decode");
+        println!("{}", decoded);
+        println!("{}", serde_json::to_string(&decoded).unwrap());
+    }
+}
+
+
