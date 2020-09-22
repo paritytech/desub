@@ -317,6 +317,7 @@ impl Decoder {
         let signature: Option<_> = if is_signed {
             // cursor += 1;
             log::trace!("SIGNED EXTRINSIC");
+            log::trace!("Getting signature for spec: {}, chain: {}", spec, self.chain.as_str());
             let signature = self
                 .types
                 .get_extrinsic_ty(self.chain.as_str(), spec, "signature")
@@ -326,13 +327,21 @@ impl Decoder {
             None
         };
         if let Some(s) = &signature {
-            log::trace!("signature={}", s);
+            log::debug!("signature={}", s);
         }
-
+        
         let mut temp_cursor = cursor;
-        let module = meta.module_by_index(ModuleIndex::Call(data[temp_cursor]))?;
+        let module = meta.module_by_index(ModuleIndex::Call(data[temp_cursor]))
+            .map_err(|e| Error::DetailedMetaFail(e, temp_cursor, hex::encode(data)))?;
         temp_cursor += 1;
-        let call_meta = module.call(data[temp_cursor])?;
+        let call_meta = module.call(data[temp_cursor])
+            .map_err(|e| {
+                // println!("{:?}", data[temp_cursor]);
+                // println!("Or here");
+                // println!("{:#?}", module);
+                // println!("{}", meta.detailed_pretty());
+                Error::DetailedMetaFail(e, temp_cursor, hex::encode(data))
+            })?;
 
         let types = self.decode_call(spec, data, &mut cursor)?;
 
@@ -772,7 +781,7 @@ impl Decoder {
                 *cursor += 1;
                 Ok(Some(SubstrateType::GenericVote(vote)))
             }
-            "Lookup" | "GenericAddress" | "GenericLookupSource" => {
+            "Lookup" | "GenericAddress" | "GenericLookupSource" | "GenericAccountId" => {
                 // a specific type that is <T as StaticSource>::Lookup concatenated to just 'Lookup'
                 log::trace!("cursor={}, data length={}", cursor, data.len());
                 let inc: usize;

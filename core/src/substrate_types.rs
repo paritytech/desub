@@ -144,7 +144,7 @@ impl fmt::Display for SubstrateType {
                         write!(
                             f,
                             "Account::Id({})",
-                            i.to_ss58check_with_version(Ss58AddressFormat::KusamaAccount)
+                            i.to_ss58check_with_version(Ss58AddressFormat::PolkadotAccount)
                         )
                         //write!(f, "Account::Id({})", i)
                     }

@@ -69,13 +69,13 @@ pub fn compact<T: HasCompact>(t: T) -> Encoded {
 
 #[derive(Debug, Clone, Error)]
 pub enum MetadataError {
-    #[error("{0}")]
+    #[error("Module {0} not found")]
     ModuleNotFound(String),
-    #[error("{0}")]
+    #[error("Call {0} not found")]
     CallNotFound(&'static str),
-    #[error("{0}")]
+    #[error("Module index {0} not found")]
     ModuleIndexNotFound(ModuleIndex),
-    #[error("{0}")]
+    #[error("Storage {0} not found")]
     StorageNotFound(&'static str),
     #[error("StorageType Error")]
     StorageTypeError,
@@ -144,21 +144,25 @@ impl Metadata {
                 meta.try_into().expect("Conversion failed")
             } */
             0x08 => {
+                log::debug!("Metadata V8");
                 let meta: runtime_metadata08::RuntimeMetadataPrefixed =
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
                 meta.try_into().expect("Conversion failed")
             }
             0x09 => {
+                log::debug!("Metadata V9");
                 let meta: runtime_metadata09::RuntimeMetadataPrefixed =
                     Decode::decode(&mut &bytes[..]).expect("Decode Failed");
                 meta.try_into().expect("Conversion Failed")
             }
             0xA => {
+                log::debug!("Metadata V10");
                 let meta: runtime_metadata10::RuntimeMetadataPrefixed =
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
                 meta.try_into().expect("Conversion failed")
             }
             0xB => {
+                log::debug!("Metadata V11");
                 let meta: runtime_metadata_latest::RuntimeMetadataPrefixed =
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
                 meta.try_into().expect("Conversion failed")

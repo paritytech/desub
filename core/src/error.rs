@@ -8,6 +8,8 @@ pub enum Error {
     Codec(#[from] CodecError),
     #[error("{0}")]
     Metadata(#[from] MetadataError),
+    #[error("Failed to get metadata item because of `{0}`, where cursor is {1} and data is {2}")]
+    DetailedMetaFail(MetadataError, usize, String),
     #[error("decoding failed")]
     DecodeFail,
     #[error("error: {0}")]

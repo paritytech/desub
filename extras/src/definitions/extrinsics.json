@@ -12,7 +12,8 @@
         "AccountId": "[u8; 32]",
         "AnySignature": "H512",
         "SignedExtra": "(OnlyStakingAndClaims, system::CheckVersion<Runtime>, system::CheckGenesis<Runtime>, system::CheckEra<Runtime>, system::CheckNonce<Runtime>, system::CheckWeight<Runtime>, balances::TakeFees<Runtime>)"
-      } },
+      } 
+    },
     {
       "minmax": [
         1007,
@@ -55,6 +56,62 @@
         "CheckWeight<Runtime>": "[u8; 0]",
         "ChargeTransactionPayment<Runtime>": "Compact<BalanceOf>",
         "LimitParathreadCommits<Runtime>": "[u8; 0]",
+	"Lookup": "LookupSource"
+      }
+    }
+  ],
+  "polkadot": [
+    {
+      "minmax": [
+         0,
+	 8
+      ],
+      "types": {
+        "signature": "(Address, MultiSignature, SignedExtra)",
+	"empty_extra": "[u8; 0]",
+        "Address": "Lookup",
+        "AccountIndex": "u32",
+        "AccountId": "[u8; 32]",
+        "SignedExtra": "(TransactionCallFilter, CheckSpecVersion, CheckTxVersion, CheckGenesis, CheckEra, CheckNonce, CheckWeight, ChargeTransactionPayment, LimitParathreadCommits, ValidateDoubleVoteReports, ValidateEquivocationReport, PrevalidateAttests)",
+	"TransactionCallFilter": "empty_extra",
+	"CheckSpecVersion": "empty_extra",
+	"CheckTxVersion": "empty_extra",
+	"CheckGenesis": "empty_extra",
+	"CheckEra": "Era",
+	"CheckNonce": "Compact<Index>",
+	"CheckWeight": "empty_extra",
+	"ChargeTransactionPayment": "empty_extra",
+	"LimitParathreadCommits": "empty_extra",
+	"ValidateDoubleVoteReports": "empty_extra",
+	"ValidateEquivocationReport": "empty_extra",
+	"PrevalidateAttests": "empty_extra",
+	"Lookup": "LookupSource"
+      }
+    },
+    {
+      "minmax": [
+         9,
+	 null	
+      ],
+      "types": {
+        "signature": "(Address, MultiSignature, SignedExtra)",
+	"empty_extra": "[u8; 0]",
+        "Address": "Lookup",
+        "AccountIndex": "u32",
+        "AccountId": "[u8; 32]",
+        "SignedExtra": "(CheckSpecVersion, CheckTxVersion, CheckGenesis, CheckEra, CheckNonce, CheckWeight, ChargeTransactionPayment, LimitParathreadCommits, ValidateDoubleVoteReports, ValidateEquivocationReport, PrevalidateAttests)",
+	"TransactionCallFilter": "empty_extra",
+	"CheckSpecVersion": "empty_extra",
+	"CheckTxVersion": "empty_extra",
+	"CheckGenesis": "empty_extra",
+	"CheckEra": "Era",
+	"CheckNonce": "Compact<Index>",
+	"CheckWeight": "empty_extra",
+	"ChargeTransactionPayment": "empty_extra",
+	"LimitParathreadCommits": "empty_extra",
+	"ValidateDoubleVoteReports": "empty_extra",
+	"ValidateEquivocationReport": "empty_extra",
+	"PrevalidateAttests": "empty_extra",
 	"Lookup": "LookupSource"
       }
     }
