@@ -91,6 +91,12 @@ pub enum ModuleIndex {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+struct Extrinsics {
+    version: u8,
+    signed_extensions: Vec<RustTypeMarker>
+}
+
+#[derive(Clone, Debug, PartialEq)]
 /// Metadata struct encompassing calls, storage, and events
 pub struct Metadata {
     /// Hashmap of Modules (name -> module-specific metadata)
@@ -99,6 +105,7 @@ pub struct Metadata {
     modules_by_event_index: HashMap<u8, String>,
     /// modules by their index in the Call Enum
     modules_by_call_index: HashMap<u8, String>,
+    // extrinsics: Option<Extrinsics>,
 }
 
 impl From<Vec<u8>> for Metadata {
@@ -165,6 +172,7 @@ impl Metadata {
                 log::debug!("Metadata V11");
                 let meta: runtime_metadata_latest::RuntimeMetadataPrefixed =
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
+                // log::debug!("{:#?}", meta);
                 meta.try_into().expect("Conversion failed")
             }
             /* TODO remove panic */
@@ -335,25 +343,7 @@ impl ModuleMetadata {
     pub fn name(&self) -> &str {
         &self.name
     }
-    /*
-        /// return the SCALE-encoded Call with parameters appended and parameters
-        pub fn call<T: Encode>(
-            &self,
-            function: &'static str,
-            params: T,
-        ) -> Result<Encoded, MetadataError> {
-            let fn_bytes = self
-                .calls
-                .get(function)
-                .ok_or(MetadataError::CallNotFound(function))?
-                .index
-                .as_slice();
-            let mut bytes = vec![self.index];
-            bytes.extend(fn_bytes);
-            bytes.extend(params.encode());
-            Ok(Encoded(bytes))
-        }
-    */
+    
     /// Return a storage entry by its key
     pub fn storage(&self, key: &'static str) -> Result<&StorageMetadata, MetadataError> {
         self.storage

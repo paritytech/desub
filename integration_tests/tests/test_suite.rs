@@ -1,13 +1,18 @@
 const EXT_PATH: &'static str = "./data/extrinsics/";
 use std::{fs::File, io::prelude::*};
+use desub_core::decoder::Chain;
 
-fn extrinsic_test(spec: String, block: String, num: usize) -> (Vec<u8>, Vec<Vec<u8>>) {
+// TODO: Can make `extrinsic test` into a macro
+
+fn extrinsic_test(spec: String, chain: Chain, block: String, num: usize) -> (Vec<u8>, Vec<Vec<u8>>) {
     let mut exts: Vec<Vec<u8>> = Vec::new();
+    let chain = chain.to_string();
     if std::path::Path::new("./integration_tests").exists() {
         std::env::set_current_dir("./integration_tests").is_ok();
     }
-    println!("{}", std::env::current_dir().unwrap().to_str().unwrap());
-    let path = &format!("{}spec{}_block{}/", EXT_PATH, spec, block);
+    let path = format!("{}{}/", EXT_PATH, chain);
+    let path = &format!("{}spec{}_block{}/", path, spec, block);
+    println!("{}/{}", path, std::env::current_dir().unwrap().to_str().unwrap());
     for i in 0..num {
         let ext_path = &format!(
             "{}EXTRINSIC_spec_{}_block_{}_index_{}.bin",
@@ -33,84 +38,88 @@ fn extrinsic_test(spec: String, block: String, num: usize) -> (Vec<u8>, Vec<Vec<
 /// returns raw metadata bytes and a vector of raw extrinsic bytes
 /// from block 342962 with spec 1031
 pub fn extrinsics_block342962() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test("1031".to_string(), "342962".to_string(), 2)
+    extrinsic_test("1031".to_string(), Chain::Kusama, "342962".to_string(), 2)
 }
 
 /// returns raw metadata bytes and a vector of raw extrinsic bytes
 /// from block 422871 with spec 1031
 /// there are three extrinsics: FinalityTracker, Parachains and Timestmap
 pub fn extrinsics_block422871() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test("1031".to_string(), "422871".to_string(), 3)
+    extrinsic_test("1031".to_string(), Chain::Kusama, "422871".to_string(), 3)
 }
 
 /// returns raw metadata bytes and a vector of raw extrinsic bytes
 /// from block 422871 with spec 1031
 /// there are three extrinsics: FinalityTracker, Parachains and Timestmap
 pub fn extrinsics_block50970() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test("1031".to_string(), "50970".to_string(), 4)
+    extrinsic_test("1031".to_string(), Chain::Kusama, "50970".to_string(), 4)
 }
 
 /// returns raw metadata bytes and a vector of raw extrinsic bytes
 /// from block 422871 with spec 1031
 /// there are three extrinsics: FinalityTracker, Parachains and Timestmap
 pub fn extrinsics_block106284() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test("1042".to_string(), "106284".to_string(), 4)
+    extrinsic_test("1042".to_string(), Chain::Kusama, "106284".to_string(), 4)
 }
 
 pub fn extrinsics_block1674683() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test("1055".to_string(), "1674683".to_string(), 3)
+    extrinsic_test("1055".to_string(), Chain::Kusama, "1674683".to_string(), 3)
 }
 
 pub fn extrinsics_block1677621() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test("1055".to_string(), "1677621".to_string(), 4)
+    extrinsic_test("1055".to_string(), Chain::Kusama, "1677621".to_string(), 4)
 }
 
 pub fn extrinsics_block1702023() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test("1055".to_string(), "1702023".to_string(), 17)
+    extrinsic_test("1055".to_string(), Chain::Kusama, "1702023".to_string(), 17)
 }
 
 pub fn extrinsics_block1714495() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test("1055".to_string(), "1714495".to_string(), 4)
+    extrinsic_test("1055".to_string(), Chain::Kusama, "1714495".to_string(), 4)
 }
 
 pub fn extrinsics_block1717926() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test("1055".to_string(), "1717926".to_string(), 4)
+    extrinsic_test("1055".to_string(), Chain::Kusama, "1717926".to_string(), 4)
 }
 
 pub fn extrinsics_block1718223() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test("1055".to_string(), "1718223".to_string(), 4)
+    extrinsic_test("1055".to_string(), Chain::Kusama, "1718223".to_string(), 4)
 }
 
 pub fn extrinsics_block1732321() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test("1055".to_string(), "1732321".to_string(), 4)
+    extrinsic_test("1055".to_string(), Chain::Kusama, "1732321".to_string(), 4)
 }
 
 pub fn extrinsics_block1731904() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test("1055".to_string(), "1731904".to_string(), 4)
+    extrinsic_test("1055".to_string(), Chain::Kusama, "1731904".to_string(), 4)
 }
 
 pub fn extrinsics_block1768321() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test("1055".to_string(), "1768321".to_string(), 3)
+    extrinsic_test("1055".to_string(), Chain::Kusama, "1768321".to_string(), 3)
 }
 
 pub fn extrinsics_block6144() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test("1020".to_string(), "6144".to_string(), 3)
+    extrinsic_test("1020".to_string(), Chain::Kusama, "6144".to_string(), 3)
 }
 
 pub fn extrinsics_block779410() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test("1042".to_string(), "779410".to_string(), 4)
+    extrinsic_test("1042".to_string(), Chain::Kusama, "779410".to_string(), 4)
 }
 
 pub fn extrinsics_block899638() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test("1042".to_string(), "899638".to_string(), 4)
+    extrinsic_test("1042".to_string(), Chain::Kusama, "899638".to_string(), 4)
 }
 
 pub fn extrinsics_block233816() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test("1030".to_string(), "233816".to_string(), 4)
+    extrinsic_test("1030".to_string(), Chain::Kusama, "233816".to_string(), 4)
 }
 
 pub fn extrinsics_block607421() -> (Vec<u8>, Vec<Vec<u8>>) {
-    extrinsic_test("1039".to_string(), "607421".to_string(), 4)
+    extrinsic_test("1039".to_string(), Chain::Kusama, "607421".to_string(), 4)
+}
+
+pub fn extrinsics_block892_dot() -> (Vec<u8>, Vec<Vec<u8>>) {
+    extrinsic_test("0".to_string(), Chain::Polkadot, "892".to_string(), 4)
 }
 
 /// Get the runtime metadata from KusamaCC3 from block 3,901,874

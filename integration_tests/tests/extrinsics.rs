@@ -1,5 +1,7 @@
 extern crate extras;
 
+// TODO: Make test structure into a macro
+
 use crate::test_suite;
 use codec::{Decode, Encode};
 use desub_core::{
@@ -402,7 +404,7 @@ fn should_decode_ext_607421_ksm() {
 
     decoder.register_version(1039, &meta);
     for e in ext.iter() {
-        println!("DECODING: \n ------ {:X?} \n ------", e);
+        println!("DECODING: \n ------ \n {:X?} \n ------", e);
         let decoded = decoder
             .decode_extrinsic(1039, e.as_slice())
             .expect("should decode");
@@ -411,4 +413,24 @@ fn should_decode_ext_607421_ksm() {
     }
 }
 
+#[test]
+fn should_decode_ext_892_dot() {
+    init();
+
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Polkadot);
+
+    let (meta, ext) = test_suite::extrinsics_block892_dot();
+    let meta = Metadata::new(meta.as_slice());
+
+    decoder.register_version(0, &meta);
+    for e in ext.iter() {
+        println!("DECODING: \n ------ \n {:X?} \n ------", e);
+        let decoded = decoder
+            .decode_extrinsic(0, e.as_slice())
+            .expect("should decode");
+        println!("{}", decoded);
+        println!("{}", serde_json::to_string(&decoded).unwrap());
+    }
+}
 
