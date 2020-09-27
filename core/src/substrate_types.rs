@@ -129,8 +129,8 @@ impl fmt::Display for SubstrateType {
                 Ok(())
             }
             SubstrateType::Era(v) => match v {
-                runtime_primitives::generic::Era::Mortal(s, e) => write!(f, "Era {}..{}", s, e),
-                runtime_primitives::generic::Era::Immortal => write!(f, "Immortal Era"),
+                runtime_primitives::generic::Era::Mortal(s, e) => write!(f, " Era {}..{}", s, e),
+                runtime_primitives::generic::Era::Immortal => write!(f, " Immortal Era"),
             },
             SubstrateType::GenericVote(v) => write!(
                 f,
@@ -146,7 +146,6 @@ impl fmt::Display for SubstrateType {
                             "Account::Id({})",
                             i.to_ss58check_with_version(Ss58AddressFormat::PolkadotAccount)
                         )
-                        //write!(f, "Account::Id({})", i)
                     }
                     pallet_indices::address::Address::Index(i) => write!(f, "Index: {:?}", i),
                 }
@@ -204,7 +203,7 @@ pub enum StructUnitOrTuple {
 
 impl fmt::Display for StructUnitOrTuple {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut _enum = String::from("tuple[ ");
+        let mut _enum = String::from(" tuple[ ");
         match self {
             Self::Struct(v) => {
                 for val in v.iter() {

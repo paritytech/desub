@@ -313,22 +313,12 @@ impl Decoder {
             log::debug!("signature={}", s);
         }
 
-        let modul = meta.module("Claims")?;
-        log::debug!("Claims Index is {:?}, current cursor is {}", modul, data[cursor]);
         let mut temp_cursor = cursor;
         let module = meta.module_by_index(ModuleIndex::Call(data[temp_cursor]))
             .map_err(|e| Error::DetailedMetaFail(e, temp_cursor, hex::encode(data)))?;
-        log::debug!("Module {}", module.name());
         temp_cursor += 1;
-        log::debug!("cursor: {}, data: {:X}", temp_cursor, data[temp_cursor]);
         let call_meta = module.call(data[temp_cursor])
-            .map_err(|e| {
-                // println!("{:?}", data[temp_cursor]);
-                // println!("Or here");
-                // println!("{:#?}", module);
-                // println!("{}", meta.detailed_pretty());
-                Error::DetailedMetaFail(e, temp_cursor, hex::encode(data))
-            })?;
+            .map_err(|e| Error::DetailedMetaFail(e, temp_cursor, hex::encode(data)))?;
         let types = self.decode_call(spec, data, &mut cursor)?;
 
         Ok(GenericExtrinsic::new(
