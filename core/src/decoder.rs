@@ -306,29 +306,13 @@ impl Decoder {
         // can check if signed via a simple & too
         let length = Self::scale_length(data)?;
         let mut cursor: usize = length.1;
-        let version = data[cursor];
-        let is_signed = version & 0b1000_0000 != 0;
-        let version = version & 0b0111_1111;
-        log::trace!("Extrinsic Version: {}", version);
-        // the second byte will be the index of the call enum
-        cursor += 1;
+    
+        let signature = self.decode_signature(spec, data, &mut cursor)?;
 
-        // TODO: split into decode_signature
-        let signature: Option<_> = if is_signed {
-            // cursor += 1;
-            log::trace!("SIGNED EXTRINSIC");
-            log::trace!("Getting signature for spec: {}, chain: {}", spec, self.chain.as_str());
-            let signature = self
-                .types
-                .get_extrinsic_ty(self.chain.as_str(), spec, "signature")
-                .expect("Signature must not be empty");
-            Some(self.decode_single("runtime", spec, signature, data, &mut cursor, false)?)
-        } else {
-            None
-        };
         if let Some(s) = &signature {
             log::debug!("signature={}", s);
         }
+
         let modul = meta.module("Claims")?;
         log::debug!("Claims Index is {:?}, current cursor is {}", modul, data[cursor]);
         let mut temp_cursor = cursor;
@@ -353,6 +337,27 @@ impl Decoder {
             call_meta.name(),
             module.name().into(),
         ))
+    }
+    
+    /// Decode the signature part of an UncheckedExtrinsic
+    fn decode_signature(&self, spec: SpecVersion, data: &[u8], cursor: &mut usize) -> Result<Option<SubstrateType>, Error> {
+        let version = data[*cursor];
+        let is_signed = version & 0b1000_0000 != 0;
+        let version = version & 0b0111_1111;
+        log::trace!("Extrinsic Version: {}", version);
+        *cursor += 1;
+        
+        if is_signed {
+            log::trace!("SIGNED EXTRINSIC");
+            log::trace!("Getting signature for spec: {}, chain: {}", spec, self.chain.as_str());
+            let signature = self
+                .types
+                .get_extrinsic_ty(self.chain.as_str(), spec, "signature")
+                .expect("Signature must not be empty");
+            Ok(Some(self.decode_single("runtime", spec, signature, data, cursor, false)?))
+        } else {
+            Ok(None)
+        }
     }
 
     fn decode_call(
