@@ -22,11 +22,11 @@
 mod remote;
 
 use self::remote::*;
-use crate::SetField;
+use crate::{SetField, Error};
 use primitives::crypto::AccountId32;
 use primitives::crypto::{Ss58AddressFormat, Ss58Codec};
 use serde::{Deserialize, Serialize};
-use std::fmt;
+use std::{convert::TryFrom, fmt};
 
 pub type Address = pallet_indices::address::Address<AccountId32, u32>;
 pub type Vote = pallet_democracy::Vote;
@@ -66,6 +66,7 @@ pub enum SubstrateType {
     SignedExtra(String),
 
     /// vectors, arrays, and tuples
+    #[serde(serialize_with = "crate::util::as_hex")]
     Composite(Vec<SubstrateType>),
 
     /// C-Like Enum Type
@@ -248,6 +249,29 @@ impl fmt::Display for StructField {
 // ============================================
 // /\/\/\         CONVERSIONS            /\/\/\
 // ============================================
+
+impl TryFrom<&SubstrateType> for Vec<u8> {
+    type Error = Error;
+    fn try_from(ty: &SubstrateType) -> Result<Vec<u8>, Error> {
+        match ty {
+            SubstrateType::Composite(elements) => {
+                if  elements.iter().any(|ty| !matches!(ty, SubstrateType::U8(_))) {
+                    return Err(Error::Conversion(format!("{:?}", ty), "u8".to_string()));
+                } else {
+                    Ok(elements.into_iter().map(|v| {
+                        match v {
+                            SubstrateType::U8(byte) => *byte,
+                            _ => unreachable!()
+                        }
+                    }).collect::<Vec<u8>>())
+                }
+            },
+            _ => Err(Error::Conversion(format!("{}", ty), "Vec<u8>".to_string()))
+        }
+    }
+}
+
+
 impl From<u8> for SubstrateType {
     fn from(num: u8) -> SubstrateType {
         SubstrateType::U8(num)

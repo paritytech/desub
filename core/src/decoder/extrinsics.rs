@@ -125,6 +125,7 @@ impl GenericExtrinsic {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GenericSignature {
+    #[serde(serialize_with = "crate::util::as_substrate_address")]
     address: SubstrateType,
     signature: SubstrateType,
     extra: SubstrateType,
@@ -180,17 +181,25 @@ mod tests {
             }],
         };
         let ext = GenericExtrinsic {
-            signature: Some(GenericSignature::new(SubstrateType::Composite(vec![
-                SubstrateType::U32(32),
-                SubstrateType::U64(64),
-                SubstrateType::U64(128),
+            signature: Some(GenericSignature::new(
+                    SubstrateType::Composite(vec![
+                        SubstrateType::Composite(vec![
+                            0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 
+                            0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 
+                            0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 
+                            0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 
+                            0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 
+                            0u8.into(), 0u8.into()
+                        ]),
+                        SubstrateType::U64(64),
+                        SubstrateType::U128(128),
             ]))),
             call,
         };
         let serialized = serde_json::to_string(&ext).unwrap();
         assert_eq!(
             serialized,
-            r#"{"signature":{"address":32,"signature":64,"extra":128},"call":{"name":"set","module":"Timestamp","args":[{"name":"Some Arg","arg":32}]}}"#
+            r#"{"signature":{"address":"5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM","signature":64,"extra":128},"call":{"name":"set","module":"Timestamp","args":[{"name":"Some Arg","arg":32}]}}"#
         );
     }
 }
