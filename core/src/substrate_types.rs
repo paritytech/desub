@@ -144,7 +144,7 @@ impl fmt::Display for SubstrateType {
                         write!(
                             f,
                             "Account::Id({})",
-                            i.to_ss58check_with_version(Ss58AddressFormat::PolkadotAccount)
+                            i.to_ss58check_with_version(Ss58AddressFormat::SubstrateAccount)
                         )
                     }
                     pallet_indices::address::Address::Index(i) => write!(f, "Index: {:?}", i),
@@ -198,7 +198,10 @@ pub enum StructUnitOrTuple {
     Struct(Vec<StructField>),
     Unit(String),
     /// vector of variant name -> type
-    Tuple(String, Box<SubstrateType>),
+    Tuple {
+        name: String, 
+        ty: Box<SubstrateType>
+    },
 }
 
 impl fmt::Display for StructUnitOrTuple {
@@ -211,7 +214,7 @@ impl fmt::Display for StructUnitOrTuple {
                 }
             }
             Self::Unit(v) => _enum.push_str(&format!("{}, ", v)),
-            Self::Tuple(name, v) => _enum.push_str(&format!(" {}:{} ", name, v.to_string())),
+            Self::Tuple{ name, ty } => _enum.push_str(&format!(" {}:{} ", name, ty.to_string())),
         }
         _enum.push_str(" ]");
         write!(f, "{}", _enum)

@@ -142,10 +142,13 @@ impl GenericSignature {
 
     fn split(sig: SubstrateType) -> Self {
         match sig {
-            SubstrateType::Composite(v) => Self {
-                address: v[0].clone(),
-                signature: v[1].clone(),
-                extra: v[2].clone(),
+            SubstrateType::Composite(mut v) => {
+                v.reverse();
+                 Self {
+                    address: v.pop().expect("Address must must be present in signature"), 
+                    signature: v.pop().expect("Signature must be present"),
+                    extra: v.pop().expect("Extra must be present"),
+                }
             },
             _ => panic!("Signature should always be a tuple of Address, Signature, Extra"),
         }
@@ -156,7 +159,7 @@ impl fmt::Display for GenericSignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "EXTRINSIC SIGNATURE: ({}, {}, {})",
+            "Address {}\n Signature {}\n SignedExtra {}\n",
             self.address, self.signature, self.extra
         )
     }

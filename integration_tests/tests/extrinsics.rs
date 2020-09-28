@@ -425,12 +425,15 @@ fn should_decode_ext_892_dot() {
 
     decoder.register_version(0, &meta);
     for e in ext.iter() {
+        println!("-----------------------------------------------------------------");
         println!("DECODING: \n ------ \n {:X?} \n ------", e);
         let decoded = decoder
             .decode_extrinsic(0, e.as_slice())
             .expect("should decode");
+        println!("{:?}", decoded);
         println!("{}", decoded);
         println!("{}", serde_json::to_string(&decoded).unwrap());
+        println!("-----------------------------------------------------------------");
     }
 }
 

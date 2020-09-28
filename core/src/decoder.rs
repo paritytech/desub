@@ -460,7 +460,7 @@ impl Decoder {
                             .as_ref()
                             .expect("Tuple Variant must have a name")
                             .clone();
-                        SubstrateType::Enum(StructUnitOrTuple::Tuple(name, Box::new(ty)))
+                        SubstrateType::Enum(StructUnitOrTuple::Tuple{name, ty: Box::new(ty)})
                     }
                 }
             }
@@ -1151,10 +1151,10 @@ mod tests {
                     )),
                 ),
             ]),
-            SubstrateType::Enum(StructUnitOrTuple::Tuple(
-                "Wraith".into(),
-                Box::new(SubstrateType::I128(0x1337))
-            ))
+            SubstrateType::Enum(StructUnitOrTuple::Tuple{
+                name: "Wraith".into(),
+                ty: Box::new(SubstrateType::I128(0x1337))
+            })
         );
     }
 
