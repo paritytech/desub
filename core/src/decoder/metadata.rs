@@ -93,7 +93,7 @@ pub enum ModuleIndex {
 #[derive(Clone, Debug, PartialEq)]
 struct Extrinsics {
     version: u8,
-    signed_extensions: Vec<RustTypeMarker>
+    signed_extensions: Vec<RustTypeMarker>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -343,7 +343,7 @@ impl ModuleMetadata {
     pub fn name(&self) -> &str {
         &self.name
     }
-    
+
     /// Return a storage entry by its key
     pub fn storage(&self, key: &'static str) -> Result<&StorageMetadata, MetadataError> {
         self.storage

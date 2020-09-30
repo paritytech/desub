@@ -331,7 +331,7 @@ fn should_decode_ext_6144() {
 #[test]
 fn should_decode_ext_779410_ksm() {
     init();
-    
+
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
@@ -374,7 +374,7 @@ fn should_decode_ext_899638_ksm() {
 #[test]
 fn should_decode_ext_233816_ksm() {
     init();
-    
+
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
@@ -395,7 +395,7 @@ fn should_decode_ext_233816_ksm() {
 #[test]
 fn should_decode_ext_607421_ksm() {
     init();
-    
+
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
@@ -436,4 +436,3 @@ fn should_decode_ext_892_dot() {
         println!("-----------------------------------------------------------------");
     }
 }
-

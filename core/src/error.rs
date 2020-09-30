@@ -17,7 +17,7 @@ pub enum Error {
     #[error("parse error {0}")]
     Regex(#[from] onig::Error),
     #[error("Conversion from {0} to {1} not possible")]
-    Conversion(String, String)
+    Conversion(String, String),
 }
 
 impl From<&str> for Error {

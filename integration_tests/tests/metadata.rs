@@ -1,6 +1,6 @@
 use crate::test_suite;
-use primitives::twox_128;
 use desub_core::decoder::Metadata;
+use primitives::twox_128;
 
 #[test]
 fn should_create_metadata_v9() {
@@ -37,4 +37,3 @@ fn should_get_correct_lookup_table() {
     println!("{:?}", storage_entry);
     assert_eq!(storage_entry.unwrap().meta.prefix(), "System Account");
 }
-

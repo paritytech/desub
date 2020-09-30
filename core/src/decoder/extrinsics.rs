@@ -16,9 +16,9 @@
 //! Generic Extrinsic Type and Functions
 
 use crate::substrate_types::SubstrateType;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::fmt;
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct ExtrinsicArgument {
     pub name: String,
     pub arg: SubstrateType,
@@ -30,7 +30,7 @@ impl fmt::Display for ExtrinsicArgument {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct GenericCall {
     name: String,
     module: String,
@@ -50,7 +50,7 @@ impl fmt::Display for GenericCall {
 }
 
 /// Generic Extrinsic Type
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct GenericExtrinsic {
     signature: Option<GenericSignature>,
     call: GenericCall,
@@ -123,7 +123,7 @@ impl GenericExtrinsic {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct GenericSignature {
     #[serde(serialize_with = "crate::util::as_substrate_address")]
     address: SubstrateType,
@@ -145,12 +145,12 @@ impl GenericSignature {
         match sig {
             SubstrateType::Composite(mut v) => {
                 v.reverse();
-                 Self {
-                    address: v.pop().expect("Address must must be present in signature"), 
+                Self {
+                    address: v.pop().expect("Address must must be present in signature"),
                     signature: v.pop().expect("Signature must be present"),
                     extra: v.pop().expect("Extra must be present"),
                 }
-            },
+            }
             _ => panic!("Signature should always be a tuple of Address, Signature, Extra"),
         }
     }
@@ -181,18 +181,43 @@ mod tests {
             }],
         };
         let ext = GenericExtrinsic {
-            signature: Some(GenericSignature::new(
-                    SubstrateType::Composite(vec![
-                        SubstrateType::Composite(vec![
-                            0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 
-                            0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 
-                            0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 
-                            0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 
-                            0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 0u8.into(), 
-                            0u8.into(), 0u8.into()
-                        ]),
-                        SubstrateType::U64(64),
-                        SubstrateType::U128(128),
+            signature: Some(GenericSignature::new(SubstrateType::Composite(vec![
+                SubstrateType::Composite(vec![
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                ]),
+                SubstrateType::U64(64),
+                SubstrateType::U128(128),
             ]))),
             call,
         };

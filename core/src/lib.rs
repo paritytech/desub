@@ -18,9 +18,9 @@
 
 #[forbid(unsafe_code)]
 pub mod decoder;
+mod error;
 pub mod regex;
 mod substrate_types;
-mod error;
 mod util;
 
 #[cfg(test)]

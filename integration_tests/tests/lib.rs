@@ -1,5 +1,4 @@
-
-mod test_suite;
 mod extrinsics;
-mod storage;
 mod metadata;
+mod storage;
+mod test_suite;

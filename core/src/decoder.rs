@@ -306,7 +306,7 @@ impl Decoder {
         // can check if signed via a simple & too
         let length = Self::scale_length(data)?;
         let mut cursor: usize = length.1;
-    
+
         let signature = self.decode_signature(spec, data, &mut cursor)?;
 
         if let Some(s) = &signature {
@@ -314,10 +314,12 @@ impl Decoder {
         }
 
         let mut temp_cursor = cursor;
-        let module = meta.module_by_index(ModuleIndex::Call(data[temp_cursor]))
+        let module = meta
+            .module_by_index(ModuleIndex::Call(data[temp_cursor]))
             .map_err(|e| Error::DetailedMetaFail(e, temp_cursor, hex::encode(data)))?;
         temp_cursor += 1;
-        let call_meta = module.call(data[temp_cursor])
+        let call_meta = module
+            .call(data[temp_cursor])
             .map_err(|e| Error::DetailedMetaFail(e, temp_cursor, hex::encode(data)))?;
         let types = self.decode_call(spec, data, &mut cursor)?;
 
@@ -328,23 +330,34 @@ impl Decoder {
             module.name().into(),
         ))
     }
-    
+
     /// Decode the signature part of an UncheckedExtrinsic
-    fn decode_signature(&self, spec: SpecVersion, data: &[u8], cursor: &mut usize) -> Result<Option<SubstrateType>, Error> {
+    fn decode_signature(
+        &self,
+        spec: SpecVersion,
+        data: &[u8],
+        cursor: &mut usize,
+    ) -> Result<Option<SubstrateType>, Error> {
         let version = data[*cursor];
         let is_signed = version & 0b1000_0000 != 0;
         let version = version & 0b0111_1111;
         log::trace!("Extrinsic Version: {}", version);
         *cursor += 1;
-        
+
         if is_signed {
             log::trace!("SIGNED EXTRINSIC");
-            log::trace!("Getting signature for spec: {}, chain: {}", spec, self.chain.as_str());
+            log::trace!(
+                "Getting signature for spec: {}, chain: {}",
+                spec,
+                self.chain.as_str()
+            );
             let signature = self
                 .types
                 .get_extrinsic_ty(self.chain.as_str(), spec, "signature")
                 .expect("Signature must not be empty");
-            Ok(Some(self.decode_single("runtime", spec, signature, data, cursor, false)?))
+            Ok(Some(self.decode_single(
+                "runtime", spec, signature, data, cursor, false,
+            )?))
         } else {
             Ok(None)
         }
@@ -460,7 +473,10 @@ impl Decoder {
                             .as_ref()
                             .expect("Tuple Variant must have a name")
                             .clone();
-                        SubstrateType::Enum(StructUnitOrTuple::Tuple{name, ty: Box::new(ty)})
+                        SubstrateType::Enum(StructUnitOrTuple::Tuple {
+                            name,
+                            ty: Box::new(ty),
+                        })
                     }
                 }
             }
@@ -731,17 +747,43 @@ impl Decoder {
             // identity info may be added to in the future
             "IdentityInfo" => {
                 let additional = self.decode_single(
-                   "identity", 
-                   spec, 
-                   &RustTypeMarker::Std(CommonTypes::Vec(Box::new(RustTypeMarker::TypePointer("IdentityInfoAdditional".to_string())))),
-                   data, cursor, is_compact)?;
-                let display = self.decode_sub_type(spec, "Data", data, cursor, is_compact)?.ok_or(Error::from("Data not resolved"))?;
-                let legal = self.decode_sub_type(spec, "Data", data, cursor, is_compact)?.ok_or(Error::from("Data not resolved"))?;
-                let web = self.decode_sub_type(spec, "Data", data, cursor, is_compact)?.ok_or(Error::from("Data not resolved"))?;
-                let riot = self.decode_sub_type(spec, "Data", data, cursor, is_compact)?.ok_or(Error::from("Data not resolved"))?;
-                let email = self.decode_sub_type(spec, "Data", data, cursor, is_compact)?.ok_or(Error::from("Data not resolved"))?;
-                let pgp_fingerprint = self.decode_single("identity", spec, &RustTypeMarker::Std(CommonTypes::Option(Box::new(RustTypeMarker::TypePointer("H160".to_string())))), data, cursor, is_compact)?;
-                let image = self.decode_sub_type(spec, "Data", data, cursor, is_compact)?.ok_or(Error::from("Data not resolved"))?;
+                    "identity",
+                    spec,
+                    &RustTypeMarker::Std(CommonTypes::Vec(Box::new(RustTypeMarker::TypePointer(
+                        "IdentityInfoAdditional".to_string(),
+                    )))),
+                    data,
+                    cursor,
+                    is_compact,
+                )?;
+                let display = self
+                    .decode_sub_type(spec, "Data", data, cursor, is_compact)?
+                    .ok_or(Error::from("Data not resolved"))?;
+                let legal = self
+                    .decode_sub_type(spec, "Data", data, cursor, is_compact)?
+                    .ok_or(Error::from("Data not resolved"))?;
+                let web = self
+                    .decode_sub_type(spec, "Data", data, cursor, is_compact)?
+                    .ok_or(Error::from("Data not resolved"))?;
+                let riot = self
+                    .decode_sub_type(spec, "Data", data, cursor, is_compact)?
+                    .ok_or(Error::from("Data not resolved"))?;
+                let email = self
+                    .decode_sub_type(spec, "Data", data, cursor, is_compact)?
+                    .ok_or(Error::from("Data not resolved"))?;
+                let pgp_fingerprint = self.decode_single(
+                    "identity",
+                    spec,
+                    &RustTypeMarker::Std(CommonTypes::Option(Box::new(
+                        RustTypeMarker::TypePointer("H160".to_string()),
+                    ))),
+                    data,
+                    cursor,
+                    is_compact,
+                )?;
+                let image = self
+                    .decode_sub_type(spec, "Data", data, cursor, is_compact)?
+                    .ok_or(Error::from("Data not resolved"))?;
                 let twitter = self.decode_sub_type(spec, "Data", data, cursor, is_compact);
 
                 Ok(Some(SubstrateType::Struct(vec![
@@ -753,16 +795,21 @@ impl Decoder {
                     StructField::new(Some("email"), email),
                     StructField::new(Some("pgpFingerprint"), pgp_fingerprint),
                     StructField::new(Some("image"), image),
-                    StructField::new(Some("twitter"), twitter.unwrap_or(Some(SubstrateType::Null)).ok_or(Error::from("Data not resolved"))?)
+                    StructField::new(
+                        Some("twitter"),
+                        twitter
+                            .unwrap_or(Some(SubstrateType::Null))
+                            .ok_or(Error::from("Data not resolved"))?,
+                    ),
                 ])))
-            },
+            }
             "Data" => {
                 log::trace!("Data::cursor={}", *cursor);
                 let identity_data: pallet_identity::Data = Decode::decode(&mut &data[*cursor..])?;
                 match &identity_data {
                     pallet_identity::Data::None => (),
                     pallet_identity::Data::Raw(v) => *cursor += v.len(),
-                    _ => *cursor += 32, 
+                    _ => *cursor += 32,
                 };
                 // for the enum byte
                 *cursor += 1;
@@ -802,14 +849,14 @@ impl Decoder {
                     }
                     _ => return Err(Error::Fail("Invalid Address".to_string())),
                 }
-                
+
                 let val: substrate_types::Address = Decode::decode(&mut &data[*cursor..])?;
 
                 *cursor += inc + 1; // +1 for byte 0x00-0xff
                 Ok(Some(SubstrateType::Address(val)))
             }
             "Era" => {
-                log::trace!("ERA DATA: {:X?}",&data[*cursor..]);
+                log::trace!("ERA DATA: {:X?}", &data[*cursor..]);
                 let val: runtime_primitives::generic::Era = Decode::decode(&mut &data[*cursor..])?;
                 log::trace!("Resolved Era: {:?}", val);
                 match val {
@@ -830,7 +877,7 @@ impl Decoder {
                 log::trace!("H512: {}", hex::encode(val.as_bytes()));
                 *cursor += 64;
                 Ok(Some(SubstrateType::H512(val)))
-            },
+            }
             _ => Ok(None),
         }
     }
@@ -1151,7 +1198,7 @@ mod tests {
                     )),
                 ),
             ]),
-            SubstrateType::Enum(StructUnitOrTuple::Tuple{
+            SubstrateType::Enum(StructUnitOrTuple::Tuple {
                 name: "Wraith".into(),
                 ty: Box::new(SubstrateType::I128(0x1337))
             })

@@ -1,10 +1,15 @@
 const EXT_PATH: &'static str = "./data/extrinsics/";
-use std::{fs::File, io::prelude::*};
 use desub_core::decoder::Chain;
+use std::{fs::File, io::prelude::*};
 
 // TODO: Can make `extrinsic test` into a macro
 
-fn extrinsic_test(spec: String, chain: Chain, block: String, num: usize) -> (Vec<u8>, Vec<Vec<u8>>) {
+fn extrinsic_test(
+    spec: String,
+    chain: Chain,
+    block: String,
+    num: usize,
+) -> (Vec<u8>, Vec<Vec<u8>>) {
     let mut exts: Vec<Vec<u8>> = Vec::new();
     let chain = chain.to_string();
     if std::path::Path::new("./integration_tests").exists() {
@@ -12,7 +17,11 @@ fn extrinsic_test(spec: String, chain: Chain, block: String, num: usize) -> (Vec
     }
     let path = format!("{}{}/", EXT_PATH, chain);
     let path = &format!("{}spec{}_block{}/", path, spec, block);
-    println!("{}/{}", path, std::env::current_dir().unwrap().to_str().unwrap());
+    println!(
+        "{}/{}",
+        path,
+        std::env::current_dir().unwrap().to_str().unwrap()
+    );
     for i in 0..num {
         let ext_path = &format!(
             "{}EXTRINSIC_spec_{}_block_{}_index_{}.bin",
