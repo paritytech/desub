@@ -4,6 +4,7 @@
       "empty_extra": "[u8; 0]",
       "OnlyStakingAndClaims": "empty_extra",
       "CheckSpecVersion": "empty_extra",
+      "CheckVersion": "empty_extra",
       "CheckTxVersion": "empty_extra",
       "CheckGenesis": "empty_extra",
       "CheckWeight": "empty_extra",
