@@ -11,6 +11,7 @@
       "TransactionCallFilter": "empty_extra",
       "ValidateDoubleVoteReports": "empty_extra",
       "ValidateEquivocationReport": "empty_extra",
+      "RestrictFunctionality": "empty_extra",
       "PrevalidateAttests": "empty_extra",
       "ChargeTransactionPayment": "Compact<BalanceOf>",
       "AccountIndex": "u32",

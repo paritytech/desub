@@ -747,6 +747,8 @@ impl Decoder {
         is_compact: bool,
     ) -> Result<Option<SubstrateType>, Error> {
         match ty {
+            // checks if the metadata includes types for the SignedExtensions
+            // If not defaults to whatever is in extrinsics.json
             "SignedExtra" => {
                 let meta = self.versions.get(&spec).ok_or(format!("Metadata for spec {} not found", spec))?;
                 if let Some(extensions) = meta.signed_extensions() {
