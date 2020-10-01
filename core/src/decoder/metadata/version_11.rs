@@ -31,12 +31,13 @@
 
 use super::{
     CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata,
-    StorageMetadata, StorageType,
+    StorageMetadata, StorageType, ExtrinsicMetadata
 };
-use crate::regex;
+use crate::{regex, RustTypeMarker};
 use runtime_metadata_latest::{
     DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryType, META_RESERVED,
 };
+
 use std::{
     collections::{HashMap, HashSet},
     convert::{TryFrom, TryInto},
@@ -71,14 +72,21 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
             let module_metadata = convert_module(i, module)?;
             modules.insert(module_name, std::sync::Arc::new(module_metadata));
         }
-        /*
-        let ext_ver = meta.ext.version;
-        let
-        */
+
+        let mut extensions: Vec<RustTypeMarker> = Vec::new();
+        for ext in meta.extrinsic.signed_extensions.iter() {
+            let name: String = convert(ext.clone())?;
+            let ty = regex::parse(&name).ok_or(Error::InvalidType(name))?;
+            extensions.push(ty);
+        }
+        
+        let extrinsics = ExtrinsicMetadata::new(meta.extrinsic.version, extensions);
+        
         Ok(Metadata {
             modules,
             modules_by_event_index,
             modules_by_call_index,
+            extrinsics: Some(extrinsics),
         })
     }
 }

@@ -91,12 +91,6 @@ pub enum ModuleIndex {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-struct Extrinsics {
-    version: u8,
-    signed_extensions: Vec<RustTypeMarker>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
 /// Metadata struct encompassing calls, storage, and events
 pub struct Metadata {
     /// Hashmap of Modules (name -> module-specific metadata)
@@ -105,7 +99,9 @@ pub struct Metadata {
     modules_by_event_index: HashMap<u8, String>,
     /// modules by their index in the Call Enum
     modules_by_call_index: HashMap<u8, String>,
-    // extrinsics: Option<Extrinsics>,
+    /// Optional extrinsic metadata. Only chains which use meta
+    /// version 11+ support this.
+    extrinsics: Option<ExtrinsicMetadata>,
 }
 
 impl From<Vec<u8>> for Metadata {
@@ -172,7 +168,6 @@ impl Metadata {
                 log::debug!("Metadata V11");
                 let meta: runtime_metadata_latest::RuntimeMetadataPrefixed =
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
-                // log::debug!("{:#?}", meta);
                 meta.try_into().expect("Conversion failed")
             }
             /* TODO remove panic */
@@ -195,6 +190,10 @@ impl Metadata {
             .get(&name)
             .ok_or(MetadataError::ModuleNotFound(name))
             .map(|m| (*m).clone())
+    }
+    
+    pub fn signed_extensions(&self) -> Option<&[RustTypeMarker]> {
+        self.extrinsics.as_ref().map(|e| e.extensions.as_slice())
     }
 
     /// Check if a module exists
@@ -326,6 +325,18 @@ impl Metadata {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct ExtrinsicMetadata {
+    version: u8,
+    extensions: Vec<RustTypeMarker>
+}
+
+impl ExtrinsicMetadata {
+    pub fn new(version: u8, extensions: Vec<RustTypeMarker>) -> Self {
+        Self { version, extensions }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct ModuleMetadata {
     /// index of the module within StorageMetadata 'Entries'
     index: u8,
@@ -343,7 +354,7 @@ impl ModuleMetadata {
     pub fn name(&self) -> &str {
         &self.name
     }
-
+    
     /// Return a storage entry by its key
     pub fn storage(&self, key: &'static str) -> Result<&StorageMetadata, MetadataError> {
         self.storage

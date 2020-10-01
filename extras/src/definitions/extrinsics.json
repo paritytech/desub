@@ -1,119 +1,60 @@
 {
+  "default": {
+      "signature": "(Address, MultiSignature, SignedExtra)",
+      "empty_extra": "[u8; 0]",
+      "OnlyStakingAndClaims": "empty_extra",
+      "CheckSpecVersion": "empty_extra",
+      "CheckTxVersion": "empty_extra",
+      "CheckGenesis": "empty_extra",
+      "CheckWeight": "empty_extra",
+      "LimitParathreadCommits": "empty_extra",
+      "TransactionCallFilter": "empty_extra",
+      "ValidateDoubleVoteReports": "empty_extra",
+      "ValidateEquivocationReport": "empty_extra",
+      "PrevalidateAttests": "empty_extra",
+      "ChargeTransactionPayment": "Compact<BalanceOf>",
+      "AccountIndex": "u32",
+      "AccountId": "[u8; 32]",
+      "Lookup": "LookupSource",
+      "CheckEra": "Era",
+      "CheckNonce": "Compact<Index>",
+      "Address": "LookupSource",
+      "GenericAddress": "LookupSource"
+  },
   "kusama": [
-    {
-      "minmax": [
-         0,
-        1006
-      ],
-      "types": {
-        "signature": "(Address, AnySignature, SignedExtra)",
-        "Address": "AccountId",
-        "AccountIndex": "u32",
-        "AccountId": "[u8; 32]",
-        "AnySignature": "H512",
-        "SignedExtra": "(OnlyStakingAndClaims, system::CheckVersion<Runtime>, system::CheckGenesis<Runtime>, system::CheckEra<Runtime>, system::CheckNonce<Runtime>, system::CheckWeight<Runtime>, balances::TakeFees<Runtime>)"
-      } 
-    },
-    {
-      "minmax": [
-        1007,
-        1045
-      ],
-      "types": {
-        "signature": "(Address, MultiSignature, SignedExtra)",
-        "Address": "Lookup",
-        "GenericAddress": "Lookup",
-        "AccountIndex": "u32",
-        "AccountId": "[u8; 32]",
-        "SignedExtra": "(OnlyStakingAndClaims, system::CheckVersion<Runtime>, system::CheckGenesis<Runtime>, system::CheckEra<Runtime>, system::CheckNonce<Runtime>, system::CheckWeight<Runtime>, transaction_payment::ChargeTransactionPayment<Runtime>, registrar::LimitParathreadCommits<Runtime>)",
-        "OnlyStakingAndClaims": "[u8; 0]",
-        "CheckVersion<Runtime>": "[u8; 0]",
-        "CheckGenesis<Runtime>": "[u8; 0]",
-        "CheckEra<Runtime>": "Era",
-        "CheckNonce<Runtime>": "Compact<Index>",
-        "CheckWeight<Runtime>": "[u8; 0]",
-        "ChargeTransactionPayment<Runtime>": "Compact<BalanceOf>",
-        "LimitParathreadCommits<Runtime>": "[u8; 0]",
-	"Lookup": "LookupSource"
+      {
+	"minmax": [
+	   0,
+	  1006
+	],
+	"types": {
+	  "signature": "(Address, AnySignature, SignedExtra)",
+	  "Address": "AccountId",
+	  "AnySignature": "H512",
+	  "TakeFees": "empty_extra",
+	  "SignedExtra": "(OnlyStakingAndClaims, CheckSpecVersion, CheckGenesis, CheckEra, CheckNonce, CheckWeight, TakeFees)"
+	} 
+      },
+      {
+	"minmax": [
+	  1007,
+	  1045
+	],
+	"types": {
+	  "AccountIndex": "u32",
+	  "AccountId": "[u8; 32]",
+	  "SignedExtra": "(OnlyStakingAndClaims, CheckSpecVersion, CheckGenesis, CheckEra, CheckNonce, CheckWeight, ChargeTransactionPayment, LimitParathreadCommits)"
+	}
+      },
+      {
+	"minmax": [
+	  1046,
+	  null 
+	],
+	"types": {
+	  "Address": "AccountId",
+	  "SignedExtra": "(OnlyStakingAndClaims, CheckSpecVersion, CheckGenesis, CheckEra, CheckNonce, CheckWeight, ChargeTransactionPayment, LimitParathreadCommits)"
+	}
       }
-    },
-    {
-      "minmax": [
-        1046,
-        null 
-      ],
-      "types": {
-        "signature": "(Address, MultiSignature, SignedExtra)",
-        "Address": "AccountId",
-        "AccountIndex": "u32",
-        "AccountId": "[u8; 32]",
-        "SignedExtra": "(OnlyStakingAndClaims, system::CheckVersion<Runtime>, system::CheckGenesis<Runtime>, system::CheckEra<Runtime>, system::CheckNonce<Runtime>, system::CheckWeight<Runtime>, transaction_payment::ChargeTransactionPayment<Runtime>, registrar::LimitParathreadCommits<Runtime>)",
-        "OnlyStakingAndClaims": "[u8; 0]",
-        "CheckVersion<Runtime>": "[u8; 0]",
-        "CheckGenesis<Runtime>": "[u8; 0]",
-        "CheckEra<Runtime>": "Era",
-        "CheckNonce<Runtime>": "Compact<Index>",
-        "CheckWeight<Runtime>": "[u8; 0]",
-        "ChargeTransactionPayment<Runtime>": "Compact<BalanceOf>",
-        "LimitParathreadCommits<Runtime>": "[u8; 0]",
-	"Lookup": "LookupSource"
-      }
-    }
-  ],
-  "polkadot": [
-    {
-      "minmax": [
-         0,
-	 8
-      ],
-      "types": {
-        "signature": "(Address, MultiSignature, SignedExtra)",
-	"empty_extra": "[u8; 0]",
-        "Address": "Lookup",
-        "AccountIndex": "u32",
-        "AccountId": "[u8; 32]",
-        "SignedExtra": "(TransactionCallFilter, CheckSpecVersion, CheckTxVersion, CheckGenesis, CheckEra, CheckNonce, CheckWeight, ChargeTransactionPayment, LimitParathreadCommits, ValidateDoubleVoteReports, ValidateEquivocationReport, PrevalidateAttests)",
-	"TransactionCallFilter": "empty_extra",
-	"CheckSpecVersion": "empty_extra",
-	"CheckTxVersion": "empty_extra",
-	"CheckGenesis": "empty_extra",
-	"CheckEra": "Era",
-	"CheckNonce": "Compact<Index>",
-	"CheckWeight": "empty_extra",
-	"ChargeTransactionPayment": "Compact<BalanceOf>",
-	"LimitParathreadCommits": "empty_extra",
-	"ValidateDoubleVoteReports": "empty_extra",
-	"ValidateEquivocationReport": "empty_extra",
-	"PrevalidateAttests": "empty_extra",
-	"Lookup": "LookupSource"
-      }
-    },
-    {
-      "minmax": [
-         9,
-	 null	
-      ],
-      "types": {
-        "signature": "(Address, MultiSignature, SignedExtra)",
-	"empty_extra": "[u8; 0]",
-        "Address": "Lookup",
-        "AccountIndex": "u32",
-        "AccountId": "[u8; 32]",
-        "SignedExtra": "(CheckSpecVersion, CheckTxVersion, CheckGenesis, CheckEra, CheckNonce, CheckWeight, ChargeTransactionPayment, LimitParathreadCommits, ValidateDoubleVoteReports, ValidateEquivocationReport, PrevalidateAttests)",
-	"TransactionCallFilter": "empty_extra",
-	"CheckSpecVersion": "empty_extra",
-	"CheckTxVersion": "empty_extra",
-	"CheckGenesis": "empty_extra",
-	"CheckEra": "Era",
-	"CheckNonce": "Compact<Index>",
-	"CheckWeight": "empty_extra",
-	"ChargeTransactionPayment": "Compact<BalanceOf>",
-	"LimitParathreadCommits": "empty_extra",
-	"ValidateDoubleVoteReports": "empty_extra",
-	"ValidateEquivocationReport": "empty_extra",
-	"PrevalidateAttests": "empty_extra",
-	"Lookup": "LookupSource"
-      }
-    }
-  ]
+    ]
 }

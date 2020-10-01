@@ -6,7 +6,7 @@ members = [
 ]
 
 [patch.crates-io]
-codec = { git = "https://github.com/insipx/parity-scale-codec", version = "1.3", branch = "insipx/debugging", package = "parity-scale-codec" }
+# codec = { git = "https://github.com/insipx/parity-scale-codec", version = "1.3", branch = "insipx/debugging", package = "parity-scale-codec" }
 # parity-scale-codec-derive = { path = "derive", version = "^1", git = "https://github.com/insipx/parity-scale-codec", branch="insipx/debugging" }
 
 

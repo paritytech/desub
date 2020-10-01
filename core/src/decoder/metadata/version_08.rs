@@ -63,10 +63,12 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
             let module_metadata = convert_module(i, module)?;
             modules.insert(module_name, std::sync::Arc::new(module_metadata));
         }
+        
         Ok(Metadata {
             modules,
             modules_by_event_index,
             modules_by_call_index,
+            extrinsics: None,
         })
     }
 }

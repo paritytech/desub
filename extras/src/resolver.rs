@@ -140,7 +140,7 @@ impl TypeResolver {
         if let Some(t) = self.check_overrides(&module, ty.as_str(), spec, &chain) {
             log::trace!("Resolving to Override");
             Some(&t)
-        } else if let Some(t) = self.check_extrinsics(ty.as_str(), spec, &chain) {
+        } else if let Some(t) = self.extrinsics.get(ty.as_str(), spec, &chain) {
             log::trace!("Resolving to Extrinsic Type");
             Some(&t)
         } else {
@@ -150,7 +150,7 @@ impl TypeResolver {
     }
 
     pub fn get_ext_ty(&self, chain: &str, spec: u32, ty: &str) -> Option<&RustTypeMarker> {
-        if let Some(t) = self.check_extrinsics(ty, spec, chain) {
+        if let Some(t) = self.extrinsics.get(ty, spec, chain) {
             match t {
                 RustTypeMarker::TypePointer(t) => self.resolve_helper("runtime", t),
                 t => Some(t),
@@ -201,15 +201,6 @@ impl TypeResolver {
 
         // if it isn't in modules, chain types is next
         self.overrides.get_chain_types(chain, spec)?.get(ty)
-    }
-
-    fn check_extrinsics(&self, ty: &str, spec: u32, chain: &str) -> Option<&RustTypeMarker> {
-        if let Some(m) = self.extrinsics.get_chain_types(chain, spec) {
-            if let Some(ty) = m.get(ty) {
-                return Some(ty);
-            }
-        }
-        None
     }
 
     /// Checks all modules for the types

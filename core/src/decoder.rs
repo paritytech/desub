@@ -71,7 +71,6 @@ impl Clone for Decoder {
 }
 
 /// The type of Entry
-//1677621
 /// # Note
 ///
 /// not entirely sure if necessary as of yet
@@ -727,8 +726,12 @@ impl Decoder {
         Ok(ty)
     }
 
-    /// internal API to decode substrate type
-    /// these types override anything defined in JSON
+    /// internal API to decode 'special' substrate types.
+    /// Or, types that have a special encode/decode scheme
+    /// that may include packing bytes in a struct.
+    /// Packing for example implies that a struct with two u32 fields
+    /// may be encoded as a u8 (one byte). 
+    /// These types override anything defined in JSON
     /// Tries to decode a type that is native to substrate
     /// for example, H256. Returns none if type cannot be deduced
     /// Supported types:
@@ -744,6 +747,17 @@ impl Decoder {
         is_compact: bool,
     ) -> Result<Option<SubstrateType>, Error> {
         match ty {
+            "SignedExtra" => {
+                let meta = self.versions.get(&spec).ok_or(format!("Metadata for spec {} not found", spec))?;
+                if let Some(extensions) = meta.signed_extensions() {
+                    let extensions = RustTypeMarker::Tuple(extensions.to_vec());
+                    self.decode_single("", spec, &extensions, data, cursor, is_compact).map(|t| Some(t))
+                } else {
+                    let ty = self.types.get_extrinsic_ty(self.chain.as_str(), spec, "SignedExtra")
+                        .ok_or(Error::from("Could not find type `SignedExtra`"))?;
+                    self.decode_single("", spec, &ty, data, cursor, is_compact).map(|t| Some(t))
+                }
+            }
             // identity info may be added to in the future
             "IdentityInfo" => {
                 let additional = self.decode_single(
