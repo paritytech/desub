@@ -218,7 +218,7 @@ impl Decoder {
     pub fn decode_storage(
         &self,
         spec: SpecVersion,
-        data: (&[u8], &[u8]),
+        data: (&[u8], Option<&[u8]>),
     ) -> Result<GenericStorage, Error> {
         let (key, value) = data;
         let meta = self.versions.get(&spec).expect("Spec does not exist");
@@ -231,6 +231,12 @@ impl Decoder {
                 self.chain.as_str()
             ))
         })?;
+        
+        if value.is_none() {
+            let key = self.get_key_data(key, &storage_info, &lookup_table);
+            return Ok(GenericStorage::new(key, None));
+        }
+        let value = value.unwrap();
 
         match &storage_info.meta.ty {
             StorageType::Plain(rtype) => {
