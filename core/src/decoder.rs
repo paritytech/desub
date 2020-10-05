@@ -218,15 +218,15 @@ impl Decoder {
     pub fn decode_storage(
         &self,
         spec: SpecVersion,
-        data: (Vec<u8>, Vec<u8>),
+        data: (&[u8], &[u8]),
     ) -> Result<GenericStorage, Error> {
         let (key, value) = data;
         let meta = self.versions.get(&spec).expect("Spec does not exist");
         let lookup_table = meta.storage_lookup_table();
-        let storage_info = lookup_table.meta_for_key(key.as_slice()).ok_or_else(|| {
+        let storage_info = lookup_table.meta_for_key(key).ok_or_else(|| {
             Error::from(format!(
                 "Storage not found key={:#X?}, spec={}, chain={}",
-                key.as_slice(),
+                key,
                 spec,
                 self.chain.as_str()
             ))
@@ -245,11 +245,11 @@ impl Decoder {
                     storage_info.module.name(),
                     spec,
                     &rtype,
-                    value.as_slice(),
+                    value,
                     &mut cursor,
                     false,
                 )?;
-                let key = self.get_key_data(key.as_slice(), &storage_info, &lookup_table);
+                let key = self.get_key_data(key, &storage_info, &lookup_table);
                 let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
                 Ok(storage)
             }
@@ -258,13 +258,13 @@ impl Decoder {
                 unused: _unused,
                 ..
             } => {
-                let key = self.get_key_data(key.as_slice(), &storage_info, &lookup_table);
+                let key = self.get_key_data(key, &storage_info, &lookup_table);
                 let mut cursor = 0;
                 let value = self.decode_single(
                     storage_info.module.name(),
                     spec,
                     &val_rtype,
-                    value.as_slice(),
+                    value,
                     &mut cursor,
                     false,
                 )?;
@@ -274,13 +274,13 @@ impl Decoder {
             StorageType::DoubleMap {
                 value: val_rtype, ..
             } => {
-                let key = self.get_key_data(key.as_slice(), &storage_info, &lookup_table);
+                let key = self.get_key_data(key, &storage_info, &lookup_table);
                 let mut cursor = 0;
                 let value = self.decode_single(
                     storage_info.module.name(),
                     spec,
                     &val_rtype,
-                    value.as_slice(),
+                    value,
                     &mut cursor,
                     false,
                 )?;
