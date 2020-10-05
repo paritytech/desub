@@ -215,12 +215,12 @@ impl Decoder {
     }
 
     /// Decode the Key/Value pair of a storage entry
-    pub fn decode_storage(
+    pub fn decode_storage<V: AsRef<[u8]>>(
         &self,
         spec: SpecVersion,
-        data: (&[u8], Option<&[u8]>),
+        data: (V, Option<V>),
     ) -> Result<GenericStorage, Error> {
-        let (key, value) = data;
+        let (key, value): (&[u8], Option<V>) = (data.0.as_ref(),  data.1);
         let meta = self.versions.get(&spec).expect("Spec does not exist");
         let lookup_table = meta.storage_lookup_table();
         let storage_info = lookup_table.meta_for_key(key).ok_or_else(|| {
@@ -237,6 +237,7 @@ impl Decoder {
             return Ok(GenericStorage::new(key, None));
         }
         let value = value.unwrap();
+        let value = value.as_ref();
 
         match &storage_info.meta.ty {
             StorageType::Plain(rtype) => {
