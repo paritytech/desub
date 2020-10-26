@@ -64,9 +64,9 @@ impl fmt::Display for GenericExtrinsic {
         } else {
             s.push_str(&"None".to_string());
         }
-        s.push_str("\n");
+        s.push('\n');
         s.push_str("CALL");
-        s.push_str("\n");
+        s.push('\n');
         s.push_str(&format!("{}", self.call));
         write!(f, "{}", s)
     }

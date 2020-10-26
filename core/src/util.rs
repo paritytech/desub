@@ -24,7 +24,7 @@ use std::convert::TryFrom;
 // Utility function to serialize from slice/vec to hex
 // If the SubstrateType is a collection of u8s, will serialize as hex
 pub fn as_hex<S: Serializer>(
-    elements: &Vec<SubstrateType>,
+    elements: &[SubstrateType],
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
     if elements
@@ -60,12 +60,9 @@ pub fn as_substrate_address<S: Serializer>(
     match ty {
         SubstrateType::Composite(_) => {
             let bytes: Vec<u8> = TryFrom::try_from(ty)
-                .map_err(|err: Error| ser::Error::custom(format!("{}", err.to_string())))?;
+                .map_err(|err: Error| ser::Error::custom(err.to_string()))?;
             if bytes.len() != 32 {
-                return Err(ser::Error::custom(format!(
-                    "{}",
-                    "address length is incorrect"
-                )));
+                return Err(ser::Error::custom("address length is incorrect".to_string()));
             }
             let mut addr: [u8; 32] = Default::default();
             for (i, b) in bytes.into_iter().enumerate() {

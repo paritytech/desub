@@ -255,10 +255,10 @@ impl TryFrom<&SubstrateType> for Vec<u8> {
                     .iter()
                     .any(|ty| !matches!(ty, SubstrateType::U8(_)))
                 {
-                    return Err(Error::Conversion(format!("{:?}", ty), "u8".to_string()));
+                    Err(Error::Conversion(format!("{:?}", ty), "u8".to_string()))
                 } else {
                     Ok(elements
-                        .into_iter()
+                        .iter()
                         .map(|v| match v {
                             SubstrateType::U8(byte) => *byte,
                             _ => unreachable!(),

@@ -764,14 +764,14 @@ impl Decoder {
                 if let Some(extensions) = meta.signed_extensions() {
                     let extensions = RustTypeMarker::Tuple(extensions.to_vec());
                     self.decode_single("", spec, &extensions, data, cursor, is_compact)
-                        .map(|t| Some(t))
+                        .map(Option::Some)
                 } else {
                     let ty = self
                         .types
                         .get_extrinsic_ty(self.chain.as_str(), spec, "SignedExtra")
-                        .ok_or(Error::from("Could not find type `SignedExtra`"))?;
+                        .ok_or_else(|| Error::from("Could not find type `SignedExtra`"))?;
                     self.decode_single("", spec, &ty, data, cursor, is_compact)
-                        .map(|t| Some(t))
+                        .map(Option::Some)
                 }
             }
             // identity info may be added to in the future
@@ -788,19 +788,19 @@ impl Decoder {
                 )?;
                 let display = self
                     .decode_sub_type(spec, "Data", data, cursor, is_compact)?
-                    .ok_or(Error::from("Data not resolved"))?;
+                    .ok_or_else(|| Error::from("Data not resolved"))?;
                 let legal = self
                     .decode_sub_type(spec, "Data", data, cursor, is_compact)?
-                    .ok_or(Error::from("Data not resolved"))?;
+                    .ok_or_else(|| Error::from("Data not resolved"))?;
                 let web = self
                     .decode_sub_type(spec, "Data", data, cursor, is_compact)?
-                    .ok_or(Error::from("Data not resolved"))?;
+                    .ok_or_else(|| Error::from("Data not resolved"))?;
                 let riot = self
                     .decode_sub_type(spec, "Data", data, cursor, is_compact)?
-                    .ok_or(Error::from("Data not resolved"))?;
+                    .ok_or_else(|| Error::from("Data not resolved"))?;
                 let email = self
                     .decode_sub_type(spec, "Data", data, cursor, is_compact)?
-                    .ok_or(Error::from("Data not resolved"))?;
+                    .ok_or_else(|| Error::from("Data not resolved"))?;
                 let pgp_fingerprint = self.decode_single(
                     "identity",
                     spec,
@@ -813,7 +813,7 @@ impl Decoder {
                 )?;
                 let image = self
                     .decode_sub_type(spec, "Data", data, cursor, is_compact)?
-                    .ok_or(Error::from("Data not resolved"))?;
+                    .ok_or_else(|| Error::from("Data not resolved"))?;
                 let twitter = self.decode_sub_type(spec, "Data", data, cursor, is_compact);
 
                 Ok(Some(SubstrateType::Struct(vec![
@@ -829,7 +829,7 @@ impl Decoder {
                         Some("twitter"),
                         twitter
                             .unwrap_or(Some(SubstrateType::Null))
-                            .ok_or(Error::from("Data not resolved"))?,
+                            .ok_or_else(|| Error::from("Data not resolved"))?,
                     ),
                 ])))
             }

@@ -260,11 +260,11 @@ pub enum RustTypeMarker {
 fn display_types(fields: &[RustTypeMarker]) -> String {
     let mut s = String::new();
 
-    s.push_str("(");
+    s.push('(');
     for substring in fields.iter() {
         s.push_str(&format!("{}, ", substring))
     }
-    s.push_str(")");
+    s.push(')');
     s
 }
 

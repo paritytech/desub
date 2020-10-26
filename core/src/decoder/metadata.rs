@@ -403,7 +403,7 @@ impl ModuleMetadata {
     pub fn call(&self, index: u8) -> Result<&CallMetadata, MetadataError> {
         self.calls()
             .find(|c| c.index == index)
-            .ok_or_else(|| MetadataError::ModuleIndexNotFound(ModuleIndex::Call(index)))
+            .ok_or(MetadataError::ModuleIndexNotFound(ModuleIndex::Call(index)))
     }
 }
 

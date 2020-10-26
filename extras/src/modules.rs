@@ -91,12 +91,8 @@ impl<'de> Deserialize<'de> for Modules {
             {
                 let mut modules: HashMap<String, ModuleTypes> = HashMap::new();
                 while let Some(key) = map.next_key::<&str>()? {
-                    match key {
-                        _ => {
-                            let val: ModuleTypes = map.next_value()?;
-                            modules.insert(key.to_string(), val);
-                        }
-                    }
+                    let val: ModuleTypes = map.next_value()?;
+                    modules.insert(key.to_string(), val);
                 }
                 Ok(Modules { modules })
             }

@@ -216,7 +216,7 @@ fn sanitize_types(module: &str, ty: &str, chain: &str) -> (String, String, Strin
     let module = module.to_ascii_lowercase();
     let chain = chain.to_ascii_lowercase();
     let ty = if let Some(un_prefixed) = regex::remove_prefix(ty) {
-        un_prefixed.to_string()
+        un_prefixed
     } else {
         ty.to_string()
     };
