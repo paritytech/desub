@@ -27,6 +27,14 @@ fn should_create_metadata_v9_block500000() {
 }
 
 #[test]
+fn should_create_metadata_v12_block_4643974() {
+    pretty_env_logger::try_init();
+    let meta = test_suite::runtime_v12_block_4643974();
+    let meta: Metadata = Metadata::new(meta.as_slice());
+    println!("{}", meta.pretty());
+}
+
+#[test]
 fn should_get_correct_lookup_table() {
     let meta = test_suite::runtime_v11();
     let meta: Metadata = Metadata::new(meta.as_slice());

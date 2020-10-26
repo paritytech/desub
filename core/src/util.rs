@@ -19,7 +19,7 @@ use serde::{
     ser::{self, SerializeSeq},
     Serializer,
 };
-use std::convert::{TryFrom, TryInto};
+use std::convert::TryFrom;
 
 // Utility function to serialize from slice/vec to hex
 // If the SubstrateType is a collection of u8s, will serialize as hex

@@ -25,11 +25,11 @@ fn mock_account_info() -> AccountInfo<u32, AccountData<u128>> {
 }
 
 /// T::BlockNumber in meta V11 Block 1768321
-fn get_plain_value() -> (Vec<u8>, Vec<u8>) {
+fn get_plain_value() -> (Vec<u8>, Option<Vec<u8>>) {
     let mut key = twox_128("System".as_bytes()).to_vec();
     key.extend(twox_128("Number".as_bytes()).iter());
     let value = 1768321u32.encode();
-    (key, value)
+    (key, Some(value))
 }
 
 #[test]
@@ -63,7 +63,7 @@ fn should_decode_map() {
     let storage_key = hex::decode("26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da932a5935f6edc617ae178fef9eb1e211fbe5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f").unwrap();
 
     let res = decoder
-        .decode_storage(2023, (storage_key, encoded_account))
+        .decode_storage(2023, (storage_key, Some(encoded_account)))
         .unwrap();
     println!("{:?}", res);
 }
@@ -82,7 +82,7 @@ fn should_decode_double_map() {
     let authored_blocks: u32 = 250;
 
     let res = decoder
-        .decode_storage(2023, (storage_key, authored_blocks.encode()))
+        .decode_storage(2023, (storage_key, Some(authored_blocks.encode())))
         .unwrap();
     println!("{:?}", res);
 }

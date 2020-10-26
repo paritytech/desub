@@ -189,6 +189,13 @@ pub fn runtime_v10() -> Vec<u8> {
     buffer
 }
 
+pub fn runtime_v12_block_4643974() -> Vec<u8> {
+    let mut f = File::open("./data/metadata_v12_block4643974.bin").expect("Opening file failed");
+    let mut buffer = Vec::new();
+    f.read_to_end(&mut buffer).expect("Reading file failed");
+    buffer
+}
+
 /// Get some runtime metadata from KusamaCC3 at block 6
 /// Block hash
 /// 0xb5ee550d20a55b76adeba7149516d367ac7cbdd95cd0864a8753d6b5dd02d3bb

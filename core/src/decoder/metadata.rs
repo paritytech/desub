@@ -32,6 +32,7 @@ mod version_08;
 mod version_09;
 mod version_10;
 mod version_11;
+mod version_12;
 mod versions;
 
 use super::storage::{StorageInfo, StorageLookupTable};
