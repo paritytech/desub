@@ -166,12 +166,18 @@ impl Metadata {
             }
             0xB => {
                 log::debug!("Metadata V11");
-                let meta: runtime_metadata_latest::RuntimeMetadataPrefixed =
+                let meta: runtime_metadata11::RuntimeMetadataPrefixed =
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
                 meta.try_into().expect("Conversion failed")
             }
-            /* TODO remove panic */
-            e => panic!("version {} is unknown, invalid or unsupported", e),
+            0xC => {
+                log::debug!("Metadata V12");
+                let meta: runtime_metadata_latest::RuntimeMetadataPrefixed = 
+                    Decode::decode(&mut &bytes[..]).expect("Decode failed");
+                meta.try_into().expect("Conversion failed")
+            }
+            /* TODO remove panics */
+            e => panic!("substrate metadata version {} is unknown, invalid or unsupported", e),
         }
     }
 

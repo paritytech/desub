@@ -34,7 +34,7 @@ use super::{
     StorageMetadata, StorageType, ExtrinsicMetadata
 };
 use crate::{regex, RustTypeMarker};
-use runtime_metadata11::{
+use runtime_metadata_latest::{
     DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryType, META_RESERVED,
 };
 
@@ -52,7 +52,7 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
             return Err(Error::InvalidPrefix);
         }
         let meta = match metadata.1 {
-            RuntimeMetadata::V11(meta) => meta,
+            RuntimeMetadata::V12(meta) => meta,
             _ => return Err(Error::InvalidVersion),
         };
         let mut modules = HashMap::new();
