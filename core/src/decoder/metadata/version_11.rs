@@ -30,13 +30,13 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata,
-    StorageMetadata, StorageType, ExtrinsicMetadata
+    CallArgMetadata, CallMetadata, Error, EventArg, ExtrinsicMetadata, Metadata,
+    ModuleEventMetadata, ModuleMetadata, StorageMetadata, StorageType,
 };
 use crate::{regex, RustTypeMarker};
 use runtime_metadata11::{
-    DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryType, META_RESERVED,
-    StorageEntryModifier, StorageHasher,
+    DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier,
+    StorageEntryType, StorageHasher, META_RESERVED,
 };
 
 use std::{
@@ -80,9 +80,9 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
             let ty = regex::parse(&name).ok_or(Error::InvalidType(name))?;
             extensions.push(ty);
         }
-        
+
         let extrinsics = ExtrinsicMetadata::new(meta.extrinsic.version, extensions);
-        
+
         Ok(Metadata {
             modules,
             modules_by_event_index,
@@ -154,9 +154,7 @@ fn convert_module(
     })
 }
 
-fn convert_event(
-    event: runtime_metadata11::EventMetadata,
-) -> Result<ModuleEventMetadata, Error> {
+fn convert_event(event: runtime_metadata11::EventMetadata) -> Result<ModuleEventMetadata, Error> {
     let name = convert(event.name)?;
     let mut arguments = HashSet::new();
     for arg in convert(event.arguments)? {
@@ -212,7 +210,7 @@ impl From<TempStorageHasher> for runtime_metadata_latest::StorageHasher {
             StorageHasher::Twox128 => runtime_metadata_latest::StorageHasher::Twox128,
             StorageHasher::Twox256 => runtime_metadata_latest::StorageHasher::Twox256,
             StorageHasher::Twox64Concat => runtime_metadata_latest::StorageHasher::Twox64Concat,
-            StorageHasher::Identity => runtime_metadata_latest::StorageHasher::Identity
+            StorageHasher::Identity => runtime_metadata_latest::StorageHasher::Identity,
         }
     }
 }
@@ -229,7 +227,7 @@ impl TryFrom<StorageEntryType> for StorageType {
                 hasher,
                 key,
                 value,
-                unused
+                unused,
             } => {
                 let key = convert(key)?;
                 let value = convert(value)?;

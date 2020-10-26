@@ -220,7 +220,7 @@ impl Decoder {
         spec: SpecVersion,
         data: (V, Option<O>),
     ) -> Result<GenericStorage, Error> {
-        let (key, value): (&[u8], Option<O>) = (data.0.as_ref(),  data.1);
+        let (key, value): (&[u8], Option<O>) = (data.0.as_ref(), data.1);
         let meta = self.versions.get(&spec).expect("Spec does not exist");
         let lookup_table = meta.storage_lookup_table();
         let storage_info = lookup_table.meta_for_key(key).ok_or_else(|| {
@@ -231,7 +231,7 @@ impl Decoder {
                 self.chain.as_str()
             ))
         })?;
-        
+
         if value.is_none() {
             let key = self.get_key_data(key, &storage_info, &lookup_table);
             return Ok(GenericStorage::new(key, None));
@@ -737,7 +737,7 @@ impl Decoder {
     /// Or, types that have a special encode/decode scheme
     /// that may include packing bytes in a struct.
     /// Packing for example implies that a struct with two u32 fields
-    /// may be encoded as a u8 (one byte). 
+    /// may be encoded as a u8 (one byte).
     /// These types override anything defined in JSON
     /// Tries to decode a type that is native to substrate
     /// for example, H256. Returns none if type cannot be deduced
@@ -757,14 +757,21 @@ impl Decoder {
             // checks if the metadata includes types for the SignedExtensions
             // If not defaults to whatever is in extrinsics.json
             "SignedExtra" => {
-                let meta = self.versions.get(&spec).ok_or(format!("Metadata for spec {} not found", spec))?;
+                let meta = self
+                    .versions
+                    .get(&spec)
+                    .ok_or(format!("Metadata for spec {} not found", spec))?;
                 if let Some(extensions) = meta.signed_extensions() {
                     let extensions = RustTypeMarker::Tuple(extensions.to_vec());
-                    self.decode_single("", spec, &extensions, data, cursor, is_compact).map(|t| Some(t))
+                    self.decode_single("", spec, &extensions, data, cursor, is_compact)
+                        .map(|t| Some(t))
                 } else {
-                    let ty = self.types.get_extrinsic_ty(self.chain.as_str(), spec, "SignedExtra")
+                    let ty = self
+                        .types
+                        .get_extrinsic_ty(self.chain.as_str(), spec, "SignedExtra")
                         .ok_or(Error::from("Could not find type `SignedExtra`"))?;
-                    self.decode_single("", spec, &ty, data, cursor, is_compact).map(|t| Some(t))
+                    self.decode_single("", spec, &ty, data, cursor, is_compact)
+                        .map(|t| Some(t))
                 }
             }
             // identity info may be added to in the future

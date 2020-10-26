@@ -59,14 +59,14 @@ impl ModuleTypes {
     pub fn get(&self, ty: &str) -> Option<&RustTypeMarker> {
         self.types.get(ty)
     }
-    
+
     /// Merges a ModuleTypes struct with another, to create a new HashMap
     /// The `other` struct takes priority if there are type conflicts
     pub fn merge(&self, other: &ModuleTypes) -> ModuleTypes {
         let mut types = self.types.clone();
         let other = other.clone();
         types.extend(other.types.into_iter());
-        
+
         ModuleTypes { types }
     }
 }

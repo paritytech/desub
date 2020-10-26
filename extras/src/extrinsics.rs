@@ -17,12 +17,11 @@ use crate::{Result, TypeRange};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-
 #[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq, Clone)]
 pub struct Extrinsics {
     default: ModuleTypes,
     #[serde(flatten)]
-    overrides: HashMap<String, Vec<TypeRange>>
+    overrides: HashMap<String, Vec<TypeRange>>,
 }
 
 impl Extrinsics {
@@ -39,7 +38,11 @@ impl Extrinsics {
     }
 
     pub fn get(&self, ty: &str, spec: u32, chain: &str) -> Option<&core::RustTypeMarker> {
-        if let Some(ty) = self.get_chain_types(chain, spec).map(|c| c.get(ty)).flatten() {
+        if let Some(ty) = self
+            .get_chain_types(chain, spec)
+            .map(|c| c.get(ty))
+            .flatten()
+        {
             Some(ty)
         } else {
             self.default.get(ty)
@@ -68,10 +71,9 @@ mod tests {
         ]
     }
     "#;
-    
+
     #[test]
     fn should_deserialize_extrinsics() {
         let extrinsics: Extrinsics = Extrinsics::new(TEST_STR).unwrap();
     }
 }
-

@@ -30,8 +30,8 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata,
-    StorageMetadata, StorageType, ExtrinsicMetadata
+    CallArgMetadata, CallMetadata, Error, EventArg, ExtrinsicMetadata, Metadata,
+    ModuleEventMetadata, ModuleMetadata, StorageMetadata, StorageType,
 };
 use crate::{regex, RustTypeMarker};
 use runtime_metadata_latest::{
@@ -79,9 +79,9 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
             let ty = regex::parse(&name).ok_or(Error::InvalidType(name))?;
             extensions.push(ty);
         }
-        
+
         let extrinsics = ExtrinsicMetadata::new(meta.extrinsic.version, extensions);
-        
+
         Ok(Metadata {
             modules,
             modules_by_event_index,

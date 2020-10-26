@@ -440,7 +440,7 @@ fn should_decode_ext_892_dot() {
 #[test]
 fn should_decode_ext_1191_wnd() {
     init();
-    
+
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Polkadot);
 

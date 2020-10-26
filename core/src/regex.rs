@@ -85,8 +85,7 @@ fn rust_array_decl_prim() -> Regex {
 // First capture group is Type
 // Second Capture group is size
 fn rust_array_decl_struct() -> Regex {
-    Regex::new(r"^\[ *?([\w><]+) *?; *?(\d+) *?\]")
-        .expect("Primitive Regex expression invalid")
+    Regex::new(r"^\[ *?([\w><]+) *?; *?(\d+) *?\]").expect("Primitive Regex expression invalid")
 }
 
 /// Match a rust vector
@@ -166,20 +165,24 @@ pub fn rust_tuple_decl() -> Regex {
 }
 
 pub fn parse_struct_array(s: &str) -> Option<RustTypeMarker> {
-        let re = rust_array_decl_struct();
-        if !re.is_match(s) {
-            return None;
-        }
-        
-        let ty = re.captures(s)?.at(1)?;
-        let ty = parse(ty).expect("Will always be some type; qed");
-        
-        let size = re.captures(s)?.at(2)?.parse::<usize>().expect("size of array must be a number");
+    let re = rust_array_decl_struct();
+    if !re.is_match(s) {
+        return None;
+    }
 
-        Some(RustTypeMarker::Array {
-            size,
-            ty: Box::new(ty)
-        })
+    let ty = re.captures(s)?.at(1)?;
+    let ty = parse(ty).expect("Will always be some type; qed");
+
+    let size = re
+        .captures(s)?
+        .at(2)?
+        .parse::<usize>()
+        .expect("size of array must be a number");
+
+    Some(RustTypeMarker::Array {
+        size,
+        ty: Box::new(ty),
+    })
 }
 
 /// Parse a known match to the array regular expression
@@ -764,12 +767,14 @@ mod tests {
     #[test]
     fn should_parse_struct_array() {
         let ty = parse_struct_array("[Foo; 99]").unwrap();
-        assert_eq!(ty, RustTypeMarker::Array {
-            size: 99,
-            ty: Box::new(RustTypeMarker::TypePointer("Foo".to_string()))
-        });
+        assert_eq!(
+            ty,
+            RustTypeMarker::Array {
+                size: 99,
+                ty: Box::new(RustTypeMarker::TypePointer("Foo".to_string()))
+            }
+        );
     }
-
 
     #[test]
     fn should_match_vecs() {
@@ -915,7 +920,10 @@ mod tests {
 
     #[test]
     fn should_correctly_indicate_type() {
-        assert_eq!(RegexSet::get_type("[   u8;   32 ]"), Some(RegexSet::ArrayPrimitive));
+        assert_eq!(
+            RegexSet::get_type("[   u8;   32 ]"),
+            Some(RegexSet::ArrayPrimitive)
+        );
         assert_eq!(RegexSet::get_type("Vec<Foo>"), Some(RegexSet::Vec));
         assert_eq!(RegexSet::get_type("Option<Foo>"), Some(RegexSet::Option));
         assert_eq!(RegexSet::get_type("Compact<Foo>"), Some(RegexSet::Compact));
@@ -1005,7 +1013,9 @@ mod tests {
             parse("[Vec<u8>; 10]").unwrap(),
             RustTypeMarker::Array {
                 size: 10,
-                ty: Box::new(RustTypeMarker::Std(CommonTypes::Vec(Box::new(RustTypeMarker::U8))))
+                ty: Box::new(RustTypeMarker::Std(CommonTypes::Vec(Box::new(
+                    RustTypeMarker::U8
+                ))))
             }
         );
     }

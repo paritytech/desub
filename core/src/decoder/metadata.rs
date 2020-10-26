@@ -173,12 +173,15 @@ impl Metadata {
             }
             0xC => {
                 log::debug!("Metadata V12");
-                let meta: runtime_metadata_latest::RuntimeMetadataPrefixed = 
+                let meta: runtime_metadata_latest::RuntimeMetadataPrefixed =
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
                 meta.try_into().expect("Conversion failed")
             }
             /* TODO remove panics */
-            e => panic!("substrate metadata version {} is unknown, invalid or unsupported", e),
+            e => panic!(
+                "substrate metadata version {} is unknown, invalid or unsupported",
+                e
+            ),
         }
     }
 
@@ -198,7 +201,7 @@ impl Metadata {
             .ok_or(MetadataError::ModuleNotFound(name))
             .map(|m| (*m).clone())
     }
-    
+
     pub fn signed_extensions(&self) -> Option<&[RustTypeMarker]> {
         self.extrinsics.as_ref().map(|e| e.extensions.as_slice())
     }
@@ -334,12 +337,15 @@ impl Metadata {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ExtrinsicMetadata {
     version: u8,
-    extensions: Vec<RustTypeMarker>
+    extensions: Vec<RustTypeMarker>,
 }
 
 impl ExtrinsicMetadata {
     pub fn new(version: u8, extensions: Vec<RustTypeMarker>) -> Self {
-        Self { version, extensions }
+        Self {
+            version,
+            extensions,
+        }
     }
 }
 
@@ -361,7 +367,7 @@ impl ModuleMetadata {
     pub fn name(&self) -> &str {
         &self.name
     }
-    
+
     /// Return a storage entry by its key
     pub fn storage(&self, key: &'static str) -> Result<&StorageMetadata, MetadataError> {
         self.storage
