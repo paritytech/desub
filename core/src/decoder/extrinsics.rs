@@ -16,9 +16,9 @@
 //! Generic Extrinsic Type and Functions
 
 use crate::substrate_types::SubstrateType;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::fmt;
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct ExtrinsicArgument {
     pub name: String,
     pub arg: SubstrateType,
@@ -30,7 +30,7 @@ impl fmt::Display for ExtrinsicArgument {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct GenericCall {
     name: String,
     module: String,
@@ -50,7 +50,7 @@ impl fmt::Display for GenericCall {
 }
 
 /// Generic Extrinsic Type
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct GenericExtrinsic {
     signature: Option<GenericSignature>,
     call: GenericCall,
@@ -64,9 +64,9 @@ impl fmt::Display for GenericExtrinsic {
         } else {
             s.push_str(&"None".to_string());
         }
-        s.push_str("\n");
+        s.push('\n');
         s.push_str("CALL");
-        s.push_str("\n");
+        s.push('\n');
         s.push_str(&format!("{}", self.call));
         write!(f, "{}", s)
     }
@@ -123,8 +123,9 @@ impl GenericExtrinsic {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct GenericSignature {
+    #[serde(serialize_with = "crate::util::as_substrate_address")]
     address: SubstrateType,
     signature: SubstrateType,
     extra: SubstrateType,
@@ -142,11 +143,14 @@ impl GenericSignature {
 
     fn split(sig: SubstrateType) -> Self {
         match sig {
-            SubstrateType::Composite(v) => Self {
-                address: v[0].clone(),
-                signature: v[1].clone(),
-                extra: v[2].clone(),
-            },
+            SubstrateType::Composite(mut v) => {
+                v.reverse();
+                Self {
+                    address: v.pop().expect("Address must must be present in signature"),
+                    signature: v.pop().expect("Signature must be present"),
+                    extra: v.pop().expect("Extra must be present"),
+                }
+            }
             _ => panic!("Signature should always be a tuple of Address, Signature, Extra"),
         }
     }
@@ -156,7 +160,7 @@ impl fmt::Display for GenericSignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "EXTRINSIC SIGNATURE: ({}, {}, {})",
+            "Address {}\n Signature {}\n SignedExtra {}\n",
             self.address, self.signature, self.extra
         )
     }
@@ -178,16 +182,49 @@ mod tests {
         };
         let ext = GenericExtrinsic {
             signature: Some(GenericSignature::new(SubstrateType::Composite(vec![
-                SubstrateType::U32(32),
+                SubstrateType::Composite(vec![
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                    0u8.into(),
+                ]),
                 SubstrateType::U64(64),
-                SubstrateType::U64(128),
+                SubstrateType::U128(128),
             ]))),
             call,
         };
         let serialized = serde_json::to_string(&ext).unwrap();
         assert_eq!(
             serialized,
-            r#"{"signature":{"address":32,"signature":64,"extra":128},"call":{"name":"set","module":"Timestamp","args":[{"name":"Some Arg","arg":32}]}}"#
+            r#"{"signature":{"address":"5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM","signature":64,"extra":128},"call":{"name":"set","module":"Timestamp","args":[{"name":"Some Arg","arg":32}]}}"#
         );
     }
 }

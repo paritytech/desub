@@ -21,6 +21,7 @@ pub mod decoder;
 mod error;
 pub mod regex;
 mod substrate_types;
+mod util;
 
 #[cfg(test)]
 pub mod test_suite;
@@ -130,6 +131,7 @@ impl Display for EnumField {
 /// Definitions for common patterns seen in Substrate/Polkadot
 /// type definitions
 /// Definitions for Vec/Option/Compact
+/// Boxed because self-referential otherwise
 pub enum CommonTypes {
     /// Rust std Vec<T> type
     Vec(Box<RustTypeMarker>),
@@ -258,11 +260,11 @@ pub enum RustTypeMarker {
 fn display_types(fields: &[RustTypeMarker]) -> String {
     let mut s = String::new();
 
-    s.push_str("(");
+    s.push('(');
     for substring in fields.iter() {
         s.push_str(&format!("{}, ", substring))
     }
-    s.push_str(")");
+    s.push(')');
     s
 }
 

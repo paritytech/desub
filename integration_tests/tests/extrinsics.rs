@@ -1,5 +1,7 @@
 extern crate extras;
 
+// TODO: Make test structure into a macro
+
 use crate::test_suite;
 use codec::{Decode, Encode};
 use desub_core::{
@@ -329,7 +331,7 @@ fn should_decode_ext_6144() {
 #[test]
 fn should_decode_ext_779410_ksm() {
     init();
-    
+
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
@@ -366,5 +368,95 @@ fn should_decode_ext_899638_ksm() {
             .expect("should decode");
         println!("{}", decoded);
         println!("{}", serde_json::to_string(&decoded).unwrap());
+    }
+}
+
+#[test]
+fn should_decode_ext_233816_ksm() {
+    init();
+
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Kusama);
+
+    let (meta, ext) = test_suite::extrinsics_block233816();
+    let meta = Metadata::new(meta.as_slice());
+
+    decoder.register_version(1030, &meta);
+    for e in ext.iter() {
+        println!("DECODING --------------------- \n {:X?} \n ------", e);
+        let decoded = decoder
+            .decode_extrinsic(1030, e.as_slice())
+            .expect("should decode");
+        println!("{}", decoded);
+        println!("{}", serde_json::to_string(&decoded).unwrap());
+    }
+}
+
+#[test]
+fn should_decode_ext_607421_ksm() {
+    init();
+
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Kusama);
+
+    let (meta, ext) = test_suite::extrinsics_block607421();
+    let meta = Metadata::new(meta.as_slice());
+
+    decoder.register_version(1039, &meta);
+    for e in ext.iter() {
+        println!("DECODING: \n ------ \n {:X?} \n ------", e);
+        let decoded = decoder
+            .decode_extrinsic(1039, e.as_slice())
+            .expect("should decode");
+        println!("{}", decoded);
+        println!("{}", serde_json::to_string(&decoded).unwrap());
+    }
+}
+
+#[test]
+fn should_decode_ext_892_dot() {
+    init();
+
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Polkadot);
+
+    let (meta, ext) = test_suite::extrinsics_block892_dot();
+    let meta = Metadata::new(meta.as_slice());
+
+    decoder.register_version(0, &meta);
+    for e in ext.iter() {
+        println!("-----------------------------------------------------------------");
+        println!("DECODING: \n ------ \n {:X?} \n ------", e);
+        let decoded = decoder
+            .decode_extrinsic(0, e.as_slice())
+            .expect("should decode");
+        println!("{:?}", decoded);
+        println!("{}", decoded);
+        println!("{}", serde_json::to_string(&decoded).unwrap());
+        println!("-----------------------------------------------------------------");
+    }
+}
+
+#[test]
+fn should_decode_ext_1191_wnd() {
+    init();
+
+    let types = extras::TypeResolver::default();
+    let mut decoder = Decoder::new(types, Chain::Polkadot);
+
+    let (meta, ext) = test_suite::extrinsics_block1191_wnd();
+    let meta = Metadata::new(meta.as_slice());
+
+    decoder.register_version(0, &meta);
+    for e in ext.iter() {
+        println!("-----------------------------------------------------------------");
+        println!("DECODING: \n ------ \n {:X?} \n ------", e);
+        let decoded = decoder
+            .decode_extrinsic(0, e.as_slice())
+            .expect("should decode");
+        println!("{:?}", decoded);
+        println!("{}", decoded);
+        println!("{}", serde_json::to_string(&decoded).unwrap());
+        println!("-----------------------------------------------------------------");
     }
 }

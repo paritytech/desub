@@ -18,7 +18,11 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq, Clone)]
-pub struct Extrinsics(HashMap<String, Vec<TypeRange>>);
+pub struct Extrinsics {
+    default: ModuleTypes,
+    #[serde(flatten)]
+    overrides: HashMap<String, Vec<TypeRange>>,
+}
 
 impl Extrinsics {
     pub fn new(raw_json: &str) -> Result<Self> {
@@ -26,10 +30,50 @@ impl Extrinsics {
     }
 
     pub fn get_chain_types(&self, chain: &str, spec: u32) -> Option<&ModuleTypes> {
-        self.0
+        self.overrides
             .get(chain)?
             .iter()
             .find(|f| crate::is_in_range(spec, f))
             .map(|o| &o.types)
+    }
+
+    pub fn get(&self, ty: &str, spec: u32, chain: &str) -> Option<&core::RustTypeMarker> {
+        if let Some(ty) = self
+            .get_chain_types(chain, spec)
+            .map(|c| c.get(ty))
+            .flatten()
+        {
+            Some(ty)
+        } else {
+            self.default.get(ty)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    const TEST_STR: &str = r#"
+    {
+        "default": {
+            "Foo": "H256"
+        },
+        "kusama": [
+            {
+                "minmax": [
+                    0,
+                    1006
+                ],
+                "types": {
+                    "Foo": "H512"
+                }
+            }
+        ]
+    }
+    "#;
+
+    #[test]
+    fn should_deserialize_extrinsics() {
+        let extrinsics: Extrinsics = Extrinsics::new(TEST_STR).unwrap();
     }
 }

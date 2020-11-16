@@ -13,26 +13,35 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
-
-// taken directly and modified from substrate-subxt:
-// https://github.com/paritytech/substrate-subxt
+// Copyright 2019 Parity Technologies (UK) Ltd.
+// This file is part of substrate-desub.
+//
+// substrate-desub is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// substrate-desub is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata,
-    StorageMetadata, StorageType,
+    CallArgMetadata, CallMetadata, Error, EventArg, ExtrinsicMetadata, Metadata,
+    ModuleEventMetadata, ModuleMetadata, StorageMetadata, StorageType,
 };
-use crate::regex;
-use runtime_metadata08::{
-    DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier,
-    StorageEntryType, StorageHasher, META_RESERVED,
+use crate::{regex, RustTypeMarker};
+use runtime_metadata_latest::{
+    DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryType, META_RESERVED,
 };
+
 use std::{
     collections::{HashMap, HashSet},
     convert::{TryFrom, TryInto},
 };
-
-type DecodeDifferentStr = DecodeDifferent<&'static str, String>;
-type LatestDecodeDifferentStr = runtime_metadata_latest::DecodeDifferent<&'static str, String>;
 
 impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
     type Error = Error;
@@ -43,7 +52,7 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
             return Err(Error::InvalidPrefix);
         }
         let meta = match metadata.1 {
-            RuntimeMetadata::V8(meta) => meta,
+            RuntimeMetadata::V12(meta) => meta,
             _ => return Err(Error::InvalidVersion),
         };
         let mut modules = HashMap::new();
@@ -64,11 +73,20 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
             modules.insert(module_name, std::sync::Arc::new(module_metadata));
         }
 
+        let mut extensions: Vec<RustTypeMarker> = Vec::new();
+        for ext in meta.extrinsic.signed_extensions.iter() {
+            let name: String = convert(ext.clone())?;
+            let ty = regex::parse(&name).ok_or(Error::InvalidType(name))?;
+            extensions.push(ty);
+        }
+
+        let extrinsics = ExtrinsicMetadata::new(meta.extrinsic.version, extensions);
+
         Ok(Metadata {
             modules,
             modules_by_event_index,
             modules_by_call_index,
-            extrinsics: None,
+            extrinsics: Some(extrinsics),
         })
     }
 }
@@ -82,7 +100,7 @@ fn convert<B: 'static, O: 'static>(dd: DecodeDifferent<B, O>) -> Result<O, Error
 
 fn convert_module(
     index: usize,
-    module: runtime_metadata08::ModuleMetadata,
+    module: runtime_metadata_latest::ModuleMetadata,
 ) -> Result<ModuleMetadata, Error> {
     let mut storage_map = HashMap::new();
     if let Some(storage) = module.storage {
@@ -135,7 +153,9 @@ fn convert_module(
     })
 }
 
-fn convert_event(event: runtime_metadata08::EventMetadata) -> Result<ModuleEventMetadata, Error> {
+fn convert_event(
+    event: runtime_metadata_latest::EventMetadata,
+) -> Result<ModuleEventMetadata, Error> {
     let name = convert(event.name)?;
     let mut arguments = HashSet::new();
     for arg in convert(event.arguments)? {
@@ -147,13 +167,13 @@ fn convert_event(event: runtime_metadata08::EventMetadata) -> Result<ModuleEvent
 
 fn convert_entry(
     prefix: String,
-    entry: runtime_metadata08::StorageEntryMetadata,
+    entry: runtime_metadata_latest::StorageEntryMetadata,
 ) -> Result<StorageMetadata, Error> {
     let default = convert(entry.default)?;
     let documentation = convert(entry.documentation)?;
     Ok(StorageMetadata {
         prefix,
-        modifier: StorageEntryModifierTemp(entry.modifier).into(),
+        modifier: entry.modifier,
         ty: entry.ty.try_into()?,
         default,
         documentation: documentation
@@ -161,50 +181,6 @@ fn convert_entry(
             .map(|s| s.to_string())
             .collect::<Vec<String>>(),
     })
-}
-
-/// Temporary struct for converting between `StorageEntryModifier`
-/// and `runtime_metadata_latest::StorageEntryModifier`
-struct StorageEntryModifierTemp(StorageEntryModifier);
-impl From<StorageEntryModifierTemp> for runtime_metadata_latest::StorageEntryModifier {
-    fn from(entry: StorageEntryModifierTemp) -> runtime_metadata_latest::StorageEntryModifier {
-        let entry = entry.0;
-        match entry {
-            StorageEntryModifier::Optional => {
-                runtime_metadata_latest::StorageEntryModifier::Optional
-            }
-            StorageEntryModifier::Default => runtime_metadata_latest::StorageEntryModifier::Default,
-        }
-    }
-}
-
-/// Temprorary struct for converting between `StorageHasher` and
-/// `runtime_metadata_latest::StorageHasher`
-struct TempStorageHasher(StorageHasher);
-impl From<TempStorageHasher> for runtime_metadata_latest::StorageHasher {
-    fn from(hasher: TempStorageHasher) -> runtime_metadata_latest::StorageHasher {
-        let hasher = hasher.0;
-        match hasher {
-            StorageHasher::Blake2_128 => runtime_metadata_latest::StorageHasher::Blake2_128,
-            StorageHasher::Blake2_256 => runtime_metadata_latest::StorageHasher::Blake2_256,
-            StorageHasher::Twox128 => runtime_metadata_latest::StorageHasher::Twox128,
-            StorageHasher::Twox256 => runtime_metadata_latest::StorageHasher::Twox256,
-            StorageHasher::Twox64Concat => runtime_metadata_latest::StorageHasher::Twox64Concat,
-        }
-    }
-}
-
-/// Temporary struct for converting between `DecodeDifferentStr` and
-/// `DecodeDifferentStrLatest`
-struct TempDecodeDifferentStr(DecodeDifferentStr);
-impl From<TempDecodeDifferentStr> for LatestDecodeDifferentStr {
-    fn from(decode_str: TempDecodeDifferentStr) -> LatestDecodeDifferentStr {
-        let decode_str = decode_str.0;
-        match decode_str {
-            DecodeDifferent::Encode(b) => runtime_metadata_latest::DecodeDifferent::Encode(b),
-            DecodeDifferent::Decoded(o) => runtime_metadata_latest::DecodeDifferent::Decoded(o),
-        }
-    }
 }
 
 impl TryFrom<StorageEntryType> for StorageType {
@@ -219,15 +195,15 @@ impl TryFrom<StorageEntryType> for StorageType {
                 hasher,
                 key,
                 value,
-                is_linked,
+                unused,
             } => {
                 let key = convert(key)?;
                 let value = convert(value)?;
                 StorageType::Map {
-                    hasher: TempStorageHasher(hasher).into(),
+                    hasher,
                     key: regex::parse(&key).ok_or(Error::InvalidType(key))?,
                     value: regex::parse(&value).ok_or(Error::InvalidType(value))?,
-                    unused: is_linked,
+                    unused,
                 }
             }
             StorageEntryType::DoubleMap {
@@ -241,11 +217,11 @@ impl TryFrom<StorageEntryType> for StorageType {
                 let key2 = convert(key2)?;
                 let value = convert(value)?;
                 StorageType::DoubleMap {
-                    hasher: TempStorageHasher(hasher).into(),
+                    hasher,
                     key1: regex::parse(&key1).ok_or(Error::InvalidType(key1))?,
                     key2: regex::parse(&key2).ok_or(Error::InvalidType(key2))?,
                     value: regex::parse(&value).ok_or(Error::InvalidType(value))?,
-                    key2_hasher: TempStorageHasher(key2_hasher).into(),
+                    key2_hasher,
                 }
             }
         };

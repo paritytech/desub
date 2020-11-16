@@ -22,11 +22,11 @@
 mod remote;
 
 use self::remote::*;
-use crate::SetField;
+use crate::{Error, SetField};
 use primitives::crypto::AccountId32;
 use primitives::crypto::{Ss58AddressFormat, Ss58Codec};
-use serde::{Deserialize, Serialize};
-use std::fmt;
+use serde::Serialize;
+use std::{convert::TryFrom, fmt};
 
 pub type Address = pallet_indices::address::Address<AccountId32, u32>;
 pub type Vote = pallet_democracy::Vote;
@@ -36,7 +36,7 @@ pub type Data = pallet_identity::Data;
 /// A 'stateful' version of [RustTypeMarker](enum.RustTypeMarker.html).
 /// 'Std' variant is not here like in RustTypeMarker.
 /// Instead common types are just apart of the enum
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 #[serde(untagged)]
 pub enum SubstrateType {
     /// 512-bit hash type
@@ -66,6 +66,7 @@ pub enum SubstrateType {
     SignedExtra(String),
 
     /// vectors, arrays, and tuples
+    #[serde(serialize_with = "crate::util::as_hex")]
     Composite(Vec<SubstrateType>),
 
     /// C-Like Enum Type
@@ -129,8 +130,8 @@ impl fmt::Display for SubstrateType {
                 Ok(())
             }
             SubstrateType::Era(v) => match v {
-                runtime_primitives::generic::Era::Mortal(s, e) => write!(f, "Era {}..{}", s, e),
-                runtime_primitives::generic::Era::Immortal => write!(f, "Immortal Era"),
+                runtime_primitives::generic::Era::Mortal(s, e) => write!(f, " Era {}..{}", s, e),
+                runtime_primitives::generic::Era::Immortal => write!(f, " Immortal Era"),
             },
             SubstrateType::GenericVote(v) => write!(
                 f,
@@ -138,19 +139,14 @@ impl fmt::Display for SubstrateType {
                 v.aye,
                 v.conviction.lock_periods()
             ),
-            SubstrateType::Address(v) => {
-                match v {
-                    pallet_indices::address::Address::Id(ref i) => {
-                        write!(
-                            f,
-                            "Account::Id({})",
-                            i.to_ss58check_with_version(Ss58AddressFormat::KusamaAccount)
-                        )
-                        //write!(f, "Account::Id({})", i)
-                    }
-                    pallet_indices::address::Address::Index(i) => write!(f, "Index: {:?}", i),
-                }
-            }
+            SubstrateType::Address(v) => match v {
+                pallet_indices::address::Address::Id(ref i) => write!(
+                    f,
+                    "Account::Id({})",
+                    i.to_ss58check_with_version(Ss58AddressFormat::SubstrateAccount)
+                ),
+                pallet_indices::address::Address::Index(i) => write!(f, "Index: {:?}", i),
+            },
             SubstrateType::Data(d) => write!(f, "{:?}", d),
             SubstrateType::SignedExtra(v) => write!(f, "{}", v),
             SubstrateType::Composite(v) => {
@@ -193,18 +189,21 @@ impl fmt::Display for SubstrateType {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 #[serde(untagged)]
 pub enum StructUnitOrTuple {
     Struct(Vec<StructField>),
     Unit(String),
     /// vector of variant name -> type
-    Tuple(String, Box<SubstrateType>),
+    Tuple {
+        name: String,
+        ty: Box<SubstrateType>,
+    },
 }
 
 impl fmt::Display for StructUnitOrTuple {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut _enum = String::from("tuple[ ");
+        let mut _enum = String::from(" tuple[ ");
         match self {
             Self::Struct(v) => {
                 for val in v.iter() {
@@ -212,7 +211,7 @@ impl fmt::Display for StructUnitOrTuple {
                 }
             }
             Self::Unit(v) => _enum.push_str(&format!("{}, ", v)),
-            Self::Tuple(name, v) => _enum.push_str(&format!(" {}:{} ", name, v.to_string())),
+            Self::Tuple { name, ty } => _enum.push_str(&format!(" {}:{} ", name, ty.to_string())),
         }
         _enum.push_str(" ]");
         write!(f, "{}", _enum)
@@ -220,7 +219,7 @@ impl fmt::Display for StructUnitOrTuple {
 }
 
 /// Type with an associated name
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct StructField {
     /// name of a field, if any
     /// this is an option, because IE a Tuple-enum Variant
@@ -228,6 +227,13 @@ pub struct StructField {
     pub name: Option<String>,
     /// Type of field
     pub ty: SubstrateType,
+}
+
+impl StructField {
+    pub fn new<S: Into<String>>(name: Option<S>, ty: SubstrateType) -> Self {
+        let name: Option<String> = name.map(|s| s.into());
+        Self { name, ty }
+    }
 }
 
 impl fmt::Display for StructField {
@@ -239,6 +245,32 @@ impl fmt::Display for StructField {
 // ============================================
 // /\/\/\         CONVERSIONS            /\/\/\
 // ============================================
+
+impl TryFrom<&SubstrateType> for Vec<u8> {
+    type Error = Error;
+    fn try_from(ty: &SubstrateType) -> Result<Vec<u8>, Error> {
+        match ty {
+            SubstrateType::Composite(elements) => {
+                if elements
+                    .iter()
+                    .any(|ty| !matches!(ty, SubstrateType::U8(_)))
+                {
+                    Err(Error::Conversion(format!("{:?}", ty), "u8".to_string()))
+                } else {
+                    Ok(elements
+                        .iter()
+                        .map(|v| match v {
+                            SubstrateType::U8(byte) => *byte,
+                            _ => unreachable!(),
+                        })
+                        .collect::<Vec<u8>>())
+                }
+            }
+            _ => Err(Error::Conversion(format!("{}", ty), "Vec<u8>".to_string())),
+        }
+    }
+}
+
 impl From<u8> for SubstrateType {
     fn from(num: u8) -> SubstrateType {
         SubstrateType::U8(num)

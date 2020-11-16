@@ -32,6 +32,7 @@ mod version_08;
 mod version_09;
 mod version_10;
 mod version_11;
+mod version_12;
 mod versions;
 
 use super::storage::{StorageInfo, StorageLookupTable};
@@ -40,7 +41,7 @@ use codec::{Decode, Encode, EncodeAsRef, HasCompact};
 // use codec411::Decode as OldDecode;
 use primitives::{storage::StorageKey, twox_128};
 use runtime_metadata_latest::{StorageEntryModifier, StorageHasher};
-use std::error::Error as _;
+
 use std::{
     collections::{HashMap, HashSet},
     convert::TryInto,
@@ -69,13 +70,13 @@ pub fn compact<T: HasCompact>(t: T) -> Encoded {
 
 #[derive(Debug, Clone, Error)]
 pub enum MetadataError {
-    #[error("{0}")]
+    #[error("Module {0} not found")]
     ModuleNotFound(String),
-    #[error("{0}")]
+    #[error("Call {0} not found")]
     CallNotFound(&'static str),
-    #[error("{0}")]
+    #[error("Module index {0} not found")]
     ModuleIndexNotFound(ModuleIndex),
-    #[error("{0}")]
+    #[error("Storage {0} not found")]
     StorageNotFound(&'static str),
     #[error("StorageType Error")]
     StorageTypeError,
@@ -99,6 +100,9 @@ pub struct Metadata {
     modules_by_event_index: HashMap<u8, String>,
     /// modules by their index in the Call Enum
     modules_by_call_index: HashMap<u8, String>,
+    /// Optional extrinsic metadata. Only chains which use meta
+    /// version 11+ support this.
+    extrinsics: Option<ExtrinsicMetadata>,
 }
 
 impl From<Vec<u8>> for Metadata {
@@ -144,27 +148,40 @@ impl Metadata {
                 meta.try_into().expect("Conversion failed")
             } */
             0x08 => {
+                log::debug!("Metadata V8");
                 let meta: runtime_metadata08::RuntimeMetadataPrefixed =
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
                 meta.try_into().expect("Conversion failed")
             }
             0x09 => {
+                log::debug!("Metadata V9");
                 let meta: runtime_metadata09::RuntimeMetadataPrefixed =
                     Decode::decode(&mut &bytes[..]).expect("Decode Failed");
                 meta.try_into().expect("Conversion Failed")
             }
             0xA => {
+                log::debug!("Metadata V10");
                 let meta: runtime_metadata10::RuntimeMetadataPrefixed =
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
                 meta.try_into().expect("Conversion failed")
             }
             0xB => {
+                log::debug!("Metadata V11");
+                let meta: runtime_metadata11::RuntimeMetadataPrefixed =
+                    Decode::decode(&mut &bytes[..]).expect("Decode failed");
+                meta.try_into().expect("Conversion failed")
+            }
+            0xC => {
+                log::debug!("Metadata V12");
                 let meta: runtime_metadata_latest::RuntimeMetadataPrefixed =
                     Decode::decode(&mut &bytes[..]).expect("Decode failed");
                 meta.try_into().expect("Conversion failed")
             }
-            /* TODO remove panic */
-            e => panic!("version {} is unknown, invalid or unsupported", e),
+            /* TODO remove panics */
+            e => panic!(
+                "substrate metadata version {} is unknown, invalid or unsupported",
+                e
+            ),
         }
     }
 
@@ -183,6 +200,10 @@ impl Metadata {
             .get(&name)
             .ok_or(MetadataError::ModuleNotFound(name))
             .map(|m| (*m).clone())
+    }
+
+    pub fn signed_extensions(&self) -> Option<&[RustTypeMarker]> {
+        self.extrinsics.as_ref().map(|e| e.extensions.as_slice())
     }
 
     /// Check if a module exists
@@ -314,6 +335,21 @@ impl Metadata {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct ExtrinsicMetadata {
+    version: u8,
+    extensions: Vec<RustTypeMarker>,
+}
+
+impl ExtrinsicMetadata {
+    pub fn new(version: u8, extensions: Vec<RustTypeMarker>) -> Self {
+        Self {
+            version,
+            extensions,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct ModuleMetadata {
     /// index of the module within StorageMetadata 'Entries'
     index: u8,
@@ -331,25 +367,7 @@ impl ModuleMetadata {
     pub fn name(&self) -> &str {
         &self.name
     }
-    /*
-        /// return the SCALE-encoded Call with parameters appended and parameters
-        pub fn call<T: Encode>(
-            &self,
-            function: &'static str,
-            params: T,
-        ) -> Result<Encoded, MetadataError> {
-            let fn_bytes = self
-                .calls
-                .get(function)
-                .ok_or(MetadataError::CallNotFound(function))?
-                .index
-                .as_slice();
-            let mut bytes = vec![self.index];
-            bytes.extend(fn_bytes);
-            bytes.extend(params.encode());
-            Ok(Encoded(bytes))
-        }
-    */
+
     /// Return a storage entry by its key
     pub fn storage(&self, key: &'static str) -> Result<&StorageMetadata, MetadataError> {
         self.storage
@@ -385,7 +403,7 @@ impl ModuleMetadata {
     pub fn call(&self, index: u8) -> Result<&CallMetadata, MetadataError> {
         self.calls()
             .find(|c| c.index == index)
-            .ok_or_else(|| MetadataError::ModuleIndexNotFound(ModuleIndex::Call(index)))
+            .ok_or(MetadataError::ModuleIndexNotFound(ModuleIndex::Call(index)))
     }
 }
 

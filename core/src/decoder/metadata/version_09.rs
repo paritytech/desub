@@ -67,6 +67,7 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
             modules,
             modules_by_event_index,
             modules_by_call_index,
+            extrinsics: None,
         })
     }
 }

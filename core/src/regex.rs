@@ -20,7 +20,8 @@ use onig::{Regex, Region, SearchOptions};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum RegexSet {
-    Array,
+    ArrayPrimitive,
+    ArrayStruct,
     Vec,
     Option,
     Result,
@@ -34,8 +35,10 @@ impl RegexSet {
     /// Checks if string matches any of the patterns defined
     /// Returns none if it does not match
     fn get_type(s: &str) -> Option<RegexSet> {
-        if rust_array_decl().is_match(s) {
-            Some(RegexSet::Array)
+        if rust_array_decl_prim().is_match(s) {
+            Some(RegexSet::ArrayPrimitive)
+        } else if rust_array_decl_struct().is_match(s) {
+            Some(RegexSet::ArrayStruct)
         } else if rust_vec_decl().is_match(s) {
             Some(RegexSet::Vec)
         } else if rust_option_decl().is_match(s) {
@@ -57,30 +60,39 @@ impl RegexSet {
 
     fn parse_type(&self, s: &str) -> Option<RustTypeMarker> {
         match self {
-            RegexSet::Array => parse_regex_array(s),
-            RegexSet::Vec => parse_regex_vec(s),
-            RegexSet::Option => parse_regex_option(s),
-            RegexSet::Result => parse_regex_result(s),
-            RegexSet::Compact => parse_regex_compact(s),
-            RegexSet::Box => parse_regex_box(s),
-            RegexSet::Tuple => parse_regex_tuple(s),
-            RegexSet::Generic => parse_regex_generic(s),
+            RegexSet::ArrayPrimitive => parse_primitive_array(s),
+            RegexSet::ArrayStruct => parse_struct_array(s),
+            RegexSet::Vec => parse_vec(s),
+            RegexSet::Option => parse_option(s),
+            RegexSet::Result => parse_result(s),
+            RegexSet::Compact => parse_compact(s),
+            RegexSet::Box => parse_box(s),
+            RegexSet::Tuple => parse_tuple(s),
+            RegexSet::Generic => parse_generic(s),
         }
     }
 }
 
-/// Match a rust array
-pub fn rust_array_decl() -> Regex {
-    // width of number and unsigned/signed are all in their own capture group
-    // size of array is in the last capture group
+// primitive array declaration with named capture groups, ie [u8; 99]
+// width of number and unsigned/signed are all in their own capture group
+// size of array is in the last capture group
+fn rust_array_decl_prim() -> Regex {
     Regex::new(r"^\[ *?(?<type>[uif]{1})(?<bit8>8)?(?<bit16>16)?(?<bit32>32)?(?<bit64>64)?(?<bit128>128)?;\s*?(?<size>[\d]*) *?]")
-        .expect("Regex expression invalid")
+        .expect("Primitive Regex expression invalid")
+}
+
+// matches arrays with struct arguments, IE: [Vec<Foo>; 10]
+// First capture group is Type
+// Second Capture group is size
+fn rust_array_decl_struct() -> Regex {
+    Regex::new(r"^\[ *?([\w><]+) *?; *?(\d+) *?\]").expect("Primitive Regex expression invalid")
 }
 
 /// Match a rust vector
 /// allowed to be nested within, or have other (ie Option<>) nested within
 pub fn rust_vec_decl() -> Regex {
-    Regex::new(r"^Vec<(?<type>[\w><,(): ]+)>").expect("Regex expression should be infallible; qed")
+    Regex::new(r"^Vec<(?<type>[\w><,():\;\[\] ]+)>")
+        .expect("Regex expression should be infallible; qed")
 }
 
 /// Match a Rust Option
@@ -135,16 +147,16 @@ pub fn remove_prefix<'a, S: Into<&'a str>>(s: S) -> Option<String> {
 pub fn rust_tuple_decl() -> Regex {
     Regex::new(
         [
-            r#"^\(([\w><:()\n]+)"#,
-            r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
-            r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
-            r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
-            r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
-            r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
-            r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
-            r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
-            r#",? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*,? *([\w><:()\n]+)*"#,
-            r#",? *([\w><:()\n]+)*\)$"#,
+            r#"^\(([\w\d><:;\[\]()\n ]+)"#,
+            r#",? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*"#,
+            r#",? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*"#,
+            r#",? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*"#,
+            r#",? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*"#,
+            r#",? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*"#,
+            r#",? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*"#,
+            r#",? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*"#,
+            r#",? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*,? *([\w\d><:;\[\]()\n ]+)*"#,
+            r#",? *([\w\d><:;\[\]()\n ]+)*\)$"#,
         ]
         .join("")
         .as_str(),
@@ -152,13 +164,34 @@ pub fn rust_tuple_decl() -> Regex {
     .expect("Regex Expressions should be infallible; qed")
 }
 
+pub fn parse_struct_array(s: &str) -> Option<RustTypeMarker> {
+    let re = rust_array_decl_struct();
+    if !re.is_match(s) {
+        return None;
+    }
+
+    let ty = re.captures(s)?.at(1)?;
+    let ty = parse(ty).expect("Will always be some type; qed");
+
+    let size = re
+        .captures(s)?
+        .at(2)?
+        .parse::<usize>()
+        .expect("size of array must be a number");
+
+    Some(RustTypeMarker::Array {
+        size,
+        ty: Box::new(ty),
+    })
+}
+
 /// Parse a known match to the array regular expression
 ///
 /// # Panics
 ///
 /// TODO: Use errors instead of returning option
-pub fn parse_regex_array(s: &str) -> Option<RustTypeMarker> {
-    let re = rust_array_decl();
+pub fn parse_primitive_array(s: &str) -> Option<RustTypeMarker> {
+    let re = rust_array_decl_prim();
     if !re.is_match(s) {
         return None;
     }
@@ -244,7 +277,7 @@ pub fn parse_regex_array(s: &str) -> Option<RustTypeMarker> {
     Some(RustTypeMarker::Array { size, ty })
 }
 
-fn parse_regex_vec(s: &str) -> Option<RustTypeMarker> {
+fn parse_vec(s: &str) -> Option<RustTypeMarker> {
     let re = rust_vec_decl();
 
     if !re.is_match(s) {
@@ -252,12 +285,11 @@ fn parse_regex_vec(s: &str) -> Option<RustTypeMarker> {
     }
 
     let ty = re.captures(s)?.at(1)?;
-
     let ty = parse(ty).expect("Should always be some type; qed");
     Some(RustTypeMarker::Std(CommonTypes::Vec(Box::new(ty))))
 }
 
-fn parse_regex_option(s: &str) -> Option<RustTypeMarker> {
+fn parse_option(s: &str) -> Option<RustTypeMarker> {
     let re = rust_option_decl();
     if !re.is_match(s) {
         return None;
@@ -267,7 +299,7 @@ fn parse_regex_option(s: &str) -> Option<RustTypeMarker> {
     Some(RustTypeMarker::Std(CommonTypes::Option(Box::new(ty))))
 }
 
-fn parse_regex_result(s: &str) -> Option<RustTypeMarker> {
+fn parse_result(s: &str) -> Option<RustTypeMarker> {
     let re = rust_result_decl();
     if !re.is_match(s) {
         return None;
@@ -281,7 +313,7 @@ fn parse_regex_result(s: &str) -> Option<RustTypeMarker> {
     )))
 }
 
-fn parse_regex_compact(s: &str) -> Option<RustTypeMarker> {
+fn parse_compact(s: &str) -> Option<RustTypeMarker> {
     let re = rust_compact_decl();
     if !re.is_match(s) {
         return None;
@@ -296,7 +328,7 @@ fn parse_regex_compact(s: &str) -> Option<RustTypeMarker> {
 /// Boxes are a purely rust memory-management phenomenon.
 /// We only care about the underlying data structure.
 /// So we do not preserve the fact that this type is 'boxed'.
-fn parse_regex_box(s: &str) -> Option<RustTypeMarker> {
+fn parse_box(s: &str) -> Option<RustTypeMarker> {
     let re = rust_box_decl();
     if !re.is_match(s) {
         return None;
@@ -306,7 +338,7 @@ fn parse_regex_box(s: &str) -> Option<RustTypeMarker> {
     Some(parse(ty).expect("Should always be some type; qed"))
 }
 
-fn parse_regex_tuple(s: &str) -> Option<RustTypeMarker> {
+fn parse_tuple(s: &str) -> Option<RustTypeMarker> {
     let re = rust_tuple_decl();
     if !re.is_match(s) {
         return None;
@@ -329,7 +361,7 @@ fn parse_regex_tuple(s: &str) -> Option<RustTypeMarker> {
     Some(RustTypeMarker::Tuple(ty))
 }
 
-fn parse_regex_generic(s: &str) -> Option<RustTypeMarker> {
+fn parse_generic(s: &str) -> Option<RustTypeMarker> {
     let re = rust_generic_decl();
     if !re.is_match(s) {
         return None;
@@ -393,7 +425,7 @@ mod tests {
 
     #[test]
     fn should_match_array_decl() {
-        let re = rust_array_decl();
+        let re = rust_array_decl_prim();
         assert!(re.is_match("[u8; 16]"));
         assert!(re.is_match("[u16; 16]"));
         assert!(re.is_match("[u32; 16]"));
@@ -412,7 +444,7 @@ mod tests {
 
     #[test]
     fn should_seperate_args_in_capture_groups() {
-        let re = rust_array_decl();
+        let re = rust_array_decl_prim();
 
         let caps = re.captures("[u8; 16]").unwrap();
         assert_eq!(
@@ -628,100 +660,118 @@ mod tests {
     #[test]
     #[should_panic]
     fn should_not_parse_on_nonexistant_type() {
-        parse_regex_array("[f16; 32]");
+        parse_primitive_array("[f16; 32]");
     }
 
     #[test]
     fn should_match_regex_array() {
         assert_eq!(
-            parse_regex_array("[u8; 32]").unwrap(),
+            parse_primitive_array("[u8; 32]").unwrap(),
             RustTypeMarker::Array {
                 size: 32,
                 ty: Box::new(RustTypeMarker::U8)
             }
         );
         assert_eq!(
-            parse_regex_array("[u16; 32]").unwrap(),
+            parse_primitive_array("[u16; 32]").unwrap(),
             RustTypeMarker::Array {
                 size: 32,
                 ty: Box::new(RustTypeMarker::U16)
             }
         );
         assert_eq!(
-            parse_regex_array("[u32; 32]").unwrap(),
+            parse_primitive_array("[u32; 32]").unwrap(),
             RustTypeMarker::Array {
                 size: 32,
                 ty: Box::new(RustTypeMarker::U32)
             }
         );
         assert_eq!(
-            parse_regex_array("[u64; 32]").unwrap(),
+            parse_primitive_array("[u64; 32]").unwrap(),
             RustTypeMarker::Array {
                 size: 32,
                 ty: Box::new(RustTypeMarker::U64)
             }
         );
         assert_eq!(
-            parse_regex_array("[u128; 32]").unwrap(),
+            parse_primitive_array("[u128; 32]").unwrap(),
             RustTypeMarker::Array {
                 size: 32,
                 ty: Box::new(RustTypeMarker::U128)
             }
         );
         assert_eq!(
-            parse_regex_array("[i8; 32]").unwrap(),
+            parse_primitive_array("[i8; 32]").unwrap(),
             RustTypeMarker::Array {
                 size: 32,
                 ty: Box::new(RustTypeMarker::I8)
             }
         );
         assert_eq!(
-            parse_regex_array("[i16; 32]").unwrap(),
+            parse_primitive_array("[i16; 32]").unwrap(),
             RustTypeMarker::Array {
                 size: 32,
                 ty: Box::new(RustTypeMarker::I16)
             }
         );
         assert_eq!(
-            parse_regex_array("[i32; 32]").unwrap(),
+            parse_primitive_array("[i32; 32]").unwrap(),
             RustTypeMarker::Array {
                 size: 32,
                 ty: Box::new(RustTypeMarker::I32)
             }
         );
         assert_eq!(
-            parse_regex_array("[i64; 32]").unwrap(),
+            parse_primitive_array("[i64; 32]").unwrap(),
             RustTypeMarker::Array {
                 size: 32,
                 ty: Box::new(RustTypeMarker::I64)
             }
         );
         assert_eq!(
-            parse_regex_array("[i128; 32]").unwrap(),
+            parse_primitive_array("[i128; 32]").unwrap(),
             RustTypeMarker::Array {
                 size: 32,
                 ty: Box::new(RustTypeMarker::I128)
             }
         );
         assert_eq!(
-            parse_regex_array("[f32; 32]").unwrap(),
+            parse_primitive_array("[f32; 32]").unwrap(),
             RustTypeMarker::Array {
                 size: 32,
                 ty: Box::new(RustTypeMarker::F32)
             }
         );
         assert_eq!(
-            parse_regex_array("[f64; 32]").unwrap(),
+            parse_primitive_array("[f64; 32]").unwrap(),
             RustTypeMarker::Array {
                 size: 32,
                 ty: Box::new(RustTypeMarker::F64)
             }
         );
         assert_eq!(
-            parse_regex_array("[i128; 999999]").unwrap(),
+            parse_primitive_array("[i128; 999999]").unwrap(),
             RustTypeMarker::Array {
                 size: 999_999,
                 ty: Box::new(RustTypeMarker::I128)
+            }
+        );
+    }
+
+    #[test]
+    fn should_match_struct_array() {
+        let re = rust_array_decl_struct();
+        assert_eq!(true, re.is_match("[Foo; 10]"))
+    }
+
+    #[test]
+    fn should_parse_struct_array() {
+        let ty = parse_struct_array("[Foo; 99]").unwrap();
+        assert_eq!(
+            ty,
+            RustTypeMarker::Array {
+                size: 99,
+                ty: Box::new(RustTypeMarker::TypePointer("Foo".to_string()))
             }
         );
     }
@@ -870,7 +920,10 @@ mod tests {
 
     #[test]
     fn should_correctly_indicate_type() {
-        assert_eq!(RegexSet::get_type("[   u8;   32 ]"), Some(RegexSet::Array));
+        assert_eq!(
+            RegexSet::get_type("[   u8;   32 ]"),
+            Some(RegexSet::ArrayPrimitive)
+        );
         assert_eq!(RegexSet::get_type("Vec<Foo>"), Some(RegexSet::Vec));
         assert_eq!(RegexSet::get_type("Option<Foo>"), Some(RegexSet::Option));
         assert_eq!(RegexSet::get_type("Compact<Foo>"), Some(RegexSet::Compact));
@@ -955,6 +1008,16 @@ mod tests {
                 ])))
             ))))
         );
+
+        assert_eq!(
+            parse("[Vec<u8>; 10]").unwrap(),
+            RustTypeMarker::Array {
+                size: 10,
+                ty: Box::new(RustTypeMarker::Std(CommonTypes::Vec(Box::new(
+                    RustTypeMarker::U8
+                ))))
+            }
+        );
     }
 
     #[test]
@@ -972,5 +1035,22 @@ mod tests {
             parse("Box<T::Proposal>").unwrap(),
             RustTypeMarker::TypePointer("T::Proposal".to_string())
         )
+    }
+
+    #[test]
+    fn should_parse_vec_of_tuples() {
+        pretty_env_logger::try_init();
+        let ty = "Vec<(NominatorIndexCompact, CompactScoreCompact, ValidatorIndexCompact)>";
+        assert_eq!(
+            parse_vec(ty).unwrap(),
+            RustTypeMarker::Std(CommonTypes::Vec(Box::new(RustTypeMarker::Tuple(vec![
+                RustTypeMarker::TypePointer("NominatorIndexCompact".into()),
+                RustTypeMarker::TypePointer("CompactScoreCompact".into()),
+                RustTypeMarker::TypePointer("ValidatorIndexCompact".into())
+            ]))))
+        );
+        let ty = "Vec<(NominatorIndexCompact, [CompactScoreCompact; 2], ValidatorIndexCompact)>";
+        let res = parse_vec(ty).unwrap();
+        log::debug!("{:?}", res);
     }
 }

@@ -25,6 +25,7 @@ pub fn test_metadata() -> Metadata {
         modules: module_metadata_mock(),
         modules_by_event_index: HashMap::new(),
         modules_by_call_index: HashMap::new(),
+        extrinsics: None,
     }
 }
 
