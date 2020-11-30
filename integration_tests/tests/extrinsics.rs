@@ -3,15 +3,10 @@ extern crate extras;
 // TODO: Make test structure into a macro
 
 use crate::test_suite;
-use codec::{Decode, Encode};
-use desub_core::{
-    decoder::{Chain, Decoder, GenericStorage, Metadata, StorageHasher, StorageKey, StorageValue},
-    SubstrateType,
-};
-use primitives::twox_128;
+use desub_core::decoder::{Chain, Decoder, Metadata};
 
 pub fn init() {
-    pretty_env_logger::try_init();
+    let _ = pretty_env_logger::try_init();
 }
 
 #[test]
@@ -20,7 +15,7 @@ pub fn should_decode_ext342962() {
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
-    let (meta, ext) = test_suite::extrinsics_block342962();
+    let (meta, ext) = test_suite::extrinsics_block_342962();
     let meta = Metadata::new(meta.as_slice());
 
     // block 6 of KSM CC3 is spec 1020
@@ -46,7 +41,7 @@ pub fn should_decode_ext422871() {
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
-    let (meta, ext) = test_suite::extrinsics_block422871();
+    let (meta, ext) = test_suite::extrinsics_block_422871();
     let meta = Metadata::new(meta.as_slice());
     decoder.register_version(1031, &meta);
 
@@ -66,7 +61,7 @@ pub fn should_decode_ext50970() {
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
-    let (meta, ext) = test_suite::extrinsics_block50970();
+    let (meta, ext) = test_suite::extrinsics_block_50970();
     let meta = Metadata::new(meta.as_slice());
 
     decoder.register_version(1031, &meta);
@@ -87,7 +82,7 @@ pub fn should_decode_ext_106284() {
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
-    let (meta, ext) = test_suite::extrinsics_block106284();
+    let (meta, ext) = test_suite::extrinsics_block_106284();
     let meta = Metadata::new(meta.as_slice());
 
     decoder.register_version(1042, &meta);
@@ -109,7 +104,7 @@ pub fn should_decode_ext_1674683() {
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
-    let (meta, ext) = test_suite::extrinsics_block1674683();
+    let (meta, ext) = test_suite::extrinsics_block_1674683();
     let meta = Metadata::new(meta.as_slice());
 
     decoder.register_version(1055, &meta);
@@ -131,7 +126,7 @@ pub fn should_decode_ext_1677621() {
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
-    let (meta, ext) = test_suite::extrinsics_block1677621();
+    let (meta, ext) = test_suite::extrinsics_block_1677621();
     let meta = Metadata::new(meta.as_slice());
 
     decoder.register_version(1055, &meta);
@@ -154,7 +149,7 @@ fn should_decode_ext_1702023() {
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
-    let (meta, ext) = test_suite::extrinsics_block1702023();
+    let (meta, ext) = test_suite::extrinsics_block_1702023();
     let meta = Metadata::new(meta.as_slice());
 
     decoder.register_version(1055, &meta);
@@ -177,7 +172,7 @@ fn should_decode_ext_1714495() {
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
-    let (meta, ext) = test_suite::extrinsics_block1714495();
+    let (meta, ext) = test_suite::extrinsics_block_1714495();
     let meta = Metadata::new(meta.as_slice());
 
     decoder.register_version(1055, &meta);
@@ -199,7 +194,7 @@ fn should_decode_ext_1717926() {
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
-    let (meta, ext) = test_suite::extrinsics_block1717926();
+    let (meta, ext) = test_suite::extrinsics_block_1717926();
     let meta = Metadata::new(meta.as_slice());
 
     decoder.register_version(1055, &meta);
@@ -221,7 +216,7 @@ fn should_decode_ext_1718223() {
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
-    let (meta, ext) = test_suite::extrinsics_block1718223();
+    let (meta, ext) = test_suite::extrinsics_block_1718223();
     let meta = Metadata::new(meta.as_slice());
 
     decoder.register_version(1055, &meta);
@@ -244,7 +239,7 @@ fn should_decode_ext_1732321() {
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
-    let (meta, ext) = test_suite::extrinsics_block1732321();
+    let (meta, ext) = test_suite::extrinsics_block_1732321();
     let meta = Metadata::new(meta.as_slice());
 
     decoder.register_version(1055, &meta);
@@ -267,7 +262,7 @@ fn should_decode_ext_1731904() {
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
-    let (meta, ext) = test_suite::extrinsics_block1731904();
+    let (meta, ext) = test_suite::extrinsics_block_1731904();
     let meta = Metadata::new(meta.as_slice());
 
     decoder.register_version(1055, &meta);
@@ -290,7 +285,7 @@ fn should_decode_ext_1768321() {
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
-    let (meta, ext) = test_suite::extrinsics_block1768321();
+    let (meta, ext) = test_suite::extrinsics_block_1768321();
     let meta = Metadata::new(meta.as_slice());
 
     decoder.register_version(1055, &meta);
@@ -313,7 +308,7 @@ fn should_decode_ext_6144() {
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
-    let (meta, ext) = test_suite::extrinsics_block6144();
+    let (meta, ext) = test_suite::extrinsics_block_6144();
     let meta = Metadata::new(meta.as_slice());
 
     decoder.register_version(1020, &meta);
@@ -335,7 +330,7 @@ fn should_decode_ext_779410_ksm() {
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
-    let (meta, ext) = test_suite::extrinsics_block779410();
+    let (meta, ext) = test_suite::extrinsics_block_779410();
     let meta = Metadata::new(meta.as_slice());
 
     decoder.register_version(1042, &meta);
@@ -356,7 +351,7 @@ fn should_decode_ext_899638_ksm() {
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
-    let (meta, ext) = test_suite::extrinsics_block899638();
+    let (meta, ext) = test_suite::extrinsics_block_899638();
     let meta = Metadata::new(meta.as_slice());
 
     decoder.register_version(1042, &meta);
@@ -378,7 +373,7 @@ fn should_decode_ext_233816_ksm() {
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
-    let (meta, ext) = test_suite::extrinsics_block233816();
+    let (meta, ext) = test_suite::extrinsics_block_233816();
     let meta = Metadata::new(meta.as_slice());
 
     decoder.register_version(1030, &meta);
@@ -399,7 +394,7 @@ fn should_decode_ext_607421_ksm() {
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Kusama);
 
-    let (meta, ext) = test_suite::extrinsics_block607421();
+    let (meta, ext) = test_suite::extrinsics_block_607421();
     let meta = Metadata::new(meta.as_slice());
 
     decoder.register_version(1039, &meta);
@@ -420,7 +415,7 @@ fn should_decode_ext_892_dot() {
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Polkadot);
 
-    let (meta, ext) = test_suite::extrinsics_block892_dot();
+    let (meta, ext) = test_suite::extrinsics_block_892();
     let meta = Metadata::new(meta.as_slice());
 
     decoder.register_version(0, &meta);
@@ -444,7 +439,7 @@ fn should_decode_ext_1191_wnd() {
     let types = extras::TypeResolver::default();
     let mut decoder = Decoder::new(types, Chain::Polkadot);
 
-    let (meta, ext) = test_suite::extrinsics_block1191_wnd();
+    let (meta, ext) = test_suite::extrinsics_block_1191();
     let meta = Metadata::new(meta.as_slice());
 
     decoder.register_version(0, &meta);

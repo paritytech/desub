@@ -1,5 +1,5 @@
 use crate::test_suite;
-use codec::{Decode, Encode};
+use codec::Encode;
 use desub_core::{
     decoder::{Chain, Decoder, Metadata},
     SubstrateType,
