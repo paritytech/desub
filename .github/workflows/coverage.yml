@@ -8,7 +8,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-      - uses: actions/checkout@v1
+        uses: actions/checkout@v1
 
       - name: Install Nightly toolchain
         uses: actions-rs/toolchain@v1
