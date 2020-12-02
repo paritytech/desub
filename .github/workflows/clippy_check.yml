@@ -7,10 +7,11 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
 
-      - name: Install nightly
+      - name: Install stable
         uses: actions-rs/toolchain@v1
         with:
-            toolchain: nightly
+            profile: minimal
+            toolchain: stable
             components: clippy
             override: true
 
