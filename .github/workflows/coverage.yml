@@ -5,16 +5,17 @@ name: Code Coverage
 jobs:
   grcov:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout Repository
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v1
 
       - name: Install Nightly toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
           override: true
+
       - name: Cargo Clean
         uses: actions-rs/cargo@v1
         with:
@@ -28,9 +29,9 @@ jobs:
         env:
           CARGO_INCREMENTAL: 0
           RUSTFLAGS: "-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off"
+          RUST_LOG: info
 
-      - name: Gather coverage data
-        id: coverage
+      - id: coverage
         uses: actions-rs/grcov@v0.1
 
       - name: Coveralls upload
