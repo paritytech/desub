@@ -824,7 +824,7 @@ fn need_more_than<T: PartialOrd>(a: T, b: T) -> Result<T, Error> {
 	}
 }
 
-/// Decodes old addres pre-refactor (https://github.com/paritytech/substrate/pull/7380)
+/// Decodes old address pre-refactor (https://github.com/paritytech/substrate/pull/7380)
 /// and converts it to a MultiAddress
 fn decode_old_address(data: &[u8], cursor: &mut usize) -> Result<substrate_types::Address, Error> {
 	let inc;
