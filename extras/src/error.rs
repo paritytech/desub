@@ -20,8 +20,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("Decode {0}")]
-    Decode(#[from] serde_json::Error),
-    #[error("{0} Not Found")]
-    NotFound(String),
+	#[error("Decode {0}")]
+	Decode(#[from] serde_json::Error),
+	#[error("{0} Not Found")]
+	NotFound(String),
 }
