@@ -23,10 +23,7 @@ use std::convert::TryFrom;
 
 // Utility function to serialize from slice/vec to hex
 // If the SubstrateType is a collection of u8s, will serialize as hex
-pub fn as_hex<S: Serializer>(
-    elements: &[SubstrateType],
-    serializer: S,
-) -> Result<S::Ok, S::Error> {
+pub fn as_hex<S: Serializer>(elements: &[SubstrateType], serializer: S) -> Result<S::Ok, S::Error> {
     if elements
         .iter()
         .any(|ty| !matches!(ty, SubstrateType::U8(_)))
@@ -59,10 +56,12 @@ pub fn as_substrate_address<S: Serializer>(
 ) -> Result<S::Ok, S::Error> {
     match ty {
         SubstrateType::Composite(_) => {
-            let bytes: Vec<u8> = TryFrom::try_from(ty)
-                .map_err(|err: Error| ser::Error::custom(err.to_string()))?;
+            let bytes: Vec<u8> =
+                TryFrom::try_from(ty).map_err(|err: Error| ser::Error::custom(err.to_string()))?;
             if bytes.len() != 32 {
-                return Err(ser::Error::custom("address length is incorrect".to_string()));
+                return Err(ser::Error::custom(
+                    "address length is incorrect".to_string(),
+                ));
             }
             let mut addr: [u8; 32] = Default::default();
             for (i, b) in bytes.into_iter().enumerate() {
@@ -73,12 +72,21 @@ pub fn as_substrate_address<S: Serializer>(
             serializer.serialize_str(&addr)
         }
         SubstrateType::Address(v) => match v {
-            pallet_indices::address::Address::Id(ref i) => {
+            runtime_primitives::MultiAddress::Id(ref i) => {
                 let addr = i.to_ss58check_with_version(Ss58AddressFormat::SubstrateAccount);
                 serializer.serialize_str(&addr)
             }
-            pallet_indices::address::Address::Index(i) => {
+            runtime_primitives::MultiAddress::Index(i) => {
                 serializer.serialize_str(&format!("{}", i))
+            }
+            runtime_primitives::MultiAddress::Raw(bytes) => {
+                serializer.serialize_str(&format!("{:?}", bytes))
+            }
+            runtime_primitives::MultiAddress::Address32(ary) => {
+                serializer.serialize_str(&format!("{:?}", ary))
+            }
+            runtime_primitives::MultiAddress::Address20(ary) => {
+                serializer.serialize_str(&format!("{:?}", ary))
             }
         },
         _ => Err(ser::Error::custom(format!(
