@@ -28,10 +28,10 @@ macro_rules! extrinsic_test {
 
                     // get the number of files with prefix ${path}_EXTRINSIC in the directory.
                     let num_ext = std::fs::read_dir(&path)
-                    .unwrap()
-                    .map(|d| d.unwrap().file_name().into_string().unwrap())
-                    .filter(|ext| ext.starts_with("EXTRINSIC"))
-                    .count();
+                        .unwrap()
+                        .map(|d| d.unwrap().file_name().into_string().unwrap())
+                        .filter(|ext| ext.starts_with("EXTRINSIC"))
+                        .count();
                     for i in 0..num_ext {
                         let ext_path = &format!(
                             "{}EXTRINSIC_spec_{}_block_{}_index_{}.bin",
@@ -46,8 +46,8 @@ macro_rules! extrinsic_test {
                     let mut f = File::open(&format!(
                         "{}spec_{}_block_{}_METADATA.bin",
                         &path, $spec, $block
-                    ))
-                    .expect("Opening Metadata file failed");
+                    )).expect("Opening Metadata file failed");
+
                     let mut meta = Vec::new();
                     f.read_to_end(&mut meta).expect("Reading file failed");
 
