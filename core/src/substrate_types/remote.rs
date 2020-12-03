@@ -22,16 +22,16 @@ use super::{Address, Conviction, Data, Vote};
 #[derive(Serialize, Deserialize)]
 #[serde(remote = "Address")]
 pub enum RemoteAddress {
-	/// It's an account ID (pubkey).
+    /// It's an account ID (pubkey).
     Id(AccountId32),
-	/// It's an account index.
+    /// It's an account index.
     Index(u32),
-	/// It's some arbitrary raw bytes.
-	Raw(Vec<u8>),
-	/// It's a 32 byte representation.
-	Address32([u8; 32]),
-	/// It's a 20 byte representation.
-	Address20([u8; 20]),
+    /// It's some arbitrary raw bytes.
+    Raw(Vec<u8>),
+    /// It's a 32 byte representation.
+    Address32([u8; 32]),
+    /// It's a 20 byte representation.
+    Address20([u8; 20]),
 }
 
 #[derive(Serialize, Deserialize)]
