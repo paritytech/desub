@@ -831,25 +831,20 @@ fn decode_old_address(data: &[u8], cursor: &mut usize) -> Result<substrate_types
 	let addr = match data[*cursor] {
 		x @ 0x00..=0xef => {
 			inc = 0;
-			substrate_types::Address::Index(u32::from(x as u32))
+			substrate_types::Address::Index(x as u32)
 		}
 		0xfc => {
 			inc = 2;
-			substrate_types::Address::Index(u32::from(
-				need_more_than(0xef, u16::decode(&mut &data[(*cursor + 1)..])?)? as u32
-			))
+			substrate_types::Address::Index(need_more_than(0xef, u16::decode(&mut &data[(*cursor + 1)..])?)? as u32)
 		}
 		0xfd => {
 			inc = 4;
-			substrate_types::Address::Index(u32::from(need_more_than(
-				0xffff,
-				u32::decode(&mut &data[(*cursor + 1)..])?,
-			)?))
+			substrate_types::Address::Index(need_more_than(0xffff, u32::decode(&mut &data[(*cursor + 1)..])?)?)
 		}
 		0xfe => {
 			inc = 8;
 			substrate_types::Address::Index(need_more_than(
-				0xffffffffu32.into(),
+				0xffffffffu32,
 				Decode::decode(&mut &data[(*cursor + 1)..])?,
 			)?)
 		}
