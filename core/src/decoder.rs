@@ -567,7 +567,7 @@ impl Decoder {
                     self.decode_single(module, spec, v, data, cursor, true)?
                 }
             },
-            RustTypeMarker::Generic((outer, _)) => {
+            RustTypeMarker::Generic(outer, inner) => {
                 log::trace!("Generic Type");
                 // disregard 'inner' type of a generic
                 self.decode_single(module, spec, outer, data, cursor, is_compact)?
@@ -883,6 +883,7 @@ impl Decoder {
                 let val: substrate_types::Address = Decode::decode(&mut &data[*cursor..])?;
 
                 *cursor += inc + 1; // +1 for byte 0x00-0xff
+
                 Ok(Some(SubstrateType::Address(val)))
             }
             "Era" => {
