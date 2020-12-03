@@ -815,30 +815,6 @@ impl Decoder {
 	}
 }
 
-/*
-impl<AccountId, AccountIndex> Decode for Address<AccountId, AccountIndex> where
-	AccountId: Member + Decode,
-	AccountIndex: Member + Decode + PartialOrd<AccountIndex> + Ord + From<u32> + Copy,
-{
-	fn decode<I: Input>(input: &mut I) -> Result<Self, Error> {
-		Ok(match input.read_byte()? {
-			x @ 0x00..=0xef => Address::Index(AccountIndex::from(x as u32)),
-			0xfc => Address::Index(AccountIndex::from(
-				need_more_than(0xef, u16::decode(input)?)? as u32
-			)),
-			0xfd => Address::Index(AccountIndex::from(
-				need_more_than(0xffff, u32::decode(input)?)?
-			)),
-			0xfe => Address::Index(
-				need_more_than(0xffffffffu32.into(), Decode::decode(input)?)?
-			),
-			0xff => Address::Id(Decode::decode(input)?),
-			_ => return Err("Invalid address variant".into()),
-		})
-	}
-}
-*/
-
 /// Kept around for backwards-compatibility with old address struct
 fn need_more_than<T: PartialOrd>(a: T, b: T) -> Result<T, Error> {
 	if a < b {
@@ -848,7 +824,7 @@ fn need_more_than<T: PartialOrd>(a: T, b: T) -> Result<T, Error> {
 	}
 }
 
-/// Decodes a pre-PR (https://github.com/paritytech/substrate/pull/7380) address
+/// Decodes old addres pre-refactor (https://github.com/paritytech/substrate/pull/7380)
 /// and converts it to a MultiAddress
 fn decode_old_address(data: &[u8], cursor: &mut usize) -> Result<substrate_types::Address, Error> {
 	let inc;
