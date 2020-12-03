@@ -131,19 +131,8 @@ pub fn rust_box_decl() -> Regex {
 /// Match a Rust Generic Type Declaration
 /// Excudes types Vec/Option/Compact/Box from matches
 pub fn rust_generic_decl() -> Regex {
-    Regex::new(
-        [
-            r#"\b(?!(?:Vec|Option|Compact|Box)\b)(?<outer_type>\w+)<"#,
-            r#"(?<inner_type0>[\w<>: ]+),? ?(?<inner_type1>[\w<>: ]+)?[, ]*"#,
-            r#"(?<inner_type2>[\w<>: ]+)?,? ?(?<inner_type3>[\w<>: ]+)?[, ]*"#,
-            r#"(?<inner_type4>[\w<>: ]+)?,? ?(?<inner_type5>[\w<>: ]+)?[, ]*"#,
-            r#"(?<inner_type6>[\w<>: ]+)?,? ?(?<inner_type7>[\w<>: ]+)?[, ]*"#,
-            r#"(?<inner_type8>[\w<>: ]+)?>"#,
-        ]
-        .join("")
-        .as_str(),
-    )
-    .expect("Regex expressions should be infallible; qed")
+    Regex::new(r"\b(?!(?:Vec|Option|Compact|Box)\b)(?<outer_type>\w+)<(?<inner_type>[\w<>,: ]+)>")
+        .expect("Regex expressions should be infallible; qed")
 }
 
 /// Transforms a prefixed generic type (EX: T::Moment)
@@ -387,26 +376,19 @@ fn parse_generic(s: &str) -> Option<RustTypeMarker> {
         return None;
     }
     let ty_outer = re.captures(s)?.at(1)?;
-    let inner_types = re
-        .captures(s)?
-        .iter()
-        .skip(2)
-        .filter_map(|c| {
-            if let Some(c) = c {
-                Some(parse(c).expect("Must be a type; qed"))
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<RustTypeMarker>>();
+    let ty_inner = re.captures(s)?.at(2)?;
     let ty_outer = parse(ty_outer).expect("Must be a type; qed");
     // NOTE:
     // ty_inner may be a throwaway type in some cases where the inner type are part of
     // the already-defined definitions in the JSON
     // for example, the "HeartBeat" definition in Polkadot JSON definitions already takes into
     // account that a HeartBeat type in Polkadot is HeartBeat<T::BlockNumber>
+    let ty_inner = parse(ty_inner).expect("Must be a type; qed");
 
-    Some(RustTypeMarker::Generic(Box::new(ty_outer), inner_types))
+    Some(RustTypeMarker::Generic(
+        Box::new(ty_outer),
+        Box::new(ty_inner),
+    ))
 }
 
 fn parse_bit_size(s: &str) -> Option<RustTypeMarker> {
@@ -937,14 +919,6 @@ mod tests {
                 Some("GenericOuterType<GenericInnerType>"),
                 Some("GenericOuterType"),
                 Some("GenericInnerType"),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
             ],
             caps.iter().collect::<Vec<Option<&str>>>()
         );
