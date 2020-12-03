@@ -1,5 +1,0 @@
-edition = "2018"
-# fn_args_layout = "compressed"
-# spaces_around_ranges = true
-max_width = 100
-# wrap_comments = true

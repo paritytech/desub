@@ -18,13 +18,13 @@ use runtime_version::RuntimeVersion;
 use std::borrow::Cow;
 
 pub fn mock_runtime(num: u32) -> RuntimeVersion {
-    RuntimeVersion {
-        spec_name: "test-runtime".into(),
-        impl_name: "test-runtime-impl".into(),
-        authoring_version: num,
-        spec_version: num,
-        impl_version: num,
-        apis: Cow::from(Vec::new()),
-        transaction_version: 4,
-    }
+	RuntimeVersion {
+		spec_name: "test-runtime".into(),
+		impl_name: "test-runtime-impl".into(),
+		authoring_version: num,
+		spec_version: num,
+		impl_version: num,
+		apis: Cow::from(Vec::new()),
+		transaction_version: 4,
+	}
 }
