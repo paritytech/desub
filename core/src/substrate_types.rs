@@ -146,7 +146,6 @@ impl fmt::Display for SubstrateType {
                     i.to_ss58check_with_version(Ss58AddressFormat::SubstrateAccount)
                 ),
                 runtime_primitives::MultiAddress::Index(i) => write!(f, "Index: {:?}", i),
-                runtime_primitives::MultiAddress::Index(i) => write!(f, "Index: {:?}", i),
                 runtime_primitives::MultiAddress::Raw(bytes) => write!(f, "Raw: {:?}", bytes),
                 runtime_primitives::MultiAddress::Address32(ary) => {
                     write!(f, "Address32: {:?}", ary)
