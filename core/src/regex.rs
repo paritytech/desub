@@ -424,7 +424,7 @@ fn parse_bit_size(s: &str) -> Option<RustTypeMarker> {
             }),
         },
         _ => {
-            log::warn!("Could not type of bit-size");
+            log::warn!("Could not ascertain type of bit-size declaration");
             None
         }
     }
