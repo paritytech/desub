@@ -742,16 +742,15 @@ impl Decoder {
 				Ok(Some(SubstrateType::Address(val)))
 			}
 			"GenericMultiAddress" => {
-				let inc: usize;
 				let val: substrate_types::Address = Decode::decode(&mut &data[*cursor..])?;
-				match &val {
-					substrate_types::Address::Id(_) => inc = 32,
-					substrate_types::Address::Index(_) => inc = 1,
-					substrate_types::Address::Raw(v) => inc = v.len(),
-					substrate_types::Address::Address32(_) => inc = 32,
-					substrate_types::Address::Address20(_) => inc = 20,
+				let cursor_offset = match &val {
+					substrate_types::Address::Id(_) => 32,
+					substrate_types::Address::Index(_) => 1,
+					substrate_types::Address::Raw(v) => v.len(),
+					substrate_types::Address::Address32(_) => 32,
+					substrate_types::Address::Address20(_) => 20,
 				};
-				*cursor += inc;
+				*cursor += cursor_offset;
 				Ok(Some(SubstrateType::Address(val)))
 			}
 			"Era" => {
