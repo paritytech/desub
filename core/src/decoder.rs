@@ -815,18 +815,18 @@ impl Decoder {
 	}
 }
 
-/// Kept around for backwards-compatibility with old address struct
-fn need_more_than<T: PartialOrd>(a: T, b: T) -> Result<T, Error> {
-	if a < b {
-		Ok(b)
-	} else {
-		Err("Invalid range".into())
-	}
-}
-
 /// Decodes old address pre-refactor (https://github.com/paritytech/substrate/pull/7380)
 /// and converts it to a MultiAddress
 fn decode_old_address(data: &[u8], cursor: &mut usize) -> Result<substrate_types::Address, Error> {
+	/// Kept around for backwards-compatibility with old address struct
+	fn need_more_than<T: PartialOrd>(a: T, b: T) -> Result<T, Error> {
+		if a < b {
+			Ok(b)
+		} else {
+			Err("Invalid range".into())
+		}
+	}
+
 	let inc;
 	let addr = match data[*cursor] {
 		x @ 0x00..=0xef => {
