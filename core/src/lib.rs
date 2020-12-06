@@ -212,7 +212,7 @@ pub enum RustTypeMarker {
 	Generic(Box<RustTypeMarker>, Box<RustTypeMarker>),
 	/// primitive unsigned 8 bit integer
 	U8,
-	/// primtiive unsigned 16 bit integer
+	/// primitive unsigned 16 bit integer
 	U16,
 	/// primitive unsigned 32 bit integer
 	U32,
