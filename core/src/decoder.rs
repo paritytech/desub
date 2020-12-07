@@ -843,7 +843,7 @@ fn decode_old_address(data: &[u8], cursor: &mut usize) -> Result<substrate_types
 		0xfe => {
 			inc = 8;
 			substrate_types::Address::Index(need_more_than(
-				0xffffffffu32,
+				0xffff_ffff_u32,
 				Decode::decode(&mut &data[(*cursor + 1)..])?,
 			)?)
 		}
