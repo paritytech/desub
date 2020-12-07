@@ -815,7 +815,7 @@ impl Decoder {
 }
 
 /// Decodes old address pre-refactor (https://github.com/paritytech/substrate/pull/7380)
-/// and converts it to a MultiAddress
+/// and converts it to a MultiAddress, where "old" here means anything before v0.8.26 or 26/2026/46 on polkadot/kusama/westend respectively.
 fn decode_old_address(data: &[u8], cursor: &mut usize) -> Result<substrate_types::Address, Error> {
 	/// Kept around for backwards-compatibility with old address struct
 	fn need_more_than<T: PartialOrd>(a: T, b: T) -> Result<T, Error> {
@@ -843,7 +843,7 @@ fn decode_old_address(data: &[u8], cursor: &mut usize) -> Result<substrate_types
 		0xfe => {
 			inc = 8;
 			substrate_types::Address::Index(need_more_than(
-				0xffffffffu32,
+				0xffff_ffff_u32,
 				Decode::decode(&mut &data[(*cursor + 1)..])?,
 			)?)
 		}
