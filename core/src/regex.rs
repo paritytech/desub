@@ -95,7 +95,7 @@ fn rust_array_decl_struct() -> Regex {
 }
 
 pub fn rust_bit_size() -> Regex {
-	Regex::new(r"^(Int|UInt)<([\w\d]+), ?([\w\d]+)>").expect("Regex expression should be infallible; qed")
+	Regex::new(r"^(Int|UInt)<(\d+), *[\w\d]+>").expect("Regex expression should be infallible; qed")
 }
 
 /// Match a rust vector
