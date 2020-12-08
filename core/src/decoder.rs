@@ -396,7 +396,7 @@ impl Decoder {
 			RustTypeMarker::Array { size, ty } => {
 				log::trace!("Array::cursor={}", *cursor);
 				let mut decoded_arr = Vec::with_capacity(*size);
-				if *size == 0 as usize {
+				if *size == 0_usize {
 					log::trace!("Returning Empty Vector");
 					return Ok(SubstrateType::Composite(Vec::new()));
 				} else {
@@ -467,7 +467,7 @@ impl Decoder {
 					self.decode_single(module, spec, v, data, cursor, true)?
 				}
 			},
-			RustTypeMarker::Generic((outer, _)) => {
+			RustTypeMarker::Generic(outer, _) => {
 				log::trace!("Generic Type");
 				// disregard 'inner' type of a generic
 				self.decode_single(module, spec, outer, data, cursor, is_compact)?
@@ -732,34 +732,25 @@ impl Decoder {
 				*cursor += 1;
 				Ok(Some(SubstrateType::GenericVote(vote)))
 			}
+			// Old Address Format for backwards-compatibility https://github.com/paritytech/substrate/pull/7380
 			"Lookup" | "GenericAddress" | "GenericLookupSource" | "GenericAccountId" => {
 				// a specific type that is <T as StaticSource>::Lookup concatenated to just 'Lookup'
 				log::trace!("cursor={}, data length={}", cursor, data.len());
-				let inc: usize;
-				// TODO: requires more investigation
-				// cursor increments for 0x00 .. 0xfe may be incorrect
-				match data[*cursor] {
-					0x00..=0xef => {
-						inc = 0;
-					}
-					0xfc => {
-						inc = 2;
-					}
-					0xfd => {
-						inc = 4;
-					}
-					0xfe => {
-						inc = 8;
-					}
-					0xff => {
-						inc = 32;
-					}
-					_ => return Err(Error::Fail("Invalid Address".to_string())),
-				}
 
+				let val: substrate_types::Address = decode_old_address(data, cursor)?;
+
+				Ok(Some(SubstrateType::Address(val)))
+			}
+			"GenericMultiAddress" => {
 				let val: substrate_types::Address = Decode::decode(&mut &data[*cursor..])?;
-
-				*cursor += inc + 1; // +1 for byte 0x00-0xff
+				let cursor_offset = match &val {
+					substrate_types::Address::Id(_) => 32,
+					substrate_types::Address::Index(_) => 1,
+					substrate_types::Address::Raw(v) => v.len(),
+					substrate_types::Address::Address32(_) => 32,
+					substrate_types::Address::Address20(_) => 20,
+				};
+				*cursor += cursor_offset;
 				Ok(Some(SubstrateType::Address(val)))
 			}
 			"Era" => {
@@ -821,6 +812,49 @@ impl Decoder {
 			})
 			.collect::<Result<Vec<StructField>, Error>>()
 	}
+}
+
+/// Decodes old address pre-refactor (https://github.com/paritytech/substrate/pull/7380)
+/// and converts it to a MultiAddress, where "old" here means anything before v0.8.26 or 26/2026/46 on polkadot/kusama/westend respectively.
+fn decode_old_address(data: &[u8], cursor: &mut usize) -> Result<substrate_types::Address, Error> {
+	/// Kept around for backwards-compatibility with old address struct
+	fn need_more_than<T: PartialOrd>(a: T, b: T) -> Result<T, Error> {
+		if a < b {
+			Ok(b)
+		} else {
+			Err("Invalid range".into())
+		}
+	}
+
+	let inc;
+	let addr = match data[*cursor] {
+		x @ 0x00..=0xef => {
+			inc = 0;
+			substrate_types::Address::Index(x as u32)
+		}
+		0xfc => {
+			inc = 2;
+			substrate_types::Address::Index(need_more_than(0xef, u16::decode(&mut &data[(*cursor + 1)..])?)? as u32)
+		}
+		0xfd => {
+			inc = 4;
+			substrate_types::Address::Index(need_more_than(0xffff, u32::decode(&mut &data[(*cursor + 1)..])?)?)
+		}
+		0xfe => {
+			inc = 8;
+			substrate_types::Address::Index(need_more_than(
+				0xffff_ffff_u32,
+				Decode::decode(&mut &data[(*cursor + 1)..])?,
+			)?)
+		}
+		0xff => {
+			inc = 32;
+			substrate_types::Address::Id(Decode::decode(&mut &data[(*cursor + 1)..])?)
+		}
+		_ => return Err(Error::Fail("Invalid Address".to_string())),
+	};
+	*cursor += inc + 1; // +1 for byte 0x00-0xff
+	Ok(addr)
 }
 
 #[cfg(test)]

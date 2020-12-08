@@ -63,11 +63,14 @@ pub fn as_substrate_address<S: Serializer>(ty: &SubstrateType, serializer: S) ->
 			serializer.serialize_str(&addr)
 		}
 		SubstrateType::Address(v) => match v {
-			pallet_indices::address::Address::Id(ref i) => {
+			runtime_primitives::MultiAddress::Id(ref i) => {
 				let addr = i.to_ss58check_with_version(Ss58AddressFormat::SubstrateAccount);
 				serializer.serialize_str(&addr)
 			}
-			pallet_indices::address::Address::Index(i) => serializer.serialize_str(&format!("{}", i)),
+			runtime_primitives::MultiAddress::Index(i) => serializer.serialize_str(&format!("{}", i)),
+			runtime_primitives::MultiAddress::Raw(bytes) => serializer.serialize_str(&format!("{:?}", bytes)),
+			runtime_primitives::MultiAddress::Address32(ary) => serializer.serialize_str(&format!("{:?}", ary)),
+			runtime_primitives::MultiAddress::Address20(ary) => serializer.serialize_str(&format!("{:?}", ary)),
 		},
 		_ => Err(ser::Error::custom(format!("Could not format {:?} as Ss58 Address", ty))),
 	}

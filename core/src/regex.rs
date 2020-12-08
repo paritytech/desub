@@ -21,6 +21,7 @@ use onig::{Regex, Region, SearchOptions};
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum RegexSet {
 	ArrayPrimitive,
+	BitSize,
 	ArrayStruct,
 	Vec,
 	Option,
@@ -37,6 +38,8 @@ impl RegexSet {
 	fn get_type(s: &str) -> Option<RegexSet> {
 		if rust_array_decl_prim().is_match(s) {
 			Some(RegexSet::ArrayPrimitive)
+		} else if rust_bit_size().is_match(s) {
+			Some(RegexSet::BitSize)
 		} else if rust_array_decl_struct().is_match(s) {
 			Some(RegexSet::ArrayStruct)
 		} else if rust_vec_decl().is_match(s) {
@@ -61,6 +64,7 @@ impl RegexSet {
 	fn parse_type(&self, s: &str) -> Option<RustTypeMarker> {
 		match self {
 			RegexSet::ArrayPrimitive => parse_primitive_array(s),
+			RegexSet::BitSize => parse_bit_size(s),
 			RegexSet::ArrayStruct => parse_struct_array(s),
 			RegexSet::Vec => parse_vec(s),
 			RegexSet::Option => parse_option(s),
@@ -88,6 +92,10 @@ fn rust_array_decl_prim() -> Regex {
 // Second Capture group is size
 fn rust_array_decl_struct() -> Regex {
 	Regex::new(r"^\[ *?([\w><]+) *?; *?(\d+) *?\]").expect("Primitive Regex expression invalid")
+}
+
+pub fn rust_bit_size() -> Regex {
+	Regex::new(r"^(Int|UInt)<(\d+), *[\w\d]+>").expect("Regex expression should be infallible; qed")
 }
 
 /// Match a rust vector
@@ -354,7 +362,40 @@ fn parse_generic(s: &str) -> Option<RustTypeMarker> {
 	// account that a HeartBeat type in Polkadot is HeartBeat<T::BlockNumber>
 	let ty_inner = parse(ty_inner).expect("Must be a type; qed");
 
-	Some(RustTypeMarker::Generic((Box::new(ty_outer), Box::new(ty_inner))))
+	Some(RustTypeMarker::Generic(Box::new(ty_outer), Box::new(ty_inner)))
+}
+
+fn parse_bit_size(s: &str) -> Option<RustTypeMarker> {
+	let re = rust_bit_size();
+	if !re.is_match(s) {
+		return None;
+	}
+
+	let ty = re.captures(s)?.at(1)?;
+	let size = re.captures(s)?.at(2)?;
+
+	match ty {
+		"UInt" => match size.parse::<usize>().expect("Should always be a number") {
+			8 => Some(RustTypeMarker::U8),
+			16 => Some(RustTypeMarker::U16),
+			32 => Some(RustTypeMarker::U32),
+			64 => Some(RustTypeMarker::U64),
+			128 => Some(RustTypeMarker::U128),
+			s => Some(RustTypeMarker::Array { size: s, ty: Box::new(RustTypeMarker::U8) }),
+		},
+		"Int" => match size.parse::<usize>().expect("Should always be number") {
+			8 => Some(RustTypeMarker::I8),
+			16 => Some(RustTypeMarker::I16),
+			32 => Some(RustTypeMarker::I32),
+			64 => Some(RustTypeMarker::I64),
+			128 => Some(RustTypeMarker::I128),
+			s => Some(RustTypeMarker::Array { size: s, ty: Box::new(RustTypeMarker::U8) }),
+		},
+		_ => {
+			log::warn!("Could not ascertain type of bit-size declaration");
+			None
+		}
+	}
 }
 
 /// recursively parses a regex set
@@ -674,7 +715,7 @@ mod tests {
 		let re = rust_generic_decl();
 		let caps = re.captures("GenericOuterType<GenericInnerType>").unwrap();
 		assert_eq!(
-			vec![Some("GenericOuterType<GenericInnerType>"), Some("GenericOuterType"), Some("GenericInnerType")],
+			vec![Some("GenericOuterType<GenericInnerType>"), Some("GenericOuterType"), Some("GenericInnerType"),],
 			caps.iter().collect::<Vec<Option<&str>>>()
 		);
 	}
@@ -828,5 +869,14 @@ mod tests {
 		let ty = "Vec<(NominatorIndexCompact, [CompactScoreCompact; 2], ValidatorIndexCompact)>";
 		let res = parse_vec(ty).unwrap();
 		log::debug!("{:?}", res);
+	}
+
+	#[test]
+	fn should_parse_bit_size() {
+		pretty_env_logger::try_init();
+		let ty = "UInt<128, Balance>";
+		assert_eq!(parse_bit_size(ty).unwrap(), RustTypeMarker::U128);
+		let ty = "Int<64, Balance>";
+		assert_eq!(parse_bit_size(ty).unwrap(), RustTypeMarker::I64);
 	}
 }

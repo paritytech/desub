@@ -22,11 +22,6 @@ pub struct Overrides {
 	/// Type Overrides for modules (where duplication between modules exist)
 	#[serde(rename = "TYPES_MODULES")]
 	types_modules: HashMap<String, ModuleTypes>,
-	/// Overrides based on metadata versions
-	/// this is for support of old testnets (Alexander)
-	// this can be safely ignored for the most part
-	#[serde(rename = "TYPES_META")]
-	types_meta: Vec<TypeRange>,
 	/// these are override types for Polkadot & Kusama chains
 	/// NOTE The SessionKeys definition for Polkadot and Substrate (OpaqueKeys
 	/// implementation) are different. Detect Polkadot and inject the `Keys`
@@ -133,26 +128,5 @@ mod tests {
 
 		let types_spec: HashMap<String, Vec<TypeRange>> = serde_json::from_str(json).unwrap();
 		dbg!(types_spec);
-	}
-
-	#[test]
-	fn should_deserialize_types_meta() {
-		let json = r#"
-        [
-            { "minmax": [
-                0,
-                4
-            ],
-            "types": {
-                "BlockNumber": "u64",
-                "Index": "u64",
-                "EventRecord": "EventRecordTo76",
-                "ValidatorPrefs": "ValidatorPrefsTo145"
-            }
-            }
-        ]
-        "#;
-		let types_meta: Vec<TypeRange> = serde_json::from_str(json).unwrap();
-		dbg!(types_meta);
 	}
 }

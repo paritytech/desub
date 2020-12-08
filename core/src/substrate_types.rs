@@ -28,7 +28,7 @@ use primitives::crypto::{Ss58AddressFormat, Ss58Codec};
 use serde::Serialize;
 use std::{convert::TryFrom, fmt};
 
-pub type Address = pallet_indices::address::Address<AccountId32, u32>;
+pub type Address = runtime_primitives::MultiAddress<AccountId32, u32>;
 pub type Vote = pallet_democracy::Vote;
 pub type Conviction = pallet_democracy::Conviction;
 pub type Data = pallet_identity::Data;
@@ -135,10 +135,13 @@ impl fmt::Display for SubstrateType {
 			},
 			SubstrateType::GenericVote(v) => write!(f, "Aye={}, Conviction={}", v.aye, v.conviction.lock_periods()),
 			SubstrateType::Address(v) => match v {
-				pallet_indices::address::Address::Id(ref i) => {
+				runtime_primitives::MultiAddress::Id(ref i) => {
 					write!(f, "Account::Id({})", i.to_ss58check_with_version(Ss58AddressFormat::SubstrateAccount))
 				}
-				pallet_indices::address::Address::Index(i) => write!(f, "Index: {:?}", i),
+				runtime_primitives::MultiAddress::Index(i) => write!(f, "Index: {:?}", i),
+				runtime_primitives::MultiAddress::Raw(bytes) => write!(f, "Raw: {:?}", bytes),
+				runtime_primitives::MultiAddress::Address32(ary) => write!(f, "Address32: {:?}", ary),
+				runtime_primitives::MultiAddress::Address20(ary) => write!(f, "Address20: {:?}", ary),
 			},
 			SubstrateType::Data(d) => write!(f, "{:?}", d),
 			SubstrateType::SignedExtra(v) => write!(f, "{}", v),
