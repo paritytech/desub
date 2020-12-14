@@ -9,10 +9,6 @@ pub fn init() {
 	let _ = pretty_env_logger::try_init();
 }
 
-macro_rules! decl_extrinsic_decode_test {
-	() => {};
-}
-
 #[test]
 pub fn should_decode_ext342962() {
 	init();
