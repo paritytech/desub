@@ -1,0 +1,42 @@
+on: [push]
+
+name: Code Coverage
+
+jobs:
+  grcov:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v1
+
+      - name: Install Nightly toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+
+      - name: Cargo Clean
+        uses: actions-rs/cargo@v1
+        with:
+          command: clean
+
+      - name: Run Tests for Coverage
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all --all-features
+        env:
+          CARGO_INCREMENTAL: 0
+          RUSTFLAGS: "-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off"
+          RUST_LOG: info
+
+      - id: coverage
+        uses: actions-rs/grcov@v0.1
+
+      - name: Coveralls upload
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          parallel: true
+          path-to-lcov: ${{ steps.coverage.outputs.report }}

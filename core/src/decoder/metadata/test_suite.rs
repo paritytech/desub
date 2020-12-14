@@ -21,171 +21,159 @@ use crate::RustTypeMarker;
 use std::sync::Arc;
 
 pub fn test_metadata() -> Metadata {
-    Metadata {
-        modules: module_metadata_mock(),
-        modules_by_event_index: HashMap::new(),
-        modules_by_call_index: HashMap::new(),
-        extrinsics: None,
-    }
+	Metadata {
+		modules: module_metadata_mock(),
+		modules_by_event_index: HashMap::new(),
+		modules_by_call_index: HashMap::new(),
+		extrinsics: None,
+	}
 }
 
 fn module_metadata_mock() -> HashMap<String, Arc<ModuleMetadata>> {
-    let mut map = HashMap::new();
+	let mut map = HashMap::new();
 
-    map.insert(
-        "TestModule0".to_string(),
-        Arc::new(ModuleMetadata {
-            index: 0,
-            name: "TestModule0".to_string(),
-            storage: storage_mock(),
-            calls: call_mock(),
-            events: event_mock(),
-        }),
-    );
+	map.insert(
+		"TestModule0".to_string(),
+		Arc::new(ModuleMetadata {
+			index: 0,
+			name: "TestModule0".to_string(),
+			storage: storage_mock(),
+			calls: call_mock(),
+			events: event_mock(),
+		}),
+	);
 
-    map.insert(
-        "TestModule1".to_string(),
-        Arc::new(ModuleMetadata {
-            index: 1,
-            name: "TestModule1".to_string(),
-            storage: storage_mock(),
-            calls: call_mock(),
-            events: event_mock(),
-        }),
-    );
+	map.insert(
+		"TestModule1".to_string(),
+		Arc::new(ModuleMetadata {
+			index: 1,
+			name: "TestModule1".to_string(),
+			storage: storage_mock(),
+			calls: call_mock(),
+			events: event_mock(),
+		}),
+	);
 
-    map.insert(
-        "TestModule2".to_string(),
-        Arc::new(ModuleMetadata {
-            index: 2,
-            name: "TestModule2".to_string(),
-            storage: storage_mock(),
-            calls: call_mock(),
-            events: event_mock(),
-        }),
-    );
+	map.insert(
+		"TestModule2".to_string(),
+		Arc::new(ModuleMetadata {
+			index: 2,
+			name: "TestModule2".to_string(),
+			storage: storage_mock(),
+			calls: call_mock(),
+			events: event_mock(),
+		}),
+	);
 
-    map
+	map
 }
 
 fn storage_mock() -> HashMap<String, StorageMetadata> {
-    let mut map = HashMap::new();
-    let moment = RustTypeMarker::TypePointer("T::Moment".to_string());
-    let precision = RustTypeMarker::U32;
-    let usize_t = RustTypeMarker::USize;
+	let mut map = HashMap::new();
+	let moment = RustTypeMarker::TypePointer("T::Moment".to_string());
+	let precision = RustTypeMarker::U32;
+	let usize_t = RustTypeMarker::USize;
 
-    map.insert(
-        "TestStorage0".to_string(),
-        StorageMetadata {
-            prefix: "TestStorage0".to_string(),
-            modifier: StorageEntryModifier::Default,
-            ty: StorageType::Plain(moment.clone()),
-            default: vec![112, 23, 0, 0, 0, 0, 0, 0],
-            documentation: vec!["Some Kind of docs".to_string()],
-        },
-    );
+	map.insert(
+		"TestStorage0".to_string(),
+		StorageMetadata {
+			prefix: "TestStorage0".to_string(),
+			modifier: StorageEntryModifier::Default,
+			ty: StorageType::Plain(moment.clone()),
+			default: vec![112, 23, 0, 0, 0, 0, 0, 0],
+			documentation: vec!["Some Kind of docs".to_string()],
+		},
+	);
 
-    map.insert(
-        "TestStorage1".to_string(),
-        StorageMetadata {
-            prefix: "TestStorage1".to_string(),
-            modifier: StorageEntryModifier::Default,
-            ty: StorageType::Plain(usize_t),
-            default: vec![0, 0, 0, 0, 0, 0, 0, 0],
-            documentation: vec!["Some Kind of docs 2".to_string()],
-        },
-    );
+	map.insert(
+		"TestStorage1".to_string(),
+		StorageMetadata {
+			prefix: "TestStorage1".to_string(),
+			modifier: StorageEntryModifier::Default,
+			ty: StorageType::Plain(usize_t),
+			default: vec![0, 0, 0, 0, 0, 0, 0, 0],
+			documentation: vec!["Some Kind of docs 2".to_string()],
+		},
+	);
 
-    map.insert(
-        "TestStorage2".to_string(),
-        StorageMetadata {
-            prefix: "TestStorage2".to_string(),
-            modifier: StorageEntryModifier::Optional,
-            ty: StorageType::Plain(moment),
-            default: vec![0, 0, 0, 0, 0, 0, 0, 0],
-            documentation: vec!["Some Kind of docs 2".to_string()],
-        },
-    );
+	map.insert(
+		"TestStorage2".to_string(),
+		StorageMetadata {
+			prefix: "TestStorage2".to_string(),
+			modifier: StorageEntryModifier::Optional,
+			ty: StorageType::Plain(moment),
+			default: vec![0, 0, 0, 0, 0, 0, 0, 0],
+			documentation: vec!["Some Kind of docs 2".to_string()],
+		},
+	);
 
-    map.insert(
-        "TestStorage3".to_string(),
-        StorageMetadata {
-            prefix: "TestStorage3".to_string(),
-            modifier: StorageEntryModifier::Optional,
-            ty: StorageType::Plain(precision),
-            default: vec![0, 0, 0, 0, 0, 0, 0, 0],
-            documentation: vec!["Some Kind of docs 3".to_string()],
-        },
-    );
-    map
+	map.insert(
+		"TestStorage3".to_string(),
+		StorageMetadata {
+			prefix: "TestStorage3".to_string(),
+			modifier: StorageEntryModifier::Optional,
+			ty: StorageType::Plain(precision),
+			default: vec![0, 0, 0, 0, 0, 0, 0, 0],
+			documentation: vec!["Some Kind of docs 3".to_string()],
+		},
+	);
+	map
 }
 
 fn call_mock() -> HashMap<String, CallMetadata> {
-    let mut map = HashMap::new();
+	let mut map = HashMap::new();
 
-    map.insert(
-        "TestCall0".to_string(),
-        CallMetadata {
-            name: "foo_function0".to_string(),
-            index: 3,
-            arguments: vec![CallArgMetadata {
-                name: "foo_arg".to_string(),
-                ty: RustTypeMarker::I8,
-            }],
-        },
-    );
-    map.insert(
-        "TestCall1".to_string(),
-        CallMetadata {
-            name: "foo_function1".to_string(),
-            index: 2,
-            arguments: vec![CallArgMetadata {
-                name: "foo_arg".to_string(),
-                ty: RustTypeMarker::U64,
-            }],
-        },
-    );
-    map.insert(
-        "TestCall2".to_string(),
-        CallMetadata {
-            name: "foo_function2".to_string(),
-            index: 1,
-            arguments: vec![CallArgMetadata {
-                name: "foo_arg".to_string(),
-                ty: RustTypeMarker::TypePointer("SomeType".to_string()),
-            }],
-        },
-    );
-    map.insert(
-        "TestCall3".to_string(),
-        CallMetadata {
-            name: "foo_function3".to_string(),
-            index: 0,
-            arguments: vec![CallArgMetadata {
-                name: "foo_arg".to_string(),
-                ty: RustTypeMarker::F32,
-            }],
-        },
-    );
-    map
+	map.insert(
+		"TestCall0".to_string(),
+		CallMetadata {
+			name: "foo_function0".to_string(),
+			index: 3,
+			arguments: vec![CallArgMetadata { name: "foo_arg".to_string(), ty: RustTypeMarker::I8 }],
+		},
+	);
+	map.insert(
+		"TestCall1".to_string(),
+		CallMetadata {
+			name: "foo_function1".to_string(),
+			index: 2,
+			arguments: vec![CallArgMetadata { name: "foo_arg".to_string(), ty: RustTypeMarker::U64 }],
+		},
+	);
+	map.insert(
+		"TestCall2".to_string(),
+		CallMetadata {
+			name: "foo_function2".to_string(),
+			index: 1,
+			arguments: vec![CallArgMetadata {
+				name: "foo_arg".to_string(),
+				ty: RustTypeMarker::TypePointer("SomeType".to_string()),
+			}],
+		},
+	);
+	map.insert(
+		"TestCall3".to_string(),
+		CallMetadata {
+			name: "foo_function3".to_string(),
+			index: 0,
+			arguments: vec![CallArgMetadata { name: "foo_arg".to_string(), ty: RustTypeMarker::F32 }],
+		},
+	);
+	map
 }
 
 fn event_mock() -> HashMap<u8, ModuleEventMetadata> {
-    let mut map = HashMap::new();
+	let mut map = HashMap::new();
 
-    let event_arg_0 = EventArg::Primitive("TestEvent0".to_string());
-    let event_arg_1 = EventArg::Primitive("TestEvent1".to_string());
-    let event_arg_2 = EventArg::Primitive("TestEvent2".to_string());
+	let event_arg_0 = EventArg::Primitive("TestEvent0".to_string());
+	let event_arg_1 = EventArg::Primitive("TestEvent1".to_string());
+	let event_arg_2 = EventArg::Primitive("TestEvent2".to_string());
 
-    let mut arguments = HashSet::new();
-    arguments.insert(event_arg_0);
-    arguments.insert(event_arg_1);
-    arguments.insert(event_arg_2);
-    let module_event_metadata = ModuleEventMetadata {
-        name: "TestEvent0".to_string(),
-        arguments,
-    };
+	let mut arguments = HashSet::new();
+	arguments.insert(event_arg_0);
+	arguments.insert(event_arg_1);
+	arguments.insert(event_arg_2);
+	let module_event_metadata = ModuleEventMetadata { name: "TestEvent0".to_string(), arguments };
 
-    map.insert(0, module_event_metadata);
-    map
+	map.insert(0, module_event_metadata);
+	map
 }

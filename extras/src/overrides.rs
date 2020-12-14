@@ -19,51 +19,42 @@ use std::collections::HashMap;
 /// Types that are given priority over those defined in [Modules](struct.Modules.html)
 #[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq, Clone)]
 pub struct Overrides {
-    /// Type Overrides for modules (where duplication between modules exist)
-    #[serde(rename = "TYPES_MODULES")]
-    types_modules: HashMap<String, ModuleTypes>,
-    /// Overrides based on metadata versions
-    /// this is for support of old testnets (Alexander)
-    // this can be safely ignored for the most part
-    #[serde(rename = "TYPES_META")]
-    types_meta: Vec<TypeRange>,
-    /// these are override types for Polkadot & Kusama chains
-    /// NOTE The SessionKeys definition for Polkadot and Substrate (OpaqueKeys
-    /// implementation) are different. Detect Polkadot and inject the `Keys`
-    /// definition as applicable. (4 keys in substrate vs 5 in Polkadot/CC3).
-    #[serde(rename = "TYPES_SPEC")]
-    // chain(e.g kusama/polkadot) -> Vector of overrides
-    types_spec: HashMap<String, Vec<TypeRange>>,
+	/// Type Overrides for modules (where duplication between modules exist)
+	#[serde(rename = "TYPES_MODULES")]
+	types_modules: HashMap<String, ModuleTypes>,
+	/// these are override types for Polkadot & Kusama chains
+	/// NOTE The SessionKeys definition for Polkadot and Substrate (OpaqueKeys
+	/// implementation) are different. Detect Polkadot and inject the `Keys`
+	/// definition as applicable. (4 keys in substrate vs 5 in Polkadot/CC3).
+	#[serde(rename = "TYPES_SPEC")]
+	// chain(e.g kusama/polkadot) -> Vector of overrides
+	types_spec: HashMap<String, Vec<TypeRange>>,
 }
 
 impl Overrides {
-    /// Construct overrides from JSON
-    pub fn new(raw_json: &str) -> Result<Self> {
-        serde_json::from_str(raw_json).map_err(Into::into)
-    }
+	/// Construct overrides from JSON
+	pub fn new(raw_json: &str) -> Result<Self> {
+		serde_json::from_str(raw_json).map_err(Into::into)
+	}
 
-    /// get a module types based upon spec
-    pub fn get_chain_types(&self, chain: &str, spec: u32) -> Option<&ModuleTypes> {
-        self.types_spec
-            .get(chain)?
-            .iter()
-            .find(|f| crate::is_in_range(spec, f))
-            .map(|o| &o.types)
-    }
+	/// get a module types based upon spec
+	pub fn get_chain_types(&self, chain: &str, spec: u32) -> Option<&ModuleTypes> {
+		self.types_spec.get(chain)?.iter().find(|f| crate::is_in_range(spec, f)).map(|o| &o.types)
+	}
 
-    /// get types for a substrate module
-    pub fn get_module_types(&self, module: &str) -> Option<&ModuleTypes> {
-        self.types_modules.get(module)
-    }
+	/// get types for a substrate module
+	pub fn get_module_types(&self, module: &str) -> Option<&ModuleTypes> {
+		self.types_modules.get(module)
+	}
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+	use super::*;
 
-    #[test]
-    fn should_deserialize_into_single_override() {
-        let json = r#"
+	#[test]
+	fn should_deserialize_into_single_override() {
+		let json = r#"
         {
             "minmax": [
                 1020,
@@ -78,13 +69,13 @@ mod tests {
         }
         "#;
 
-        let single_override: TypeRange = serde_json::from_str(json).unwrap();
-        dbg!(single_override);
-    }
+		let single_override: TypeRange = serde_json::from_str(json).unwrap();
+		dbg!(single_override);
+	}
 
-    #[test]
-    fn should_deserialize_into_spec() {
-        let json = r#"
+	#[test]
+	fn should_deserialize_into_spec() {
+		let json = r#"
         {
         "kusama": [
             {
@@ -135,28 +126,7 @@ mod tests {
         }
         "#;
 
-        let types_spec: HashMap<String, Vec<TypeRange>> = serde_json::from_str(json).unwrap();
-        dbg!(types_spec);
-    }
-
-    #[test]
-    fn should_deserialize_types_meta() {
-        let json = r#"
-        [
-            { "minmax": [
-                0,
-                4
-            ],
-            "types": {
-                "BlockNumber": "u64",
-                "Index": "u64",
-                "EventRecord": "EventRecordTo76",
-                "ValidatorPrefs": "ValidatorPrefsTo145"
-            }
-            }
-        ]
-        "#;
-        let types_meta: Vec<TypeRange> = serde_json::from_str(json).unwrap();
-        dbg!(types_meta);
-    }
+		let types_spec: HashMap<String, Vec<TypeRange>> = serde_json::from_str(json).unwrap();
+		dbg!(types_spec);
+	}
 }
