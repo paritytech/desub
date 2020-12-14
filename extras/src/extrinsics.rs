@@ -66,6 +66,6 @@ mod tests {
 
 	#[test]
 	fn should_deserialize_extrinsics() {
-		let extrinsics: Extrinsics = Extrinsics::new(TEST_STR).unwrap();
+		let _extrinsics: Extrinsics = Extrinsics::new(TEST_STR).unwrap();
 	}
 }
