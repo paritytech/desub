@@ -3,6 +3,7 @@ name = "desub-core"
 version = "0.0.1"
 authors = [ "Andrew Plaza <andrew.plaza@parity.io>" ]
 edition = "2018"
+repository = "https://github.com/paritytech/desub"
 
 [dependencies]
 log = "0.4"

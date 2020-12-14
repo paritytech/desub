@@ -4,10 +4,10 @@ version = "0.1.0"
 authors = ["Andrew Plaza <andrew.plaza@parity.io>"]
 edition = "2018"
 autotests = false
-
+repository = "https://github.com/paritytech/desub"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
+[dev-dependencies]
 desub-core = { path = "../core", package = "desub-core" }
 extras = { path = "../extras", package = "desub-extras" }
 serde = { version = "1.0", features = ["derive"] }
