@@ -2,124 +2,83 @@ const EXT_PATH: &'static str = "./data/extrinsics/";
 use desub_core::decoder::Chain;
 use std::{fs::File, io::prelude::*};
 
-// TODO: Can make `extrinsic test` into a macro
+use paste::paste;
 
-fn extrinsic_test<S: Into<String>>(spec: S, chain: Chain, block: S, num: usize) -> (Vec<u8>, Vec<Vec<u8>>) {
-	let spec: String = spec.into();
-	let block: String = block.into();
-	let mut exts: Vec<Vec<u8>> = Vec::new();
-	let chain = chain.to_string();
-	if std::path::Path::new("./integration_tests").exists() {
-		std::env::set_current_dir("./integration_tests").unwrap();
-	}
-	let path = format!("{}{}/", EXT_PATH, chain);
-	let path = &format!("{}spec{}_block{}/", path, spec, block);
-	println!("{}/{}", path, std::env::current_dir().unwrap().to_str().unwrap());
-	for i in 0..num {
-		let ext_path = &format!("{}EXTRINSIC_spec_{}_block_{}_index_{}.bin", &path, spec, block, i);
-		let mut f = File::open(ext_path).expect("Opening extrinsic failed");
-		let mut ext = Vec::new();
-		f.read_to_end(&mut ext).expect("Reading file failed");
-		exts.push(ext)
-	}
+// NOTE: it is only usable in the current file.
+macro_rules! decl_extrinsic_test {
+	(
+		$(
+			[$spec:expr, $chain: expr, $block:expr]
+		)*
+	) => {
+		$(
+			paste! {
+				pub fn [<extrinsics_block_ $block>]() -> (Vec<u8>, Vec<Vec<u8>>) {
+					let mut exts: Vec<Vec<u8>> = Vec::new();
+					if std::path::Path::new("./integration_tests").exists() {
+						std::env::set_current_dir("./integration_tests").unwrap();
+					}
+					let path = format!("{}{}/", EXT_PATH, $chain);
+					let path = &format!("{}spec{}_block{}/", path, $spec, $block);
+					println!(
+						"{}/{}",
+						path,
+						std::env::current_dir().unwrap().to_str().unwrap()
+					);
 
-	let mut f = File::open(&format!("{}spec_{}_block_{}_METADATA.bin", &path, spec, block))
-		.expect("Opening Metadata file failed");
-	let mut meta = Vec::new();
-	f.read_to_end(&mut meta).expect("Reading file failed");
+					// get the number of files with prefix ${path}_EXTRINSIC in the directory.
+					let num_ext = std::fs::read_dir(&path)
+					.unwrap()
+					.map(|d| d.unwrap().file_name().into_string().unwrap())
+					.filter(|ext| ext.starts_with("EXTRINSIC"))
+					.count();
+					for i in 0..num_ext {
+						let ext_path = &format!(
+							"{}EXTRINSIC_spec_{}_block_{}_index_{}.bin",
+							&path, $spec, $block, i
+						);
+						let mut f = File::open(ext_path).expect("Opening extrinsic failed");
+						let mut ext = Vec::new();
+						f.read_to_end(&mut ext).expect("Reading file failed");
+						exts.push(ext)
+					}
 
-	(meta, exts)
+					let mut f = File::open(&format!(
+						"{}spec_{}_block_{}_METADATA.bin",
+						&path, $spec, $block
+					)).expect("Opening Metadata file failed");
+
+					let mut meta = Vec::new();
+					f.read_to_end(&mut meta).expect("Reading file failed");
+
+					(meta, exts)
+				}
+			}
+		)*
+	};
 }
 
-/// returns raw metadata bytes and a vector of raw extrinsic bytes
-/// from block 342962 with spec 1031
-pub fn extrinsics_block342962() -> (Vec<u8>, Vec<Vec<u8>>) {
-	extrinsic_test("1031", Chain::Kusama, "342962", 2)
-}
-
-/// returns raw metadata bytes and a vector of raw extrinsic bytes
-/// from block 422871 with spec 1031
-/// there are three extrinsics: FinalityTracker, Parachains and Timestmap
-pub fn extrinsics_block422871() -> (Vec<u8>, Vec<Vec<u8>>) {
-	extrinsic_test("1031", Chain::Kusama, "422871", 3)
-}
-
-/// returns raw metadata bytes and a vector of raw extrinsic bytes
-/// from block 422871 with spec 1031
-/// there are three extrinsics: FinalityTracker, Parachains and Timestmap
-pub fn extrinsics_block50970() -> (Vec<u8>, Vec<Vec<u8>>) {
-	extrinsic_test("1031", Chain::Kusama, "50970", 4)
-}
-
-/// returns raw metadata bytes and a vector of raw extrinsic bytes
-/// from block 422871 with spec 1031
-/// there are three extrinsics: FinalityTracker, Parachains and Timestmap
-pub fn extrinsics_block106284() -> (Vec<u8>, Vec<Vec<u8>>) {
-	extrinsic_test("1042", Chain::Kusama, "106284", 4)
-}
-
-pub fn extrinsics_block1674683() -> (Vec<u8>, Vec<Vec<u8>>) {
-	extrinsic_test("1055", Chain::Kusama, "1674683", 3)
-}
-
-pub fn extrinsics_block1677621() -> (Vec<u8>, Vec<Vec<u8>>) {
-	extrinsic_test("1055", Chain::Kusama, "1677621", 4)
-}
-
-pub fn extrinsics_block1702023() -> (Vec<u8>, Vec<Vec<u8>>) {
-	extrinsic_test("1055", Chain::Kusama, "1702023", 17)
-}
-
-pub fn extrinsics_block1714495() -> (Vec<u8>, Vec<Vec<u8>>) {
-	extrinsic_test("1055", Chain::Kusama, "1714495", 4)
-}
-
-pub fn extrinsics_block1717926() -> (Vec<u8>, Vec<Vec<u8>>) {
-	extrinsic_test("1055", Chain::Kusama, "1717926", 4)
-}
-
-pub fn extrinsics_block1718223() -> (Vec<u8>, Vec<Vec<u8>>) {
-	extrinsic_test("1055", Chain::Kusama, "1718223", 4)
-}
-
-pub fn extrinsics_block1732321() -> (Vec<u8>, Vec<Vec<u8>>) {
-	extrinsic_test("1055", Chain::Kusama, "1732321", 4)
-}
-
-pub fn extrinsics_block1731904() -> (Vec<u8>, Vec<Vec<u8>>) {
-	extrinsic_test("1055", Chain::Kusama, "1731904", 4)
-}
-
-pub fn extrinsics_block1768321() -> (Vec<u8>, Vec<Vec<u8>>) {
-	extrinsic_test("1055", Chain::Kusama, "1768321", 3)
-}
-
-pub fn extrinsics_block6144() -> (Vec<u8>, Vec<Vec<u8>>) {
-	extrinsic_test("1020", Chain::Kusama, "6144", 3)
-}
-
-pub fn extrinsics_block779410() -> (Vec<u8>, Vec<Vec<u8>>) {
-	extrinsic_test("1042", Chain::Kusama, "779410", 4)
-}
-
-pub fn extrinsics_block899638() -> (Vec<u8>, Vec<Vec<u8>>) {
-	extrinsic_test("1042", Chain::Kusama, "899638", 4)
-}
-
-pub fn extrinsics_block233816() -> (Vec<u8>, Vec<Vec<u8>>) {
-	extrinsic_test("1030", Chain::Kusama, "233816", 4)
-}
-
-pub fn extrinsics_block607421() -> (Vec<u8>, Vec<Vec<u8>>) {
-	extrinsic_test("1039", Chain::Kusama, "607421", 4)
-}
-
-pub fn extrinsics_block892_dot() -> (Vec<u8>, Vec<Vec<u8>>) {
-	extrinsic_test("0", Chain::Polkadot, "892", 4)
-}
-
-pub fn extrinsics_block1191_wnd() -> (Vec<u8>, Vec<Vec<u8>>) {
-	extrinsic_test("1", Chain::Westend, "1191", 4)
+decl_extrinsic_test! {
+	["1031", Chain::Kusama, "342962"]
+	["1031", Chain::Kusama, "422871"]
+	["1031", Chain::Kusama, "50970"]
+	["1042", Chain::Kusama, "106284"]
+	["1055", Chain::Kusama, "1674683"]
+	["1055", Chain::Kusama, "1677621"]
+	["1055", Chain::Kusama, "1702023"]
+	["1055", Chain::Kusama, "1714495"]
+	["1055", Chain::Kusama, "1717926"]
+	["1055", Chain::Kusama, "1718223"]
+	["1055", Chain::Kusama, "1732321"]
+	["1055", Chain::Kusama, "1731904"]
+	["1055", Chain::Kusama, "1768321"]
+	["1020", Chain::Kusama, "6144"]
+	["1042", Chain::Kusama, "779410"]
+	["1042", Chain::Kusama, "899638"]
+	["1030", Chain::Kusama, "233816"]
+	["1039", Chain::Kusama, "607421"]
+	["0", Chain::Polkadot, "892"]
+	["1", Chain::Westend, "1191"]
 }
 
 /// Get the runtime metadata from KusamaCC3 from block 3,901,874
