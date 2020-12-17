@@ -230,7 +230,7 @@ fn parse_enum(obj: &serde_json::Value) -> RustTypeMarker {
 #[cfg(test)]
 mod tests {
 	use super::Modules;
-	use super::*;
+
 	use crate::error::Error;
 	use crate::ModuleTypes;
 	use core::{EnumField, RustTypeMarker, SetField, StructField, StructUnitOrTuple};
