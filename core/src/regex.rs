@@ -856,7 +856,7 @@ mod tests {
 
 	#[test]
 	fn should_parse_vec_of_tuples() {
-		pretty_env_logger::try_init();
+		let _ = pretty_env_logger::try_init();
 		let ty = "Vec<(NominatorIndexCompact, CompactScoreCompact, ValidatorIndexCompact)>";
 		assert_eq!(
 			parse_vec(ty).unwrap(),
@@ -873,7 +873,7 @@ mod tests {
 
 	#[test]
 	fn should_parse_bit_size() {
-		pretty_env_logger::try_init();
+		let _ = pretty_env_logger::try_init();
 		let ty = "UInt<128, Balance>";
 		assert_eq!(parse_bit_size(ty).unwrap(), RustTypeMarker::U128);
 		let ty = "Int<64, Balance>";
