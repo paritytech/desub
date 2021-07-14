@@ -278,7 +278,7 @@ impl Display for RustTypeMarker {
 					type_marker.push_str(&format!("{}, ", substring))
 				}
 			}
-			RustTypeMarker::Tuple(t) => type_marker.push_str(&display_types(&t)),
+			RustTypeMarker::Tuple(t) => type_marker.push_str(&display_types(t)),
 			RustTypeMarker::Enum(t) => {
 				type_marker.push_str("{ ");
 				for field in t.iter() {
