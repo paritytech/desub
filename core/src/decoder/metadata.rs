@@ -144,37 +144,37 @@ impl Metadata {
 		match version {
 			/* 0x07 => {
 				let meta: runtime_metadata07::RuntimeMetadataPrefixed =
-					OldDecode::decode(&mut &bytes[..]).expect("Decode failed");
+					OldDecode::decode(&mut &*bytes).expect("Decode failed");
 				meta.try_into().expect("Conversion failed")
 			} */
 			0x08 => {
 				log::debug!("Metadata V8");
 				let meta: runtime_metadata08::RuntimeMetadataPrefixed =
-					Decode::decode(&mut &bytes[..]).expect("Decode failed");
+					Decode::decode(&mut &*bytes).expect("Decode failed");
 				meta.try_into().expect("Conversion failed")
 			}
 			0x09 => {
 				log::debug!("Metadata V9");
 				let meta: runtime_metadata09::RuntimeMetadataPrefixed =
-					Decode::decode(&mut &bytes[..]).expect("Decode Failed");
+					Decode::decode(&mut &*bytes).expect("Decode Failed");
 				meta.try_into().expect("Conversion Failed")
 			}
 			0xA => {
 				log::debug!("Metadata V10");
 				let meta: runtime_metadata10::RuntimeMetadataPrefixed =
-					Decode::decode(&mut &bytes[..]).expect("Decode failed");
+					Decode::decode(&mut &*bytes).expect("Decode failed");
 				meta.try_into().expect("Conversion failed")
 			}
 			0xB => {
 				log::debug!("Metadata V11");
 				let meta: runtime_metadata11::RuntimeMetadataPrefixed =
-					Decode::decode(&mut &bytes[..]).expect("Decode failed");
+					Decode::decode(&mut &*bytes).expect("Decode failed");
 				meta.try_into().expect("Conversion failed")
 			}
 			0xC => {
 				log::debug!("Metadata V12");
 				let meta: runtime_metadata_latest::RuntimeMetadataPrefixed =
-					Decode::decode(&mut &bytes[..]).expect("Decode failed");
+					Decode::decode(&mut &*bytes).expect("Decode failed");
 				meta.try_into().expect("Conversion failed")
 			}
 			/* TODO remove panics */

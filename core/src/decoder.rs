@@ -108,7 +108,7 @@ impl Decoder {
 	}
 
 	/// Check if a metadata version has already been registered
-	pub fn has_version(&self, version: &SpecVersion) -> bool {
+	pub fn has_version(&self, version: SpecVersion) -> bool {
 		self.versions.contains_key(&version)
 	}
 
@@ -155,7 +155,7 @@ impl Decoder {
 				StorageKey { module: info.module.name().into(), prefix: info.meta.prefix().to_string(), extra: None }
 			}
 			StorageType::Map { hasher, key: key_type, .. } => {
-				let key = self.decode_key_len(key, &hasher);
+				let key = self.decode_key_len(key, hasher);
 				StorageKey {
 					module: info.module.name().into(),
 					prefix: info.meta.prefix().to_string(),
@@ -167,8 +167,8 @@ impl Decoder {
 				}
 			}
 			StorageType::DoubleMap { hasher, key1, key2, key2_hasher, .. } => {
-				let key1_bytes = self.decode_key_len(key, &hasher);
-				let key2_bytes = self.decode_key_len(&key[key1_bytes.len()..], &key2_hasher);
+				let key1_bytes = self.decode_key_len(key, hasher);
+				let key2_bytes = self.decode_key_len(&key[key1_bytes.len()..], key2_hasher);
 				StorageKey {
 					module: info.module.name().into(),
 					prefix: info.meta.prefix().to_string(),
@@ -199,7 +199,7 @@ impl Decoder {
 		})?;
 
 		if value.is_none() {
-			let key = self.get_key_data(key, &storage_info, &lookup_table);
+			let key = self.get_key_data(key, storage_info, &lookup_table);
 			return Ok(GenericStorage::new(key, None));
 		}
 		let value = value.unwrap();
@@ -209,24 +209,24 @@ impl Decoder {
 			StorageType::Plain(rtype) => {
 				log::trace!("{:?}, module {}, spec {}", rtype, storage_info.module.name(), spec);
 				let mut cursor = 0;
-				let value = self.decode_single(storage_info.module.name(), spec, &rtype, value, &mut cursor, false)?;
-				let key = self.get_key_data(key, &storage_info, &lookup_table);
+				let value = self.decode_single(storage_info.module.name(), spec, rtype, value, &mut cursor, false)?;
+				let key = self.get_key_data(key, storage_info, &lookup_table);
 				let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
 				Ok(storage)
 			}
 			StorageType::Map { value: val_rtype, unused: _unused, .. } => {
-				let key = self.get_key_data(key, &storage_info, &lookup_table);
+				let key = self.get_key_data(key, storage_info, &lookup_table);
 				let mut cursor = 0;
 				let value =
-					self.decode_single(storage_info.module.name(), spec, &val_rtype, value, &mut cursor, false)?;
+					self.decode_single(storage_info.module.name(), spec, val_rtype, value, &mut cursor, false)?;
 				let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
 				Ok(storage)
 			}
 			StorageType::DoubleMap { value: val_rtype, .. } => {
-				let key = self.get_key_data(key, &storage_info, &lookup_table);
+				let key = self.get_key_data(key, storage_info, &lookup_table);
 				let mut cursor = 0;
 				let value =
-					self.decode_single(storage_info.module.name(), spec, &val_rtype, value, &mut cursor, false)?;
+					self.decode_single(storage_info.module.name(), spec, val_rtype, value, &mut cursor, false)?;
 				let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
 				Ok(storage)
 			}
@@ -371,7 +371,7 @@ impl Decoder {
 				log::trace!("Tuple::cursor={}", *cursor);
 				let ty = v
 					.iter()
-					.map(|v| self.decode_single(module, spec, &v, data, cursor, is_compact))
+					.map(|v| self.decode_single(module, spec, v, data, cursor, is_compact))
 					.collect::<Result<Vec<SubstrateType>, Error>>();
 				SubstrateType::Composite(ty?)
 			}
@@ -401,7 +401,7 @@ impl Decoder {
 					return Ok(SubstrateType::Composite(Vec::new()));
 				} else {
 					for _ in 0..*size {
-						decoded_arr.push(self.decode_single(module, spec, ty, &data, cursor, is_compact)?)
+						decoded_arr.push(self.decode_single(module, spec, ty, data, cursor, is_compact)?)
 					}
 				}
 				// rely on cursor increments in sub-types (U32/substrate specific types)
@@ -650,7 +650,7 @@ impl Decoder {
 						.types
 						.get_extrinsic_ty(self.chain.as_str(), spec, "SignedExtra")
 						.ok_or_else(|| Error::from("Could not find type `SignedExtra`"))?;
-					self.decode_single("", spec, &ty, data, cursor, is_compact).map(Option::Some)
+					self.decode_single("", spec, ty, data, cursor, is_compact).map(Option::Some)
 				}
 			}
 			// identity info may be added to in the future

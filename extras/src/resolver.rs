@@ -124,10 +124,10 @@ impl TypeResolver {
 
 		if let Some(t) = self.check_overrides(&module, ty.as_str(), spec, &chain) {
 			log::trace!("Resolving to Override");
-			Some(&t)
+			Some(t)
 		} else if let Some(t) = self.extrinsics.get(ty.as_str(), spec, &chain) {
 			log::trace!("Resolving to Extrinsic Type");
-			Some(&t)
+			Some(t)
 		} else {
 			log::trace!("Resolving to Type Pointer");
 			self.resolve_helper(&module, &ty)
