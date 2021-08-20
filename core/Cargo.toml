@@ -25,10 +25,10 @@ primitives = { package = "sp-core",  git = "https://github.com/paritytech/substr
 runtime-primitives = { package = "sp-runtime", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 
 frame-metadata = { package = "frame-metadata", git = "https://github.com/paritytech/frame-metadata", features = ["v12", "v13", "v14"] }
-runtime-metadata11 = { git = "https://github.com/insipx/substrate-metadata-versions", package = "frame-metadatav11", branch = "master" }
-runtime-metadata10 = { git = "https://github.com/insipx/substrate-metadata-versions", package = "frame-metadatav10", branch = "master" }
-runtime-metadata09 = { git = "https://github.com/insipx/substrate-metadata-versions", package = "frame-metadatav9", branch = "master" }
-runtime-metadata08 = { git = "https://github.com/insipx/substrate-metadata-versions", package = "frame-metadatav8", branch = "master" }
+runtime-metadata11 = { path = "../substrate-metadata-versions/metadatav11", package = "frame-metadatav11" }
+runtime-metadata10 = { path = "../substrate-metadata-versions/metadatav10", package = "frame-metadatav10" }
+runtime-metadata09 = { path = "../substrate-metadata-versions/metadatav9", package = "frame-metadatav9"  }
+runtime-metadata08 = { path = "../substrate-metadata-versions/metadatav8", package = "frame-metadatav8"  }
 
 [dev-dependencies]
 pretty_env_logger = "0.4"
