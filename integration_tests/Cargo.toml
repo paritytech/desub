@@ -13,9 +13,9 @@ extras = { path = "../extras", package = "desub-extras" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 codec = { version = "1", package = "parity-scale-codec" }
-primitives = { package = "sp-core",  git = "https://github.com/paritytech/substrate", rev = "a364e27d6e3971d756d28435efc468d95add52d3" }
-frame-system = { git = "https://github.com/paritytech/substrate", rev = "a364e27d6e3971d756d28435efc468d95add52d3" }
-pallet-balances = { git = "https://github.com/paritytech/substrate", rev = "a364e27d6e3971d756d28435efc468d95add52d3" }
+primitives = { package = "sp-core",  git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 pretty_env_logger = "0.4"
 log = "0.4"
 hex = "0.4"

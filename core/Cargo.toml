@@ -8,23 +8,23 @@ repository = "https://github.com/paritytech/desub"
 [dependencies]
 log = "0.4"
 thiserror = "1.0.22"
-codec = { version = "1", package = "parity-scale-codec" }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = { version = "1.0", features = ["preserve_order"] }
+codec = { version = "2", package = "parity-scale-codec" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
 onig = { version = "5.0", default-features = false }
 derive_more = "0.99.3"
 dyn-clone = "1.0"
 hex = "0.4"
 
-runtime-version = { package = "sp-version", git = "https://github.com/paritytech/substrate", rev = "a364e27d6e3971d756d28435efc468d95add52d3" }
-pallet-indices = { package = "pallet-indices", git = "https://github.com/paritytech/substrate", rev = "a364e27d6e3971d756d28435efc468d95add52d3" }
-pallet-democracy = { package = "pallet-democracy", git = "https://github.com/paritytech/substrate", rev = "a364e27d6e3971d756d28435efc468d95add52d3" }
-pallet-identity =  { package = "pallet-identity", git = "https://github.com/paritytech/substrate", rev = "a364e27d6e3971d756d28435efc468d95add52d3" }
+runtime-version = { package = "sp-version", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-indices = { package = "pallet-indices", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-democracy = { package = "pallet-democracy", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-identity =  { package = "pallet-identity", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 
-primitives = { package = "sp-core",  git = "https://github.com/paritytech/substrate", rev = "a364e27d6e3971d756d28435efc468d95add52d3" }
-runtime-primitives = { package = "sp-runtime", git = "https://github.com/paritytech/substrate", rev = "a364e27d6e3971d756d28435efc468d95add52d3" }
+primitives = { package = "sp-core",  git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+runtime-primitives = { package = "sp-runtime", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 
-runtime-metadata-latest = { package = "frame-metadata", git = "https://github.com/paritytech/substrate", rev = "a364e27d6e3971d756d28435efc468d95add52d3" }
+frame-metadata = { package = "frame-metadata", git = "https://github.com/paritytech/frame-metadata", features = ["v12", "v13", "v14"] }
 runtime-metadata11 = { git = "https://github.com/insipx/substrate-metadata-versions", package = "frame-metadatav11", branch = "master" }
 runtime-metadata10 = { git = "https://github.com/insipx/substrate-metadata-versions", package = "frame-metadatav10", branch = "master" }
 runtime-metadata09 = { git = "https://github.com/insipx/substrate-metadata-versions", package = "frame-metadatav9", branch = "master" }
