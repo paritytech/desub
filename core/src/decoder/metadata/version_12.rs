@@ -31,11 +31,21 @@
 
 use super::{
 	CallArgMetadata, CallMetadata, Error, EventArg, ExtrinsicMetadata, Metadata, ModuleEventMetadata, ModuleMetadata,
-	StorageMetadata, StorageType,
+	StorageMetadata, StorageType, StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as
+	DesubStorageHasher,
 };
 use crate::{regex, RustTypeMarker};
-use runtime_metadata_latest::{
-	DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryType, META_RESERVED,
+
+use frame_metadata::{
+	v12::{
+		StorageEntryType, META_RESERVED,
+		ModuleMetadata as ModuleMetadatav12,
+		EventMetadata as EventMetadatav12,
+		StorageEntryMetadata as StorageEntryMetadatav12,
+		StorageEntryModifier as StorageEntryModifierv12, StorageHasher as StorageHasherv12
+	},
+	decode_different::DecodeDifferent,
+	RuntimeMetadataPrefixed, RuntimeMetadata
 };
 
 use std::{
@@ -92,7 +102,7 @@ fn convert<B: 'static, O: 'static>(dd: DecodeDifferent<B, O>) -> Result<O, Error
 	}
 }
 
-fn convert_module(index: usize, module: runtime_metadata_latest::ModuleMetadata) -> Result<ModuleMetadata, Error> {
+fn convert_module(index: usize, module: ModuleMetadatav12) -> Result<ModuleMetadata, Error> {
 	let mut storage_map = HashMap::new();
 	if let Some(storage) = module.storage {
 		let storage = convert(storage)?;
@@ -137,7 +147,7 @@ fn convert_module(index: usize, module: runtime_metadata_latest::ModuleMetadata)
 	})
 }
 
-fn convert_event(event: runtime_metadata_latest::EventMetadata) -> Result<ModuleEventMetadata, Error> {
+fn convert_event(event: EventMetadatav12) -> Result<ModuleEventMetadata, Error> {
 	let name = convert(event.name)?;
 	let mut arguments = HashSet::new();
 	for arg in convert(event.arguments)? {
@@ -149,17 +159,48 @@ fn convert_event(event: runtime_metadata_latest::EventMetadata) -> Result<Module
 
 fn convert_entry(
 	prefix: String,
-	entry: runtime_metadata_latest::StorageEntryMetadata,
+	entry: StorageEntryMetadatav12,
 ) -> Result<StorageMetadata, Error> {
 	let default = convert(entry.default)?;
 	let documentation = convert(entry.documentation)?;
 	Ok(StorageMetadata {
 		prefix,
-		modifier: entry.modifier,
+		modifier: StorageEntryModifierTemp(entry.modifier).into(),
 		ty: entry.ty.try_into()?,
 		default,
 		documentation: documentation.iter().map(|s| s.to_string()).collect::<Vec<String>>(),
 	})
+}
+
+/// Temporary struct for converting between `StorageEntryModifier`
+/// and `DesubStorageEntryModifier`
+struct StorageEntryModifierTemp(StorageEntryModifierv12);
+impl From<StorageEntryModifierTemp> for DesubStorageEntryModifier {
+	fn from(entry: StorageEntryModifierTemp) -> DesubStorageEntryModifier {
+		let entry = entry.0;
+		match entry {
+			StorageEntryModifierv12::Optional => DesubStorageEntryModifier::Optional,
+			StorageEntryModifierv12::Default => DesubStorageEntryModifier::Default,
+		}
+	}
+}
+
+/// Temprorary struct for converting between `StorageHasher` and
+/// `DesubStorageHasher`
+struct TempStorageHasher(StorageHasherv12);
+impl From<TempStorageHasher> for DesubStorageHasher {
+	fn from(hasher: TempStorageHasher) -> DesubStorageHasher {
+		let hasher = hasher.0;
+		match hasher {
+			StorageHasherv12::Blake2_128 => DesubStorageHasher::Blake2_128,
+			StorageHasherv12::Blake2_128Concat => DesubStorageHasher::Blake2_128,
+			StorageHasherv12::Blake2_256 => DesubStorageHasher::Blake2_256,
+			StorageHasherv12::Twox128 => DesubStorageHasher::Twox128,
+			StorageHasherv12::Twox256 => DesubStorageHasher::Twox256,
+			StorageHasherv12::Twox64Concat => DesubStorageHasher::Twox64Concat,
+			StorageHasherv12::Identity => DesubStorageHasher::Identity,
+		}
+	}
 }
 
 impl TryFrom<StorageEntryType> for StorageType {
@@ -174,7 +215,7 @@ impl TryFrom<StorageEntryType> for StorageType {
 				let key = convert(key)?;
 				let value = convert(value)?;
 				StorageType::Map {
-					hasher,
+					hasher: TempStorageHasher(hasher).into(),
 					key: regex::parse(&key).ok_or(Error::InvalidType(key))?,
 					value: regex::parse(&value).ok_or(Error::InvalidType(value))?,
 					unused,
@@ -185,11 +226,11 @@ impl TryFrom<StorageEntryType> for StorageType {
 				let key2 = convert(key2)?;
 				let value = convert(value)?;
 				StorageType::DoubleMap {
-					hasher,
+					hasher: TempStorageHasher(hasher).into(),
 					key1: regex::parse(&key1).ok_or(Error::InvalidType(key1))?,
 					key2: regex::parse(&key2).ok_or(Error::InvalidType(key2))?,
 					value: regex::parse(&value).ok_or(Error::InvalidType(value))?,
-					key2_hasher,
+					key2_hasher: TempStorageHasher(key2_hasher).into(),
 				}
 			}
 		};

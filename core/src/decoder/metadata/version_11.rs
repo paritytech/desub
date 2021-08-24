@@ -31,7 +31,7 @@
 
 use super::{
 	CallArgMetadata, CallMetadata, Error, EventArg, ExtrinsicMetadata, Metadata, ModuleEventMetadata, ModuleMetadata,
-	StorageMetadata, StorageType,
+	StorageMetadata, StorageType, StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as DesubStorageHasher
 };
 use crate::{regex, RustTypeMarker};
 use runtime_metadata11::{
@@ -163,30 +163,30 @@ fn convert_entry(prefix: String, entry: runtime_metadata11::StorageEntryMetadata
 /// Temporary struct for converting between `StorageEntryModifier`
 /// and `runtime_metadata11::StorageEntryModifier`
 struct StorageEntryModifierTemp(StorageEntryModifier);
-impl From<StorageEntryModifierTemp> for runtime_metadata_latest::StorageEntryModifier {
-	fn from(entry: StorageEntryModifierTemp) -> runtime_metadata_latest::StorageEntryModifier {
+impl From<StorageEntryModifierTemp> for DesubStorageEntryModifier {
+	fn from(entry: StorageEntryModifierTemp) -> DesubStorageEntryModifier {
 		let entry = entry.0;
 		match entry {
-			StorageEntryModifier::Optional => runtime_metadata_latest::StorageEntryModifier::Optional,
-			StorageEntryModifier::Default => runtime_metadata_latest::StorageEntryModifier::Default,
+			StorageEntryModifier::Optional => DesubStorageEntryModifier::Optional,
+			StorageEntryModifier::Default => DesubStorageEntryModifier::Default,
 		}
 	}
 }
 
 /// Temprorary struct for converting between `StorageHasher` and
-/// `runtime_metadata_latest::StorageHasher`
+/// `DesubStorageHasher`
 struct TempStorageHasher(StorageHasher);
-impl From<TempStorageHasher> for runtime_metadata_latest::StorageHasher {
-	fn from(hasher: TempStorageHasher) -> runtime_metadata_latest::StorageHasher {
+impl From<TempStorageHasher> for DesubStorageHasher {
+	fn from(hasher: TempStorageHasher) -> DesubStorageHasher {
 		let hasher = hasher.0;
 		match hasher {
-			StorageHasher::Blake2_128 => runtime_metadata_latest::StorageHasher::Blake2_128,
-			StorageHasher::Blake2_128Concat => runtime_metadata_latest::StorageHasher::Blake2_128,
-			StorageHasher::Blake2_256 => runtime_metadata_latest::StorageHasher::Blake2_256,
-			StorageHasher::Twox128 => runtime_metadata_latest::StorageHasher::Twox128,
-			StorageHasher::Twox256 => runtime_metadata_latest::StorageHasher::Twox256,
-			StorageHasher::Twox64Concat => runtime_metadata_latest::StorageHasher::Twox64Concat,
-			StorageHasher::Identity => runtime_metadata_latest::StorageHasher::Identity,
+			StorageHasher::Blake2_128 => DesubStorageHasher::Blake2_128,
+			StorageHasher::Blake2_128Concat => DesubStorageHasher::Blake2_128,
+			StorageHasher::Blake2_256 => DesubStorageHasher::Blake2_256,
+			StorageHasher::Twox128 => DesubStorageHasher::Twox128,
+			StorageHasher::Twox256 => DesubStorageHasher::Twox256,
+			StorageHasher::Twox64Concat => DesubStorageHasher::Twox64Concat,
+			StorageHasher::Identity => DesubStorageHasher::Identity,
 		}
 	}
 }

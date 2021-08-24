@@ -591,6 +591,7 @@ dependencies = [
  "pallet-democracy",
  "pallet-identity",
  "pallet-indices",
+ "parity-scale-codec 1.3.7",
  "parity-scale-codec 2.2.0",
  "pretty_env_logger",
  "serde",

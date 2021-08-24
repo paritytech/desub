@@ -394,9 +394,6 @@ pub struct RuntimeMetadataV11 {
 	pub extrinsic: ExtrinsicMetadata,
 }
 
-/// The latest version of the metadata.
-pub type RuntimeMetadataLastVersion = RuntimeMetadataV11;
-
 /// All metadata about an runtime module.
 #[derive(Clone, PartialEq, Eq, Encode, RuntimeDebug)]
 #[cfg_attr(feature = "std", derive(Decode, Serialize))]
@@ -418,7 +415,7 @@ impl Into<sp_core::OpaqueMetadata> for RuntimeMetadataPrefixed {
 	}
 }
 
-impl Into<RuntimeMetadataPrefixed> for RuntimeMetadataLastVersion {
+impl Into<RuntimeMetadataPrefixed> for RuntimeMetadataV11 {
 	fn into(self) -> RuntimeMetadataPrefixed {
 		RuntimeMetadataPrefixed(META_RESERVED, RuntimeMetadata::V11(self))
 	}

@@ -9,6 +9,7 @@ repository = "https://github.com/paritytech/desub"
 log = "0.4"
 thiserror = "1.0.22"
 codec = { version = "2", package = "parity-scale-codec" }
+codec1 = { version = "1", package = "parity-scale-codec" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 onig = { version = "5.0", default-features = false }

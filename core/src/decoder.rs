@@ -33,8 +33,8 @@ pub use self::storage::{GenericStorage, StorageInfo, StorageKey, StorageKeyData,
 #[cfg(test)]
 pub use self::metadata::test_suite;
 
-pub use self::metadata::{Metadata, MetadataError, ModuleIndex, StorageType};
-pub use runtime_metadata_latest::{StorageEntryModifier, StorageEntryType, StorageHasher};
+pub use self::metadata::{Metadata, MetadataError, ModuleIndex, StorageType, StorageHasher, StorageEntryModifier};
+pub use frame_metadata::v14::StorageEntryType;
 
 use crate::{
 	error::Error,
