@@ -38,7 +38,7 @@ pub use frame_metadata::v14::StorageEntryType;
 
 use crate::{
 	error::Error,
-	substrate_types::{self, StructField, StructUnitOrTuple, SubstrateType},
+	substrate_types::{self, StructField, SubstrateType},
 	CommonTypes, RustTypeMarker, TypeDetective,
 };
 use codec::{Compact, CompactLen, Decode};
@@ -353,6 +353,7 @@ impl Decoder {
 					self.decode_single(module, spec, new_type, data, cursor, is_compact)?
 				}
 			}
+			RustTypeMarker::Unit(u) => SubstrateType::Unit(u.to_string()),
 			RustTypeMarker::Struct(v) => {
 				log::trace!("Struct::cursor = {:?}", cursor);
 				let ty = self.decode_structlike(v, module, spec, data, cursor, is_compact)?;
@@ -380,18 +381,15 @@ impl Decoder {
 				let index = data[*cursor];
 				*cursor += 1;
 				let variant = &v[index as usize];
-				match &variant.ty {
-					crate::StructUnitOrTuple::Struct(ref v) => {
-						let ty = self.decode_structlike(v, module, spec, data, cursor, is_compact)?;
-						SubstrateType::Enum(StructUnitOrTuple::Struct(ty))
-					}
-					crate::StructUnitOrTuple::Unit(v) => SubstrateType::Enum(StructUnitOrTuple::Unit(v.clone())),
-					crate::StructUnitOrTuple::Tuple(ref v) => {
-						let ty = self.decode_single(module, spec, v, data, cursor, is_compact)?;
-						let name = variant.variant_name.as_ref().expect("Tuple Variant must have a name").clone();
-						SubstrateType::Enum(StructUnitOrTuple::Tuple { name, ty: Box::new(ty) })
-					}
-				}
+				let value = variant.value
+					.as_ref()
+					.map(|v| self.decode_single(module, spec, &v, data, cursor, is_compact))
+					.transpose()?;
+
+				SubstrateType::Enum(substrate_types::EnumField {
+					name: variant.name.clone(),
+					value: value.map(|v| Box::new(v)),
+				})
 			}
 			RustTypeMarker::Array { size, ty } => {
 				log::trace!("Array::cursor={}", *cursor);
@@ -471,7 +469,10 @@ impl Decoder {
 				log::trace!("Generic Type");
 				// disregard 'inner' type of a generic
 				self.decode_single(module, spec, outer, data, cursor, is_compact)?
-			}
+			},
+			RustTypeMarker::Number => {
+				panic!("number decoding not possible");
+			},
 			RustTypeMarker::U8 => {
 				let num: u8 = if is_compact {
 					let num: Compact<u8> = Decode::decode(&mut &data[*cursor..])?;
@@ -710,6 +711,7 @@ impl Decoder {
 					),
 				])))
 			}
+			/*
 			"Data" => {
 				log::trace!("Data::cursor={}", *cursor);
 				let identity_data: pallet_identity::Data = Decode::decode(&mut &data[*cursor..])?;
@@ -722,6 +724,7 @@ impl Decoder {
 				*cursor += 1;
 				Ok(Some(SubstrateType::Data(identity_data)))
 			}
+			*/
 			"Call" | "GenericCall" => {
 				let types = self.decode_call(spec, data, cursor)?;
 				Ok(Some(SubstrateType::Call(types)))
@@ -861,7 +864,8 @@ fn decode_old_address(data: &[u8], cursor: &mut usize) -> Result<substrate_types
 mod tests {
 	use super::*;
 	use crate::{
-		decoder::metadata::test_suite as meta_test_suite, substrate_types::StructField, test_suite, EnumField,
+		decoder::metadata::test_suite as meta_test_suite, substrate_types::{StructField, EnumField}, test_suite,
+		EnumField as RustEnumField,
 	};
 	use codec::Encode;
 
@@ -1059,11 +1063,11 @@ mod tests {
 		decode_test!(
 			val,
 			RustTypeMarker::Enum(vec![
-				EnumField::new(None, crate::StructUnitOrTuple::Unit("Zoo".into())),
-				EnumField::new(None, crate::StructUnitOrTuple::Unit("Wraith".into())),
-				EnumField::new(None, crate::StructUnitOrTuple::Unit("Spree".into())),
+				RustEnumField::new("Zoo".into(), None),
+				RustEnumField::new("Wraith".into(), None),
+				RustEnumField::new("Spree".into(), None),
 			]),
-			SubstrateType::Enum(StructUnitOrTuple::Unit("Wraith".into()))
+			SubstrateType::Enum(EnumField::new("Wraith".into(), None))
 		);
 	}
 
@@ -1081,19 +1085,16 @@ mod tests {
 		decode_test!(
 			val,
 			RustTypeMarker::Enum(vec![
-				EnumField::new(
-					Some("Zoo".into()),
-					crate::StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer("TestStruct".into(),)),
+				RustEnumField::new(
+					"Zoo".into(),
+					Some(RustTypeMarker::TypePointer("TestStruct".into())),
 				),
-				EnumField::new(
-					Some("Wraith".into()),
-					crate::StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer("TestStruct".into(),)),
+				RustEnumField::new(
+					"Wraith".into(),
+					Some(RustTypeMarker::TypePointer("TestStruct".into())),
 				),
 			]),
-			SubstrateType::Enum(StructUnitOrTuple::Tuple {
-				name: "Wraith".into(),
-				ty: Box::new(SubstrateType::I128(0x1337))
-			})
+			SubstrateType::Enum(EnumField::new("Wraith".into(), Some(Box::new(SubstrateType::I128(0x1337)))))
 		);
 	}
 
@@ -1109,34 +1110,39 @@ mod tests {
 		decode_test!(
 			val,
 			RustTypeMarker::Enum(vec![
-				EnumField::new(
-					Some("Zoo".into()),
-					crate::StructUnitOrTuple::Struct(vec![
+				RustEnumField::new(
+					"Zoo".into(),
+					Some(RustTypeMarker::Struct(vec![
 						crate::StructField::new(
 							"name",
 							RustTypeMarker::Std(CommonTypes::Vec(Box::new(RustTypeMarker::U8,))),
 						),
 						crate::StructField::new("id", RustTypeMarker::U32),
-					]),
+					])),
 				),
-				EnumField::new(
-					Some("Wraith".into()),
-					crate::StructUnitOrTuple::Struct(vec![
+				RustEnumField::new(
+					"Wraith".into(),
+					Some(RustTypeMarker::Struct(vec![
 						crate::StructField::new(
 							"name",
 							RustTypeMarker::Std(CommonTypes::Vec(Box::new(RustTypeMarker::U16,))),
 						),
 						crate::StructField::new("id", RustTypeMarker::U64),
-					]),
+					])),
 				),
 			]),
-			SubstrateType::Enum(StructUnitOrTuple::Struct(vec![
-				StructField {
-					name: Some("name".into()),
-					ty: SubstrateType::Composite(vec![SubstrateType::U16(0x13), SubstrateType::U16(0x37)])
-				},
-				StructField { name: Some("id".into()), ty: SubstrateType::U64(15) }
-			]))
+			SubstrateType::Enum(
+				EnumField::new(
+					"TestEnum".into(),
+					Some(Box::new(SubstrateType::Struct(vec![
+						StructField {
+							name: Some("name".into()),
+							ty: SubstrateType::Composite(vec![SubstrateType::U16(0x13), SubstrateType::U16(0x37)])
+						},
+						StructField { name: Some("id".into()), ty: SubstrateType::U64(15) }
+					])))
+				)
+			)
 		);
 	}
 }

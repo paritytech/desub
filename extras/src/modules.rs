@@ -13,7 +13,7 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::error::Error;
-use core::{regex, EnumField, RustTypeMarker, SetField, StructField, StructUnitOrTuple};
+use core::{regex, EnumField, RustTypeMarker, SetField, StructField};
 use serde::{
 	de::{Deserializer, MapAccess, Visitor},
 	Deserialize, Serialize,
@@ -200,30 +200,44 @@ fn parse_set(obj: &serde_json::map::Map<String, serde_json::Value>) -> RustTypeM
 /// internal api to convert a serde value to str
 ///
 /// # Panics
-fn parse_enum(obj: &serde_json::Value) -> RustTypeMarker {
-	if obj.is_array() {
-		let arr = obj.as_array().expect("checked before cast; qed");
-		let mut rust_enum = Vec::new();
-		for unit in arr.iter() {
-			// if an enum is an array, it's a unit enum (stateless)
-			rust_enum.push(unit.as_str().expect("Will be string according to polkadot-js defs").to_string())
-		}
-		let rust_enum = rust_enum.into_iter().map(|f| f.into()).collect::<Vec<EnumField>>();
+fn parse_enum(value: &serde_json::Value) -> RustTypeMarker {
+	println!("{:?}", value);
+	if value.is_array() {
+		let arr = value.as_array().expect("checked before cast; qed");
+		let rust_enum = arr.iter().map(|u| {
+			let name = u.as_str().expect("Will be string according to polkadot-js defs").to_string();
+			EnumField::new(name, None)
+		}).collect::<Vec<_>>();
 		RustTypeMarker::Enum(rust_enum)
-	// all enum 'objects' in polkadot.js definitions are tuple-enums
-	} else if obj.is_object() {
-		let obj = obj.as_object().expect("Checked before casting; qed");
-		let mut rust_enum = Vec::new();
-		for (key, value) in obj.iter() {
-			let value = if value.is_null() { "null" } else { value.as_str().expect("will be str; qed") };
-			let field =
-				EnumField::new(Some(key.into()), StructUnitOrTuple::Tuple(regex::parse(value).expect("Not a type")));
-			rust_enum.push(field);
-		}
+	} else if value.is_object() {
+		let value = value.as_object().expect("Checked before casting; qed");
+
+
+		// If all the values are numbers then we need to order the enum according to those numbers.
+		// Some types like `ProxyType` in the runtime may vary from runtime-to-runtime.
+		// So afaik Polkadot-Js types solve this by attaching a number to each variant according to index.
+		let rust_enum = if value.values().fold(true, |_, v| v.is_number()) {
+			let mut tuples = value.values()
+				.map(|v| v.as_u64().expect("Must be u64"))
+				.zip(
+					value.keys().map(|k| EnumField::new(k.into(), None))
+				)
+				.collect::<Vec<(u64, EnumField)>>();
+			tuples.sort_by_key(|(num, _)| *num);
+			tuples.into_iter().map(|t| t.1).collect::<Vec<_>>()
+		} else {
+			value.iter().map(|(k, v)| {
+				let value = regex::parse(v
+					.as_str()
+					.expect("Types must be strings"))
+					.expect(&format!("Could not parse type {}", v));
+				EnumField::new(k.into(), Some(value))
+			}).collect::<Vec<_>>()
+		};
 		RustTypeMarker::Enum(rust_enum)
 	// so far, polkadot.js does not define any struct-like enums
 	} else {
-		panic!("Unnaccounted type")
+		panic!("Unkown type")
 	}
 }
 
@@ -233,7 +247,7 @@ mod tests {
 
 	use crate::error::Error;
 	use crate::ModuleTypes;
-	use core::{EnumField, RustTypeMarker, SetField, StructField, StructUnitOrTuple};
+	use core::{EnumField, RustTypeMarker, SetField, StructField};
 	use std::collections::HashMap;
 	const RAW_JSON: &'static str = r#"
 {
@@ -306,25 +320,25 @@ mod tests {
 			"MultiSignature".to_string(),
 			RustTypeMarker::Enum(vec![
 				EnumField {
-					variant_name: Some("Ed25519".to_string()),
-					ty: StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer("Ed25519Signature".to_string())),
+					name: "Ed25519".to_string(),
+					value: Some(RustTypeMarker::TypePointer("Ed25519Signature".to_string())),
 				},
 				EnumField {
-					variant_name: Some("Sr25519".to_string()),
-					ty: StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer("Sr25519Signature".to_string())),
+					name: "Sr25519".to_string(),
+					value: Some(RustTypeMarker::TypePointer("Sr25519Signature".to_string())),
 				},
 				EnumField {
-					variant_name: Some("Ecdsa".to_string()),
-					ty: StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer("EcdsaSignature".to_string())),
+					name: "Ecdsa".to_string(),
+					value: Some(RustTypeMarker::TypePointer("EcdsaSignature".to_string())),
 				},
 			]),
 		);
 		types.insert(
 			"Reasons".to_string(),
 			RustTypeMarker::Enum(vec![
-				EnumField { variant_name: None, ty: StructUnitOrTuple::Unit("Fee".to_string()) },
-				EnumField { variant_name: None, ty: StructUnitOrTuple::Unit("Misc".to_string()) },
-				EnumField { variant_name: None, ty: StructUnitOrTuple::Unit("All".to_string()) },
+				EnumField { name: "TestField".into(), value: Some(RustTypeMarker::Unit("Fee".to_string())) },
+				EnumField { name: "TestField1".into(), value: Some(RustTypeMarker::Unit("Misc".to_string())) },
+				EnumField { name: "TestField2".into(), value: Some(RustTypeMarker::Unit("All".to_string())) },
 			]),
 		);
 		types.insert(

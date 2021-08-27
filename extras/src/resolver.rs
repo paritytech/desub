@@ -207,17 +207,17 @@ impl TypeDetective for TypeResolver {
 mod tests {
 	use super::default::*;
 	use super::*;
-	use core::{EnumField, StructField, StructUnitOrTuple};
+	use core::{EnumField, StructField};
 
 	#[test]
 	fn should_get_type_from_module() -> Result<()> {
 		let post_1031_dispatch_error = RustTypeMarker::Enum(vec![
-			EnumField::new(Some("Other".into()), StructUnitOrTuple::Tuple(RustTypeMarker::Null)),
-			EnumField::new(Some("CannotLookup".into()), StructUnitOrTuple::Tuple(RustTypeMarker::Null)),
-			EnumField::new(Some("BadOrigin".into()), StructUnitOrTuple::Tuple(RustTypeMarker::Null)),
+			EnumField::new("Other".into(), Some(RustTypeMarker::Null)),
+			EnumField::new("CannotLookup".into(), Some(RustTypeMarker::Null)),
+			EnumField::new("BadOrigin".into(), Some(RustTypeMarker::Null)),
 			EnumField::new(
-				Some("Module".into()),
-				StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer("DispatchErrorModule".to_string())),
+				"Module".into(),
+				Some(RustTypeMarker::TypePointer("DispatchErrorModule".to_string())),
 			),
 		]);
 		let types = TypeResolver::default();

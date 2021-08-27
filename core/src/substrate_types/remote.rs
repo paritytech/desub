@@ -17,7 +17,7 @@
 use primitives::crypto::AccountId32;
 use serde::{Deserialize, Serialize};
 
-use super::{Address, Conviction, Data, Vote};
+use super::{Address, Conviction, Vote}; // Data
 
 #[derive(Serialize, Deserialize)]
 #[serde(remote = "Address")]
@@ -42,6 +42,7 @@ pub struct RemoteVote {
 	pub conviction: Conviction,
 }
 
+/*
 /// Either underlying data blob if it is at most 32 bytes, or a hash of it. If the data is greater
 /// than 32-bytes then it will be truncated when encoding.
 ///
@@ -52,7 +53,7 @@ pub enum RemoteData {
 	/// No data here.
 	None,
 	/// The data is stored directly.
-	Raw(Vec<u8>),
+	Raw(BoundedVec<u8, >,),
 	/// Only the Blake2 hash of the data is stored. The preimage of the hash may be retrieved
 	/// through some hash-lookup service.
 	BlakeTwo256([u8; 32]),
@@ -66,6 +67,7 @@ pub enum RemoteData {
 	/// through some hash-lookup service.
 	ShaThree256([u8; 32]),
 }
+*/
 
 #[derive(Serialize, Deserialize)]
 #[serde(remote = "Conviction")]

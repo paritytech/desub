@@ -15,6 +15,8 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 #[forbid(unsafe_code)]
+#[deny(unused)]
+
 pub mod decoder;
 mod error;
 pub mod regex;
@@ -81,44 +83,19 @@ impl SetField {
 pub struct EnumField {
 	/// name of the Variant
 	/// if the variant is a Unit enum, it will not have a name
-	pub variant_name: Option<String>,
-	pub ty: StructUnitOrTuple,
+	pub name: String,
+	pub value: Option<RustTypeMarker>
 }
 
 impl EnumField {
-	pub fn new(variant_name: Option<String>, ty: StructUnitOrTuple) -> Self {
-		EnumField { variant_name, ty }
-	}
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-pub enum StructUnitOrTuple {
-	Struct(Vec<StructField>),
-	Unit(String),
-	Tuple(RustTypeMarker),
-}
-
-impl From<String> for EnumField {
-	fn from(s: String) -> EnumField {
-		EnumField { variant_name: None, ty: StructUnitOrTuple::Unit(s) }
+	pub fn new(name: String, value: Option<RustTypeMarker>) -> Self {
+		EnumField { name, value }
 	}
 }
 
 impl Display for EnumField {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		let mut _enum = String::from("enum");
-		match &self.ty {
-			StructUnitOrTuple::Struct(s) => {
-				for s in s.iter() {
-					_enum.push_str(&format!("{}, ", s));
-				}
-			}
-			StructUnitOrTuple::Unit(u) => {
-				_enum.push_str(&format!("{}, ", u));
-			}
-			StructUnitOrTuple::Tuple(v) => _enum.push_str(&format!("{} ", v)),
-		};
-		write!(f, "{}", _enum)
+		write!(f, "enum[{}:{}]", self.name, self.value.as_ref().unwrap_or(&RustTypeMarker::Null))
 	}
 }
 
@@ -180,6 +157,9 @@ pub enum RustTypeMarker {
 	/// name of a type that exists elsewhere in type declarations
 	TypePointer(String),
 
+	/// A unit type. A struct or the variant of an enum.
+	Unit(String),
+
 	/// Some Struct
 	/// Field Name -> Field Type
 	Struct(Vec<StructField>),
@@ -190,9 +170,7 @@ pub enum RustTypeMarker {
 	/// A tuple type (max size 32)
 	Tuple(Vec<RustTypeMarker>),
 
-	/// Some Enum
-	/// A Rust Enum that contains mixed "Struct" and Unit fields
-	/// will have unit fields as struct but with the type as "Null"
+	/// A Rust enum
 	Enum(Vec<EnumField>),
 
 	/// A sized array
@@ -210,6 +188,8 @@ pub enum RustTypeMarker {
 	/// A Generic Type, EX: HeartBeat<BlockNumber>
 	/// Tuple of (OuterType, InnerType)
 	Generic(Box<RustTypeMarker>, Box<RustTypeMarker>),
+	/// A Number for which the bit size is unknown
+	Number,
 	/// primitive unsigned 8 bit integer
 	U8,
 	/// primitive unsigned 16 bit integer
@@ -268,6 +248,7 @@ impl Display for RustTypeMarker {
 		let mut type_marker = String::from("");
 		match self {
 			RustTypeMarker::TypePointer(t) => type_marker.push_str(t),
+			RustTypeMarker::Unit(u) => type_marker.push_str(u),
 			RustTypeMarker::Struct(t) => {
 				for substring in t.iter() {
 					type_marker.push_str(&format!("{}, ", substring))
@@ -289,6 +270,7 @@ impl Display for RustTypeMarker {
 			RustTypeMarker::Array { size, ty } => type_marker.push_str(&format!("[{};{}], ", ty, size)),
 			RustTypeMarker::Std(t) => type_marker.push_str(&t.to_string()),
 			RustTypeMarker::Generic(outer, inner) => type_marker.push_str(&format!("{}<{}>", outer, inner)),
+			RustTypeMarker::Number => type_marker.push_str("number"),
 			RustTypeMarker::U8 => type_marker.push_str("u8"),
 			RustTypeMarker::U16 => type_marker.push_str("u16"),
 			RustTypeMarker::U32 => type_marker.push_str("u32"),

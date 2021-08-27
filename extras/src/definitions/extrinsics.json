@@ -24,7 +24,7 @@
       "GenericAddress": "LookupSource"
   },
   "kusama": [
-      {
+    {
 	"minmax": [
 	   0,
 	  1006
@@ -35,7 +35,7 @@
 	  "AnySignature": "H512",
 	  "TakeFees": "empty_extra",
 	  "SignedExtra": "(OnlyStakingAndClaims, CheckSpecVersion, CheckGenesis, CheckEra, CheckNonce, CheckWeight, TakeFees)"
-	} 
+	}
       },
       {
 	"minmax": [
@@ -51,7 +51,7 @@
       {
 	"minmax": [
 	  1046,
-	  null 
+	  null
 	],
 	"types": {
 	  "Address": "AccountId",
