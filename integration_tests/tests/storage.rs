@@ -8,12 +8,10 @@ use frame_system::AccountInfo;
 use pallet_balances::AccountData;
 use primitives::twox_128;
 
-// hex(encoded): 010000000864000000000000000000000000000000c80000000000000000000000000000002c01000000000000000000000000000090010000000000000000000000000000
 fn mock_account_info() -> AccountInfo<u32, AccountData<u128>> {
 	let mock_account_data: AccountData<u128> =
 		AccountData { free: 100, reserved: 200, misc_frozen: 300, fee_frozen: 400 };
-	let mock_account_info: AccountInfo<u32, AccountData<u128>> =
-		AccountInfo { nonce: 1, refcount: 8, data: mock_account_data };
+	let mock_account_info: AccountInfo<u32, AccountData<u128>> = AccountInfo::default();
 	mock_account_info
 }
 

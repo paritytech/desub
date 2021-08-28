@@ -22,6 +22,14 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
 	#[error("Decode {0}")]
 	Decode(#[from] serde_json::Error),
-	#[error("{0} Not Found")]
-	NotFound(String),
+	#[error("Could not parse {0} into type")]
+	TypeError(String),
+	#[error("type is not possible in the context of rust")]
+	UnexpectedType,
+}
+
+impl From<String> for Error {
+	fn from(err: String) -> Error {
+		Error::TypeError(err)
+	}
 }

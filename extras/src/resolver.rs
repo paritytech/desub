@@ -215,11 +215,13 @@ mod tests {
 			EnumField::new("Other".into(), Some(RustTypeMarker::Null)),
 			EnumField::new("CannotLookup".into(), Some(RustTypeMarker::Null)),
 			EnumField::new("BadOrigin".into(), Some(RustTypeMarker::Null)),
-			EnumField::new(
-				"Module".into(),
-				Some(RustTypeMarker::TypePointer("DispatchErrorModule".to_string())),
-			),
+			EnumField::new("Module".into(), Some(RustTypeMarker::TypePointer("DispatchErrorModule".to_string()))),
+			EnumField::new("ConsumerRemaining".into(), Some(RustTypeMarker::Null)),
+			EnumField::new("NoProviders".into(), Some(RustTypeMarker::Null)),
+			EnumField::new("Token".into(), Some(RustTypeMarker::TypePointer("TokenError".to_string()))),
+			EnumField::new("Arithmetic".into(), Some(RustTypeMarker::TypePointer("ArithmeticError".to_string()))),
 		]);
+
 		let types = TypeResolver::default();
 		let t = types.get("kusama", 1040, "system", "DispatchError").unwrap();
 		assert_eq!(t, &post_1031_dispatch_error);

@@ -147,13 +147,14 @@ impl<'de> Visitor<'de> for ModuleTypeVisitor {
 	}
 }
 
+// FIXME: This whole function should return a Result<_,_>
 fn parse_mod_types(module_types: &mut HashMap<String, RustTypeMarker>, key: &str, val: &serde_json::Value) {
 	if val.is_string() {
 		module_types.insert(key.to_string(), regex::parse(val.as_str().expect("Checked; qed")).expect("not a type"));
 	} else if val.is_object() {
 		let obj = val.as_object().expect("checked for object before unwrap; qed");
 		if obj.contains_key("_enum") {
-			module_types.insert(key.to_string(), parse_enum(&obj["_enum"]));
+			module_types.insert(key.to_string(), parse_enum(&obj["_enum"]).unwrap()); // FIXME
 		} else if obj.contains_key("_set") {
 			let obj = obj["_set"].as_object().expect("_set is a map");
 			module_types.insert(key.to_string(), parse_set(obj));
@@ -187,6 +188,19 @@ fn val_to_str(v: &serde_json::Value) -> String {
 	v.as_str().expect("will be string").to_string()
 }
 
+/*
+/// In Polkadot-JS Definitions, an object can be:
+/// - Struct (no identifier),
+/// - Enum (`_enum` identifier)
+/// - Set (`_set`)
+/// This functions decides which is what and dispatches a call
+/// to the appropriate parse fn.
+fn deliberate_object(_obj: serde_json::Map<String, serde_json::Value>) -> Result<RustTypeMarker, Error> {
+	todo!();
+}
+*/
+
+// TODO: Account for 'bitlength' in _set
 fn parse_set(obj: &serde_json::map::Map<String, serde_json::Value>) -> RustTypeMarker {
 	let mut set_vec = Vec::new();
 	for (key, value) in obj.iter() {
@@ -197,26 +211,24 @@ fn parse_set(obj: &serde_json::map::Map<String, serde_json::Value>) -> RustTypeM
 	RustTypeMarker::Set(set_vec)
 }
 
-/// internal api to convert a serde value to str
+/// Process the enum and return the representation as a Rust Type
 ///
 /// # Panics
-fn parse_enum(value: &serde_json::Value) -> RustTypeMarker {
-	println!("{:?}", value);
+fn parse_enum(value: &serde_json::Value) -> Result<RustTypeMarker, Error> {
+	// println!("{:?}", value);
 	if value.is_array() {
 		let arr = value.as_array().expect("checked before cast; qed");
 		let rust_enum = arr.iter().map(|u| {
 			let name = u.as_str().expect("Will be string according to polkadot-js defs").to_string();
 			EnumField::new(name, None)
 		}).collect::<Vec<_>>();
-		RustTypeMarker::Enum(rust_enum)
+		Ok(RustTypeMarker::Enum(rust_enum))
 	} else if value.is_object() {
 		let value = value.as_object().expect("Checked before casting; qed");
-
-
 		// If all the values are numbers then we need to order the enum according to those numbers.
-		// Some types like `ProxyType` in the runtime may vary from runtime-to-runtime.
-		// So afaik Polkadot-Js types solve this by attaching a number to each variant according to index.
-		let rust_enum = if value.values().fold(true, |_, v| v.is_number()) {
+		// Some types like `ProxyType` in the runtime may vary from chain-to-chain.
+		// So afaict Polkadot-Js types solve this by attaching a number to each variant according to index.
+		let rust_enum = if value.values().fold(true, |_, v| v.is_number()) { // TODO: TEST THIS AGAINST PROXYTYPE
 			let mut tuples = value.values()
 				.map(|v| v.as_u64().expect("Must be u64"))
 				.zip(
@@ -226,19 +238,72 @@ fn parse_enum(value: &serde_json::Value) -> RustTypeMarker {
 			tuples.sort_by_key(|(num, _)| *num);
 			tuples.into_iter().map(|t| t.1).collect::<Vec<_>>()
 		} else {
-			value.iter().map(|(k, v)| {
-				let value = regex::parse(v
-					.as_str()
-					.expect("Types must be strings"))
-					.expect(&format!("Could not parse type {}", v));
-				EnumField::new(k.into(), Some(value))
-			}).collect::<Vec<_>>()
+			let mut rust_enum = Vec::new();
+			for (key, value) in value.iter() {
+				match value {
+					serde_json::Value::Null => rust_enum.push(EnumField::new(key.into(), Some(RustTypeMarker::Null))),
+					serde_json::Value::String(s) => {
+						let field = regex::parse(s).ok_or(Error::from(s.to_string()))?;
+						rust_enum.push(EnumField::new(key.into(), Some(field)));
+					},
+					serde_json::Value::Object(o) => {
+						let rust_struct = parse_struct(o)?;
+						rust_enum.push(EnumField::new(key.into(), Some(rust_struct)));
+					},
+					_ => return Err(Error::UnexpectedType),
+				};
+			}
+			rust_enum
 		};
-		RustTypeMarker::Enum(rust_enum)
-	// so far, polkadot.js does not define any struct-like enums
+		Ok(RustTypeMarker::Enum(rust_enum))
 	} else {
 		panic!("Unkown type")
 	}
+}
+
+/// Parses a rust struct representation from a JSON Map.
+fn parse_struct(rust_struct: &serde_json::Map<String, serde_json::Value>) -> Result<RustTypeMarker, Error> {
+	let mut fields = Vec::new();
+	for (key, value) in rust_struct.iter() {
+		match value {
+			serde_json::Value::Null => {
+				let field = StructField::new(key, RustTypeMarker::Null);
+				fields.push(field);
+			},
+			serde_json::Value::String(s) => { // points to some other type
+				let ty = regex::parse(s).ok_or(s.to_string())?;
+				let field = StructField::new(key, ty);
+				fields.push(field);
+			},
+			serde_json::Value::Object(o) => { // struct-within-a-struct
+				let inner_struct = parse_struct(o)?;
+				let field = StructField::new(key, inner_struct);
+				fields.push(field);
+			},
+			serde_json::Value::Array(a) => {
+				let tuples = parse_tuple(a)?;
+				let field = StructField::new(key, tuples);
+				fields.push(field);
+			},
+			_ => return Err(Error::UnexpectedType),
+		}
+	}
+	Ok(RustTypeMarker::Null)
+}
+
+fn parse_tuple(json_tuple: &[serde_json::Value]) -> Result<RustTypeMarker, Error> {
+	let mut tuple = Vec::new();
+	for value in json_tuple.iter() {
+		match value {
+			serde_json::Value::Null => tuple.push(RustTypeMarker::Null),
+			serde_json::Value::String(s) => {
+				let ty = regex::parse(s).ok_or(s.to_string())?;
+				tuple.push(ty);
+			},
+			_ => return Err(Error::UnexpectedType)
+		}
+	}
+	Ok(RustTypeMarker::Tuple(tuple))
 }
 
 #[cfg(test)]
@@ -294,7 +359,7 @@ mod tests {
 "#;
 
 	#[test]
-	fn should_deserialize_correctly() -> Result<(), Error> {
+	fn should_deserialize_modules() -> Result<(), Error> {
 		let deser_dot_types = Modules::new(RAW_JSON)?;
 		let mut modules = HashMap::new();
 		let mut types = HashMap::new();
@@ -336,9 +401,9 @@ mod tests {
 		types.insert(
 			"Reasons".to_string(),
 			RustTypeMarker::Enum(vec![
-				EnumField { name: "TestField".into(), value: Some(RustTypeMarker::Unit("Fee".to_string())) },
-				EnumField { name: "TestField1".into(), value: Some(RustTypeMarker::Unit("Misc".to_string())) },
-				EnumField { name: "TestField2".into(), value: Some(RustTypeMarker::Unit("All".to_string())) },
+				EnumField { name: "Fee".into(), value: None },
+				EnumField { name: "Misc".into(), value: None },
+				EnumField { name: "All".into(), value: None },
 			]),
 		);
 		types.insert(
