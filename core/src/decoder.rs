@@ -215,6 +215,7 @@ impl Decoder {
 				Ok(storage)
 			}
 			StorageType::Map { value: val_rtype, unused: _unused, .. } => {
+				log::trace!("Resolving storage `Map`. Value: {:?}, module {}, spec {}", val_rtype, storage_info.module.name(), spec);
 				let key = self.get_key_data(key, storage_info, &lookup_table);
 				let mut cursor = 0;
 				let value =
@@ -223,6 +224,7 @@ impl Decoder {
 				Ok(storage)
 			}
 			StorageType::DoubleMap { value: val_rtype, .. } => {
+				log::trace!("Resolving storage `DoubleMap`. Value: {:?}, module {}, spec {}", value, storage_info.module.name(), spec);
 				let key = self.get_key_data(key, storage_info, &lookup_table);
 				let mut cursor = 0;
 				let value =

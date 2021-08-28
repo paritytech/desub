@@ -180,9 +180,18 @@ impl Metadata {
 					Decode::decode(&mut &*bytes).expect("Decode failed");
 				meta.try_into().expect("Conversion failed")
 			},
-			0xD => todo!(),
-			0xE => todo!(),
-			0xF => todo!(),
+			0xD => {
+				log::debug!("Metadata V13");
+				let meta: frame_metadata::RuntimeMetadataPrefixed =
+					Decode::decode(&mut &bytes[..]).expect("decode failed");
+				meta.try_into().expect("Conversion failed")
+			},
+			0xE => {
+				log::debug!("Metadata V14");
+				let meta: frame_metadata::RuntimeMetadataPrefixed =
+					Decode::decode(&mut &bytes[..]).expect("decode failed");
+				meta.try_into().expect("Conversion failed")
+			},
 			/* TODO remove panics */
 			e => panic!("subPrefixedstrate metadata version {} is unknown, invalid or unsupported", e),
 		}
