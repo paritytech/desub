@@ -1133,7 +1133,7 @@ mod tests {
 			]),
 			SubstrateType::Enum(
 				EnumField::new(
-					"TestEnum".into(),
+					"Wraith".into(),
 					Some(Box::new(SubstrateType::Struct(vec![
 						StructField {
 							name: Some("name".into()),
