@@ -7,6 +7,7 @@ use desub_core::{
 use frame_system::AccountInfo;
 use pallet_balances::AccountData;
 use primitives::twox_128;
+use anyhow::Result;
 
 fn mock_account_info() -> AccountInfo<u32, AccountData<u128>> {
 	let mock_account_data: AccountData<u128> =
@@ -39,7 +40,7 @@ fn should_decode_plain() {
 }
 
 #[test]
-fn should_decode_map() {
+fn should_decode_map() -> Result<()> {
 	let _ = pretty_env_logger::try_init();
 
 	let types = extras::TypeResolver::default();
@@ -48,13 +49,13 @@ fn should_decode_map() {
 	let meta = test_suite::runtime_v11();
 	let meta = Metadata::new(meta.as_slice());
 	decoder.register_version(2023, &meta);
-
-	let account = mock_account_info();
-	let encoded_account = account.encode();
+	// AccountInfo from block 3944196
+	let encoded_account = hex::decode("01000000037c127ed1d8c6010000000000000000000000000000000000000000000000000000406352bfc60100000000000000000000406352bfc601000000000000000000").unwrap();
 	let storage_key = hex::decode("26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da932a5935f6edc617ae178fef9eb1e211fbe5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f").unwrap();
 
-	let res = decoder.decode_storage(2023, (storage_key, Some(encoded_account))).unwrap();
+	let res = decoder.decode_storage(2023, (storage_key, Some(encoded_account)))?;
 	println!("{:?}", res);
+	Ok(())
 }
 
 #[test]

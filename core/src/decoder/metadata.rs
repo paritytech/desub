@@ -269,9 +269,8 @@ impl Metadata {
 		StorageLookupTable::new(lookup)
 	}
 
-	fn generate_key<S: Into<String>>(prefix: S) -> Vec<u8> {
-		let prefix: String = prefix.into();
-		prefix.split_ascii_whitespace().map(|s| twox_128(s.as_bytes()).to_vec()).flatten().collect()
+	fn generate_key<S: AsRef<str>>(prefix: S) -> Vec<u8> {
+		prefix.as_ref().split_ascii_whitespace().map(|s| twox_128(s.as_bytes()).to_vec()).flatten().collect()
 	}
 
 	/// print out a detailed but human readable description of the module

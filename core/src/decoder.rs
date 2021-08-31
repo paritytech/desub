@@ -500,6 +500,7 @@ impl Decoder {
 				num.into()
 			}
 			RustTypeMarker::U32 => {
+				log::trace!("{:?}", &data[*cursor..]);
 				let num: u32 = if is_compact {
 					let num: Compact<u32> = Decode::decode(&mut &data[*cursor..])?;
 					let len = Compact::compact_len(&u32::from(num));

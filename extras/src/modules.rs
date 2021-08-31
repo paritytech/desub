@@ -18,7 +18,7 @@ use serde::{
 	de::{self, Deserializer, MapAccess, Visitor},
 	Deserialize, Serialize,
 };
-use serde_json::Value;
+use serde_json::{Value, map::Map};
 use std::{collections::HashMap, fmt};
 
 /// Types for each substrate Module
@@ -54,6 +54,7 @@ impl Modules {
 pub struct ModuleTypes {
 	/// Type Name -> Type
 	types: HashMap<String, RustTypeMarker>,
+	fallbacks: HashMap<String, RustTypeMarker>
 }
 
 impl ModuleTypes {
@@ -64,11 +65,13 @@ impl ModuleTypes {
 	/// Merges a ModuleTypes struct with another, to create a new HashMap
 	/// The `other` struct takes priority if there are type conflicts
 	pub fn merge(&self, other: &ModuleTypes) -> ModuleTypes {
-		let mut types = self.types.clone();
+		let (mut types, mut fallbacks) = (self.types.clone(), self.fallbacks.clone());
 		let other = other.clone();
 		types.extend(other.types.into_iter());
+		fallbacks.extend(other.fallbacks.into_iter());
 
-		ModuleTypes { types }
+
+		ModuleTypes { types, fallbacks }
 	}
 }
 
@@ -124,56 +127,66 @@ impl<'de> Visitor<'de> for ModuleTypeVisitor {
 	where
 		V: MapAccess<'de>,
 	{
-		let mut module_types: HashMap<String, RustTypeMarker> = HashMap::new();
+		let mut types: HashMap<String, RustTypeMarker> = HashMap::new();
+		let mut fallbacks: HashMap<String, RustTypeMarker> = HashMap::new();
 
 		while let Some(key) = map.next_key::<&str>()? {
 			match key {
 				// skip over "types" key, this encapsulates the types we actually care
 				// about
 				"types" => {
-					let val: Value = map.next_value()?;
-					let val = val.as_object().expect("Types must refer to an object");
-					for (key, val) in val.iter() {
-						parse_mod_types(&mut module_types, key, val).map_err(de::Error::custom)?;
+					let mut obj: Value = map.next_value()?;
+					let obj = obj.as_object_mut().ok_or_else(|| de::Error::custom("Types must refer to an object"))?;
+					for (key, ref mut val) in obj.iter_mut() {
+						parse_mod_types(&mut types, &mut fallbacks, key, val).map_err(de::Error::custom)?;
 					}
 				}
 				m => {
-					let val: Value = map.next_value()?;
-					parse_mod_types(&mut module_types, m, &val).map_err(de::Error::custom)?;
+					let mut val: Value = map.next_value()?;
+					parse_mod_types(&mut types, &mut fallbacks, m, &mut val).map_err(de::Error::custom)?;
 				}
 			}
 		}
-		Ok(ModuleTypes { types: module_types })
+		Ok(ModuleTypes { types, fallbacks })
 	}
 }
 
-// FIXME: This whole function should return a Result<_,_>
-fn parse_mod_types(module_types: &mut HashMap<String, RustTypeMarker>, key: &str, val: &Value) -> Result<(), Error> {
+type TypeMap = HashMap<String, RustTypeMarker>;
+
+
+/// In Polkadot-JS Definitions, an _object_ can be:
+/// - Struct (no identifier),
+/// - Enum (`_enum` identifier)
+/// - Set (`_set`)
+///
+/// This function decides which is what and dispatches a call
+/// to the appropriate parse fn.
+fn parse_mod_types(
+	module_types: &mut TypeMap,
+	fallbacks: &mut TypeMap,
+	key: &str,
+	val: &mut Value
+) -> Result<(), Error> {
+
 	match val {
 		Value::String(s) => {
 			module_types.insert(key.to_string(), regex::parse(s).ok_or(Error::from(s.to_string()))?);
 		},
-		Value::Object(obj) => {
-			if obj.contains_key("_enum") {
-				let rust_enum = parse_enum(&obj["_enum"])?;
-				module_types.insert(key.to_string(), rust_enum);
-			} else if obj.contains_key("_set") {
-				let obj = obj["_set"].as_object().expect("_set is a map");
-				module_types.insert(key.to_string(), parse_set(obj));
-			} else if obj.contains_key("_alias") {
-				let mut fields = Vec::new();
-				for (key, val) in obj.iter() {
-					if key == "_alias" {
-						continue;
-					} else {
-						let field = StructField::new(key, regex::parse(&val_to_str(val)).expect("Not a type"));
-						fields.push(field);
-					}
+		Value::Object(ref mut obj) => {
+			if obj.len() == 1 && obj.keys().any(|k| k == "_enum" || k == "_set") {
+				let ty = match obj.iter().nth(0).map(|(s, v)| (s.as_str(), v)) {
+					Some(("_enum", v)) => parse_enum(v)?,
+					Some(("_set", v)) => parse_set(v.as_object().expect("set is always an object"))?,
+					Some((_, _)) => return Err(Error::UnexpectedType),
+					None => panic!("This should never occur, checked for object length.")
+				};
+				module_types.insert(key.to_string(), ty);
+			} else {
+				if let Some(fallback) = clean_struct(obj)? {
+					fallbacks.insert(key.to_string(), fallback);
 				}
-				module_types.insert(key.to_string(), RustTypeMarker::Struct(fields));
-			} else { // is just a struct
-				let rust_struct = parse_struct(obj)?;
-				module_types.insert(key.to_string(), rust_struct);
+				let ty = parse_struct(&obj)?;
+				module_types.insert(key.to_string(), ty);
 			}
 		},
 		Value::Null => {
@@ -184,42 +197,40 @@ fn parse_mod_types(module_types: &mut HashMap<String, RustTypeMarker>, key: &str
 	Ok(())
 }
 
-/// internal api to convert a serde value to str
-///
-/// # Panics
-/// panics if the value is not a string
-fn val_to_str(v: &Value) -> String {
-	v.as_str().expect("will be string").to_string()
-}
+// Removes unsupported/unnecessary keys from struct,
+// and returns fallback value if it exists.
+fn clean_struct(map: &mut Map<String, Value>) -> Result<Option<RustTypeMarker>, Error> {
+	map.remove("_alias"); // aliases are javascript-specific
 
-/*
-/// In Polkadot-JS Definitions, an object can be:
-/// - Struct (no identifier),
-/// - Enum (`_enum` identifier)
-/// - Set (`_set`)
-/// This functions decides which is what and dispatches a call
-/// to the appropriate parse fn.
-fn deliberate_object(_obj: serde_json::Map<String, Value>) -> Result<RustTypeMarker, Error> {
-	todo!();
+	if let Some(fallback) = map.remove("_fallback") {
+		let ty = match fallback {
+			Value::String(s) => regex::parse(&s).ok_or_else(|| Error::from(s.to_string()))?,
+			Value::Object(o) => parse_struct(&o)?,
+			Value::Array(a) => parse_tuple(&a)?,
+			Value::Null => RustTypeMarker::Null,
+			_ => return Err(Error::UnexpectedType)
+		};
+		Ok(Some(ty))
+	} else {
+		Ok(None)
+	}
 }
-*/
 
 // TODO: Account for 'bitlength' in _set
-fn parse_set(obj: &serde_json::map::Map<String, Value>) -> RustTypeMarker {
+fn parse_set(obj: &Map<String, Value>) -> Result<RustTypeMarker, Error> {
 	let mut set_vec = Vec::new();
 	for (key, value) in obj.iter() {
-		let num: u8 = serde_json::from_value(value.clone()).expect("Must be u8");
+		let num: u8 = serde_json::from_value(value.clone())?;
 		let set_field = SetField::new(key, num);
 		set_vec.push(set_field)
 	}
-	RustTypeMarker::Set(set_vec)
+	Ok(RustTypeMarker::Set(set_vec))
 }
 
 /// Process the enum and return the representation as a Rust Type
 ///
 /// # Panics
 fn parse_enum(value: &Value) -> Result<RustTypeMarker, Error> {
-	// println!("{:?}", value);
 	if value.is_array() {
 		let arr = value.as_array().expect("checked before cast; qed");
 		let rust_enum = arr.iter().map(|u| {
@@ -266,7 +277,7 @@ fn parse_enum(value: &Value) -> Result<RustTypeMarker, Error> {
 }
 
 /// Parses a rust struct representation from a JSON Map.
-fn parse_struct(rust_struct: &serde_json::Map<String, Value>) -> Result<RustTypeMarker, Error> {
+fn parse_struct(rust_struct: &Map<String, Value>) -> Result<RustTypeMarker, Error> {
 	let mut fields = Vec::new();
 	for (key, value) in rust_struct.iter() {
 		match value {
@@ -425,7 +436,7 @@ mod tests {
 			assert_eq!(val, &deser_dot_types.modules["runtime"].types[key]);
 		}
 
-		let mod_types = ModuleTypes { types };
+		let mod_types = ModuleTypes { types, fallbacks: HashMap::new() };
 		modules.insert("runtime".to_string(), mod_types);
 		let dot_types = Modules { modules };
 		assert_eq!(dot_types, deser_dot_types);
