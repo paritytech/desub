@@ -193,7 +193,7 @@ impl Metadata {
 				meta.try_into().expect("Conversion failed")
 			},
 			/* TODO remove panics */
-			e => panic!("subPrefixedstrate metadata version {} is unknown, invalid or unsupported", e),
+			e => panic!("substrate metadata version {} is unknown, invalid or unsupported", e),
 		}
 	}
 
