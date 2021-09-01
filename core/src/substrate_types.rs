@@ -20,6 +20,7 @@
 //! Display Implementation
 
 mod remote;
+mod data;
 
 use self::remote::*;
 use crate::{Error, SetField};
@@ -28,10 +29,11 @@ use primitives::crypto::{Ss58AddressFormat, Ss58Codec};
 use serde::Serialize;
 use std::{convert::TryFrom, fmt};
 
+pub use self::data::Data;
+
 pub type Address = runtime_primitives::MultiAddress<AccountId32, u32>;
 pub type Vote = pallet_democracy::Vote;
 pub type Conviction = pallet_democracy::Conviction;
-// pub type Data = pallet_identity::Data;
 
 /// A 'stateful' version of [RustTypeMarker](enum.RustTypeMarker.html).
 /// 'Std' variant is not here like in RustTypeMarker.
@@ -58,10 +60,8 @@ pub enum SubstrateType {
 	// u32 and [u8; 32] for its index/id
 	#[serde(with = "RemoteAddress")]
 	Address(Address),
-/*
-	#[serde(with = "RemoteData")]
+	/// Data Identity Type
 	Data(Data),
-*/
 	/// SignedExtension Type
 	SignedExtra(String),
 
@@ -146,7 +146,7 @@ impl fmt::Display for SubstrateType {
 				runtime_primitives::MultiAddress::Address32(ary) => write!(f, "Address32: {:?}", ary),
 				runtime_primitives::MultiAddress::Address20(ary) => write!(f, "Address20: {:?}", ary),
 			},
-			//		SubstrateType::Data(d) => write!(f, "{:?}", d),
+			SubstrateType::Data(d) => write!(f, "{:?}", d),
 			SubstrateType::SignedExtra(v) => write!(f, "{}", v),
 			SubstrateType::Unit(u) => write!(f, "{}", u),
 			SubstrateType::Composite(v) => {

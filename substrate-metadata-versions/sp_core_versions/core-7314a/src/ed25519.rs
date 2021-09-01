@@ -677,6 +677,7 @@ mod test {
 	}
 
 	#[test]
+	#[ignore] // We are not using ss58 from this crate because only for legacy purposes (decoding)
 	fn ss58check_roundtrip_works() {
 		let pair = Pair::from_seed(b"12345678901234567890123456789012");
 		let public = pair.public();

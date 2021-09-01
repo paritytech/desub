@@ -1616,7 +1616,7 @@
           "Twitter": 128
         }
       },
-      "IdentityInfoAdditional": "(Data, Data)",
+     "IdentityInfoAdditional": "(Data, Data)",
       "IdentityInfo": {
         "additional": "Vec<IdentityInfoAdditional>",
         "display": "Data",
@@ -2752,7 +2752,7 @@
           "NewConfiguration": "Option<ChangesTrieConfiguration>"
         }
       },
-      "ConsensusEngineId": "GenericConsensusEngineId",
+	  "ConsensusEngineId": "GenericConsensusEngineId",
       "CodecHash": "Hash",
       "Digest": {
         "logs": "Vec<DigestItem>"

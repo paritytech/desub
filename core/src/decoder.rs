@@ -352,7 +352,14 @@ impl Decoder {
 						))
 					})?;
 					log::trace!("Resolved {:?}", new_type);
-					self.decode_single(module, spec, new_type, data, cursor, is_compact)?
+					let mut saved_cursor = *cursor;
+					let resolved = self.decode_single(module, spec, new_type, data, cursor, is_compact);
+					if resolved.is_err() {
+						if let Some(fallback) = self.types.try_fallback(self.chain.as_str(), spec, module, v) {
+							return Ok(self.decode_single(module, spec, fallback, data, &mut saved_cursor, is_compact)?);
+						}
+					}
+					resolved?
 				}
 			}
 			RustTypeMarker::Unit(u) => SubstrateType::Unit(u.to_string()),
@@ -714,20 +721,18 @@ impl Decoder {
 					),
 				])))
 			}
-			/*
 			"Data" => {
 				log::trace!("Data::cursor={}", *cursor);
-				let identity_data: pallet_identity::Data = Decode::decode(&mut &data[*cursor..])?;
+				let identity_data: substrate_types::Data = Decode::decode(&mut &data[*cursor..])?;
 				match &identity_data {
-					pallet_identity::Data::None => (),
-					pallet_identity::Data::Raw(v) => *cursor += v.len(),
+					substrate_types::Data::None => (),
+					substrate_types::Data::Raw(v) => *cursor += v.len(),
 					_ => *cursor += 32,
 				};
 				// for the enum byte
 				*cursor += 1;
 				Ok(Some(SubstrateType::Data(identity_data)))
 			}
-			*/
 			"Call" | "GenericCall" => {
 				let types = self.decode_call(spec, data, cursor)?;
 				Ok(Some(SubstrateType::Call(types)))
@@ -878,6 +883,10 @@ mod tests {
 	impl TypeDetective for GenericTypes {
 		fn get(&self, _chain: &str, _spec: u32, _module: &str, _ty: &str) -> Option<&RustTypeMarker> {
 			Some(&RustTypeMarker::I128)
+		}
+
+		fn try_fallback(&self, _chain: &str, _spec: u32, _module: &str, _ty: &str) -> Option<&RustTypeMarker> {
+			None
 		}
 
 		fn get_extrinsic_ty(&self, _chain: &str, _spec: u32, _ty: &str) -> Option<&RustTypeMarker> {

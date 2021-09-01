@@ -134,6 +134,12 @@ impl TypeResolver {
 		}
 	}
 
+	pub fn try_fallback(&self, chain: &str, module: &str, ty: &str) -> Option<&RustTypeMarker> {
+		let (module, ty, _) = sanitize_types(module, ty, chain);
+		self.mods.try_fallback(&module, &ty)
+	}
+
+	/// Get type for decoding an Extrinsic
 	pub fn get_ext_ty(&self, chain: &str, spec: u32, ty: &str) -> Option<&RustTypeMarker> {
 		if let Some(t) = self.extrinsics.get(ty, spec, chain) {
 			match t {
@@ -195,6 +201,10 @@ fn sanitize_types(module: &str, ty: &str, chain: &str) -> (String, String, Strin
 
 impl TypeDetective for TypeResolver {
 	fn get(&self, chain: &str, spec: u32, module: &str, ty: &str) -> Option<&RustTypeMarker> {
+		TypeResolver::get(self, chain, spec, module, ty)
+	}
+
+	fn try_fallback(&self, chain: &str, spec: u32, module: &str, ty: &str) -> Option<&RustTypeMarker> {
 		TypeResolver::get(self, chain, spec, module, ty)
 	}
 

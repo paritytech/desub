@@ -40,7 +40,11 @@ impl Modules {
 	}
 
 	pub fn get_type(&self, module: &str, ty: &str) -> Option<&RustTypeMarker> {
-		self.modules.get(module)?.types.get(ty)
+		self.modules.get(module)?.get(ty)
+	}
+
+	pub fn try_fallback(&self, module: &str, ty: &str) -> Option<&RustTypeMarker> {
+		self.modules.get(module)?.try_fallback(ty)
 	}
 
 	/// Iterate over all the types in each module
@@ -60,6 +64,10 @@ pub struct ModuleTypes {
 impl ModuleTypes {
 	pub fn get(&self, ty: &str) -> Option<&RustTypeMarker> {
 		self.types.get(ty)
+	}
+
+	pub fn try_fallback(&self, ty: &str) -> Option<&RustTypeMarker> {
+		self.fallbacks.get(ty)
 	}
 
 	/// Merges a ModuleTypes struct with another, to create a new HashMap
