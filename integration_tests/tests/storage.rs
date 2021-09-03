@@ -4,17 +4,9 @@ use desub_core::{
 	decoder::{Chain, Decoder, Metadata},
 	SubstrateType,
 };
-use frame_system::AccountInfo;
-use pallet_balances::AccountData;
 use primitives::twox_128;
 use anyhow::Result;
 
-fn mock_account_info() -> AccountInfo<u32, AccountData<u128>> {
-	let mock_account_data: AccountData<u128> =
-		AccountData { free: 100, reserved: 200, misc_frozen: 300, fee_frozen: 400 };
-	let mock_account_info: AccountInfo<u32, AccountData<u128>> = AccountInfo::default();
-	mock_account_info
-}
 
 /// T::BlockNumber in meta V11 Block 1768321
 fn get_plain_value() -> (Vec<u8>, Option<Vec<u8>>) {
@@ -57,6 +49,26 @@ fn should_decode_map() -> Result<()> {
 	println!("{:?}", res);
 	Ok(())
 }
+
+#[test]
+fn should_decode_map_ksm_3944195() -> Result<()> {
+	let _ = pretty_env_logger::try_init();
+
+	let types = extras::TypeResolver::default();
+	let mut decoder = Decoder::new(types, Chain::Kusama);
+
+	let meta = test_suite::runtime_v11();
+	let meta = Metadata::new(meta.as_slice());
+	decoder.register_version(2023, &meta);
+	// BlockHash from block 3944196
+	let storage_key = hex::decode("26aa394eea5630e07c48ae0c9558cef7a44704b568d21667356a5a050c1187465eb805861b659fd1022f3c00").unwrap();
+	let encoded_hash = hex::decode("38f14d3d028e2f5b9ce889a444b49e774b88bcb3fe205fa4f5a10c2e66290c59").unwrap();
+
+	let res = decoder.decode_storage(2023, (storage_key, Some(encoded_hash)))?;
+	println!("{:?}", res);
+	Ok(())
+}
+
 
 #[test]
 fn should_decode_double_map() {
