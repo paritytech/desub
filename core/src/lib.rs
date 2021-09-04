@@ -15,7 +15,7 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 #[forbid(unsafe_code)]
-#[deny(unused)]
+// #[deny(unused)]
 
 pub mod decoder;
 mod error;

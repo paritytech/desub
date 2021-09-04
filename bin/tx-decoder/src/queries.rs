@@ -39,6 +39,14 @@ pub fn blocks<'a>(conn: &'a mut PgConnection, spec: i32) -> impl Stream<Item = R
 		.map_err(Into::into)
 }
 
+/// get a single block
+pub async fn single_block(conn: &mut PgConnection, number: i32) -> Result<BlockModel, Error> {
+	sqlx::query_as!(BlockModel, "SELECT * FROM blocks WHERE block_num = $1", number)
+		.fetch_one(conn)
+		.await
+		.map_err(Into::into)
+}
+
 #[derive(FromRow)]
 struct Meta {
 	pub meta: Vec<u8>
@@ -50,6 +58,27 @@ pub async fn metadata(conn: &mut PgConnection, spec: i32) -> Result<Vec<u8>, Err
 		.await
 		.map_err(Into::into)
 		.map(|m| m.meta)
+}
+
+#[derive(FromRow)]
+struct MetaAndVersion {
+	pub meta: Vec<u8>,
+	pub version: i32,
+}
+
+pub async fn metadata_by_block(conn: &mut PgConnection, number: u32) -> Result<(Vec<u8>, i32), Error> {
+	sqlx::query_as!(MetaAndVersion,
+		"SELECT meta, version FROM (
+			SELECT block_num, blocks.spec, metadata.version, metadata.meta FROM blocks, metadata
+			WHERE
+				block_num = $1
+			AND
+				blocks.spec = metadata.version
+		) as z;", number as i32)
+	.fetch_one(conn)
+	.await
+	.map_err(Into::into)
+	.map(|m| (m.meta, m.version))
 }
 
 

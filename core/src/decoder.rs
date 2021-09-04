@@ -42,7 +42,7 @@ use crate::{
 	CommonTypes, RustTypeMarker, TypeDetective,
 };
 use codec::{Compact, CompactLen, Decode};
-use std::{collections::HashMap, convert::TryFrom};
+use std::{collections::HashMap, convert::TryFrom, str::FromStr};
 
 type SpecVersion = u32;
 /// Decoder for substrate types
@@ -78,7 +78,7 @@ pub enum Entry {
 	Constant,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Chain {
 	Polkadot,
 	Kusama,
@@ -97,6 +97,21 @@ impl std::fmt::Display for Chain {
 			Chain::Westend => write!(f, "westend"),
 			Chain::Rococo => write!(f, "rococo"),
 			Chain::Custom(s) => write!(f, "{}", s),
+		}
+	}
+}
+
+impl FromStr for Chain {
+	type Err = Error;
+
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		match s.to_lowercase().as_str() {
+			"polkadot" | "dot" => Ok(Chain::Polkadot),
+			"kusama" | "ksm" => Ok(Chain::Kusama),
+			_ => Err(Error::Fail(
+				"Network must be one of: 'kusama', 'polkadot', 'moonriver', or their
+				token abbreviations.".into()
+			)),
 		}
 	}
 }
