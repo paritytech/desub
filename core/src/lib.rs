@@ -16,7 +16,6 @@
 
 #[forbid(unsafe_code)]
 // #[deny(unused)]
-
 pub mod decoder;
 mod error;
 pub mod regex;
@@ -88,7 +87,7 @@ pub struct EnumField {
 	/// name of the Variant
 	/// if the variant is a Unit enum, it will not have a name
 	pub name: String,
-	pub value: Option<RustTypeMarker>
+	pub value: Option<RustTypeMarker>,
 }
 
 impl EnumField {

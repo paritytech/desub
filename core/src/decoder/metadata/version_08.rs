@@ -18,8 +18,9 @@
 // https://github.com/paritytech/substrate-subxt
 
 use super::{
-	CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata, StorageMetadata,
-	StorageType, StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as DesubStorageHasher
+	CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata,
+	StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as DesubStorageHasher, StorageMetadata,
+	StorageType,
 };
 use crate::regex;
 use runtime_metadata08::{

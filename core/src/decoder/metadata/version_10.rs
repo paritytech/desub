@@ -15,8 +15,9 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-	CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata, StorageMetadata,
-	StorageType, StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as DesubStorageHasher
+	CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata,
+	StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as DesubStorageHasher, StorageMetadata,
+	StorageType,
 };
 use crate::regex;
 use runtime_metadata10::{

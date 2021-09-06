@@ -19,8 +19,8 @@
 //! Serialization and Deserialization Implementations (to serialize as if it were a native type)
 //! Display Implementation
 
-mod remote;
 mod data;
+mod remote;
 
 use self::remote::*;
 use crate::{Error, SetField};
@@ -194,7 +194,7 @@ pub struct EnumField {
 	/// name of the field.
 	pub name: String,
 	/// Optional field value. An enum field without a value are unit fields.
-	pub value: Option<Box<SubstrateType>>
+	pub value: Option<Box<SubstrateType>>,
 }
 
 impl EnumField {

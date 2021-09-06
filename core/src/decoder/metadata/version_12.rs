@@ -31,21 +31,19 @@
 
 use super::{
 	CallArgMetadata, CallMetadata, Error, EventArg, ExtrinsicMetadata, Metadata, ModuleEventMetadata, ModuleMetadata,
-	StorageMetadata, StorageType, StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as
-	DesubStorageHasher,
+	StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as DesubStorageHasher, StorageMetadata,
+	StorageType,
 };
 use crate::{regex, RustTypeMarker};
 
 use frame_metadata::{
-	v12::{
-		StorageEntryType, META_RESERVED,
-		ModuleMetadata as ModuleMetadatav12,
-		EventMetadata as EventMetadatav12,
-		StorageEntryMetadata as StorageEntryMetadatav12,
-		StorageEntryModifier as StorageEntryModifierv12, StorageHasher as StorageHasherv12
-	},
 	decode_different::DecodeDifferent,
-	RuntimeMetadataPrefixed, RuntimeMetadata
+	v12::{
+		EventMetadata as EventMetadatav12, ModuleMetadata as ModuleMetadatav12,
+		StorageEntryMetadata as StorageEntryMetadatav12, StorageEntryModifier as StorageEntryModifierv12,
+		StorageEntryType, StorageHasher as StorageHasherv12, META_RESERVED,
+	},
+	RuntimeMetadata, RuntimeMetadataPrefixed,
 };
 
 use std::{
@@ -157,10 +155,7 @@ fn convert_event(event: EventMetadatav12) -> Result<ModuleEventMetadata, Error> 
 	Ok(ModuleEventMetadata { name, arguments })
 }
 
-fn convert_entry(
-	prefix: String,
-	entry: StorageEntryMetadatav12,
-) -> Result<StorageMetadata, Error> {
+fn convert_entry(prefix: String, entry: StorageEntryMetadatav12) -> Result<StorageMetadata, Error> {
 	let default = convert(entry.default)?;
 	let documentation = convert(entry.documentation)?;
 	Ok(StorageMetadata {

@@ -31,7 +31,8 @@
 
 use super::{
 	CallArgMetadata, CallMetadata, Error, EventArg, ExtrinsicMetadata, Metadata, ModuleEventMetadata, ModuleMetadata,
-	StorageMetadata, StorageType, StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as DesubStorageHasher
+	StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as DesubStorageHasher, StorageMetadata,
+	StorageType,
 };
 use crate::{regex, RustTypeMarker};
 use runtime_metadata11::{

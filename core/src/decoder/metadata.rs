@@ -42,8 +42,8 @@ use crate::RustTypeMarker;
 use codec::{Decode, Encode, EncodeAsRef, HasCompact};
 use codec1::Decode as Decode1;
 // use codec411::Decode as OldDecode;
-use serde::{Serialize, Deserialize};
 use primitives::{storage::StorageKey, twox_128};
+use serde::{Deserialize, Serialize};
 
 use std::{
 	collections::{HashMap, HashSet},
@@ -179,19 +179,19 @@ impl Metadata {
 				let meta: frame_metadata::RuntimeMetadataPrefixed =
 					Decode::decode(&mut &*bytes).expect("Decode failed");
 				meta.try_into().expect("Conversion failed")
-			},
+			}
 			0xD => {
 				log::debug!("Metadata V13");
 				let meta: frame_metadata::RuntimeMetadataPrefixed =
 					Decode::decode(&mut &bytes[..]).expect("decode failed");
 				meta.try_into().expect("Conversion failed")
-			},
+			}
 			0xE => {
 				log::debug!("Metadata V14");
 				let meta: frame_metadata::RuntimeMetadataPrefixed =
 					Decode::decode(&mut &bytes[..]).expect("decode failed");
 				meta.try_into().expect("Conversion failed")
-			},
+			}
 			/* TODO remove panics */
 			e => panic!("substrate metadata version {} is unknown, invalid or unsupported", e),
 		}
@@ -467,7 +467,7 @@ pub enum StorageType {
 #[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
 pub enum StorageEntryModifier {
 	Optional,
-	Default
+	Default,
 }
 
 #[derive(Clone, Debug, PartialEq)]
