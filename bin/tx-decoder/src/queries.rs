@@ -33,7 +33,7 @@ pub struct BlockModel {
 	pub spec: i32,
 }
 // just returns all blocks in the database of a specific spec as a stream
-pub fn blocks<'a>(conn: &'a mut PgConnection, spec: i32) -> impl Stream<Item = Result<BlockModel, Error>> + 'a {
+pub fn blocks(conn: &mut PgConnection, spec: i32) -> impl Stream<Item = Result<BlockModel, Error>> + '_ {
 	sqlx::query_as!(BlockModel, "SELECT * FROM blocks WHERE spec = $1", spec)
 		.fetch(conn)
 		.map_err(Into::into)

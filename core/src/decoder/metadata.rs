@@ -98,7 +98,7 @@ pub enum ModuleIndex {
 /// Metadata struct encompassing calls, storage, and events
 pub struct Metadata {
 	/// Hashmap of Modules (name -> module-specific metadata)
-	modules: HashMap<String, std::sync::Arc<ModuleMetadata>>,
+	modules: HashMap<String, Arc<ModuleMetadata>>,
 	/// modules by their index in the event enum
 	modules_by_event_index: HashMap<u8, String>,
 	/// modules by their index in the Call Enum
@@ -183,13 +183,13 @@ impl Metadata {
 			0xD => {
 				log::debug!("Metadata V13");
 				let meta: frame_metadata::RuntimeMetadataPrefixed =
-					Decode::decode(&mut &bytes[..]).expect("decode failed");
+					Decode::decode(&mut &*bytes).expect("decode failed");
 				meta.try_into().expect("Conversion failed")
 			}
 			0xE => {
 				log::debug!("Metadata V14");
 				let meta: frame_metadata::RuntimeMetadataPrefixed =
-					Decode::decode(&mut &bytes[..]).expect("decode failed");
+					Decode::decode(&mut &*bytes).expect("decode failed");
 				meta.try_into().expect("Conversion failed")
 			}
 			/* TODO remove panics */

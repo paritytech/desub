@@ -69,7 +69,7 @@ pub async fn app() -> Result<(), Error> {
 		let mut error_count = 0;
 		let now = std::time::Instant::now();
 		while let Some(Ok(block)) = blocks.next().await {
-			if let Err(_) = decode(&decoder, spec, block) {
+			if decode(&decoder, spec, block).is_err() {
 				error_count +=1;
 			}
 			len += 1;

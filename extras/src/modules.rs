@@ -178,11 +178,11 @@ fn parse_mod_types(
 
 	match val {
 		Value::String(s) => {
-			module_types.insert(key.to_string(), regex::parse(s).ok_or(Error::from(s.to_string()))?);
+			module_types.insert(key.to_string(), regex::parse(s).ok_or_else(||Error::from(s.to_string()))?);
 		},
 		Value::Object(ref mut obj) => {
 			if obj.len() == 1 && obj.keys().any(|k| k == "_enum" || k == "_set") {
-				let ty = match obj.iter().nth(0).map(|(s, v)| (s.as_str(), v)) {
+				let ty = match obj.iter().next().map(|(s, v)| (s.as_str(), v)) {
 					Some(("_enum", v)) => parse_enum(v)?,
 					Some(("_set", v)) => parse_set(v.as_object().expect("set is always an object"))?,
 					Some((_, _)) => return Err(Error::UnexpectedType),
@@ -193,7 +193,7 @@ fn parse_mod_types(
 				if let Some(fallback) = clean_struct(obj)? {
 					fallbacks.insert(key.to_string(), fallback);
 				}
-				let ty = parse_struct(&obj)?;
+				let ty = parse_struct(obj)?;
 				module_types.insert(key.to_string(), ty);
 			}
 		},
@@ -266,7 +266,7 @@ fn parse_enum(value: &Value) -> Result<RustTypeMarker, Error> {
 				match value {
 					Value::Null => rust_enum.push(EnumField::new(key.into(), Some(RustTypeMarker::Null))),
 					Value::String(s) => {
-						let field = regex::parse(s).ok_or(Error::from(s.to_string()))?;
+						let field = regex::parse(s).ok_or_else(||Error::from(s.to_string()))?;
 						rust_enum.push(EnumField::new(key.into(), Some(field)));
 					},
 					Value::Object(o) => {
@@ -294,7 +294,7 @@ fn parse_struct(rust_struct: &Map<String, Value>) -> Result<RustTypeMarker, Erro
 				fields.push(field);
 			},
 			Value::String(s) => { // points to some other type
-				let ty = regex::parse(s).ok_or(s.to_string())?;
+				let ty = regex::parse(s).ok_or_else(|| s.to_string())?;
 				let field = StructField::new(key, ty);
 				fields.push(field);
 			},
@@ -320,7 +320,7 @@ fn parse_tuple(json_tuple: &[Value]) -> Result<RustTypeMarker, Error> {
 		match value {
 			Value::Null => tuple.push(RustTypeMarker::Null),
 			Value::String(s) => {
-				let ty = regex::parse(s).ok_or(s.to_string())?;
+				let ty = regex::parse(s).ok_or_else(|| s.to_string())?;
 				tuple.push(ty);
 			},
 			_ => return Err(Error::UnexpectedType)

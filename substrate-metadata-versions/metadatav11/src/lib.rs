@@ -21,6 +21,7 @@
 //! it should be removed entirely to an external module for shimming on to the
 //! codec-encoded metadata.
 
+#![allow(clippy::all)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(feature = "std")]

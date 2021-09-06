@@ -1,4 +1,4 @@
-// Copyright 2019 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of substrate-desub.
 //
 // substrate-desub is free software: you can redistribute it and/or modify
@@ -45,7 +45,7 @@ use crate::{
 	CommonTypes, RustTypeMarker, TypeDetective,
 };
 use codec::{Compact, CompactLen, Decode};
-use std::{collections::HashMap, convert::TryFrom, str::FromStr};
+use std::{collections::HashMap, convert::TryFrom, str::FromStr, cell::RefCell, rc::Rc};
 
 type SpecVersion = u32;
 /// Decoder for substrate types
@@ -122,7 +122,7 @@ impl FromStr for Chain {
 
 struct DecodeState<'a> {
 	module: &'a ModuleMetadata,
-	call: Option<&'a CallMetadata>,
+	call: Rc<RefCell<Option<CallMetadata>>>,
 	cursor: &'a mut usize,
 	spec: SpecVersion,
 	data: &'a [u8],
@@ -131,11 +131,12 @@ struct DecodeState<'a> {
 impl<'a> DecodeState<'a> {
 	fn new(
 		module: &'a ModuleMetadata,
-		call: Option<&'a CallMetadata>,
+		call: Option<CallMetadata>,
 		cursor: &'a mut usize,
 		spec: SpecVersion,
 		data: &'a [u8],
 	) -> Self {
+		let call = Rc::new(RefCell::new(call));
 		Self { module, call, cursor, spec, data }
 	}
 
@@ -145,16 +146,16 @@ impl<'a> DecodeState<'a> {
 
 	// Gets the call at the current index. Increments cursor by 1.
 	// Sets the call for the state.
-	fn call(&'a mut self) -> Result<&'a CallMetadata, MetadataError> {
+	fn call(&self) -> Result<CallMetadata, MetadataError> {
 		let call = self.data[*self.cursor];
 		let call = self.module.call(call)?;
-		self.call = Some(&call.clone());
-		Ok(call)
+		self.call.replace(Some(call.clone()));
+		Ok(self.call.borrow().as_ref().expect("Just set call").clone())
 	}
 
 	/// Get the current number at this point in the cursors life.
 	/// Increment the cursor by 1.
-	fn index(&'a mut self) -> u8 {
+	fn index(&mut self) -> u8 {
 		let number = self.data[*self.cursor];
 		*self.cursor += 1;
 		number
@@ -162,13 +163,13 @@ impl<'a> DecodeState<'a> {
 
 	/// Get the scale length at the current point in time.
 	/// Increment cursor accordingly to the length.
-	fn scale_length(&'a mut self) -> Result<usize, Error> {
+	fn scale_length(&mut self) -> Result<usize, Error> {
 		let length = Decoder::scale_length(&self.data[*self.cursor..])?;
 		*self.cursor += length.1;
 		Ok(length.0)
 	}
 
-	fn decode<T: Decode>(&self, inc: usize) -> Result<T, Error> {
+	fn decode<T: Decode>(&mut self, inc: usize) -> Result<T, Error> {
 		let ty: T = Decode::decode(&mut &self.data[*self.cursor..])?;
 		*self.cursor += inc;
 		Ok(ty)
@@ -178,7 +179,7 @@ impl<'a> DecodeState<'a> {
 			*self.cursor += inc;
 		}
 	*/
-	fn replace_cursor(&'a mut self, new: usize) {
+	fn replace_cursor(&mut self, new: usize) {
 		*self.cursor = new;
 	}
 }
@@ -306,7 +307,7 @@ impl Decoder {
 				);
 				let key = self.get_key_data(key, storage_info, &lookup_table);
 				let mut cursor = 0;
-				let state = DecodeState::new(&storage_info.module, None, &mut cursor, spec, value);
+				let mut state = DecodeState::new(&storage_info.module, None, &mut cursor, spec, value);
 				let value = self.decode_single(&mut state, val_rtype, false)?;
 				let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
 				Ok(storage)
@@ -343,7 +344,7 @@ impl Decoder {
 		log::debug!("Extrinsic Length: {:?}", length);
 
 		while cursor < data.len() {
-			self.decode_extrinsic(&data[..], &meta, spec, &mut ext, &mut cursor)?;
+			self.decode_extrinsic(data, meta, spec, &mut ext, &mut cursor)?;
 			log::info!("Success! {}", serde_json::to_string_pretty(&ext).unwrap());
 			log::debug!(
 				"cursor={}, data[cursor]={}, data[cursor..]={}:{:?}, &data[..] = {}:{:?}",
@@ -359,13 +360,13 @@ impl Decoder {
 	}
 
 	/// Decode an extrinsic
-	fn decode_extrinsic<'a>(
+	fn decode_extrinsic(
 		&self,
-		data: &'a [u8],
-		meta: &'a Metadata,
+		data: &[u8],
+		meta: &Metadata,
 		spec: SpecVersion,
 		ext: &mut Vec<GenericExtrinsic>,
-		cursor: &'a mut usize,
+		cursor: &mut usize,
 	) -> Result<(), Error> {
 		let version = data[*cursor];
 		let is_signed = version & 0b1000_0000 != 0;
@@ -388,17 +389,17 @@ impl Decoder {
 			.module_by_index(ModuleIndex::Call(data[*cursor]))
 			.map_err(|e| Error::DetailedMetaFail(e, *cursor, hex::encode(data)))?;
 		*cursor += 1;
-		let mut state = DecodeState::<'a>::new(&module, None, cursor, spec, data);
+		let mut state = DecodeState::new(&module, None, cursor, spec, data);
 
 		let types = self.decode_call(&mut state)?;
-		log::debug!("Finished cursor length={}", *cursor);
-		let call = state.call.expect("EMPTY CALL");
-		ext.push(GenericExtrinsic::new(signature, types, call.name(), module.name().into()));
+		log::debug!("Finished cursor length={}", *state.cursor);
+		let call = state.call.borrow().as_ref().map(|c| c.name()).unwrap_or_else(|| "unknown".into());
+		ext.push(GenericExtrinsic::new(signature, types, call, module.name().into()));
 		Ok(())
 	}
 
 	/// Decode the signature part of an UncheckedExtrinsic
-	fn decode_signature<'a>(&self, state: &'a mut DecodeState<'a>) -> Result<SubstrateType, Error> {
+	fn decode_signature(&self, state: &mut DecodeState) -> Result<SubstrateType, Error> {
 		log::trace!("SIGNED EXTRINSIC");
 		log::trace!("Getting signature for spec: {}, chain: {}", state.spec, self.chain.as_str());
 		let signature = self
@@ -407,10 +408,10 @@ impl Decoder {
 			.expect("Signature must not be empty");
 
 		// Ok(Some(self.decode_single("runtime", spec, signature, data, cursor, false)?))
-		Ok(self.decode_single(state, signature, false)?)
+		self.decode_single(state, signature, false)
 	}
 
-	fn decode_call<'a>(&self, state: &'a mut DecodeState<'a>) -> Result<Vec<(String, SubstrateType)>, Error> {
+	fn decode_call(&self, state: &mut DecodeState) -> Result<Vec<(String, SubstrateType)>, Error> {
 		// TODO: tuple of argument name -> value
 		let mut types: Vec<(String, SubstrateType)> = Vec::new();
 		let call = state.call()?;
@@ -429,10 +430,10 @@ impl Decoder {
 	/// # Panics
 	/// panics if a type cannot be decoded
 	#[track_caller]
-	fn decode_single<'a>(
+	fn decode_single(
 		&self,
-		state: &'a mut DecodeState<'a>,
-		ty: &'a RustTypeMarker,
+		state: &mut DecodeState,
+		ty: &RustTypeMarker,
 		is_compact: bool,
 	) -> Result<SubstrateType, Error> {
 		let ty = match ty {
@@ -453,14 +454,14 @@ impl Decoder {
 							))
 						})?;
 					log::trace!("Resolved {:?}", new_type);
-					let mut saved_cursor = *state.cursor;
+					let saved_cursor = *state.cursor;
 					let resolved = self.decode_single(state, new_type, is_compact);
 					if resolved.is_err() {
 						if let Some(fallback) =
 							self.types.try_fallback(self.chain.as_str(), state.spec, state.module_name(), v)
 						{
 							state.replace_cursor(saved_cursor);
-							return Ok(self.decode_single(state, fallback, is_compact)?);
+							return self.decode_single(state, fallback, is_compact);
 						}
 					}
 					resolved?
@@ -492,11 +493,11 @@ impl Decoder {
 				log::trace!("Enum::cursor={}", *state.cursor);
 				let index = state.index();
 				let variant = &v[index as usize];
-				let value = variant.value.as_ref().map(|v| self.decode_single(state, &v, is_compact)).transpose()?;
+				let value = variant.value.as_ref().map(|v| self.decode_single(state, v, is_compact)).transpose()?;
 
 				SubstrateType::Enum(substrate_types::EnumField {
 					name: variant.name.clone(),
-					value: value.map(|v| Box::new(v)),
+					value: value.map(Box::new),
 				})
 			}
 			RustTypeMarker::Array { size, ty } => {
@@ -731,9 +732,9 @@ impl Decoder {
 	/// - H256
 	/// - H512
 	// TODO: test this with the substrate types used
-	fn decode_sub_type<'a>(
+	fn decode_sub_type(
 		&self,
-		state: &'a mut DecodeState<'a>,
+		state: &mut DecodeState,
 		ty: &str,
 		is_compact: bool,
 	) -> Result<Option<SubstrateType>, Error> {
@@ -889,10 +890,10 @@ impl Decoder {
 	}
 
 	/// internal api to decode a vector of struct IdentityFields
-	fn decode_structlike<'a>(
+	fn decode_structlike(
 		&self,
-		fields: &'a [crate::StructField],
-		state: &'a mut DecodeState<'a>,
+		fields: &[crate::StructField],
+		state: &mut DecodeState,
 		is_compact: bool,
 	) -> Result<Vec<StructField>, Error> {
 		fields

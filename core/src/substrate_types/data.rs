@@ -17,9 +17,9 @@
 //! Copy of this: https://substrate.dev/rustdocs/latest/pallet_identity/enum.Data.html
 //! For the purpose of Decoding the Data field.
 //! Because of the specificity/complexity of decoding:
-//!		- `BoundedVec` includes private tuple fields with no getters so Serde `remote` does not work
-//!		- `Data` has a special way of encoding/decoding
-//!	Data impl is copied over and must be maintaned against substrate master.
+//!  - `BoundedVec` includes private tuple fields with no getters so Serde `remote` does not work
+//!  - `Data` has a special way of encoding/decoding
+//! Data impl is copied over and must be maintaned against substrate master.
 
 use codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
