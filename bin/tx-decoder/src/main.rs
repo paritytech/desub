@@ -18,10 +18,31 @@ mod app;
 mod queries;
 
 use anyhow::Error;
+use fern::colors::{Color, ColoredLevelConfig};
+use colored::Colorize;
 
 #[async_std::main]
 async fn main() -> Result<(), Error> {
-	pretty_env_logger::init();
+    let colors = ColoredLevelConfig::new().trace(Color::Magenta).error(Color::Red).debug(Color::Blue).info(Color::Green);
+
+	// Configure logger at runtime
+	fern::Dispatch::new()
+		.level(log::LevelFilter::Error)
+		.level_for("desub_core", log::LevelFilter::Trace)
+		.format(move |out, message, record| {
+			out.finish(format_args!(
+				" {} {}::{}		>{} ",
+				colors.color(record.level()),
+				record.target().bold(),
+				record.line().map(|l| l.to_string()).unwrap_or_default(),
+				message.to_string(),
+			))
+		})
+		// Output to stdout, files, and other Dispatch configurations
+		.chain(std::io::stdout())
+		// Apply globally
+		.apply()?;
+
 	app::app().await?;
 	Ok(())
 }

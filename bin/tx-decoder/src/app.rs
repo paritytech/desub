@@ -81,13 +81,14 @@ pub async fn app() -> Result<(), Error> {
 }
 
 fn decode(decoder: &Decoder, spec: SpecVersion, block: BlockModel) -> Result<(), Error> {
-	match decoder.decode_extrinsic(spec.try_into()?, block.ext.as_slice()) {
+	println!("-<<-<<-<<-<<-<<-<<-<<-<<-<< Decoding block {}, ext length {}", block.block_num, block.ext.len());
+	match decoder.decode_extrinsics(spec.try_into()?, block.ext.as_slice()) {
 		Err(e) => {
 			log::error!("Failed to decode block {} due to {}", block.block_num, e);
 			Err(e.into())
 		},
 		Ok(d) => {
-			log::info!("Block Decoded Sucesfully. {}", serde_json::to_string_pretty(&d)?);
+			log::info!("Block {} Decoded Sucesfully. {}", block.block_num, serde_json::to_string_pretty(&d)?);
 			Ok(())
 		}
 	}
