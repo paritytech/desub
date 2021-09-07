@@ -28,7 +28,7 @@ type SpecVersion = i32;
 
 #[derive(FromArgs, PartialEq, Debug)]
 /// Decode Extrinsics And Storage from Substrate Archive
-struct App {
+pub struct App {
 	#[argh(option, default = "default_database_url()", short = 'd')]
 	/// database url containing encoded information.
 	database_url: String,
@@ -40,11 +40,13 @@ struct App {
 	spec: Option<i32>,
 	#[argh(option, short = 'b')]
 	/// decode only a specific block.
-	block: Option<u32>
+	block: Option<u32>,
+	#[argh(switch, short = 'v')]
+	/// extra information about the programs execution.
+	pub verbose: bool
 }
 
-pub async fn app() -> Result<(), Error> {
-	let app: App = argh::from_env();
+pub async fn app(app: App) -> Result<(), Error> {
 	let pool = PgPoolOptions::new()
 		.connect(&app.database_url)
 		.await?;
@@ -81,7 +83,7 @@ pub async fn app() -> Result<(), Error> {
 }
 
 fn decode(decoder: &Decoder, spec: SpecVersion, block: BlockModel) -> Result<(), Error> {
-	println!("-<<-<<-<<-<<-<<-<<-<<-<<-<< Decoding block {}, ext length {}", block.block_num, block.ext.len());
+	log::trace!("-<<-<<-<<-<<-<<-<<-<<-<<-<< Decoding block {}, ext length {}", block.block_num, block.ext.len());
 	match decoder.decode_extrinsics(spec.try_into()?, block.ext.as_slice()) {
 		Err(e) => {
 			log::error!("Failed to decode block {} due to {}", block.block_num, e);

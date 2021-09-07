@@ -23,12 +23,18 @@ use colored::Colorize;
 
 #[async_std::main]
 async fn main() -> Result<(), Error> {
-    let colors = ColoredLevelConfig::new().trace(Color::Magenta).error(Color::Red).debug(Color::Blue).info(Color::Green);
+    let app: self::app::App = argh::from_env();
+	let level = if app.verbose {
+		log::LevelFilter::Trace
+	} else {
+		log::LevelFilter::Warn
+	};
+	let colors = ColoredLevelConfig::new().trace(Color::Magenta).error(Color::Red).debug(Color::Blue).info(Color::Green);
 
 	// Configure logger at runtime
 	fern::Dispatch::new()
 		.level(log::LevelFilter::Error)
-		.level_for("desub_core", log::LevelFilter::Trace)
+		.level_for("desub_core", level)
 		.format(move |out, message, record| {
 			out.finish(format_args!(
 				" {} {}::{}		>{} ",
@@ -43,6 +49,6 @@ async fn main() -> Result<(), Error> {
 		// Apply globally
 		.apply()?;
 
-	app::app().await?;
+	app::app(app).await?;
 	Ok(())
 }

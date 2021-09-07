@@ -45,7 +45,10 @@ use crate::{
 	CommonTypes, RustTypeMarker, TypeDetective,
 };
 use codec::{Compact, CompactLen, Decode};
-use std::{collections::HashMap, convert::TryFrom, str::FromStr, cell::RefCell, rc::Rc};
+use std::{
+	collections::HashMap, convert::TryFrom, str::FromStr,
+	cell::RefCell, rc::Rc, sync::atomic::{AtomicUsize,Ordering}
+};
 
 type SpecVersion = u32;
 /// Decoder for substrate types
@@ -120,10 +123,11 @@ impl FromStr for Chain {
 	}
 }
 
+#[derive(Debug)]
 struct DecodeState<'a> {
 	module: &'a ModuleMetadata,
 	call: Rc<RefCell<Option<CallMetadata>>>,
-	cursor: &'a mut usize,
+	cursor: AtomicUsize,
 	spec: SpecVersion,
 	data: &'a [u8],
 }
@@ -132,11 +136,12 @@ impl<'a> DecodeState<'a> {
 	fn new(
 		module: &'a ModuleMetadata,
 		call: Option<CallMetadata>,
-		cursor: &'a mut usize,
+		cursor: usize,
 		spec: SpecVersion,
 		data: &'a [u8],
 	) -> Self {
 		let call = Rc::new(RefCell::new(call));
+		let cursor = AtomicUsize::new(cursor);
 		Self { module, call, cursor, spec, data }
 	}
 
@@ -147,40 +152,78 @@ impl<'a> DecodeState<'a> {
 	// Gets the call at the current index. Increments cursor by 1.
 	// Sets the call for the state.
 	fn call(&self) -> Result<CallMetadata, MetadataError> {
-		let call = self.data[*self.cursor];
+		let call = self.data[self.cursor.load(Ordering::Relaxed)];
 		let call = self.module.call(call)?;
+		self.increment();
 		self.call.replace(Some(call.clone()));
 		Ok(self.call.borrow().as_ref().expect("Just set call").clone())
-	}
-
-	/// Get the current number at this point in the cursors life.
-	/// Increment the cursor by 1.
-	fn index(&mut self) -> u8 {
-		let number = self.data[*self.cursor];
-		*self.cursor += 1;
-		number
 	}
 
 	/// Get the scale length at the current point in time.
 	/// Increment cursor accordingly to the length.
 	fn scale_length(&mut self) -> Result<usize, Error> {
-		let length = Decoder::scale_length(&self.data[*self.cursor..])?;
-		*self.cursor += length.1;
+		let length = Decoder::scale_length(&self.data[self.cursor.load(Ordering::Relaxed)..])?;
+		log::trace!("Scale Length Byte Length {}, actual items: {}", length.1, length.0);
+		self.cursor.fetch_add(length.1, Ordering::Relaxed);
 		Ok(length.0)
 	}
 
-	fn decode<T: Decode>(&mut self, inc: usize) -> Result<T, Error> {
-		let ty: T = Decode::decode(&mut &self.data[*self.cursor..])?;
-		*self.cursor += inc;
+	/// Current value at cursor.
+	/// In other words: data[cursor]
+	fn index(&self) -> u8 {
+		self.data[self.cursor()]
+	}
+
+	/// Current value at cursor (data[cursor]).
+	/// Increment the cursor by 1.
+	fn do_index(&mut self) -> u8 {
+		let number = self.data[self.cursor.load(Ordering::Relaxed)];
+		self.cursor.fetch_add(1, Ordering::Relaxed);
+		number
+	}
+
+	/// Decode with an incrementor
+	fn do_decode<T: Decode>(&self, inc: usize) -> Result<T, Error> {
+		let ty = Decode::decode(&mut &self.data[self.cursor.load(Ordering::Relaxed)..])?;
+		self.add(inc);
 		Ok(ty)
 	}
-	/*
-		fn inc(&mut self, inc: usize) {
-			*self.cursor += inc;
-		}
-	*/
-	fn replace_cursor(&mut self, new: usize) {
-		*self.cursor = new;
+
+	/// Decode at the present point of `cursor`
+	fn decode<T: Decode>(&self) -> Result<T, Error> {
+		Decode::decode(&mut &self.data[self.cursor.load(Ordering::Relaxed)..]).map_err(Into::into)
+	}
+
+	fn add(&self, inc: usize) {
+		self.cursor.fetch_add(inc, Ordering::Relaxed);
+	}
+
+	fn increment(&self) {
+		self.cursor.fetch_add(1, Ordering::Relaxed);
+	}
+
+	fn set_cursor(&self, new: usize) {
+		self.cursor.store(new, Ordering::Relaxed);
+	}
+
+	fn cursor(&self) -> usize {
+		self.cursor.load(Ordering::Relaxed)
+	}
+
+	/// Prints out a succinct (short) debug snapshot of the current state.
+	#[track_caller]
+	fn observe(&self) {
+		let module = self.module.name();
+		let cursor = self.cursor.load(Ordering::Relaxed);
+		let value_at_cursor = &self.data[cursor];
+		let data_at_cursor = &self.data[cursor..];
+
+		log::debug!("module = {}, call = {:?}, cursor = {}, data[cursor] = {}, data[cursor..] = {}:{:?}, data = {}:{:?}",
+			module, self.call.borrow().as_ref().map(|c| c.name()),
+			cursor, value_at_cursor,
+			hex::encode(data_at_cursor), data_at_cursor,
+			hex::encode(&self.data), &self.data
+		)
 	}
 }
 
@@ -291,8 +334,7 @@ impl Decoder {
 		match &storage_info.meta.ty {
 			StorageType::Plain(rtype) => {
 				log::trace!("{:?}, module {}, spec {}", rtype, storage_info.module.name(), spec);
-				let mut cursor = 0;
-				let mut state = DecodeState::new(&storage_info.module, None, &mut cursor, spec, value);
+				let mut state = DecodeState::new(&storage_info.module, None, 0, spec, value);
 				let value = self.decode_single(&mut state, rtype, false)?;
 				let key = self.get_key_data(key, storage_info, &lookup_table);
 				let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
@@ -306,8 +348,7 @@ impl Decoder {
 					spec
 				);
 				let key = self.get_key_data(key, storage_info, &lookup_table);
-				let mut cursor = 0;
-				let mut state = DecodeState::new(&storage_info.module, None, &mut cursor, spec, value);
+				let mut state = DecodeState::new(&storage_info.module, None, 0, spec, value);
 				let value = self.decode_single(&mut state, val_rtype, false)?;
 				let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
 				Ok(storage)
@@ -320,8 +361,7 @@ impl Decoder {
 					spec
 				);
 				let key = self.get_key_data(key, storage_info, &lookup_table);
-				let mut cursor = 0;
-				let mut state = DecodeState::new(&storage_info.module, None, &mut cursor, spec, value);
+				let mut state = DecodeState::new(&storage_info.module, None, 0, spec, value);
 				let value = self.decode_single(&mut state, val_rtype, false)?;
 				let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
 				Ok(storage)
@@ -332,29 +372,22 @@ impl Decoder {
 	pub fn decode_extrinsics(&self, spec: SpecVersion, data: &[u8]) -> Result<Vec<GenericExtrinsic>, Error> {
 		let mut ext = Vec::new();
 		let meta = self.versions.get(&spec).expect("Spec does not exist"); // TODO: remove panic
-
+		log::trace!("CALLS: {:#?}", meta.modules_by_call_index);
 		// first byte -> vector length
 		// second byte -> extrinsic version
 		// third byte -> Outer enum index
 		// fourth byte -> inner enum index (function index)
 		// can check if signed via a simple & too
-		let mut cursor = 0;
-		let length = Self::scale_length(&data[cursor..])?;
-		cursor += length.1;
-		log::debug!("Extrinsic Length: {:?}", length);
+		let ext_length = Self::scale_length(data)?; // outer extrinsics vector length
+		let mut cursor = ext_length.1;
+		log::debug!("Extrinsic Length: {}", ext_length.0);
 
-		while cursor < data.len() {
+		for _ in 0..ext_length.0 {
+			let individual_ext = Self::scale_length(data)?; // length of extrinsics bytes themselves
+			cursor += individual_ext.1;
+			log::trace!("Next extrinsic has length: {}, items: {}", individual_ext.0, individual_ext.1);
 			self.decode_extrinsic(data, meta, spec, &mut ext, &mut cursor)?;
 			log::info!("Success! {}", serde_json::to_string_pretty(&ext).unwrap());
-			log::debug!(
-				"cursor={}, data[cursor]={}, data[cursor..]={}:{:?}, &data[..] = {}:{:?}",
-				cursor,
-				data[cursor],
-				hex::encode(&data[cursor..]),
-				&data[cursor..],
-				hex::encode(data),
-				data
-			);
 		}
 		Ok(ext)
 	}
@@ -368,33 +401,33 @@ impl Decoder {
 		ext: &mut Vec<GenericExtrinsic>,
 		cursor: &mut usize,
 	) -> Result<(), Error> {
+
 		let version = data[*cursor];
 		let is_signed = version & 0b1000_0000 != 0;
 		let version = version & 0b0111_1111;
 		log::trace!("Extrinsic Version: {}", version);
 		*cursor += 1;
+
 		let signature = if is_signed {
+			log::debug!("SIGNED");
 			let module = meta.module("runtime")?;
-			let mut state = DecodeState::new(&module, None, cursor, spec, data);
+			let mut state = DecodeState::new(&module, None, *cursor, spec, data);
 			Some(self.decode_signature(&mut state)?)
 		} else {
 			None
 		};
 
-		if let Some(s) = &signature {
-			log::debug!("signature={}", s);
-		}
-
 		let module = meta
 			.module_by_index(ModuleIndex::Call(data[*cursor]))
 			.map_err(|e| Error::DetailedMetaFail(e, *cursor, hex::encode(data)))?;
 		*cursor += 1;
-		let mut state = DecodeState::new(&module, None, cursor, spec, data);
+		let mut state = DecodeState::new(&module, None, *cursor, spec, data);
 
 		let types = self.decode_call(&mut state)?;
-		log::debug!("Finished cursor length={}", *state.cursor);
+		log::debug!("Finished cursor length={}", state.cursor());
 		let call = state.call.borrow().as_ref().map(|c| c.name()).unwrap_or_else(|| "unknown".into());
 		ext.push(GenericExtrinsic::new(signature, types, call, module.name().into()));
+		*cursor = state.cursor();
 		Ok(())
 	}
 
@@ -407,16 +440,16 @@ impl Decoder {
 			.get_extrinsic_ty(self.chain.as_str(), state.spec, "signature")
 			.expect("Signature must not be empty");
 
+		log::debug!("{:?}", state);
 		// Ok(Some(self.decode_single("runtime", spec, signature, data, cursor, false)?))
 		self.decode_single(state, signature, false)
 	}
 
 	fn decode_call(&self, state: &mut DecodeState) -> Result<Vec<(String, SubstrateType)>, Error> {
-		// TODO: tuple of argument name -> value
 		let mut types: Vec<(String, SubstrateType)> = Vec::new();
 		let call = state.call()?;
 		for arg in call.arguments() {
-			log::trace!("arg = {:?}", arg);
+			state.observe();
 			let val = self.decode_single(state, &arg.ty, false)?;
 			types.push((arg.name.to_string(), val));
 		}
@@ -454,13 +487,13 @@ impl Decoder {
 							))
 						})?;
 					log::trace!("Resolved {:?}", new_type);
-					let saved_cursor = *state.cursor;
+					let saved_cursor = state.cursor();
 					let resolved = self.decode_single(state, new_type, is_compact);
 					if resolved.is_err() {
 						if let Some(fallback) =
 							self.types.try_fallback(self.chain.as_str(), state.spec, state.module_name(), v)
 						{
-							state.replace_cursor(saved_cursor);
+							state.set_cursor(saved_cursor);
 							return self.decode_single(state, fallback, is_compact);
 						}
 					}
@@ -475,14 +508,14 @@ impl Decoder {
 			}
 			// TODO: test
 			RustTypeMarker::Set(v) => {
-				log::trace!("Set::cursor = {}", *state.cursor);
+				log::trace!("Set::cursor = {}", state.cursor());
 				// a set item must be an u8
 				// can decode this right away
-				let index = state.index();
+				let index = state.do_index();
 				SubstrateType::Set(v[index as usize].clone())
 			}
 			RustTypeMarker::Tuple(v) => {
-				log::trace!("Tuple::cursor={}", *state.cursor);
+				log::trace!("Tuple::cursor={}", state.cursor());
 				let ty = v
 					.iter()
 					.map(|v| self.decode_single(state, v, is_compact))
@@ -490,8 +523,8 @@ impl Decoder {
 				SubstrateType::Composite(ty?)
 			}
 			RustTypeMarker::Enum(v) => {
-				log::trace!("Enum::cursor={}", *state.cursor);
-				let index = state.index();
+				log::trace!("Enum::cursor={}", state.cursor());
+				let index = state.do_index();
 				let variant = &v[index as usize];
 				let value = variant.value.as_ref().map(|v| self.decode_single(state, v, is_compact)).transpose()?;
 
@@ -501,7 +534,7 @@ impl Decoder {
 				})
 			}
 			RustTypeMarker::Array { size, ty } => {
-				log::trace!("Array::cursor={}", *state.cursor);
+				log::trace!("Array::cursor={}", state.cursor());
 				let mut decoded_arr = Vec::with_capacity(*size);
 				if *size == 0_usize {
 					log::trace!("Returning Empty Vector");
@@ -516,22 +549,22 @@ impl Decoder {
 			}
 			RustTypeMarker::Std(v) => match v {
 				CommonTypes::Vec(v) => {
-					log::trace!("Vec::cursor={}", *state.cursor);
+					log::trace!("Vec::cursor={}", state.cursor());
 					let length = state.scale_length()?;
 					// we can just decode this as an "array" now
 					self.decode_single(state, &RustTypeMarker::Array { size: length, ty: v.clone() }, is_compact)?
 				}
 				CommonTypes::Option(v) => {
-					log::trace!("Option::cursor={}", *state.cursor);
-					match state.data[*state.cursor] {
+					log::trace!("Option::cursor={}", state.cursor());
+					match state.index() {
 						// None
 						0x00 => {
-							*state.cursor += 1;
+							state.increment();
 							SubstrateType::Option(Box::new(None))
 						}
 						// Some
 						0x01 => {
-							*state.cursor += 1;
+							state.increment();
 							let ty = self.decode_single(state, v, is_compact)?;
 							SubstrateType::Option(Box::new(Some(ty)))
 						}
@@ -541,17 +574,17 @@ impl Decoder {
 					}
 				}
 				CommonTypes::Result(v, e) => {
-					log::trace!("Result::cursor={}", *state.cursor);
-					match state.data[*state.cursor] {
+					log::trace!("Result::cursor={}", state.cursor());
+					match state.index() {
 						// Ok
 						0x00 => {
-							*state.cursor += 1;
+							state.increment();
 							let ty = self.decode_single(state, v, is_compact)?;
 							SubstrateType::Result(Box::new(Ok(ty)))
 						}
 						// Err
 						0x01 => {
-							*state.cursor += 1;
+							state.increment();
 							let ty = self.decode_single(state, e, is_compact)?;
 							SubstrateType::Result(Box::new(Err(ty)))
 						}
@@ -562,7 +595,7 @@ impl Decoder {
 				}
 				// TODO: test
 				CommonTypes::Compact(v) => {
-					log::trace!("Compact::cursor={}", state.cursor);
+					log::trace!("Compact::cursor={}", state.cursor());
 					self.decode_single(state, v, true)?
 				}
 			},
@@ -577,11 +610,11 @@ impl Decoder {
 			RustTypeMarker::U8 => {
 				log::trace!("decoding u8");
 				let num: u8 = if is_compact {
-					let num: Compact<u8> = Decode::decode(&mut &state.data[*state.cursor..])?;
-					*state.cursor += Compact::compact_len(&u8::from(num));
+					let num: Compact<u8> = state.decode()?;
+					state.add(Compact::compact_len(&u8::from(num)));
 					num.into()
 				} else {
-					let num: u8 = state.decode(1)?;
+					let num: u8 = state.do_decode(1)?;
 					num
 				};
 				num.into()
@@ -589,26 +622,24 @@ impl Decoder {
 			RustTypeMarker::U16 => {
 				log::trace!("Decoding u16");
 				let num: u16 = if is_compact {
-					let num: Compact<u16> = Decode::decode(&mut &state.data[*state.cursor..])?;
-					*state.cursor += Compact::compact_len(&u16::from(num));
+					let num: Compact<u16> = state.decode()?;
+					state.add(Compact::compact_len(&u16::from(num)));
 					num.into()
 				} else {
-					let num: u16 = state.decode(2)?;
+					let num: u16 = state.do_decode(2)?;
 					num
 				};
 				num.into()
 			}
 			RustTypeMarker::U32 => {
 				log::trace!("Decoding u32");
-				log::trace!("{:?}", &state.data[*state.cursor..]);
+				state.observe();
 				let num: u32 = if is_compact {
-					let num: Compact<u32> = Decode::decode(&mut &state.data[*state.cursor..])?;
-					let len = Compact::compact_len(&u32::from(num));
-					log::trace!("Compact len: {}", len);
-					*state.cursor += len;
+					let num: Compact<u32> = state.decode()?;
+					state.add(Compact::compact_len(&u32::from(num)));
 					num.into()
 				} else {
-					let num: u32 = state.decode(4)?;
+					let num: u32 = state.do_decode(4)?;
 					num
 				};
 				num.into()
@@ -616,24 +647,24 @@ impl Decoder {
 			RustTypeMarker::U64 => {
 				log::trace!("Decoding u64");
 				let num: u64 = if is_compact {
-					let num: Compact<u64> = Decode::decode(&mut &state.data[*state.cursor..])?;
-					*state.cursor += Compact::compact_len(&u64::from(num));
+					let num: Compact<u64> = state.decode()?;
+					state.add(Compact::compact_len(&u64::from(num)));
 					num.into()
 				} else {
-					let num: u64 = state.decode(8)?;
+					let num: u64 = state.do_decode(8)?;
 					num
 				};
 				num.into()
 			}
 			RustTypeMarker::U128 => {
 				log::trace!("Decoding u128");
-				log::trace!("cursor = {}, data = {:?}", state.cursor, &state.data[*state.cursor..]);
+				state.observe();
 				let num: u128 = if is_compact {
-					let num: Compact<u128> = Decode::decode(&mut &state.data[*state.cursor..])?;
-					*state.cursor += Compact::compact_len(&u128::from(num));
+					let num: Compact<u128> = state.decode()?;
+					state.add(Compact::compact_len(&u128::from(num)));
 					num.into()
 				} else {
-					let num: u128 = state.decode(16)?;
+					let num: u128 = state.do_decode(16)?;
 					num
 				};
 				num.into()
@@ -649,17 +680,17 @@ impl Decoder {
 			}
 			RustTypeMarker::I8 => {
 				log::trace!("Decoding i8");
-				let num: i8 = if is_compact { unimplemented!() } else { state.decode(1)? };
+				let num: i8 = if is_compact { unimplemented!() } else { state.do_decode(1)? };
 				num.into()
 			}
 			RustTypeMarker::I16 => {
 				log::trace!("Decoding i16");
-				let num: i16 = if is_compact { unimplemented!() } else { state.decode(2)? };
+				let num: i16 = if is_compact { unimplemented!() } else { state.do_decode(2)? };
 				num.into()
 			}
 			RustTypeMarker::I32 => {
 				log::trace!("Decoding i32");
-				let num: i32 = if is_compact { unimplemented!() } else { state.decode(4)? };
+				let num: i32 = if is_compact { unimplemented!() } else { state.do_decode(4)? };
 				num.into()
 			}
 			RustTypeMarker::I64 => {
@@ -669,13 +700,13 @@ impl Decoder {
 					// num.into()
 					unimplemented!()
 				} else {
-					state.decode(8)?
+					state.do_decode(8)?
 				};
 				num.into()
 			}
 			RustTypeMarker::I128 => {
 				log::trace!("Decoding i128");
-				let num: i128 = if is_compact { unimplemented!() } else { state.decode(16)? };
+				let num: i128 = if is_compact { unimplemented!() } else { state.do_decode(16)? };
 				num.into()
 			}
 			RustTypeMarker::ISize => {
@@ -707,7 +738,7 @@ impl Decoder {
 			RustTypeMarker::String => unimplemented!(),
 			RustTypeMarker::Bool => {
 				log::trace!("Decoding boolean");
-				let boo: bool = state.decode(1)?;
+				let boo: bool = state.do_decode(1)?;
 				//   . - .
 				//  ( o o )
 				//  |  0  \
@@ -808,15 +839,15 @@ impl Decoder {
 			}
 			"Data" => {
 				log::trace!("Decoding Data");
-				log::trace!("Data::cursor={}", *state.cursor);
-				let identity_data: substrate_types::Data = Decode::decode(&mut &state.data[*state.cursor..])?;
+				state.observe();
+				let identity_data: substrate_types::Data = state.decode()?;
 				match &identity_data {
 					substrate_types::Data::None => (),
-					substrate_types::Data::Raw(v) => *state.cursor += v.len(),
-					_ => *state.cursor += 32,
+					substrate_types::Data::Raw(v) => state.add(v.len()),
+					_ => state.add(32),
 				};
 				// for the enum byte
-				*state.cursor += 1;
+				state.increment();
 				Ok(Some(SubstrateType::Data(identity_data)))
 			}
 			"Call" | "GenericCall" => {
@@ -826,21 +857,21 @@ impl Decoder {
 			}
 			"GenericVote" => {
 				log::trace!("Decoding GenericVote");
-				let vote: pallet_democracy::Vote = state.decode(1)?;
+				let vote: pallet_democracy::Vote = state.do_decode(1)?;
 				Ok(Some(SubstrateType::GenericVote(vote)))
 			}
 			// Old Address Format for backwards-compatibility https://github.com/paritytech/substrate/pull/7380
 			"Lookup" | "GenericAddress" | "GenericLookupSource" | "GenericAccountId" => {
 				// a specific type that is <T as StaticSource>::Lookup concatenated to just 'Lookup'
 				log::trace!("Decoding Lookup | GenericAddress | GenericLookupSource | GenericAccountId");
-				log::trace!("cursor={}, data length={}", state.cursor, state.data.len());
+				state.observe();
 
-				let val: substrate_types::Address = decode_old_address(state.data, state.cursor)?;
+				let val: substrate_types::Address = decode_old_address(state)?;
 				log::trace!("Decode Sucessful {:?}", &val);
 				Ok(Some(SubstrateType::Address(val)))
 			}
 			"GenericMultiAddress" => {
-				let val: substrate_types::Address = Decode::decode(&mut &state.data[*state.cursor..])?;
+				let val: substrate_types::Address = state.decode()?;
 				let cursor_offset = match &val {
 					substrate_types::Address::Id(_) => 32,
 					substrate_types::Address::Index(_) => 1,
@@ -848,27 +879,27 @@ impl Decoder {
 					substrate_types::Address::Address32(_) => 32,
 					substrate_types::Address::Address20(_) => 20,
 				};
-				*state.cursor += cursor_offset;
+				state.add(cursor_offset);
 				Ok(Some(SubstrateType::Address(val)))
 			}
 			"Era" => {
-				log::trace!("ERA DATA: {:X?}", &state.data[*state.cursor..]);
-				let val: runtime_primitives::generic::Era = Decode::decode(&mut &state.data[*state.cursor..])?;
+				log::trace!("ERA DATA: {:X?}", &state.data[state.cursor()]);
+				let val: runtime_primitives::generic::Era = state.decode()?;
 				log::trace!("Resolved Era: {:?}", val);
 				match val {
 					// although phase and period are both u64, era is Encoded
 					// in only two bytes
-					runtime_primitives::generic::Era::Immortal => *state.cursor += 1,
-					runtime_primitives::generic::Era::Mortal(_, _) => *state.cursor += 2,
+					runtime_primitives::generic::Era::Immortal => state.increment(),
+					runtime_primitives::generic::Era::Mortal(_, _) => state.add(2),
 				};
 				Ok(Some(SubstrateType::Era(val)))
 			}
 			"H256" => {
-				let val: primitives::H256 = state.decode(32)?;
+				let val: primitives::H256 = state.do_decode(32)?;
 				Ok(Some(SubstrateType::H256(val)))
 			}
 			"H512" => {
-				let val: primitives::H512 = state.decode(64)?;
+				let val: primitives::H512 = state.do_decode(64)?;
 				log::trace!("H512: {}", hex::encode(val.as_bytes()));
 				Ok(Some(SubstrateType::H512(val)))
 			}
@@ -909,7 +940,7 @@ impl Decoder {
 
 /// Decodes old address pre-refactor (https://github.com/paritytech/substrate/pull/7380)
 /// and converts it to a MultiAddress, where "old" here means anything before v0.8.26 or 26/2026/46 on polkadot/kusama/westend respectively.
-fn decode_old_address(data: &[u8], cursor: &mut usize) -> Result<substrate_types::Address, Error> {
+fn decode_old_address(state: &DecodeState) -> Result<substrate_types::Address, Error> {
 	/// Kept around for backwards-compatibility with old address struct
 	fn need_more_than<T: PartialOrd>(a: T, b: T) -> Result<T, Error> {
 		if a < b {
@@ -920,33 +951,34 @@ fn decode_old_address(data: &[u8], cursor: &mut usize) -> Result<substrate_types
 	}
 
 	let inc;
-	let addr = match data[*cursor] {
+	let addr = match state.index() {
 		x @ 0x00..=0xef => {
 			inc = 0;
 			substrate_types::Address::Index(x as u32)
 		}
 		0xfc => {
 			inc = 2;
-			substrate_types::Address::Index(need_more_than(0xef, u16::decode(&mut &data[(*cursor + 1)..])?)? as u32)
+			substrate_types::Address::Index(need_more_than(0xef, u16::decode(&mut &state.data[(state.cursor() + 1)..])?)? as u32)
 		}
 		0xfd => {
 			inc = 4;
-			substrate_types::Address::Index(need_more_than(0xffff, u32::decode(&mut &data[(*cursor + 1)..])?)?)
+			substrate_types::Address::Index(need_more_than(0xffff, u32::decode(&mut &state.data[(state.cursor() + 1)..])?)?)
 		}
 		0xfe => {
 			inc = 8;
 			substrate_types::Address::Index(need_more_than(
 				0xffff_ffff_u32,
-				Decode::decode(&mut &data[(*cursor + 1)..])?,
+				Decode::decode(&mut &state.data[(state.cursor() + 1)..])?,
 			)?)
 		}
 		0xff => {
 			inc = 32;
-			substrate_types::Address::Id(Decode::decode(&mut &data[(*cursor + 1)..])?)
+			substrate_types::Address::Id(Decode::decode(&mut &state.data[(state.cursor() + 1)..])?)
 		}
 		_ => return Err(Error::Fail("Invalid Address".to_string())),
 	};
-	*cursor += inc + 1; // +1 for byte 0x00-0xff
+	state.increment(); // +1 for byte 0x00-0xff
+	state.add(inc);
 	Ok(addr)
 }
 

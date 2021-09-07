@@ -102,7 +102,7 @@ pub struct Metadata {
 	/// modules by their index in the event enum
 	modules_by_event_index: HashMap<u8, String>,
 	/// modules by their index in the Call Enum
-	modules_by_call_index: HashMap<u8, String>,
+	pub modules_by_call_index: HashMap<u8, String>,
 	/// Optional extrinsic metadata. Only chains which use meta
 	/// version 11+ support this.
 	extrinsics: Option<ExtrinsicMetadata>,
