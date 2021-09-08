@@ -124,9 +124,34 @@ impl FromStr for Chain {
 }
 
 #[derive(Debug)]
+struct Module<'a> {
+	module: Option<&'a ModuleMetadata>, // no module mans we are probably decoding a signature or something
+	types: &'a dyn TypeDetective
+}
+
+impl<'a> Module<'a> {
+	fn new(module: Option<&'a ModuleMetadata>, types: &'a dyn TypeDetective) -> Self {
+		Module { module, types }
+	}
+
+	fn set(&mut self, module: &'a ModuleMetadata) {
+		self.module = Some(module);
+	}
+
+	fn name(&self) -> &'a str {
+		self.module.map(ModuleMetadata::name).unwrap_or("runtime")
+	}
+
+	fn call(&self, index: u8) -> Result<Option<&'a CallMetadata>, MetadataError> {
+		self.module.map(|m| m.call(index)).transpose()
+	}
+}
+
+#[derive(Debug)]
 struct DecodeState<'a> {
-	module: &'a ModuleMetadata,
+	module: Module<'a>,
 	call: Rc<RefCell<Option<CallMetadata>>>,
+	metadata: &'a Metadata,
 	cursor: AtomicUsize,
 	spec: SpecVersion,
 	data: &'a [u8],
@@ -134,29 +159,55 @@ struct DecodeState<'a> {
 
 impl<'a> DecodeState<'a> {
 	fn new(
-		module: &'a ModuleMetadata,
+		module: Option<&'a ModuleMetadata>,
 		call: Option<CallMetadata>,
+		types: &'a dyn TypeDetective,
+		metadata: &'a Metadata,
 		cursor: usize,
 		spec: SpecVersion,
 		data: &'a [u8],
 	) -> Self {
 		let call = Rc::new(RefCell::new(call));
 		let cursor = AtomicUsize::new(cursor);
-		Self { module, call, cursor, spec, data }
+		let module = Module::new(module, types);
+		Self { module, call, metadata, cursor, spec, data }
 	}
 
 	fn module_name(&'a self) -> &'a str {
 		self.module.name()
 	}
 
+	/// Loads the module at the current index.
+	/// Increments the cursor by 1.
+	fn load_module(&mut self) -> Result<(), Error> {
+		let module = self
+			.metadata
+			.module_by_index(ModuleIndex::Call(self.index()))
+			.map_err(|e| Error::DetailedMetaFail(e, self.cursor(), hex::encode(self.data)))?;
+		self.increment();
+		self.module.set(module);
+		Ok(())
+	}
+
 	// Gets the call at the current index. Increments cursor by 1.
 	// Sets the call for the state.
+	// Panics if there is no module loaded
 	fn call(&self) -> Result<CallMetadata, MetadataError> {
 		let call = self.data[self.cursor.load(Ordering::Relaxed)];
-		let call = self.module.call(call)?;
+		let call = self.module.call(call)?.expect("No module in state");
 		self.increment();
 		self.call.replace(Some(call.clone()));
 		Ok(self.call.borrow().as_ref().expect("Just set call").clone())
+	}
+
+	/// Interprets the version at the current byte offset.
+	/// Returns whether the extrinsic is signed.
+	fn interpret_version(&self) -> bool {
+		let version = self.do_index();
+		let is_signed = version & 0b1000_0000 != 0;
+		let version = version & 0b0111_1111;
+		log::trace!("Extrinsic Version: {}", version);
+		is_signed
 	}
 
 	/// Get the scale length at the current point in time.
@@ -176,9 +227,9 @@ impl<'a> DecodeState<'a> {
 
 	/// Current value at cursor (data[cursor]).
 	/// Increment the cursor by 1.
-	fn do_index(&mut self) -> u8 {
+	fn do_index(&self) -> u8 {
 		let number = self.data[self.cursor.load(Ordering::Relaxed)];
-		self.cursor.fetch_add(1, Ordering::Relaxed);
+		self.add(1);
 		number
 	}
 
@@ -210,19 +261,18 @@ impl<'a> DecodeState<'a> {
 		self.cursor.load(Ordering::Relaxed)
 	}
 
-	/// Prints out a succinct (short) debug snapshot of the current state.
-	#[track_caller]
+	/// Prints out a succinct debug snapshot of the current state.
 	fn observe(&self) {
 		let module = self.module.name();
 		let cursor = self.cursor.load(Ordering::Relaxed);
 		let value_at_cursor = &self.data[cursor];
 		let data_at_cursor = &self.data[cursor..];
 
-		log::debug!("module = {}, call = {:?}, cursor = {}, data[cursor] = {}, data[cursor..] = {}:{:?}, data = {}:{:?}",
+		log::debug!("module = {}, call = {:?}, cursor = {}, data[cursor] = {}, data[cursor..] = {}:{:?}",
 			module, self.call.borrow().as_ref().map(|c| c.name()),
 			cursor, value_at_cursor,
 			hex::encode(data_at_cursor), data_at_cursor,
-			hex::encode(&self.data), &self.data
+			// hex::encode(&self.data), &self.data
 		)
 	}
 }
@@ -334,7 +384,7 @@ impl Decoder {
 		match &storage_info.meta.ty {
 			StorageType::Plain(rtype) => {
 				log::trace!("{:?}, module {}, spec {}", rtype, storage_info.module.name(), spec);
-				let mut state = DecodeState::new(&storage_info.module, None, 0, spec, value);
+				let mut state = DecodeState::new(Some(&storage_info.module), None, self.types.as_ref(), &meta, 0, spec, value);
 				let value = self.decode_single(&mut state, rtype, false)?;
 				let key = self.get_key_data(key, storage_info, &lookup_table);
 				let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
@@ -348,7 +398,7 @@ impl Decoder {
 					spec
 				);
 				let key = self.get_key_data(key, storage_info, &lookup_table);
-				let mut state = DecodeState::new(&storage_info.module, None, 0, spec, value);
+				let mut state = DecodeState::new(Some(&storage_info.module), None, self.types.as_ref(), &meta, 0, spec, value);
 				let value = self.decode_single(&mut state, val_rtype, false)?;
 				let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
 				Ok(storage)
@@ -361,7 +411,7 @@ impl Decoder {
 					spec
 				);
 				let key = self.get_key_data(key, storage_info, &lookup_table);
-				let mut state = DecodeState::new(&storage_info.module, None, 0, spec, value);
+				let mut state = DecodeState::new(Some(&storage_info.module), None, self.types.as_ref(), &meta, 0, spec, value);
 				let value = self.decode_single(&mut state, val_rtype, false)?;
 				let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
 				Ok(storage)
@@ -377,58 +427,36 @@ impl Decoder {
 		// second byte -> extrinsic version
 		// third byte -> Outer enum index
 		// fourth byte -> inner enum index (function index)
-		// can check if signed via a simple & too
 		let ext_length = Self::scale_length(data)?; // outer extrinsics vector length
-		let mut cursor = ext_length.1;
 		log::debug!("Extrinsic Length: {}", ext_length.0);
+		let mut state = DecodeState::new(None, None, self.types.as_ref(), meta, ext_length.1, spec, data);
 
 		for _ in 0..ext_length.0 {
 			let individual_ext = Self::scale_length(data)?; // length of extrinsics bytes themselves
-			cursor += individual_ext.1;
-			log::trace!("Next extrinsic has length: {}, items: {}", individual_ext.0, individual_ext.1);
-			self.decode_extrinsic(data, meta, spec, &mut ext, &mut cursor)?;
+			state.add(individual_ext.1);
+			log::trace!("Next extrinsic");
+			state.observe();
+			ext.push(self.decode_extrinsic(&mut state)?);
 			log::info!("Success! {}", serde_json::to_string_pretty(&ext).unwrap());
 		}
 		Ok(ext)
 	}
 
 	/// Decode an extrinsic
-	fn decode_extrinsic(
-		&self,
-		data: &[u8],
-		meta: &Metadata,
-		spec: SpecVersion,
-		ext: &mut Vec<GenericExtrinsic>,
-		cursor: &mut usize,
-	) -> Result<(), Error> {
-
-		let version = data[*cursor];
-		let is_signed = version & 0b1000_0000 != 0;
-		let version = version & 0b0111_1111;
-		log::trace!("Extrinsic Version: {}", version);
-		*cursor += 1;
-
-		let signature = if is_signed {
+	fn decode_extrinsic(&self, state: &mut DecodeState) -> Result<GenericExtrinsic, Error> {
+		let signature = if state.interpret_version() {
 			log::debug!("SIGNED");
-			let module = meta.module("runtime")?;
-			let mut state = DecodeState::new(&module, None, *cursor, spec, data);
-			Some(self.decode_signature(&mut state)?)
+			let signature = self.decode_signature(state)?;
+			Some(signature)
 		} else {
 			None
 		};
 
-		let module = meta
-			.module_by_index(ModuleIndex::Call(data[*cursor]))
-			.map_err(|e| Error::DetailedMetaFail(e, *cursor, hex::encode(data)))?;
-		*cursor += 1;
-		let mut state = DecodeState::new(&module, None, *cursor, spec, data);
-
-		let types = self.decode_call(&mut state)?;
+		state.load_module()?;
+		let types = self.decode_call(state)?;
 		log::debug!("Finished cursor length={}", state.cursor());
 		let call = state.call.borrow().as_ref().map(|c| c.name()).unwrap_or_else(|| "unknown".into());
-		ext.push(GenericExtrinsic::new(signature, types, call, module.name().into()));
-		*cursor = state.cursor();
-		Ok(())
+		Ok(GenericExtrinsic::new(signature, types, call, state.module_name().into()))
 	}
 
 	/// Decode the signature part of an UncheckedExtrinsic
@@ -439,8 +467,7 @@ impl Decoder {
 			.types
 			.get_extrinsic_ty(self.chain.as_str(), state.spec, "signature")
 			.expect("Signature must not be empty");
-
-		log::debug!("{:?}", state);
+		state.observe();
 		// Ok(Some(self.decode_single("runtime", spec, signature, data, cursor, false)?))
 		self.decode_single(state, signature, false)
 	}
@@ -491,8 +518,9 @@ impl Decoder {
 					let resolved = self.decode_single(state, new_type, is_compact);
 					if resolved.is_err() {
 						if let Some(fallback) =
-							self.types.try_fallback(self.chain.as_str(), state.spec, state.module_name(), v)
+							self.types.try_fallback(self.chain.as_str(), state.module_name(), v)
 						{
+							log::trace!("Falling back to type: {}", fallback);
 							state.set_cursor(saved_cursor);
 							return self.decode_single(state, fallback, is_compact);
 						}
@@ -524,10 +552,11 @@ impl Decoder {
 			}
 			RustTypeMarker::Enum(v) => {
 				log::trace!("Enum::cursor={}", state.cursor());
+				state.observe();
 				let index = state.do_index();
 				let variant = &v[index as usize];
 				let value = variant.value.as_ref().map(|v| self.decode_single(state, v, is_compact)).transpose()?;
-
+				log::debug!("Enum: {:?}", value);
 				SubstrateType::Enum(substrate_types::EnumField {
 					name: variant.name.clone(),
 					value: value.map(Box::new),
@@ -536,8 +565,10 @@ impl Decoder {
 			RustTypeMarker::Array { size, ty } => {
 				log::trace!("Array::cursor={}", state.cursor());
 				let mut decoded_arr = Vec::with_capacity(*size);
+
 				if *size == 0_usize {
 					log::trace!("Returning Empty Vector");
+					state.increment(); // UNSURE: Done in spec 1020 for signed extrinsics (like blk 25199)
 					return Ok(SubstrateType::Composite(Vec::new()));
 				} else {
 					for _ in 0..*size {
@@ -556,15 +587,13 @@ impl Decoder {
 				}
 				CommonTypes::Option(v) => {
 					log::trace!("Option::cursor={}", state.cursor());
-					match state.index() {
+					match state.do_index() {
 						// None
 						0x00 => {
-							state.increment();
 							SubstrateType::Option(Box::new(None))
 						}
 						// Some
 						0x01 => {
-							state.increment();
 							let ty = self.decode_single(state, v, is_compact)?;
 							SubstrateType::Option(Box::new(Some(ty)))
 						}
@@ -575,16 +604,14 @@ impl Decoder {
 				}
 				CommonTypes::Result(v, e) => {
 					log::trace!("Result::cursor={}", state.cursor());
-					match state.index() {
+					match state.do_index() {
 						// Ok
 						0x00 => {
-							state.increment();
 							let ty = self.decode_single(state, v, is_compact)?;
 							SubstrateType::Result(Box::new(Ok(ty)))
 						}
 						// Err
 						0x01 => {
-							state.increment();
 							let ty = self.decode_single(state, e, is_compact)?;
 							SubstrateType::Result(Box::new(Err(ty)))
 						}
@@ -593,7 +620,6 @@ impl Decoder {
 						}
 					}
 				}
-				// TODO: test
 				CommonTypes::Compact(v) => {
 					log::trace!("Compact::cursor={}", state.cursor());
 					self.decode_single(state, v, true)?
@@ -608,7 +634,6 @@ impl Decoder {
 				panic!("number decoding not possible");
 			}
 			RustTypeMarker::U8 => {
-				log::trace!("decoding u8");
 				let num: u8 = if is_compact {
 					let num: Compact<u8> = state.decode()?;
 					state.add(Compact::compact_len(&u8::from(num)));
@@ -852,7 +877,10 @@ impl Decoder {
 			}
 			"Call" | "GenericCall" => {
 				log::trace!("Decoding Call | GenericCall");
+				state.load_module()?;
 				let types = self.decode_call(state)?;
+				state.increment();
+				log::trace!("Call is {:?}", types);
 				Ok(Some(SubstrateType::Call(types)))
 			}
 			"GenericVote" => {
@@ -867,7 +895,7 @@ impl Decoder {
 				state.observe();
 
 				let val: substrate_types::Address = decode_old_address(state)?;
-				log::trace!("Decode Sucessful {:?}", &val);
+				log::trace!("Decode Successful {:?}", &val);
 				Ok(Some(SubstrateType::Address(val)))
 			}
 			"GenericMultiAddress" => {
@@ -951,33 +979,32 @@ fn decode_old_address(state: &DecodeState) -> Result<substrate_types::Address, E
 	}
 
 	let inc;
-	let addr = match state.index() {
+	let addr = match state.do_index() { // do_index for byte 0x00-0xff
 		x @ 0x00..=0xef => {
 			inc = 0;
 			substrate_types::Address::Index(x as u32)
 		}
 		0xfc => {
 			inc = 2;
-			substrate_types::Address::Index(need_more_than(0xef, u16::decode(&mut &state.data[(state.cursor() + 1)..])?)? as u32)
+			substrate_types::Address::Index(need_more_than(0xef, u16::decode(&mut &state.data[(state.cursor())..])?)? as u32)
 		}
 		0xfd => {
 			inc = 4;
-			substrate_types::Address::Index(need_more_than(0xffff, u32::decode(&mut &state.data[(state.cursor() + 1)..])?)?)
+			substrate_types::Address::Index(need_more_than(0xffff, u32::decode(&mut &state.data[(state.cursor())..])?)?)
 		}
 		0xfe => {
 			inc = 8;
 			substrate_types::Address::Index(need_more_than(
 				0xffff_ffff_u32,
-				Decode::decode(&mut &state.data[(state.cursor() + 1)..])?,
+				Decode::decode(&mut &state.data[(state.cursor())..])?,
 			)?)
 		}
 		0xff => {
 			inc = 32;
-			substrate_types::Address::Id(Decode::decode(&mut &state.data[(state.cursor() + 1)..])?)
+			substrate_types::Address::Id(Decode::decode(&mut &state.data[(state.cursor())..])?)
 		}
 		_ => return Err(Error::Fail("Invalid Address".to_string())),
 	};
-	state.increment(); // +1 for byte 0x00-0xff
 	state.add(inc);
 	Ok(addr)
 }

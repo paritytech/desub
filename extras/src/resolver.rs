@@ -204,8 +204,8 @@ impl TypeDetective for TypeResolver {
 		TypeResolver::get(self, chain, spec, module, ty)
 	}
 
-	fn try_fallback(&self, chain: &str, spec: u32, module: &str, ty: &str) -> Option<&RustTypeMarker> {
-		TypeResolver::get(self, chain, spec, module, ty)
+	fn try_fallback(&self, chain: &str, module: &str, ty: &str) -> Option<&RustTypeMarker> {
+		TypeResolver::try_fallback(self, chain, module, ty)
 	}
 
 	fn get_extrinsic_ty(&self, chain: &str, spec: u32, ty: &str) -> Option<&RustTypeMarker> {

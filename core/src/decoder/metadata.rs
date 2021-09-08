@@ -126,7 +126,7 @@ impl From<&Metadata> for Metadata {
 	}
 }
 
-impl Metadata {
+impl<'a> Metadata {
 	/// Create a new Metadata type from raw encoded bytes
 	///
 	/// # Panics
@@ -233,21 +233,21 @@ impl Metadata {
 	}
 
 	/// get a module by it's index
-	pub fn module_by_index(&self, module_index: ModuleIndex) -> Result<Arc<ModuleMetadata>, MetadataError> {
+	pub fn module_by_index(&'a self, module_index: ModuleIndex) -> Result<&'a ModuleMetadata, MetadataError> {
 		Ok(match module_index {
 			ModuleIndex::Call(i) => {
 				let name = self
 					.modules_by_call_index
 					.get(&i)
 					.ok_or(MetadataError::ModuleIndexNotFound(ModuleIndex::Call(i)))?;
-				self.modules.get(name).ok_or_else(|| MetadataError::ModuleNotFound(name.to_string()))?.clone()
+				self.modules.get(name).ok_or_else(|| MetadataError::ModuleNotFound(name.to_string()))?
 			}
 			ModuleIndex::Event(i) => {
 				let name = self
 					.modules_by_event_index
 					.get(&i)
 					.ok_or(MetadataError::ModuleIndexNotFound(ModuleIndex::Event(i)))?;
-				self.modules.get(name).ok_or_else(|| MetadataError::ModuleNotFound(name.to_string()))?.clone()
+				self.modules.get(name).ok_or_else(|| MetadataError::ModuleNotFound(name.to_string()))?
 			}
 			ModuleIndex::Storage(_) => {
 				// TODO remove panics
