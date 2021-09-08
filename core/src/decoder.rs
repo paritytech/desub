@@ -214,9 +214,14 @@ impl<'a> DecodeState<'a> {
 	/// Increment cursor accordingly to the length.
 	fn scale_length(&mut self) -> Result<usize, Error> {
 		let length = Decoder::scale_length(&self.data[self.cursor.load(Ordering::Relaxed)..])?;
-		log::trace!("Scale Length Byte Length {}, actual items: {}", length.1, length.0);
+		log::trace!("Scale Byte Length {}, actual items: {}", length.1, length.0);
 		self.cursor.fetch_add(length.1, Ordering::Relaxed);
 		Ok(length.0)
+	}
+
+	fn reset(&mut self, data: &'a [u8]) {
+		self.data = data;
+		self.set_cursor(0);
 	}
 
 	/// Current value at cursor.
@@ -262,18 +267,40 @@ impl<'a> DecodeState<'a> {
 	}
 
 	/// Prints out a succinct debug snapshot of the current state.
-	fn observe(&self) {
+	fn observe(&self, line: u32) {
 		let module = self.module.name();
 		let cursor = self.cursor.load(Ordering::Relaxed);
 		let value_at_cursor = &self.data[cursor];
 		let data_at_cursor = &self.data[cursor..];
 
-		log::debug!("module = {}, call = {:?}, cursor = {}, data[cursor] = {}, data[cursor..] = {}:{:?}",
-			module, self.call.borrow().as_ref().map(|c| c.name()),
+		log::debug!("line: {}, module = {}, call = {:?}, cursor = {}, data[cursor] = {}, data[cursor..] = {:?}",
+			line, module, self.call.borrow().as_ref().map(|c| c.name()),
 			cursor, value_at_cursor,
-			hex::encode(data_at_cursor), data_at_cursor,
-			// hex::encode(&self.data), &self.data
+			data_at_cursor,
 		)
+	}
+}
+
+struct ChunkedExtrinsic<'a> {
+	data: &'a [u8],
+	cursor: usize
+}
+
+impl<'a> ChunkedExtrinsic<'a> {
+	/// Create new ChunkedExtrinsic.
+	fn new(data: &'a [u8]) -> Self {
+		Self { data, cursor: 0 }
+	}
+}
+
+impl<'a> Iterator for ChunkedExtrinsic<'a> {
+	type Item = &'a [u8];
+	fn next(&mut self) -> Option<&'a [u8]> {
+		let (length, prefix) = Decoder::scale_length(&self.data[self.cursor..]).ok()?;
+		self.cursor += prefix;
+		let extrinsic = &self.data[self.cursor..self.cursor + length];
+		self.cursor += length;
+		Some(extrinsic)
 	}
 }
 
@@ -419,26 +446,20 @@ impl Decoder {
 		}
 	}
 
+	/// Decode a Vec<Extrinsic>
 	pub fn decode_extrinsics(&self, spec: SpecVersion, data: &[u8]) -> Result<Vec<GenericExtrinsic>, Error> {
 		let mut ext = Vec::new();
 		let meta = self.versions.get(&spec).expect("Spec does not exist"); // TODO: remove panic
 		log::trace!("CALLS: {:#?}", meta.modules_by_call_index);
-		// first byte -> vector length
-		// second byte -> extrinsic version
-		// third byte -> Outer enum index
-		// fourth byte -> inner enum index (function index)
-		let ext_length = Self::scale_length(data)?; // outer extrinsics vector length
-		log::debug!("Extrinsic Length: {}", ext_length.0);
-		let mut state = DecodeState::new(None, None, self.types.as_ref(), meta, ext_length.1, spec, data);
 
-		for _ in 0..ext_length.0 {
-			let individual_ext = Self::scale_length(data)?; // length of extrinsics bytes themselves
-			state.add(individual_ext.1);
-			log::trace!("Next extrinsic");
-			state.observe();
+		let mut state = DecodeState::new(None, None, self.types.as_ref(), meta, 1, spec, data);
+			for extrinsic in ChunkedExtrinsic::new(&data[1..]) {
+			state.reset(extrinsic);
+			state.observe(line!());
 			ext.push(self.decode_extrinsic(&mut state)?);
 			log::info!("Success! {}", serde_json::to_string_pretty(&ext).unwrap());
 		}
+
 		Ok(ext)
 	}
 
@@ -467,7 +488,7 @@ impl Decoder {
 			.types
 			.get_extrinsic_ty(self.chain.as_str(), state.spec, "signature")
 			.expect("Signature must not be empty");
-		state.observe();
+		state.observe(line!());
 		// Ok(Some(self.decode_single("runtime", spec, signature, data, cursor, false)?))
 		self.decode_single(state, signature, false)
 	}
@@ -476,7 +497,7 @@ impl Decoder {
 		let mut types: Vec<(String, SubstrateType)> = Vec::new();
 		let call = state.call()?;
 		for arg in call.arguments() {
-			state.observe();
+			state.observe(line!());
 			let val = self.decode_single(state, &arg.ty, false)?;
 			types.push((arg.name.to_string(), val));
 		}
@@ -552,7 +573,7 @@ impl Decoder {
 			}
 			RustTypeMarker::Enum(v) => {
 				log::trace!("Enum::cursor={}", state.cursor());
-				state.observe();
+				state.observe(line!());
 				let index = state.do_index();
 				let variant = &v[index as usize];
 				let value = variant.value.as_ref().map(|v| self.decode_single(state, v, is_compact)).transpose()?;
@@ -566,9 +587,9 @@ impl Decoder {
 				log::trace!("Array::cursor={}", state.cursor());
 				let mut decoded_arr = Vec::with_capacity(*size);
 
-				if *size == 0_usize {
-					log::trace!("Returning Empty Vector");
-					state.increment(); // UNSURE: Done in spec 1020 for signed extrinsics (like blk 25199)
+				if *size == 0 {
+					log::trace!("Returning Empty Array");
+					// state.increment(); // UNSURE: Done in spec 1020 for signed extrinsics (like blk 25199)
 					return Ok(SubstrateType::Composite(Vec::new()));
 				} else {
 					for _ in 0..*size {
@@ -582,8 +603,14 @@ impl Decoder {
 				CommonTypes::Vec(v) => {
 					log::trace!("Vec::cursor={}", state.cursor());
 					let length = state.scale_length()?;
-					// we can just decode this as an "array" now
-					self.decode_single(state, &RustTypeMarker::Array { size: length, ty: v.clone() }, is_compact)?
+					log::trace!("Vec::Scale length: {}, v: {:?}", length, v);
+					let mut vec = Vec::new();
+					if length == 0 {
+						return Ok(SubstrateType::Composite(Vec::new()));
+					} else {
+						vec.push(self.decode_single(state, ty, is_compact)?);
+					}
+					SubstrateType::Composite(vec)
 				}
 				CommonTypes::Option(v) => {
 					log::trace!("Option::cursor={}", state.cursor());
@@ -658,7 +685,7 @@ impl Decoder {
 			}
 			RustTypeMarker::U32 => {
 				log::trace!("Decoding u32");
-				state.observe();
+				state.observe(line!());
 				let num: u32 = if is_compact {
 					let num: Compact<u32> = state.decode()?;
 					state.add(Compact::compact_len(&u32::from(num)));
@@ -683,7 +710,7 @@ impl Decoder {
 			}
 			RustTypeMarker::U128 => {
 				log::trace!("Decoding u128");
-				state.observe();
+				state.observe(line!());
 				let num: u128 = if is_compact {
 					let num: Compact<u128> = state.decode()?;
 					state.add(Compact::compact_len(&u128::from(num)));
@@ -864,7 +891,7 @@ impl Decoder {
 			}
 			"Data" => {
 				log::trace!("Decoding Data");
-				state.observe();
+				state.observe(line!());
 				let identity_data: substrate_types::Data = state.decode()?;
 				match &identity_data {
 					substrate_types::Data::None => (),
@@ -892,7 +919,7 @@ impl Decoder {
 			"Lookup" | "GenericAddress" | "GenericLookupSource" | "GenericAccountId" => {
 				// a specific type that is <T as StaticSource>::Lookup concatenated to just 'Lookup'
 				log::trace!("Decoding Lookup | GenericAddress | GenericLookupSource | GenericAccountId");
-				state.observe();
+				state.observe(line!());
 
 				let val: substrate_types::Address = decode_old_address(state)?;
 				log::trace!("Decode Successful {:?}", &val);
