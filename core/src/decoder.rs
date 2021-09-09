@@ -498,6 +498,7 @@ impl Decoder {
 		let call = state.call()?;
 		for arg in call.arguments() {
 			state.observe(line!());
+			log::trace!("Decoding {:?} for call {}", &arg.ty, call);
 			let val = self.decode_single(state, &arg.ty, false)?;
 			types.push((arg.name.to_string(), val));
 		}
@@ -589,7 +590,6 @@ impl Decoder {
 
 				if *size == 0 {
 					log::trace!("Returning Empty Array");
-					// state.increment(); // UNSURE: Done in spec 1020 for signed extrinsics (like blk 25199)
 					return Ok(SubstrateType::Composite(Vec::new()));
 				} else {
 					for _ in 0..*size {
@@ -601,14 +601,15 @@ impl Decoder {
 			}
 			RustTypeMarker::Std(v) => match v {
 				CommonTypes::Vec(v) => {
+					log::trace!("{:?}", v);
 					log::trace!("Vec::cursor={}", state.cursor());
 					let length = state.scale_length()?;
-					log::trace!("Vec::Scale length: {}, v: {:?}", length, v);
 					let mut vec = Vec::new();
 					if length == 0 {
 						return Ok(SubstrateType::Composite(Vec::new()));
 					} else {
-						vec.push(self.decode_single(state, ty, is_compact)?);
+						let decoded = self.decode_single(state, v, is_compact)?;
+						vec.push(decoded);
 					}
 					SubstrateType::Composite(vec)
 				}
@@ -916,7 +917,7 @@ impl Decoder {
 				Ok(Some(SubstrateType::GenericVote(vote)))
 			}
 			// Old Address Format for backwards-compatibility https://github.com/paritytech/substrate/pull/7380
-			"Lookup" | "GenericAddress" | "GenericLookupSource" | "GenericAccountId" => {
+			"Lookup" | "GenericAddress" | "GenericLookupSource" | "GenericAccountId" | "<T::Lookup as StaticLookup>::Source" => {
 				// a specific type that is <T as StaticSource>::Lookup concatenated to just 'Lookup'
 				log::trace!("Decoding Lookup | GenericAddress | GenericLookupSource | GenericAccountId");
 				state.observe(line!());
