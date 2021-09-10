@@ -601,15 +601,18 @@ impl Decoder {
 			}
 			RustTypeMarker::Std(v) => match v {
 				CommonTypes::Vec(v) => {
-					log::trace!("{:?}", v);
 					log::trace!("Vec::cursor={}", state.cursor());
+					log::trace!("Decoding {:?}", v);
 					let length = state.scale_length()?;
 					let mut vec = Vec::new();
 					if length == 0 {
 						return Ok(SubstrateType::Composite(Vec::new()));
 					} else {
-						let decoded = self.decode_single(state, v, is_compact)?;
-						vec.push(decoded);
+						for _ in 0..length {
+							state.observe(line!());
+							let decoded = self.decode_single(state, v, is_compact)?;
+							vec.push(decoded);
+						}
 					}
 					SubstrateType::Composite(vec)
 				}
@@ -690,9 +693,11 @@ impl Decoder {
 				let num: u32 = if is_compact {
 					let num: Compact<u32> = state.decode()?;
 					state.add(Compact::compact_len(&u32::from(num)));
+					log::trace!("Compact<u32>:{:?}", num);
 					num.into()
 				} else {
 					let num: u32 = state.do_decode(4)?;
+					log::trace!("u32:{}", num);
 					num
 				};
 				num.into()
