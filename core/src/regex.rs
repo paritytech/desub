@@ -21,6 +21,7 @@ use onig::{Regex, Region, SearchOptions};
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum RegexSet {
 	ArrayPrimitive,
+	ArrayPrimitiveExtra,
 	BitSize,
 	ArrayStruct,
 	Vec,
@@ -38,6 +39,8 @@ impl RegexSet {
 	fn get_type(s: &str) -> Option<RegexSet> {
 		if rust_array_decl_prim().is_match(s) {
 			Some(RegexSet::ArrayPrimitive)
+		} else if rust_array_with_extra_type().is_match(s) {
+			Some(RegexSet::ArrayPrimitiveExtra)
 		} else if rust_bit_size().is_match(s) {
 			Some(RegexSet::BitSize)
 		} else if rust_array_decl_struct().is_match(s) {
@@ -64,6 +67,7 @@ impl RegexSet {
 	fn parse_type(&self, s: &str) -> Option<RustTypeMarker> {
 		match self {
 			RegexSet::ArrayPrimitive => parse_primitive_array(s),
+			RegexSet::ArrayPrimitiveExtra => parse_array_with_extra_type(s),
 			RegexSet::BitSize => parse_bit_size(s),
 			RegexSet::ArrayStruct => parse_struct_array(s),
 			RegexSet::Vec => parse_vec(s),
@@ -208,7 +212,7 @@ pub fn parse_primitive_array(s: &str) -> Option<RustTypeMarker> {
 
 /// Parse an array that's in the form [u8; 20; H160]
 /// the extra type information 'H160' is discarded.
-fn parse_rust_array_with_extra_type(s: &str) -> Option<RustTypeMarker> {
+fn parse_array_with_extra_type(s: &str) -> Option<RustTypeMarker> {
 	let re = rust_array_with_extra_type();
 	if !re.is_match(s) {
 		return None;
@@ -915,7 +919,7 @@ mod tests {
 	fn should_parse_array_with_extra_info() {
 		let _ = pretty_env_logger::try_init();
 		let ty = "[u8; 20; H160]";
-		let ty = parse_rust_array_with_extra_type(ty);
+		let ty = parse_array_with_extra_type(ty);
 		assert_eq!(ty, Some(RustTypeMarker::Array{size: 20, ty: Box::new(RustTypeMarker::U8)}));
 	}
 }

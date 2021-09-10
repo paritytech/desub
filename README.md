@@ -8,7 +8,7 @@ Encompassing decoder for substrate/polkadot/kusama types.
 
 Gets type definitions from polkadot-js via JSON and decodes them into components
 that outline types and make decoding byte-strings possible, as long as the
-module/generic type name are known. 
+module/generic type name are known.
 
 Supports Metadata versions from v8, which means all of Kusama (from CC1). Older networks are not supported (E.G Alexander).
    - makes decoding generic types from the substrate rpc possible
@@ -36,3 +36,6 @@ Currently Supported Metadata Versions (From Kusama CC1):
 - [x] V9
 - [x] V10
 - [x] V11
+- [x] V12
+- [x] V13
+- [x] V14

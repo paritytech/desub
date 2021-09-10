@@ -1,62 +1,72 @@
 {
-  "default": {
-      "signature": "(Address, MultiSignature, SignedExtra)",
-      "empty_extra": null,
-      "OnlyStakingAndClaims": null,
-      "CheckSpecVersion": null,
-      "CheckVersion": null,
-      "CheckTxVersion": null,
-      "CheckGenesis": null,
-      "CheckWeight": null,
-      "LimitParathreadCommits": null,
-      "TransactionCallFilter": null,
-      "ValidateDoubleVoteReports": null,
-      "ValidateEquivocationReport": null,
-      "RestrictFunctionality": null,
-      "PrevalidateAttests": null,
-      "ChargeTransactionPayment": "Compact<BalanceOf>",
-      "AccountIndex": "u32",
-      "AccountId": "[u8; 32]",
-      "Lookup": "LookupSource",
-      "CheckEra": "Era",
-      "CheckNonce": "Compact<Index>",
-      "Address": "LookupSource",
-      "GenericAddress": "LookupSource"
-  },
-  "kusama": [
-    {
-	"minmax": [
-	   0,
-	  1006
-	],
-	"types": {
-	  "signature": "(Address, AnySignature, SignedExtra)",
-	  "Address": "AccountId",
-	  "AnySignature": "H512",
-	  "TakeFees": null,
-	  "SignedExtra": "(OnlyStakingAndClaims, CheckSpecVersion, CheckGenesis, CheckEra, CheckNonce, CheckWeight, TakeFees)"
-	}
+   "default":{
+      "signature":"(Address, MultiSignature, SignedExtra)",
+      "empty_extra":null,
+      "OnlyStakingAndClaims":null,
+      "CheckSpecVersion":null,
+      "CheckVersion":null,
+      "CheckTxVersion":null,
+      "CheckGenesis":null,
+      "CheckWeight":null,
+      "LimitParathreadCommits":null,
+      "TransactionCallFilter":null,
+      "ValidateDoubleVoteReports":null,
+      "ValidateEquivocationReport":null,
+      "RestrictFunctionality":null,
+      "PrevalidateAttests":null,
+      "ChargeTransactionPayment":"Compact<BalanceOf>",
+      "AccountIndex":"u32",
+      "AccountId":"[u8; 32]",
+      "Lookup":"LookupSource",
+      "CheckEra":"Era",
+      "CheckNonce":"Compact<Index>",
+      "Address":"LookupSource",
+      "GenericAddress":"LookupSource"
+   },
+   "kusama":[
+      {
+         "minmax":[
+            0,
+            1006
+         ],
+         "types":{
+            "signature":"(Address, AnySignature, SignedExtra)",
+            "Address":"AccountId",
+            "AnySignature":"H512",
+            "TakeFees":null,
+            "SignedExtra":"(OnlyStakingAndClaims, CheckSpecVersion, CheckGenesis, CheckEra, CheckNonce, CheckWeight, TakeFees)"
+         }
       },
       {
-	"minmax": [
-	  1007,
-	  1045
-	],
-	"types": {
-	  "AccountIndex": "u32",
-	  "AccountId": "[u8; 32]",
-	  "SignedExtra": "(OnlyStakingAndClaims, CheckSpecVersion, CheckGenesis, CheckEra, CheckNonce, CheckWeight, ChargeTransactionPayment, LimitParathreadCommits)"
-	}
+         "minmax":[
+            1007,
+            1045
+         ],
+         "types":{
+            "AccountIndex":"u32",
+            "AccountId":"[u8; 32]",
+            "SignedExtra":"(OnlyStakingAndClaims, CheckSpecVersion, CheckGenesis, CheckEra, CheckNonce, CheckWeight, ChargeTransactionPayment, LimitParathreadCommits)"
+         }
       },
       {
-	"minmax": [
-	  1046,
-	  null
-	],
-	"types": {
-	  "Address": "AccountId",
-	  "SignedExtra": "(OnlyStakingAndClaims, CheckSpecVersion, CheckGenesis, CheckEra, CheckNonce, CheckWeight, ChargeTransactionPayment, LimitParathreadCommits)"
-	}
-      }
-    ]
+         "minmax":[
+            1046,
+            1049
+         ],
+         "types":{
+            "Address":"AccountId",
+            "SignedExtra":"(OnlyStakingAndClaims, CheckSpecVersion, CheckGenesis, CheckEra, CheckNonce, CheckWeight, ChargeTransactionPayment, LimitParathreadCommits)"
+         }
+      },
+	 {
+		"minmax": [
+			1050,
+			null
+		],
+		"types": {
+			"Address": "AccountId",
+			"SignedExtra": "(CheckVersion, CheckGenesis, CheckEra, CheckNonce, CheckWeight, ChargeTransactionPayment, LimitParathreadCommits)"
+		}
+	 }
+   ]
 }

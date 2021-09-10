@@ -718,8 +718,11 @@ impl Decoder {
 				state.observe(line!());
 				let num: u128 = if is_compact {
 					let num: Compact<u128> = state.decode()?;
-					state.add(Compact::compact_len(&u128::from(num)));
-					num.into()
+					let num: u128 = num.into();
+					let compact_len = Compact::compact_len(&num);
+					log::trace!("CompactLen::u128({})", compact_len);
+					state.add(compact_len);
+					num
 				} else {
 					let num: u128 = state.do_decode(16)?;
 					num
@@ -910,7 +913,6 @@ impl Decoder {
 				log::trace!("Decoding Call | GenericCall");
 				state.load_module()?;
 				let types = self.decode_call(state)?;
-				state.increment();
 				log::trace!("Call is {:?}", types);
 				Ok(Some(SubstrateType::Call(types)))
 			}
@@ -920,15 +922,19 @@ impl Decoder {
 				Ok(Some(SubstrateType::GenericVote(vote)))
 			}
 			// Old Address Format for backwards-compatibility https://github.com/paritytech/substrate/pull/7380
-			"Lookup" | "GenericAddress" | "GenericLookupSource" | "GenericAccountId" | "<T::Lookup as StaticLookup>::Source" => {
-				// a specific type that is <T as StaticSource>::Lookup concatenated to just 'Lookup'
+			"Lookup" | "GenericAddress" | "GenericLookupSource" | "GenericAccountId" => {
 				log::trace!("Decoding Lookup | GenericAddress | GenericLookupSource | GenericAccountId");
 				state.observe(line!());
 
 				let val: substrate_types::Address = decode_old_address(state)?;
 				log::trace!("Decode Successful {:?}", &val);
 				Ok(Some(SubstrateType::Address(val)))
-			}
+			},
+			"<T::Lookup as StaticLookup>::Source" => {
+				log::trace!("Decoding <T::Lookup as StaticLookup>::Source");
+				state.observe(line!());
+				Ok(Some(self.decode_single(state, &RustTypeMarker::TypePointer("LookupSource".into()), is_compact)?))
+			},
 			"GenericMultiAddress" => {
 				let val: substrate_types::Address = state.decode()?;
 				let cursor_offset = match &val {
@@ -1104,7 +1110,7 @@ mod tests {
 			let val = $v.encode();
 			let decoder = Decoder::new(GenericTypes, Chain::Kusama);
 			let meta = meta_test_suite::test_metadata();
-			let mut state = DecodeState::new(None, None, decoder.types.as_ref(), &meta, 0, 1031, val.as_slice());
+			let mut state = DecodeState::new(None, None, decoder.types.as_ref(), meta, 0, 1031, val.as_slice());
 			let res = decoder.decode_single(&mut state, &$x, false).unwrap();
 			assert_eq!($r, res)
 		}};
