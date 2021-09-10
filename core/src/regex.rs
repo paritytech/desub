@@ -77,6 +77,13 @@ impl RegexSet {
 	}
 }
 
+/// Matches an array like: [u8; 20; H160]
+fn rust_array_with_extra_type() -> Regex {
+	Regex::new(
+		r"^\[\s*?(?<type>[uif]{1})(?<bit8>8)?(?<bit16>16)?(?<bit32>32)?(?<bit64>64)?(?<bit128>128)?;\s*?(?<size>[\d]+)+\s*?;?\s*?([\d\w]*)\s*?]",
+	).expect("Regex Array with extra type info invalid")
+}
+
 // primitive array declaration with named capture groups, ie [u8; 99]
 // width of number and unsigned/signed are all in their own capture group
 // size of array is in the last capture group
@@ -195,6 +202,21 @@ pub fn parse_primitive_array(s: &str) -> Option<RustTypeMarker> {
 	if !re.is_match(s) {
 		return None;
 	}
+	parse_array(s, re)
+}
+
+
+/// Parse an array that's in the form [u8; 20; H160]
+/// the extra type information 'H160' is discarded.
+fn parse_rust_array_with_extra_type(s: &str) -> Option<RustTypeMarker> {
+	let re = rust_array_with_extra_type();
+	if !re.is_match(s) {
+		return None;
+	}
+	parse_array(s, re)
+}
+
+fn parse_array(s: &str, re: Regex) -> Option<RustTypeMarker> {
 
 	let mut region = Region::new();
 
@@ -230,6 +252,7 @@ pub fn parse_primitive_array(s: &str) -> Option<RustTypeMarker> {
 			true
 		});
 	};
+
 	let t = t?;
 	let size = size?;
 	let ty = ty?;
@@ -878,5 +901,21 @@ mod tests {
 		assert_eq!(parse_bit_size(ty).unwrap(), RustTypeMarker::U128);
 		let ty = "Int<64, Balance>";
 		assert_eq!(parse_bit_size(ty).unwrap(), RustTypeMarker::I64);
+	}
+
+	#[test]
+	fn should_match_array_with_extra_info() {
+		let _ = pretty_env_logger::try_init();
+		let ty = "[u8; 20; H160]";
+		let re = rust_array_with_extra_type();
+		assert!(re.is_match(ty));
+	}
+
+	#[test]
+	fn should_parse_array_with_extra_info() {
+		let _ = pretty_env_logger::try_init();
+		let ty = "[u8; 20; H160]";
+		let ty = parse_rust_array_with_extra_type(ty);
+		assert_eq!(ty, Some(RustTypeMarker::Array{size: 20, ty: Box::new(RustTypeMarker::U8)}));
 	}
 }

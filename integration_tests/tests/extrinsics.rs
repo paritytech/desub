@@ -17,15 +17,11 @@ pub fn should_decode_ext342962() {
 
 	let (meta, ext) = test_suite::extrinsics_block_342962();
 	let meta = Metadata::new(meta.as_slice());
+	let ext = ext.into_iter().flatten().collect::<Vec<u8>>();
 
 	// block 6 of KSM CC3 is spec 1020
 	decoder.register_version(1031, &meta);
-	for e in ext.iter() {
-		println!("{:?}", e);
-		let decoded = decoder.decode_extrinsic(1031, e.as_slice()).expect("should decode");
-		println!("{:?}", decoded);
-		println!("{}", decoded);
-	}
+	let ext = decoder.decode_extrinsics(1031, &ext).expect("should decode");
 
 	// assert_eq!(vec![("now".to_string(), SubstrateType::U64(1577070096000))], decoded);
 	// 1577070096000 is the UNIX timestamp in milliseconds of
@@ -41,14 +37,12 @@ pub fn should_decode_ext422871() {
 
 	let (meta, ext) = test_suite::extrinsics_block_422871();
 	let meta = Metadata::new(meta.as_slice());
+	let ext = ext.into_iter().flatten().collect::<Vec<u8>>();
+
 	decoder.register_version(1031, &meta);
 
-	println!("{}", ext.len());
-	for e in ext.iter() {
-		println!("{:?}", e);
-		let decoded = decoder.decode_extrinsic(1031, e.as_slice()).expect("should decode");
-		println!("{}", decoded);
-	}
+	let ext = decoder.decode_extrinsics(1031, &ext).expect("should decode");
+
 }
 
 #[test]
@@ -59,14 +53,10 @@ pub fn should_decode_ext50970() {
 
 	let (meta, ext) = test_suite::extrinsics_block_50970();
 	let meta = Metadata::new(meta.as_slice());
-
 	decoder.register_version(1031, &meta);
-	for e in ext.iter() {
-		println!("{:?}", e);
-		println!("{:X?}", e);
-		let decoded = decoder.decode_extrinsic(1031, e.as_slice()).expect("should decode");
-		println!("{}", decoded);
-	}
+	let ext = ext.into_iter().flatten().collect::<Vec<u8>>();
+	let ext = decoder.decode_extrinsics(1031, &ext).expect("should decode");
+
 }
 
 #[test]
@@ -80,13 +70,9 @@ pub fn should_decode_ext_106284() {
 	let meta = Metadata::new(meta.as_slice());
 
 	decoder.register_version(1042, &meta);
-	for e in ext.iter() {
-		println!("{:?}", e);
-		println!("{:X?}", e);
-		let decoded = decoder.decode_extrinsic(1042, e.as_slice()).expect("should decode");
-		println!("{}", decoded);
-		println!("{}", serde_json::to_string(&decoded).unwrap());
-	}
+	let ext = ext.into_iter().flatten().collect::<Vec<u8>>();
+	let ext = decoder.decode_extrinsics(1042, &ext).expect("should decode");
+
 }
 
 #[test]
@@ -100,13 +86,9 @@ pub fn should_decode_ext_1674683() {
 	let meta = Metadata::new(meta.as_slice());
 
 	decoder.register_version(1055, &meta);
-	for e in ext.iter() {
-		println!("{:?}", e);
-		println!("{:X?}", e);
-		let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
-		println!("{}", decoded);
-		println!("{}", serde_json::to_string(&decoded).unwrap());
-	}
+	let ext = ext.into_iter().flatten().collect::<Vec<u8>>();
+	let ext = decoder.decode_extrinsics(1055, &ext).expect("should decode");
+
 }
 
 #[test]
@@ -121,13 +103,8 @@ pub fn should_decode_ext_1677621() {
 
 	decoder.register_version(1055, &meta);
 
-	for e in ext.iter() {
-		println!("{:?}", e);
-		println!("{:X?}", e);
-		let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
-		println!("{}", decoded);
-		println!("{}", serde_json::to_string(&decoded).unwrap());
-	}
+	let ext = ext.into_iter().flatten().collect::<Vec<u8>>();
+	let ext = decoder.decode_extrinsics(1055, &ext).expect("should decode");
 }
 
 #[test]
@@ -141,14 +118,8 @@ fn should_decode_ext_1702023() {
 	let meta = Metadata::new(meta.as_slice());
 
 	decoder.register_version(1055, &meta);
-
-	for e in ext.iter() {
-		println!("{:?}", e);
-		println!("{:X?}", e);
-		let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
-		println!("{}", decoded);
-		println!("{}", serde_json::to_string(&decoded).unwrap());
-	}
+	let ext = ext.into_iter().flatten().collect::<Vec<u8>>();
+	let ext = decoder.decode_extrinsics(1055, &ext).expect("should decode");
 }
 
 #[test]
@@ -162,14 +133,8 @@ fn should_decode_ext_1714495() {
 	let meta = Metadata::new(meta.as_slice());
 
 	decoder.register_version(1055, &meta);
+	let ext = ext.into_iter().flatten().collect::<Vec<u8>>();
 
-	for e in ext.iter() {
-		println!("{:?}", e);
-		println!("{:X?}", e);
-		let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
-		println!("{}", decoded);
-		println!("{}", serde_json::to_string(&decoded).unwrap());
-	}
 }
 
 #[test]
@@ -182,14 +147,8 @@ fn should_decode_ext_1717926() {
 	let meta = Metadata::new(meta.as_slice());
 
 	decoder.register_version(1055, &meta);
-
-	for e in ext.iter() {
-		println!("{:?}", e);
-		println!("{:X?}", e);
-		let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
-		println!("{}", decoded);
-		println!("{}", serde_json::to_string(&decoded).unwrap());
-	}
+	let ext = ext.into_iter().flatten().collect::<Vec<u8>>();
+	let ext = decoder.decode_extrinsics(1055, &ext).expect("should decode");
 }
 
 #[test]
@@ -202,14 +161,8 @@ fn should_decode_ext_1718223() {
 	let meta = Metadata::new(meta.as_slice());
 
 	decoder.register_version(1055, &meta);
-
-	for e in ext.iter() {
-		println!("{:?}", e);
-		println!("{:X?}", e);
-		let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
-		println!("{}", decoded);
-		println!("{}", serde_json::to_string(&decoded).unwrap());
-	}
+	let ext = ext.into_iter().flatten().collect::<Vec<u8>>();
+	let ext = decoder.decode_extrinsics(1055, &ext).expect("should decode");
 }
 
 #[test]
@@ -223,14 +176,9 @@ fn should_decode_ext_1732321() {
 	let meta = Metadata::new(meta.as_slice());
 
 	decoder.register_version(1055, &meta);
+	let ext = ext.into_iter().flatten().collect::<Vec<u8>>();
+	decoder.decode_extrinsics(1055, &ext).expect("should decode");
 
-	for e in ext.iter() {
-		println!("{:?}", e);
-		println!("{:X?}", e);
-		let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
-		println!("{}", decoded);
-		println!("{}", serde_json::to_string(&decoded).unwrap());
-	}
 }
 
 #[test]
@@ -244,14 +192,8 @@ fn should_decode_ext_1731904() {
 	let meta = Metadata::new(meta.as_slice());
 
 	decoder.register_version(1055, &meta);
-
-	for e in ext.iter() {
-		println!("{:?}", e);
-		println!("{:X?}", e);
-		let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
-		println!("{}", decoded);
-		println!("{}", serde_json::to_string(&decoded).unwrap());
-	}
+	let ext = ext.into_iter().flatten().collect::<Vec<u8>>();
+	decoder.decode_extrinsics(1055, &ext).expect("should decode");
 }
 
 #[test]
@@ -265,14 +207,8 @@ fn should_decode_ext_1768321() {
 	let meta = Metadata::new(meta.as_slice());
 
 	decoder.register_version(1055, &meta);
-
-	for e in ext.iter() {
-		println!("{:?}", e);
-		println!("{:X?}", e);
-		let decoded = decoder.decode_extrinsic(1055, e.as_slice()).expect("should decode");
-		println!("{}", decoded);
-		println!("{}", serde_json::to_string(&decoded).unwrap());
-	}
+	let ext = ext.into_iter().flatten().collect::<Vec<u8>>();
+	decoder.decode_extrinsics(1055, &ext).expect("should decode");
 }
 
 #[test]
@@ -286,13 +222,8 @@ fn should_decode_ext_6144() {
 	let meta = Metadata::new(meta.as_slice());
 
 	decoder.register_version(1020, &meta);
-	for e in ext.iter() {
-		println!("{:?}", e);
-		println!("{:X?}", e);
-		let decoded = decoder.decode_extrinsic(1020, e.as_slice()).expect("should decode");
-		println!("{}", decoded);
-		println!("{}", serde_json::to_string(&decoded).unwrap());
-	}
+	let ext = ext.into_iter().flatten().collect::<Vec<u8>>();
+	decoder.decode_extrinsics(1020, &ext).expect("should decode");
 }
 
 #[test]
@@ -306,13 +237,8 @@ fn should_decode_ext_779410_ksm() {
 	let meta = Metadata::new(meta.as_slice());
 
 	decoder.register_version(1042, &meta);
-	for e in ext.iter() {
-		println!("{:?}", e);
-		println!("{:X?}", e);
-		let decoded = decoder.decode_extrinsic(1042, e.as_slice()).expect("should decode");
-		println!("{}", decoded);
-		println!("{}", serde_json::to_string(&decoded).unwrap());
-	}
+	let ext = ext.into_iter().flatten().collect::<Vec<u8>>();
+	decoder.decode_extrinsics(1042, &ext).expect("should decode");
 }
 
 #[test]
@@ -325,13 +251,8 @@ fn should_decode_ext_899638_ksm() {
 	let meta = Metadata::new(meta.as_slice());
 
 	decoder.register_version(1042, &meta);
-	for e in ext.iter() {
-		println!("{:?}", e);
-		println!("{:X?}", e);
-		let decoded = decoder.decode_extrinsic(1042, e.as_slice()).expect("should decode");
-		println!("{}", decoded);
-		println!("{}", serde_json::to_string(&decoded).unwrap());
-	}
+	let ext = ext.into_iter().flatten().collect::<Vec<u8>>();
+	decoder.decode_extrinsics(1042, &ext).expect("should decode");
 }
 
 #[test]
@@ -345,12 +266,9 @@ fn should_decode_ext_233816_ksm() {
 	let meta = Metadata::new(meta.as_slice());
 
 	decoder.register_version(1030, &meta);
-	for e in ext.iter() {
-		println!("DECODING --------------------- \n {:X?} \n ------", e);
-		let decoded = decoder.decode_extrinsic(1030, e.as_slice()).expect("should decode");
-		println!("{}", decoded);
-		println!("{}", serde_json::to_string(&decoded).unwrap());
-	}
+	let ext = ext.into_iter().flatten().collect::<Vec<u8>>();
+	decoder.decode_extrinsics(1030, &ext).expect("should decode");
+
 }
 
 #[test]
@@ -364,12 +282,9 @@ fn should_decode_ext_607421_ksm() {
 	let meta = Metadata::new(meta.as_slice());
 
 	decoder.register_version(1039, &meta);
-	for e in ext.iter() {
-		println!("DECODING: \n ------ \n {:X?} \n ------", e);
-		let decoded = decoder.decode_extrinsic(1039, e.as_slice()).expect("should decode");
-		println!("{}", decoded);
-		println!("{}", serde_json::to_string(&decoded).unwrap());
-	}
+	let ext = ext.into_iter().flatten().collect::<Vec<u8>>();
+	decoder.decode_extrinsics(1039, &ext).expect("should decode");
+
 }
 
 #[test]
@@ -383,15 +298,9 @@ fn should_decode_ext_892_dot() {
 	let meta = Metadata::new(meta.as_slice());
 
 	decoder.register_version(0, &meta);
-	for e in ext.iter() {
-		println!("-----------------------------------------------------------------");
-		println!("DECODING: \n ------ \n {:X?} \n ------", e);
-		let decoded = decoder.decode_extrinsic(0, e.as_slice()).expect("should decode");
-		println!("{:?}", decoded);
-		println!("{}", decoded);
-		println!("{}", serde_json::to_string(&decoded).unwrap());
-		println!("-----------------------------------------------------------------");
-	}
+	let ext = ext.into_iter().flatten().collect::<Vec<u8>>();
+	decoder.decode_extrinsics(0, &ext).expect("should decode");
+
 }
 
 #[test]
@@ -405,13 +314,6 @@ fn should_decode_ext_1191_wnd() {
 	let meta = Metadata::new(meta.as_slice());
 
 	decoder.register_version(0, &meta);
-	for e in ext.iter() {
-		println!("-----------------------------------------------------------------");
-		println!("DECODING: \n ------ \n {:X?} \n ------", e);
-		let decoded = decoder.decode_extrinsic(0, e.as_slice()).expect("should decode");
-		println!("{:?}", decoded);
-		println!("{}", decoded);
-		println!("{}", serde_json::to_string(&decoded).unwrap());
-		println!("-----------------------------------------------------------------");
-	}
+	let ext = ext.into_iter().flatten().collect::<Vec<u8>>();
+	decoder.decode_extrinsics(0, &ext).expect("should decode");
 }

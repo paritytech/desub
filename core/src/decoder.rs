@@ -602,7 +602,6 @@ impl Decoder {
 			RustTypeMarker::Std(v) => match v {
 				CommonTypes::Vec(v) => {
 					log::trace!("Vec::cursor={}", state.cursor());
-					log::trace!("Decoding {:?}", v);
 					let length = state.scale_length()?;
 					let mut vec = Vec::new();
 					if length == 0 {
@@ -897,7 +896,6 @@ impl Decoder {
 			}
 			"Data" => {
 				log::trace!("Decoding Data");
-				state.observe(line!());
 				let identity_data: substrate_types::Data = state.decode()?;
 				match &identity_data {
 					substrate_types::Data::None => (),
@@ -1060,7 +1058,7 @@ mod tests {
 			Some(&RustTypeMarker::I128)
 		}
 
-		fn try_fallback(&self, _chain: &str, _spec: u32, _module: &str, _ty: &str) -> Option<&RustTypeMarker> {
+		fn try_fallback(&self, _chain: &str, _module: &str, _ty: &str) -> Option<&RustTypeMarker> {
 			None
 		}
 
@@ -1105,8 +1103,9 @@ mod tests {
 		( $v: expr, $x:expr, $r: expr) => {{
 			let val = $v.encode();
 			let decoder = Decoder::new(GenericTypes, Chain::Kusama);
-			let res = decoder.decode_single("", 1031, &$x, val.as_slice(), &mut 0, false).unwrap();
-
+			let meta = meta_test_suite::test_metadata();
+			let mut state = DecodeState::new(None, None, decoder.types.as_ref(), &meta, 0, 1031, val.as_slice());
+			let res = decoder.decode_single(&mut state, &$x, false).unwrap();
 			assert_eq!($r, res)
 		}};
 	}

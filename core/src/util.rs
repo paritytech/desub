@@ -59,12 +59,12 @@ pub fn as_substrate_address<S: Serializer>(ty: &SubstrateType, serializer: S) ->
 				addr[i] = b;
 			}
 			let addr = primitives::crypto::AccountId32::from(addr)
-				.to_ss58check_with_version(Ss58AddressFormat::KusamaAccount);
+				.to_ss58check_with_version(Ss58AddressFormat::SubstrateAccount);
 			serializer.serialize_str(&addr)
 		}
 		SubstrateType::Address(v) => match v {
 			runtime_primitives::MultiAddress::Id(ref i) => {
-				let addr = i.to_ss58check_with_version(Ss58AddressFormat::KusamaAccount);
+				let addr = i.to_ss58check_with_version(Ss58AddressFormat::SubstrateAccount);
 				serializer.serialize_str(&addr)
 			}
 			runtime_primitives::MultiAddress::Index(i) => serializer.serialize_str(&format!("{}", i)),
