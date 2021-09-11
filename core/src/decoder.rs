@@ -297,9 +297,9 @@ impl<'a> Iterator for ChunkedExtrinsic<'a> {
 	type Item = &'a [u8];
 	fn next(&mut self) -> Option<&'a [u8]> {
 		let (length, prefix) = Decoder::scale_length(&self.data[self.cursor..]).ok()?;
-		self.cursor += prefix;
-		let extrinsic = &self.data[self.cursor..self.cursor + length];
-		self.cursor += length;
+		log::trace!("Length {}, Prefix: {}", length, prefix);
+		let extrinsic = &self.data[(self.cursor + prefix)..(self.cursor + length + prefix)];
+		self.cursor += length + prefix;
 		Some(extrinsic)
 	}
 }
@@ -449,13 +449,14 @@ impl Decoder {
 	/// Decode a Vec<Extrinsic>
 	pub fn decode_extrinsics(&self, spec: SpecVersion, data: &[u8]) -> Result<Vec<GenericExtrinsic>, Error> {
 		let mut ext = Vec::new();
+		let (length, prefix) = Self::scale_length(data)?;
 		let meta = self.versions.get(&spec).expect("Spec does not exist"); // TODO: remove panic
-		log::trace!("CALLS: {:#?}", meta.modules_by_call_index);
+		log::trace!("Decoding {} Total Extrinsics. CALLS: {:#?}", length, meta.modules_by_call_index);
 
-		let mut state = DecodeState::new(None, None, self.types.as_ref(), meta, 1, spec, data);
-			for extrinsic in ChunkedExtrinsic::new(&data[1..]) {
+		let mut state = DecodeState::new(None, None, self.types.as_ref(), meta, prefix, spec, data);
+		for (idx, extrinsic) in ChunkedExtrinsic::new(&data[prefix..]).enumerate() {
+			log::trace!("Extrinsic {}:{:?}", idx, extrinsic);
 			state.reset(extrinsic);
-			state.observe(line!());
 			ext.push(self.decode_extrinsic(&mut state)?);
 			log::info!("Success! {}", serde_json::to_string_pretty(&ext).unwrap());
 		}
@@ -705,8 +706,9 @@ impl Decoder {
 				log::trace!("Decoding u64");
 				let num: u64 = if is_compact {
 					let num: Compact<u64> = state.decode()?;
-					state.add(Compact::compact_len(&u64::from(num)));
-					num.into()
+					let num: u64 = num.into();
+					state.add(Compact::compact_len(&num));
+					num
 				} else {
 					let num: u64 = state.do_decode(8)?;
 					num
@@ -978,11 +980,11 @@ impl Decoder {
 	/// in the encoded data
 	fn scale_length(mut data: &[u8]) -> Result<(usize, usize), Error> {
 		// alternative to `DecodeLength` trait, to avoid casting from a trait
-		let u32_length = u32::from(Compact::<u32>::decode(&mut data)?);
-		let length_of_prefix: usize = Compact::compact_len(&u32_length);
-		let usize_length =
-			usize::try_from(u32_length).map_err(|_| Error::from("Failed convert decoded size into usize."))?;
-		Ok((usize_length, length_of_prefix))
+		let length = u32::from(Compact::<u32>::decode(&mut data)?);
+		let prefix = Compact::<u32>::compact_len(&length);
+		let length =
+			usize::try_from(length).map_err(|_| Error::from("Failed convert decoded size into usize."))?;
+		Ok((length, prefix))
 	}
 
 	/// internal api to decode a vector of struct IdentityFields
