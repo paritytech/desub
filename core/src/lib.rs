@@ -36,7 +36,7 @@ pub trait TypeDetective: fmt::Debug + dyn_clone::DynClone + Send + Sync {
 
 	/// Some types have a fallback type that may be decoded into if the original
 	/// type fails.
-	fn try_fallback(&self, chain: &str, module: &str, ty: &str) -> Option<&RustTypeMarker>;
+	fn try_fallback(&self, module: &str, ty: &str) -> Option<&RustTypeMarker>;
 
 	/// get a type specific to decoding extrinsics
 	fn get_extrinsic_ty(&self, chain: &str, spec: u32, ty: &str) -> Option<&RustTypeMarker>;

@@ -526,6 +526,7 @@ impl Decoder {
 				if let Some(t) = self.decode_sub_type(state, v, is_compact)? {
 					t
 				} else {
+					log::trace!("Definitely resolving");
 					let new_type =
 						self.types.get(self.chain.as_str(), state.spec, state.module_name(), v).ok_or_else(|| {
 							Error::from(format!(
@@ -541,7 +542,7 @@ impl Decoder {
 					let resolved = self.decode_single(state, new_type, is_compact);
 					if resolved.is_err() {
 						if let Some(fallback) =
-							self.types.try_fallback(self.chain.as_str(), state.module_name(), v)
+							self.types.try_fallback(state.module_name(), v)
 						{
 							log::trace!("Falling back to type: {}", fallback);
 							state.set_cursor(saved_cursor);
@@ -1112,7 +1113,7 @@ mod tests {
 			let val = $v.encode();
 			let decoder = Decoder::new(GenericTypes, Chain::Kusama);
 			let meta = meta_test_suite::test_metadata();
-			let mut state = DecodeState::new(None, None, decoder.types.as_ref(), meta, 0, 1031, val.as_slice());
+			let mut state = DecodeState::new(None, None, decoder.types.as_ref(), &meta, 0, 1031, val.as_slice());
 			let res = decoder.decode_single(&mut state, &$x, false).unwrap();
 			assert_eq!($r, res)
 		}};

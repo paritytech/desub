@@ -146,12 +146,44 @@ pub fn rust_generic_decl() -> Regex {
 
 /// Transforms a prefixed generic type (EX: T::Moment)
 /// into a non-prefixed type (T::Moment -> Moment)
-pub fn remove_prefix<'a, S: Into<&'a str>>(s: S) -> Option<String> {
-	let s: &str = s.into();
+pub fn remove_prefix<'a, S: AsRef<str>>(s: S) -> Option<String> {
+	let s: &str = s.as_ref();
 
 	let re = Regex::new(r"[\w><]::([\w><]+)").expect("Regex expressions should be infallible; qed");
 	let caps = re.captures(s)?;
 	caps.iter().nth(1)?.map(|s| s.to_string())
+}
+
+/// Removes a path from a string that is a rust type.
+/// Ex: removes 'schedule' from schedule::Period<T::BlockNumber>
+pub fn remove_path<'a, S: AsRef<str>>(s: S) -> Option<String> {
+	let s: &str = s.as_ref();
+
+	let re = Regex::new(r"\b(?<outer_type>\w+)<(?<inner_type>[\w<>,: ]+)>").expect("Regex expression should be infallible; qed");
+	let caps = re.captures(s)?;
+	caps.iter().nth(1)?.map(|s| s.to_string())
+}
+
+/// Removes the trait preceding the type.
+/// I.E Removes `<T as Trait>::` from <T as Trait>::Call
+pub fn remove_trait<'a, S: AsRef<str>>(s: S) -> Option<String> {
+	let s: &str = s.as_ref();
+
+	let re = Regex::new(r"^<T as Trait[><\w]+:*([\W\w]*)").expect("Regex expression should be infallible; qed");
+	let caps = re.captures(s)?;
+	caps.iter().nth(1)?.map(|s| s.to_string())
+}
+
+
+/// Sanitizes a type and returns parts that might correspond to PolkadotJS types
+pub fn sanitize_ty(ty: &str) -> Option<String> {
+	log::trace!("sanitizing ty {}", ty);
+	let ty = if let Some(no_trait) = remove_trait(&ty) { no_trait } else { ty.to_string() };
+	let ty = if let Some(no_path) = remove_path(&ty) { no_path } else { ty.to_string() };
+	let ty = if let Some(un_prefixed) = remove_prefix(&ty) { un_prefixed } else { ty.to_string() };
+
+	log::trace!("Possibly sanitized type: {}", ty);
+	Some(ty)
 }
 
 /// Only captures text within the tuples,
@@ -874,6 +906,9 @@ mod tests {
 	fn should_remove_prefix() {
 		assert_eq!(remove_prefix("T::Moment").unwrap(), "Moment");
 		assert_eq!(remove_prefix("T::Generic<Runtime>").unwrap(), "Generic<Runtime>");
+		// assert_eq!(remove_prefix("schedule::Period<T::BlockNumber>").unwrap(), "Period<T::BlockNumber>");
+		// assert_eq!(remove_prefix("Period<T::BlockNumber>").unwrap(), "BlockNumber");
+
 	}
 
 	#[test]

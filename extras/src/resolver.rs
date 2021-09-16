@@ -16,6 +16,7 @@
 
 use crate::{Extrinsics, Modules, Overrides, Result};
 use core::{regex, RustTypeMarker, TypeDetective};
+use syn::PathSegment;
 
 #[cfg(feature = "default_definitions")]
 mod default {
@@ -119,13 +120,12 @@ impl TypeResolver {
 	/// # Return
 	/// returns None if the type cannot be resolved
 	pub fn get(&self, chain: &str, spec: u32, module: &str, ty: &str) -> Option<&RustTypeMarker> {
-		let (module, ty, chain) = sanitize_types(module, ty, chain);
 		log::trace!("Getting Type: {}, module: {}, spec: {}", ty, module, spec);
 
-		if let Some(t) = self.check_overrides(&module, ty.as_str(), spec, &chain) {
+		if let Some(t) = self.check_overrides(&module, ty, spec, &chain) {
 			log::trace!("Resolving to Override");
 			Some(t)
-		} else if let Some(t) = self.extrinsics.get(ty.as_str(), spec, &chain) {
+		} else if let Some(t) = self.extrinsics.get(ty, spec, &chain) {
 			log::trace!("Resolving to Extrinsic Type");
 			Some(t)
 		} else {
@@ -134,14 +134,13 @@ impl TypeResolver {
 		}
 	}
 
-	pub fn try_fallback(&self, chain: &str, module: &str, ty: &str) -> Option<&RustTypeMarker> {
-		let (module, ty, _) = sanitize_types(module, ty, chain);
+	pub fn try_fallback(&self, module: &str, ty: &str) -> Option<&RustTypeMarker> {
 		self.mods.try_fallback(&module, &ty)
 	}
 
 	/// Get type for decoding an Extrinsic
 	pub fn get_ext_ty(&self, chain: &str, spec: u32, ty: &str) -> Option<&RustTypeMarker> {
-		if let Some(t) = self.extrinsics.get(ty, spec, chain) {
+		if let Some(t) = self.extrinsics.get(&ty, spec, &chain) {
 			match t {
 				RustTypeMarker::TypePointer(t) => self.resolve_helper("runtime", t),
 				t => Some(t),
@@ -155,13 +154,13 @@ impl TypeResolver {
 	fn resolve_helper(&self, module: &str, ty_pointer: &str) -> Option<&RustTypeMarker> {
 		log::trace!("Helper resolving {}, {}", module, ty_pointer);
 
-		if let Some(t) = self.mods.get_type(module, ty_pointer) {
-			log::trace!("Type {} found in module {}", ty_pointer, module);
+		if let Some(t) = self.mods.get_type(module, &ty_pointer) {
+			log::trace!("Type {} found in module {}", &ty_pointer, module);
 			Some(t)
-		} else if let Some(t) = self.mods.get_type("runtime", ty_pointer) {
+		} else if let Some(t) = self.mods.get_type("runtime", &ty_pointer) {
 			log::trace!("Type not found in {}, trying `runtime` for type {}", module, ty_pointer);
 			Some(t)
-		} else if let Some(t) = self.check_other_modules(ty_pointer) {
+		} else if let Some(t) = self.check_other_modules(&ty_pointer) {
 			log::trace!("trying other modules");
 			Some(t)
 		} else {
@@ -174,14 +173,14 @@ impl TypeResolver {
 	/// if it does, return the types/type pointer
 	fn check_overrides(&self, module: &str, ty: &str, spec: u32, chain: &str) -> Option<&RustTypeMarker> {
 		// check if the type is a module override first
-		if let Some(m) = self.overrides.get_module_types(module) {
-			if let Some(ty) = m.get(ty) {
+		if let Some(m) = self.overrides.get_module_types(&module) {
+			if let Some(ty) = m.get(&ty) {
 				return Some(ty);
 			}
 		}
 
 		// if it isn't in modules, chain types is next
-		self.overrides.get_chain_types(chain, spec)?.get(ty)
+		self.overrides.get_chain_types(&chain, spec)?.get(&ty)
 	}
 
 	/// Checks all modules for the types
@@ -190,28 +189,49 @@ impl TypeResolver {
 	}
 }
 
-fn sanitize_types(module: &str, ty: &str, chain: &str) -> (String, String, String) {
-	let module = module.to_ascii_lowercase();
-	let chain = chain.to_ascii_lowercase();
-	let ty = if let Some(un_prefixed) = regex::remove_prefix(ty) { un_prefixed } else { ty.to_string() };
-
-	log::trace!("Possibly de-prefixed type: {}", ty);
-	(module, ty, chain)
-}
-
 impl TypeDetective for TypeResolver {
 	fn get(&self, chain: &str, spec: u32, module: &str, ty: &str) -> Option<&RustTypeMarker> {
-		TypeResolver::get(self, chain, spec, module, ty)
+		log::trace!("Getting type {}", ty);
+		let ty = regex::sanitize_ty(ty)?;
+		let module = module.to_ascii_lowercase();
+		let chain = chain.to_ascii_lowercase();
+		TypeResolver::get(self, &chain, spec, &module, &ty)
 	}
 
-	fn try_fallback(&self, chain: &str, module: &str, ty: &str) -> Option<&RustTypeMarker> {
-		TypeResolver::try_fallback(self, chain, module, ty)
+	fn try_fallback(&self, module: &str, ty: &str) -> Option<&RustTypeMarker> {
+		let ty = regex::sanitize_ty(ty)?;
+		let module = module.to_ascii_lowercase();
+
+		TypeResolver::try_fallback(self, &module, &ty)
 	}
 
 	fn get_extrinsic_ty(&self, chain: &str, spec: u32, ty: &str) -> Option<&RustTypeMarker> {
-		TypeResolver::get_ext_ty(self, chain, spec, ty)
+		let ty = regex::sanitize_ty(ty)?;
+		let chain = chain.to_ascii_lowercase();
+
+		TypeResolver::get_ext_ty(self, &chain, spec, &ty)
 	}
 }
+
+#[derive(Debug, Clone)]
+struct TypeRetry<'a> {
+	ty: &'a str,
+	path: syn::Path
+}
+
+impl<'a> TypeRetry<'a>  {
+	fn new(ty: &'a str) -> Result<Self> {
+		let path = syn::parse_str(ty)?;
+		Ok(Self {
+			ty, path
+		})
+	}
+
+	fn iter(&self) -> impl Iterator<Item = &PathSegment> {
+		self.path.segments.iter()
+	}
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -319,5 +339,4 @@ mod tests {
 		let types = Modules::new(DEFINITIONS)?;
 		dbg!(&types);
 		Ok(())
-	}
-}
+	} }

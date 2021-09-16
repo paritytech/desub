@@ -35,6 +35,7 @@ async fn main() -> Result<(), Error> {
 	fern::Dispatch::new()
 		.level(log::LevelFilter::Error)
 		.level_for("desub_core", level)
+		.level_for("desub_extras", level)
 		.format(move |out, message, record| {
 			out.finish(format_args!(
 				" {} {}::{}		>{} ",

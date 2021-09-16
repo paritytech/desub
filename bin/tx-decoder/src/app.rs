@@ -41,6 +41,9 @@ pub struct App {
 	#[argh(option, short = 'b')]
 	/// decode only a specific block.
 	block: Option<u32>,
+	#[argh(option, short = 'a')]
+	/// Decode all blocks
+	all: bool,
 	#[argh(switch, short = 'v')]
 	/// extra information about the programs execution.
 	pub verbose: bool
@@ -66,7 +69,7 @@ pub async fn app(app: App) -> Result<(), Error> {
 	if let Some(spec) = app.spec {
 		let metadata = metadata(&mut conn, spec).await?;
 		decoder.register_version(spec.try_into()?, metadata);
-		let mut blocks = blocks(&mut conn, spec);
+		let mut blocks = blocks_by_spec(&mut conn, spec);
 		let mut len = 0;
 		let mut error_count = 0;
 		let now = std::time::Instant::now();
