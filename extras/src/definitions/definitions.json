@@ -2752,7 +2752,7 @@
           "NewConfiguration": "Option<ChangesTrieConfiguration>"
         }
       },
-	  "ConsensusEngineId": "GenericConsensusEngineId",
+	  "ConsensusEngineId": "[u8; 4]",
       "CodecHash": "Hash",
       "Digest": {
         "logs": "Vec<DigestItem>"

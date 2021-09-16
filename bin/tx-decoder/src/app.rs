@@ -41,8 +41,8 @@ pub struct App {
 	#[argh(option, short = 'b')]
 	/// decode only a specific block.
 	block: Option<u32>,
-	#[argh(option, short = 'a')]
-	/// Decode all blocks
+	#[argh(switch, short = 'a')]
+	/// decode all blocks
 	all: bool,
 	#[argh(switch, short = 'v')]
 	/// extra information about the programs execution.

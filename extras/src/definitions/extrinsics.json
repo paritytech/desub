@@ -18,7 +18,8 @@
       "AccountIndex":"u32",
       "AccountId":"[u8; 32]",
       "Lookup":"LookupSource",
-      "CheckEra":"Era",
+      "CheckEra": "Era",
+	  "CheckMortality": "Era",
       "CheckNonce":"Compact<Index>",
       "Address":"LookupSource",
       "GenericAddress":"LookupSource"
@@ -61,12 +62,22 @@
 	 {
 		"minmax": [
 			1050,
-			null
+			2014
 		],
 		"types": {
 			"Address": "AccountId",
 			"SignedExtra": "(CheckVersion, CheckGenesis, CheckEra, CheckNonce, CheckWeight, ChargeTransactionPayment, LimitParathreadCommits)"
 		}
-	 }
+	 },
+	{
+		"minmax": [
+			2015,
+			null
+		],
+		"types": {
+			"Address": "AccountId",
+			"SignedExtra": "(CheckVersion, CheckGenesis, CheckMortality, CheckNonce, CheckWeight, ChargeTransactionPayment, LimitParathreadCommits)"
+		}
+	}
    ]
 }

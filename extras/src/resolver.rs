@@ -160,7 +160,7 @@ impl TypeResolver {
 		} else if let Some(t) = self.mods.get_type("runtime", &ty_pointer) {
 			log::trace!("Type not found in {}, trying `runtime` for type {}", module, ty_pointer);
 			Some(t)
-		} else if let Some(t) = self.check_other_modules(&ty_pointer) {
+		} else if let Some(t) = self.check_other_modules(ty_pointer) {
 			log::trace!("trying other modules");
 			Some(t)
 		} else {
@@ -174,13 +174,13 @@ impl TypeResolver {
 	fn check_overrides(&self, module: &str, ty: &str, spec: u32, chain: &str) -> Option<&RustTypeMarker> {
 		// check if the type is a module override first
 		if let Some(m) = self.overrides.get_module_types(&module) {
-			if let Some(ty) = m.get(&ty) {
+			if let Some(ty) = m.get(ty) {
 				return Some(ty);
 			}
 		}
 
 		// if it isn't in modules, chain types is next
-		self.overrides.get_chain_types(&chain, spec)?.get(&ty)
+		self.overrides.get_chain_types(chain, spec)?.get(ty)
 	}
 
 	/// Checks all modules for the types
