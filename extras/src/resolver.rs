@@ -16,7 +16,6 @@
 
 use crate::{Extrinsics, Modules, Overrides, Result};
 use core::{regex, RustTypeMarker, TypeDetective};
-use syn::PathSegment;
 
 #[cfg(feature = "default_definitions")]
 mod default {
@@ -212,26 +211,6 @@ impl TypeDetective for TypeResolver {
 		TypeResolver::get_ext_ty(self, &chain, spec, &ty)
 	}
 }
-
-#[derive(Debug, Clone)]
-struct TypeRetry<'a> {
-	ty: &'a str,
-	path: syn::Path
-}
-
-impl<'a> TypeRetry<'a>  {
-	fn new(ty: &'a str) -> Result<Self> {
-		let path = syn::parse_str(ty)?;
-		Ok(Self {
-			ty, path
-		})
-	}
-
-	fn iter(&self) -> impl Iterator<Item = &PathSegment> {
-		self.path.segments.iter()
-	}
-}
-
 
 #[cfg(test)]
 mod tests {

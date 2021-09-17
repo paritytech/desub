@@ -18,11 +18,16 @@ use crate::queries::*;
 
 use desub::decoder::{Decoder, Chain};
 
-use sqlx::postgres::PgPoolOptions;
+use sqlx::postgres::{PgPoolOptions, PgPool, PgConnection};
 use futures::StreamExt;
 use anyhow::Error;
-use std::convert::TryInto;
+use indicatif::{ProgressBar, ProgressStyle};
+use rayon::prelude::*;
 use argh::FromArgs;
+use async_std::task;
+use parking_lot::Mutex;
+
+use std::{convert::TryInto, sync::{Arc, atomic::{AtomicUsize, Ordering}}};
 
 type SpecVersion = i32;
 
@@ -44,6 +49,9 @@ pub struct App {
 	#[argh(switch, short = 'a')]
 	/// decode all blocks
 	all: bool,
+	#[argh(option, short = 'u')]
+	///	decode all blocks up to a spec version.
+	to: Option<i32>,
 	#[argh(switch, short = 'v')]
 	/// extra information about the programs execution.
 	pub verbose: bool
@@ -57,10 +65,11 @@ pub async fn app(app: App) -> Result<(), Error> {
 	let mut conn = pool.acquire().await?;
 
 	let types = desub_extras::TypeResolver::default();
-	let mut decoder = Decoder::new(types, Chain::Kusama);
+	let decoder = Arc::new(Mutex::new(Decoder::new(types, Chain::Kusama)));
 
 	if let Some(block) = app.block {
 		let (meta, spec) = metadata_by_block(&mut conn, block).await?;
+		let mut decoder = decoder.lock();
 		decoder.register_version(spec.try_into()?, meta);
 		let block = single_block(&mut conn, block as i32).await?;
 		decode(&decoder, spec, block)?;
@@ -68,21 +77,72 @@ pub async fn app(app: App) -> Result<(), Error> {
 
 	if let Some(spec) = app.spec {
 		let metadata = metadata(&mut conn, spec).await?;
+		let mut decoder = decoder.lock();
 		decoder.register_version(spec.try_into()?, metadata);
-		let mut blocks = blocks_by_spec(&mut conn, spec);
-		let mut len = 0;
-		let mut error_count = 0;
 		let now = std::time::Instant::now();
-		while let Some(Ok(block)) = blocks.next().await {
-			if decode(&decoder, spec, block).is_err() {
-				error_count +=1;
-			}
-			len += 1;
-		}
+		let count = blocks_in_spec(&mut conn, spec).await?;
+		let pb = construct_progress_bar(count as usize);
+		pb.set_message(format!("decoding blocks for spec {}", spec));
+		let (error_count, len) = print_blocks_by_spec(&mut conn, &decoder, spec, &pb).await;
 		println!("Took {:?} to decode {} blocks with {} errors.", now.elapsed(), len, error_count);
 	}
 
+	if let Some(to) = app.to {
+		let spec_versions = spec_versions_upto(&mut conn, to).await?;
+		let now = std::time::Instant::now();
+		let count = count_upto_spec(&mut conn, to).await?;
+		let pb = construct_progress_bar(count as usize);
+		pb.set_message(format!("decoding blocks up to spec {}", to));
+		let (error_count, length) = print_blocks(&pool, &decoder, spec_versions, pb)?;
+		println!("Took {:?} to decode {} blocks with {} errors.", now.elapsed(), length, error_count);
+	}
+
+	if app.all {
+		let spec_versions = spec_versions(&mut conn).await?;
+		let now = std::time::Instant::now();
+		let count = total_block_count(&mut conn).await?;
+		let pb = construct_progress_bar(count as usize);
+		pb.set_message("decoding all blocks");
+		let (error_count, length) = print_blocks(&pool, &decoder, spec_versions, pb)?;
+		println!("Took {:?} to decode {} blocks with {} errors.", now.elapsed(), length, error_count);
+	}
 	Ok(())
+}
+
+fn print_blocks(pool: &PgPool, decoder: &Mutex<Decoder>, spec_versions: Vec<u32>, pb: ProgressBar) -> Result<(usize, usize), Error> {
+	let error_count = AtomicUsize::new(0);
+	let length = AtomicUsize::new(0);
+	spec_versions.into_par_iter().try_for_each(|version| {
+		let mut conn = task::block_on(pool.acquire())?;
+		let metadata = task::block_on(metadata(&mut conn, version as i32))?;
+		let mut decoder = decoder.lock();
+		decoder.register_version(version as u32, metadata);
+		let (err, len) = task::block_on(print_blocks_by_spec(&mut conn, &decoder, version as i32, &pb));
+		error_count.fetch_add(err, Ordering::SeqCst);
+		length.fetch_add(len, Ordering::SeqCst);
+		Ok::<_, Error>(())
+	})?;
+	Ok((error_count.into_inner(), length.into_inner()))
+}
+
+async fn print_blocks_by_spec(
+	conn: &mut PgConnection,
+	decoder: &Decoder,
+	spec: SpecVersion,
+	pb: &ProgressBar,
+) -> (usize, usize) {
+
+	let mut blocks = blocks_by_spec(conn, spec);
+	let mut len = 0;
+	let mut error_count = 0;
+	while let Some(Ok(block)) = blocks.next().await {
+		if decode(&decoder, spec, block).is_err() {
+			error_count +=1;
+		}
+		len += 1;
+		pb.inc(1);
+	}
+	(error_count, len)
 }
 
 fn decode(decoder: &Decoder, spec: SpecVersion, block: BlockModel) -> Result<(), Error> {
@@ -93,7 +153,7 @@ fn decode(decoder: &Decoder, spec: SpecVersion, block: BlockModel) -> Result<(),
 			Err(e.into())
 		},
 		Ok(d) => {
-			log::info!("Block {} Decoded Sucesfully. {}", block.block_num, serde_json::to_string_pretty(&d)?);
+			log::info!("Block {} Decoded Succesfully. {}", block.block_num, serde_json::to_string_pretty(&d)?);
 			Ok(())
 		}
 	}
@@ -103,4 +163,12 @@ fn default_database_url() -> String {
 	"postgres://postgres@localhost:5432/postgres".to_string()
 }
 
-
+fn construct_progress_bar(count: usize) -> ProgressBar {
+	let bar = ProgressBar::new(count as u64);
+	bar.set_style(
+		ProgressStyle::default_bar()
+			.template("{spinner:.cyan} {msg} [{elapsed_precise}] [{bar:40.cyan/blue}] {percent}% ({eta}) ({pos}/{len})")
+			.progress_chars("#>-"),
+	);
+	bar
+}

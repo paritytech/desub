@@ -32,16 +32,42 @@ pub struct BlockModel {
 	pub ext: Vec<u8>,
 	pub spec: i32,
 }
-// just returns all blocks in the database of a specific spec as a stream
-pub fn blocks_by_spec(conn: &mut PgConnection, spec: i32) -> impl Stream<Item = Result<BlockModel, Error>> + '_ {
-	sqlx::query_as!(BlockModel, "SELECT * FROM blocks WHERE spec = $1", spec)
-		.fetch(conn)
-		.map_err(Into::into)
+
+#[derive(FromRow)]
+struct Count {
+	count: i64
 }
 
-// just returns all blocks in the database of a specific spec as a stream
-pub fn blocks(conn: &mut PgConnection) -> impl Stream<Item = Result<BlockModel, Error>> + '_ {
-	sqlx::query_as!(BlockModel, "SELECT * FROM blocks")
+/// returns how many blocks exist for a spec version.
+pub async fn blocks_in_spec(conn: &mut PgConnection, spec: i32) -> Result<i64, Error> {
+	Ok(sqlx::query_as::<_, Count>("SELECT COUNT(*) FROM blocks WHERE spec = $1")
+		.bind(spec)
+		.fetch_one(conn)
+		.await?
+		.count
+	)
+}
+
+pub async fn total_block_count(conn: &mut PgConnection) -> Result<i64, Error> {
+	Ok(sqlx::query_as::<_, Count>("SELECT COUNT(*) FROM blocks")
+		.fetch_one(conn)
+		.await?
+		.count
+	)
+}
+
+pub async fn count_upto_spec(conn: &mut PgConnection, spec: i32) -> Result<i64, Error> {
+	Ok(sqlx::query_as::<_, Count>("SELECT COUNT(*) FROM blocks WHERE spec < $1")
+		.bind(spec)
+		.fetch_one(conn)
+		.await?
+		.count
+	)
+}
+
+/// returns all blocks in the database of a specific spec as a stream
+pub fn blocks_by_spec(conn: &mut PgConnection, spec: i32) -> impl Stream<Item = Result<BlockModel, Error>> + '_ {
+	sqlx::query_as!(BlockModel, "SELECT * FROM blocks WHERE spec = $1", spec)
 		.fetch(conn)
 		.map_err(Into::into)
 }
@@ -65,6 +91,28 @@ pub async fn metadata(conn: &mut PgConnection, spec: i32) -> Result<Vec<u8>, Err
 		.await
 		.map_err(Into::into)
 		.map(|m| m.meta)
+}
+
+#[derive(FromRow)]
+struct Version {
+	pub version: i32
+}
+
+pub async fn spec_versions(conn: &mut PgConnection) -> Result<Vec<u32>, Error> {
+	sqlx::query_as!(Version, "SELECT version FROM metadata")
+		.fetch_all(conn)
+		.await
+		.map_err(Into::into)
+		.map(|r| r.iter().map(|v| v.version as u32).collect())
+
+}
+
+pub async fn spec_versions_upto(conn: &mut PgConnection, upto: i32) -> Result<Vec<u32>, Error> {
+	sqlx::query_as!(Version, "SELECT version FROM metadata WHERE version < $1", upto)
+		.fetch_all(conn)
+		.await
+		.map_err(Into::into)
+		.map(|r| r.iter().map(|v| v.version as u32).collect())
 }
 
 #[derive(FromRow)]

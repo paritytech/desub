@@ -598,7 +598,6 @@ dependencies = [
  "sp-core 4.0.0-dev",
  "sp-runtime",
  "sp-version",
- "syn",
  "thiserror",
 ]
 

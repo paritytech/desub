@@ -24,8 +24,6 @@ pub enum Error {
 	Decode(#[from] serde_json::Error),
 	#[error("Could not parse {0} into type")]
 	TypeError(String),
-	#[error(transparent)]
-	ParseError(#[from] syn::parse::Error),
 	#[error("type is not possible in the context of rust")]
 	UnexpectedType,
 }
