@@ -6,6 +6,7 @@ mod extrinsics;
 mod modules;
 mod overrides;
 mod resolver;
+pub mod runtimes;
 
 pub use self::error::*;
 pub use self::extrinsics::*;

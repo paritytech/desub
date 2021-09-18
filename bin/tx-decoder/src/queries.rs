@@ -98,6 +98,7 @@ struct Version {
 	pub version: i32
 }
 
+/// Gets all spec versions
 pub async fn spec_versions(conn: &mut PgConnection) -> Result<Vec<u32>, Error> {
 	sqlx::query_as!(Version, "SELECT version FROM metadata")
 		.fetch_all(conn)
@@ -113,6 +114,26 @@ pub async fn spec_versions_upto(conn: &mut PgConnection, upto: i32) -> Result<Ve
 		.await
 		.map_err(Into::into)
 		.map(|r| r.iter().map(|v| v.version as u32).collect())
+}
+
+#[derive(FromRow)]
+struct PastAndPresentVersion {
+	pub version: i32,
+	pub past_version: i32
+}
+
+pub async fn past_and_present_version(conn: &mut PgConnection, spec: i32) -> Result<(u32, u32), Error> {
+	Ok(sqlx::query_as::<_, PastAndPresentVersion>(
+	"
+	SELECT version, past_version FROM (
+		SELECT version, metadata,
+			LAG(version, 1) OVER (ORDER BY version) as past_version
+		FROM metadata
+	) as z WHERE version = $1;")
+	.bind(spec)
+	.fetch_one(conn)
+	.await
+	.map(|v| (v.past_version as u32, v.version as u32))?)
 }
 
 #[derive(FromRow)]
@@ -135,5 +156,3 @@ pub async fn metadata_by_block(conn: &mut PgConnection, number: u32) -> Result<(
 	.map_err(Into::into)
 	.map(|m| (m.meta, m.version))
 }
-
-
