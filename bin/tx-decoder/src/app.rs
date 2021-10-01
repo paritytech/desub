@@ -111,7 +111,7 @@ impl<'a> AppState<'a> {
 	}
 
 	fn decode(decoder: &Decoder, block: BlockModel, spec: SpecVersion, errors: &mut Vec<String>) -> Result<(), Error> {
-		log::trace!("-<<-<<-<<-<<-<<-<<-<<-<<-<< Decoding block {}, ext length {}", block.block_num, block.ext.len());
+		log::debug!("-<<-<<-<<-<<-<<-<<-<<-<<-<< Decoding block {}, ext length {}", block.block_num, block.ext.len());
 		match decoder.decode_extrinsics(spec.try_into()?, block.ext.as_slice()) {
 			Err(e) => {
 				let e: Error = e.into();

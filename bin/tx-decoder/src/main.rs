@@ -36,6 +36,7 @@ async fn main() -> Result<(), Error> {
 		.level(log::LevelFilter::Error)
 		.level_for("desub_core", level)
 		.level_for("desub_extras", level)
+		.level_for("tx_decoder", level)
 		.format(move |out, message, record| {
 			out.finish(format_args!(
 				" {} {}::{}		>{} ",

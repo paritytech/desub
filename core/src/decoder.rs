@@ -137,6 +137,10 @@ impl<'a> Module<'a> {
 		self.module = Some(module);
 	}
 
+	fn reset(&mut self) {
+		self.module = None;
+	}
+
 	fn name(&self) -> &'a str {
 		self.module.map(ModuleMetadata::name).unwrap_or("runtime")
 	}
@@ -220,6 +224,8 @@ impl<'a> DecodeState<'a> {
 
 	fn reset(&mut self, data: &'a [u8]) {
 		self.data = data;
+		self.module.reset();
+		self.call.replace(None);
 		self.set_cursor(0);
 	}
 
