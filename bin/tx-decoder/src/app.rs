@@ -16,19 +16,26 @@
 
 use crate::queries::*;
 
-use desub::decoder::{Decoder, Chain};
+use desub::decoder::{Chain, Decoder};
 use desub_extras::runtimes;
 
-use sqlx::postgres::{PgPoolOptions, PgPool, PgConnection};
-use futures::StreamExt;
 use anyhow::Error;
-use indicatif::{ProgressBar, ProgressStyle};
-use rayon::prelude::*;
 use argh::FromArgs;
 use async_std::task;
-use parking_lot::{RwLock, Mutex};
+use futures::StreamExt;
+use indicatif::{ProgressBar, ProgressStyle};
+use parking_lot::{Mutex, RwLock};
+use rayon::prelude::*;
+use sqlx::postgres::{PgConnection, PgPool, PgPoolOptions};
 
-use std::{convert::TryInto, borrow::Cow, sync::{Arc, atomic::{AtomicUsize, Ordering}}};
+use std::{
+	borrow::Cow,
+	convert::TryInto,
+	sync::{
+		atomic::{AtomicUsize, Ordering},
+		Arc,
+	},
+};
 
 type SpecVersion = i32;
 
@@ -65,16 +72,11 @@ struct AppState<'a> {
 	app: &'a App,
 	decoder: &'a RwLock<Decoder>,
 	pool: &'a PgPool,
-	pb: Option<&'a ProgressBar>
+	pb: Option<&'a ProgressBar>,
 }
 
 impl<'a> AppState<'a> {
-	fn new(
-		app: &'a App,
-		decoder: &'a RwLock<Decoder>,
-		pool: &'a PgPool,
-		pb: Option<&'a ProgressBar>
-	) -> Self {
+	fn new(app: &'a App, decoder: &'a RwLock<Decoder>, pool: &'a PgPool, pb: Option<&'a ProgressBar>) -> Self {
 		Self { app, decoder, pool, pb }
 	}
 
@@ -86,7 +88,8 @@ impl<'a> AppState<'a> {
 			let mut conn = task::block_on(self.pool.acquire())?;
 			let previous = task::block_on(self.register_metadata(&mut conn, version.try_into()?))?.map(|v| v as i32);
 			let mut errors = (*errors).lock();
-			let (err, len) = task::block_on(self.print_blocks_by_spec(&mut conn, version as i32, previous, &mut errors))?;
+			let (err, len) =
+				task::block_on(self.print_blocks_by_spec(&mut conn, version as i32, previous, &mut errors))?;
 			error_count.fetch_add(err, Ordering::SeqCst);
 			length.fetch_add(len, Ordering::SeqCst);
 			Ok::<_, Error>(())
@@ -94,15 +97,26 @@ impl<'a> AppState<'a> {
 		Ok((error_count.into_inner(), length.into_inner()))
 	}
 
-	async fn print_blocks_by_spec(&self, conn: &mut PgConnection, version: i32, previous: Option<i32>, errors: &mut Vec<String>) -> Result<(usize, usize), Error> {
+	async fn print_blocks_by_spec(
+		&self,
+		conn: &mut PgConnection,
+		version: i32,
+		previous: Option<i32>,
+		errors: &mut Vec<String>,
+	) -> Result<(usize, usize), Error> {
 		let mut blocks = blocks_by_spec(conn, version);
+		let upgrade_block = get_upgrade_block(&self.app.network, version.try_into()?);
 		let mut len = 0;
 		let mut error_count = 0;
 		let decoder = self.decoder.read();
 		while let Some(Ok(block)) = blocks.next().await {
-			let spec = if is_upgrade_block(&self.app.network, block.block_num.try_into()?) { previous.expect("Upgrade block must have previous version; qed") } else { version };
-			if Self::decode(&decoder, block, spec, errors).is_err() {
-				error_count +=1;
+			let version = if upgrade_block == Some(block.block_num.try_into()?) {
+				previous.expect("Upgrade block must have previous version; qed")
+			} else {
+				version
+			};
+			if Self::decode(&decoder, block, version, errors).is_err() {
+				error_count += 1;
 			}
 			len += 1;
 			self.pb.map(|p| p.inc(1));
@@ -118,7 +132,7 @@ impl<'a> AppState<'a> {
 				let e = e.context(format!("Failed to decode block {}", block.block_num));
 				errors.push(format!("{}", e));
 				Err(e)
-			},
+			}
 			Ok(d) => {
 				log::info!("Block {} Decoded Succesfully. {}", block.block_num, serde_json::to_string_pretty(&d)?);
 				Ok(())
@@ -159,10 +173,7 @@ impl<'a> AppState<'a> {
 }
 
 pub async fn app(app: App) -> Result<(), Error> {
-	let pool = PgPoolOptions::new()
-		.max_connections(num_cpus::get() as u32)
-		.connect(&app.database_url)
-		.await?;
+	let pool = PgPoolOptions::new().max_connections(num_cpus::get() as u32).connect(&app.database_url).await?;
 
 	let mut conn = pool.acquire().await?;
 
@@ -170,9 +181,7 @@ pub async fn app(app: App) -> Result<(), Error> {
 	let decoder = Arc::new(RwLock::new(Decoder::new(types, app.network.clone())));
 	let mut errors = Vec::new();
 
-	let pb = if app.progress {
-		Some(construct_progress_bar(1000))
-	} else { None };
+	let pb = if app.progress { Some(construct_progress_bar(1000)) } else { None };
 
 	let state = AppState::new(&app, &decoder, &pool, pb.as_ref());
 
@@ -180,10 +189,13 @@ pub async fn app(app: App) -> Result<(), Error> {
 		let version = version_by_block(&mut conn, *block).await?;
 		let previous = state.register_metadata(&mut conn, version).await?;
 		let block = single_block(&mut conn, *block as i32).await?;
-		let version = if is_upgrade_block(&app.network, block.block_num.try_into()?) { previous.expect("Upgrade block must have previous version; qed") } else { version as u32 };
+		let version = if get_upgrade_block(&app.network, version.try_into()?) == Some(block.block_num.try_into()?) {
+			previous.expect("Upgrade block must have previous version; qed")
+		} else {
+			version as u32
+		};
 		AppState::decode(&decoder.read(), block, version.try_into()?, &mut errors)?;
 	}
-
 
 	if let Some(spec) = app.spec {
 		let now = std::time::Instant::now();
@@ -237,11 +249,11 @@ fn construct_progress_bar(count: usize) -> ProgressBar {
 	bar
 }
 
-fn is_upgrade_block(chain: &Chain, number: u64) -> bool {
+fn get_upgrade_block(chain: &Chain, version: u32) -> Option<u64> {
 	match chain {
-		Chain::Kusama => runtimes::kusama_upgrade_block(&number).is_some(),
-		Chain::Polkadot => runtimes::polkadot_upgrade_block(&number).is_some(),
-		Chain::Westend => runtimes::westend_upgrade_block(&number).is_some(),
-		_ => false
+		Chain::Kusama => runtimes::kusama_upgrade_block(&version),
+		Chain::Polkadot => runtimes::polkadot_upgrade_block(&version),
+		Chain::Westend => runtimes::westend_upgrade_block(&version),
+		_ => None,
 	}
 }
