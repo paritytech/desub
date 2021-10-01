@@ -72,12 +72,23 @@
 	{
 		"minmax": [
 			2015,
-			null
+			2027
 		],
 		"types": {
 			"Address": "AccountId",
 			"SignedExtra": "(CheckVersion, CheckGenesis, CheckMortality, CheckNonce, CheckWeight, ChargeTransactionPayment, LimitParathreadCommits)"
 		}
-	}
+	},
+	{
+		"minmax": [
+			2028,
+			null
+		],
+		"types": {
+			"signature": "(MultiAddress, MultiSignature, SignedExtra)",
+			"Address": "MultiAddress",
+			"SignedExtra": "(CheckVersion, CheckGenesis, CheckMortality, CheckNonce, CheckWeight, ChargeTransactionPayment, LimitParathreadCommits)"
+		}
+	 }
    ]
 }

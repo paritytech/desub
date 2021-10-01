@@ -44,7 +44,7 @@ use crate::{
 	substrate_types::{self, StructField, SubstrateType},
 	CommonTypes, RustTypeMarker, TypeDetective,
 };
-use codec::{Compact, CompactLen, Decode};
+use codec::{Compact, CompactLen, Decode, Input};
 use std::{
 	collections::HashMap, convert::TryFrom, str::FromStr,
 	cell::RefCell, rc::Rc, sync::atomic::{AtomicUsize,Ordering}
@@ -244,8 +244,12 @@ impl<'a> DecodeState<'a> {
 	}
 
 	/// Decode with an incrementor
-	fn do_decode<T: Decode>(&self, inc: usize) -> Result<T, Error> {
-		let ty = Decode::decode(&mut &self.data[self.cursor.load(Ordering::Relaxed)..])?;
+	fn do_decode<T: Decode>(&self) -> Result<T, Error> {
+		let input = &mut &self.data[self.cursor.load(Ordering::Relaxed)..];
+		let remaining_len = input.remaining_len()?.expect("&'a u8 is always Some()");
+		let ty = Decode::decode(input)?;
+		let after_remaining_len = input.remaining_len()?.expect("&'a u8 is always Some()");
+		let inc = remaining_len - after_remaining_len;
 		self.add(inc);
 		Ok(ty)
 	}
@@ -492,6 +496,7 @@ impl Decoder {
 			.types
 			.get_extrinsic_ty(self.chain.as_str(), state.spec, "signature")
 			.expect("Signature must not be empty");
+		log::trace!("Signature type is: {}", signature);
 		state.observe(line!());
 		// Ok(Some(self.decode_single("runtime", spec, signature, data, cursor, false)?))
 		self.decode_single(state, signature, false)
@@ -672,7 +677,7 @@ impl Decoder {
 					state.add(Compact::compact_len(&u8::from(num)));
 					num.into()
 				} else {
-					let num: u8 = state.do_decode(1)?;
+					let num: u8 = state.do_decode()?;
 					num
 				};
 				num.into()
@@ -684,7 +689,7 @@ impl Decoder {
 					state.add(Compact::compact_len(&u16::from(num)));
 					num.into()
 				} else {
-					let num: u16 = state.do_decode(2)?;
+					let num: u16 = state.do_decode()?;
 					num
 				};
 				num.into()
@@ -698,7 +703,7 @@ impl Decoder {
 					log::trace!("Compact<u32>:{:?}", num);
 					num.into()
 				} else {
-					let num: u32 = state.do_decode(4)?;
+					let num: u32 = state.do_decode()?;
 					log::trace!("u32:{}", num);
 					num
 				};
@@ -712,7 +717,7 @@ impl Decoder {
 					state.add(Compact::compact_len(&num));
 					num
 				} else {
-					let num: u64 = state.do_decode(8)?;
+					let num: u64 = state.do_decode()?;
 					num
 				};
 				num.into()
@@ -728,7 +733,7 @@ impl Decoder {
 					state.add(compact_len);
 					num.into()
 				} else {
-					let num: u128 = state.do_decode(16)?;
+					let num: u128 = state.do_decode()?;
 					num.into()
 				}
 			}
@@ -743,17 +748,17 @@ impl Decoder {
 			}
 			RustTypeMarker::I8 => {
 				log::trace!("Decoding i8");
-				let num: i8 = if is_compact { unimplemented!() } else { state.do_decode(1)? };
+				let num: i8 = if is_compact { unimplemented!() } else { state.do_decode()? };
 				num.into()
 			}
 			RustTypeMarker::I16 => {
 				log::trace!("Decoding i16");
-				let num: i16 = if is_compact { unimplemented!() } else { state.do_decode(2)? };
+				let num: i16 = if is_compact { unimplemented!() } else { state.do_decode()? };
 				num.into()
 			}
 			RustTypeMarker::I32 => {
 				log::trace!("Decoding i32");
-				let num: i32 = if is_compact { unimplemented!() } else { state.do_decode(4)? };
+				let num: i32 = if is_compact { unimplemented!() } else { state.do_decode()? };
 				num.into()
 			}
 			RustTypeMarker::I64 => {
@@ -763,13 +768,13 @@ impl Decoder {
 					// num.into()
 					unimplemented!()
 				} else {
-					state.do_decode(8)?
+					state.do_decode()?
 				};
 				num.into()
 			}
 			RustTypeMarker::I128 => {
 				log::trace!("Decoding i128");
-				let num: i128 = if is_compact { unimplemented!() } else { state.do_decode(16)? };
+				let num: i128 = if is_compact { unimplemented!() } else { state.do_decode()? };
 				num.into()
 			}
 			RustTypeMarker::ISize => {
@@ -801,7 +806,7 @@ impl Decoder {
 			RustTypeMarker::String => unimplemented!(),
 			RustTypeMarker::Bool => {
 				log::trace!("Decoding boolean");
-				let boo: bool = state.do_decode(1)?;
+				let boo: bool = state.do_decode()?;
 				//   . - .
 				//  ( o o )
 				//  |  0  \
@@ -921,7 +926,7 @@ impl Decoder {
 			}
 			"GenericVote" => {
 				log::trace!("Decoding GenericVote");
-				let vote: pallet_democracy::Vote = state.do_decode(1)?;
+				let vote: pallet_democracy::Vote = state.do_decode()?;
 				Ok(Some(SubstrateType::GenericVote(vote)))
 			}
 			// Old Address Format for backwards-compatibility https://github.com/paritytech/substrate/pull/7380
@@ -939,15 +944,8 @@ impl Decoder {
 				Ok(Some(self.decode_single(state, &RustTypeMarker::TypePointer("LookupSource".into()), is_compact)?))
 			},
 			"GenericMultiAddress" => {
-				let val: substrate_types::Address = state.decode()?;
-				let cursor_offset = match &val {
-					substrate_types::Address::Id(_) => 32,
-					substrate_types::Address::Index(_) => 1,
-					substrate_types::Address::Raw(v) => v.len(),
-					substrate_types::Address::Address32(_) => 32,
-					substrate_types::Address::Address20(_) => 20,
-				};
-				state.add(cursor_offset);
+				let val: substrate_types::Address = state.do_decode()?;
+				log::trace!("Address: {:?}", val);
 				Ok(Some(SubstrateType::Address(val)))
 			}
 			"Era" => {
@@ -963,11 +961,11 @@ impl Decoder {
 				Ok(Some(SubstrateType::Era(val)))
 			}
 			"H256" => {
-				let val: primitives::H256 = state.do_decode(32)?;
+				let val: primitives::H256 = state.do_decode()?;
 				Ok(Some(SubstrateType::H256(val)))
 			}
 			"H512" => {
-				let val: primitives::H512 = state.do_decode(64)?;
+				let val: primitives::H512 = state.do_decode()?;
 				log::trace!("H512: {}", hex::encode(val.as_bytes()));
 				Ok(Some(SubstrateType::H512(val)))
 			}
