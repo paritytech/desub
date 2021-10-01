@@ -169,7 +169,7 @@ pub fn remove_path<'a, S: AsRef<str>>(s: S) -> Option<String> {
 pub fn remove_trait<'a, S: AsRef<str>>(s: S) -> Option<String> {
 	let s: &str = s.as_ref();
 
-	let re = Regex::new(r"^<T as Trait[><\w]+:*([\W\w]*)").expect("Regex expression should be infallible; qed");
+	let re = Regex::new(r"^(?:<T as Trait|<T as Config<\w>|<T as Trait<\w>)[><\w]+:*([\W\w]*)").expect("Regex expression should be infallible; qed");
 	let caps = re.captures(s)?;
 	caps.iter().nth(1)?.map(|s| s.to_string())
 }

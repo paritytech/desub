@@ -26,7 +26,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 use argh::FromArgs;
 use async_std::task;
-use parking_lot::RwLock;
+use parking_lot::{RwLock, Mutex};
 
 use std::{convert::TryInto, borrow::Cow, sync::{Arc, atomic::{AtomicUsize, Ordering}}};
 
@@ -78,13 +78,15 @@ impl<'a> AppState<'a> {
 		Self { app, decoder, pool, pb }
 	}
 
-	fn print_blocks(&self, versions: Vec<u32>) -> Result<(usize, usize), Error> {
+	fn print_blocks(&self, versions: Vec<u32>, errors: &mut Vec<String>) -> Result<(usize, usize), Error> {
 		let error_count = AtomicUsize::new(0);
 		let length = AtomicUsize::new(0);
+		let errors = Arc::new(Mutex::new(errors));
 		versions.into_par_iter().try_for_each(|version| {
 			let mut conn = task::block_on(self.pool.acquire())?;
-			let previous = task::block_on(self.register_metadata(&mut conn, version.try_into()?))?;
-			let (err, len) = task::block_on(self.print_blocks_by_spec(&mut conn, version as i32, previous as i32))?;
+			let previous = task::block_on(self.register_metadata(&mut conn, version.try_into()?))?.map(|v| v as i32);
+			let mut errors = (*errors).lock();
+			let (err, len) = task::block_on(self.print_blocks_by_spec(&mut conn, version as i32, previous, &mut errors))?;
 			error_count.fetch_add(err, Ordering::SeqCst);
 			length.fetch_add(len, Ordering::SeqCst);
 			Ok::<_, Error>(())
@@ -92,14 +94,14 @@ impl<'a> AppState<'a> {
 		Ok((error_count.into_inner(), length.into_inner()))
 	}
 
-	async fn print_blocks_by_spec(&self, conn: &mut PgConnection, version: i32, previous: i32) -> Result<(usize, usize), Error> {
+	async fn print_blocks_by_spec(&self, conn: &mut PgConnection, version: i32, previous: Option<i32>, errors: &mut Vec<String>) -> Result<(usize, usize), Error> {
 		let mut blocks = blocks_by_spec(conn, version);
 		let mut len = 0;
 		let mut error_count = 0;
 		let decoder = self.decoder.read();
 		while let Some(Ok(block)) = blocks.next().await {
-			let spec = if is_upgrade_block(&self.app.network, block.block_num.try_into()?) { previous } else { version };
-			if Self::decode(&decoder, block, spec).is_err() {
+			let spec = if is_upgrade_block(&self.app.network, block.block_num.try_into()?) { previous.expect("Upgrade block must have previous version; qed") } else { version };
+			if Self::decode(&decoder, block, spec, errors).is_err() {
 				error_count +=1;
 			}
 			len += 1;
@@ -108,12 +110,14 @@ impl<'a> AppState<'a> {
 		Ok((error_count, len))
 	}
 
-	fn decode(decoder: &Decoder, block: BlockModel, spec: SpecVersion) -> Result<(), Error> {
+	fn decode(decoder: &Decoder, block: BlockModel, spec: SpecVersion, errors: &mut Vec<String>) -> Result<(), Error> {
 		log::trace!("-<<-<<-<<-<<-<<-<<-<<-<<-<< Decoding block {}, ext length {}", block.block_num, block.ext.len());
 		match decoder.decode_extrinsics(spec.try_into()?, block.ext.as_slice()) {
 			Err(e) => {
-				log::error!("Failed to decode block {} due to {}", block.block_num, e);
-				Err(e.into())
+				let e: Error = e.into();
+				let e = e.context(format!("Failed to decode block {}", block.block_num));
+				errors.push(format!("{}", e));
+				Err(e)
 			},
 			Ok(d) => {
 				log::info!("Block {} Decoded Succesfully. {}", block.block_num, serde_json::to_string_pretty(&d)?);
@@ -121,9 +125,10 @@ impl<'a> AppState<'a> {
 			}
 		}
 	}
+
 	/// Register the metadata with Decoder
 	/// returns the previous spec version.
-	async fn register_metadata(&self, conn: &mut PgConnection, version: SpecVersion) -> Result<u32, Error> {
+	async fn register_metadata(&self, conn: &mut PgConnection, version: SpecVersion) -> Result<Option<u32>, Error> {
 		let (past, present) = past_and_present_version(conn, version).await?;
 		let mut decoder = self.decoder.write();
 		if !decoder.has_version(present) {
@@ -131,13 +136,15 @@ impl<'a> AppState<'a> {
 			decoder.register_version(present, meta);
 		}
 
-		if !decoder.has_version(past) {
-			let meta = metadata(conn, past.try_into()?).await?;
-			decoder.register_version(past, meta);
+		if let Some(p) = past {
+			if !decoder.has_version(p) {
+				let meta = metadata(conn, p.try_into()?).await?;
+				decoder.register_version(p, meta);
+			}
 		}
-
-		Ok(past)
+		Ok(past.try_into()?)
 	}
+
 	fn set_message(&self, msg: impl Into<Cow<'static, str>>) {
 		self.pb.map(|p| p.set_message(msg));
 	}
@@ -161,6 +168,7 @@ pub async fn app(app: App) -> Result<(), Error> {
 
 	let types = desub_extras::TypeResolver::default();
 	let decoder = Arc::new(RwLock::new(Decoder::new(types, app.network.clone())));
+	let mut errors = Vec::new();
 
 	let pb = if app.progress {
 		Some(construct_progress_bar(1000))
@@ -169,11 +177,11 @@ pub async fn app(app: App) -> Result<(), Error> {
 	let state = AppState::new(&app, &decoder, &pool, pb.as_ref());
 
 	if let Some(block) = &app.block {
-		let (_, version) = metadata_by_block(&mut conn, *block).await?;
+		let version = version_by_block(&mut conn, *block).await?;
 		let previous = state.register_metadata(&mut conn, version).await?;
 		let block = single_block(&mut conn, *block as i32).await?;
-		let version = if is_upgrade_block(&app.network, block.block_num.try_into()?) { previous } else { version as u32 };
-		AppState::decode(&decoder.read(), block, version.try_into()?)?;
+		let version = if is_upgrade_block(&app.network, block.block_num.try_into()?) { previous.expect("Upgrade block must have previous version; qed") } else { version as u32 };
+		AppState::decode(&decoder.read(), block, version.try_into()?, &mut errors)?;
 	}
 
 
@@ -182,7 +190,7 @@ pub async fn app(app: App) -> Result<(), Error> {
 		let count = blocks_in_spec(&mut conn, spec).await?;
 		state.set_message(format!("decoding blocks for spec {}", spec));
 		state.set_length(count as u64);
-		let (error_count, len) = state.print_blocks(vec![spec.try_into()?])?;
+		let (error_count, len) = state.print_blocks(vec![spec.try_into()?], &mut errors)?;
 		state.finish_and_clear();
 		println!("Took {:?} to decode {} blocks with {} errors.", now.elapsed(), len, error_count);
 	}
@@ -193,7 +201,7 @@ pub async fn app(app: App) -> Result<(), Error> {
 		let count = count_upto_spec(&mut conn, to).await?;
 		state.set_message(format!("decoding blocks up to spec {}", to));
 		state.set_length(count as u64);
-		let (error_count, length) = state.print_blocks(spec_versions)?;
+		let (error_count, length) = state.print_blocks(spec_versions, &mut errors)?;
 		state.finish_and_clear();
 		println!("Took {:?} to decode {} blocks with {} errors.", now.elapsed(), length, error_count);
 	}
@@ -204,9 +212,13 @@ pub async fn app(app: App) -> Result<(), Error> {
 		let count = total_block_count(&mut conn).await?;
 		pb.as_ref().map(|p| p.set_message("decoding all blocks"));
 		pb.as_ref().map(|p| p.set_length(count as u64));
-		let (error_count, length) = state.print_blocks(spec_versions)?;
+		let (error_count, length) = state.print_blocks(spec_versions, &mut errors)?;
 		state.finish_and_clear();
 		println!("Took {:?} to decode {} blocks with {} errors.", now.elapsed(), length, error_count);
+	}
+
+	for e in errors.iter() {
+		log::error!("{}", e);
 	}
 	Ok(())
 }
@@ -233,5 +245,3 @@ fn is_upgrade_block(chain: &Chain, number: u64) -> bool {
 		_ => false
 	}
 }
-
-

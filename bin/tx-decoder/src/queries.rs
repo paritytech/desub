@@ -16,7 +16,7 @@
 
 use sqlx::{PgConnection, FromRow};
 use futures::{Stream, TryStreamExt};
-use anyhow::Error;
+use anyhow::{Context, Error};
 use serde::{Serialize, Deserialize};
 
 /// Struct modeling data returned from database when querying for a block
@@ -118,14 +118,17 @@ pub async fn spec_versions_upto(conn: &mut PgConnection, upto: i32) -> Result<Ve
 
 #[derive(FromRow)]
 struct PastAndPresentVersion {
-	pub version: i32,
-	pub past_version: i32
+	pub present: i32,
+	pub past: Option<i32>
 }
 
-pub async fn past_and_present_version(conn: &mut PgConnection, spec: i32) -> Result<(u32, u32), Error> {
-	Ok(sqlx::query_as::<_, PastAndPresentVersion>(
+pub async fn past_and_present_version(
+	conn: &mut PgConnection,
+	spec: i32) -> Result<(Option<u32>, u32), Error>
+{
+	let version = sqlx::query_as::<_, PastAndPresentVersion>(
 	"
-	SELECT version, past_version FROM (
+	SELECT version as present, past_version as past FROM (
 		SELECT version, metadata,
 			LAG(version, 1) OVER (ORDER BY version) as past_version
 		FROM metadata
@@ -133,19 +136,21 @@ pub async fn past_and_present_version(conn: &mut PgConnection, spec: i32) -> Res
 	.bind(spec)
 	.fetch_one(conn)
 	.await
-	.map(|v| (v.past_version as u32, v.version as u32))?)
+	.map(|v| (v.past.map(|p| p as u32), v.present as u32))
+	.context(format!("Failed to get previous version of {}", spec))?;
+
+	Ok(version)
 }
 
 #[derive(FromRow)]
 struct MetaAndVersion {
-	pub meta: Vec<u8>,
 	pub version: i32,
 }
 
-pub async fn metadata_by_block(conn: &mut PgConnection, number: u32) -> Result<(Vec<u8>, i32), Error> {
+pub async fn version_by_block(conn: &mut PgConnection, number: u32) -> Result<i32, Error> {
 	sqlx::query_as!(MetaAndVersion,
-		"SELECT meta, version FROM (
-			SELECT block_num, blocks.spec, metadata.version, metadata.meta FROM blocks, metadata
+		"SELECT version FROM (
+			SELECT block_num, blocks.spec, metadata.version FROM blocks, metadata
 			WHERE
 				block_num = $1
 			AND
@@ -154,5 +159,5 @@ pub async fn metadata_by_block(conn: &mut PgConnection, number: u32) -> Result<(
 	.fetch_one(conn)
 	.await
 	.map_err(Into::into)
-	.map(|m| (m.meta, m.version))
+	.map(|v| v.version)
 }

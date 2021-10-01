@@ -65,18 +65,17 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
 		};
 		let mut modules = HashMap::new();
 		let (mut modules_by_event_index, mut modules_by_call_index) = (HashMap::new(), HashMap::new());
-		let (mut event_index, mut call_index) = (0, 0);
-		for (i, module) in convert(meta.modules)?.into_iter().enumerate() {
+		let mut event_index = 0;
+		for module in convert(meta.modules)?.into_iter() {
 			let module_name = convert(module.name.clone())?;
 			if module.calls.is_some() {
-				modules_by_call_index.insert(call_index, module_name.clone());
-				call_index += 1;
+				modules_by_call_index.insert(module.index, module_name.clone());
 			}
 			if module.event.is_none() {
 				modules_by_event_index.insert(event_index, module_name.clone());
 				event_index += 1;
 			}
-			let module_metadata = convert_module(i, module)?;
+			let module_metadata = convert_module(module)?;
 			modules.insert(module_name, std::sync::Arc::new(module_metadata));
 		}
 
@@ -100,7 +99,7 @@ fn convert<B: 'static, O: 'static>(dd: DecodeDifferent<B, O>) -> Result<O, Error
 	}
 }
 
-fn convert_module(index: usize, module: ModuleMetadatav12) -> Result<ModuleMetadata, Error> {
+fn convert_module(module: ModuleMetadatav12) -> Result<ModuleMetadata, Error> {
 	let mut storage_map = HashMap::new();
 	if let Some(storage) = module.storage {
 		let storage = convert(storage)?;
@@ -137,7 +136,7 @@ fn convert_module(index: usize, module: ModuleMetadatav12) -> Result<ModuleMetad
 	}
 
 	Ok(ModuleMetadata {
-		index: index as u8,
+		index: module.index,
 		name: convert(module.name)?,
 		storage: storage_map,
 		calls: call_map,

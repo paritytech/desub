@@ -125,13 +125,12 @@ impl FromStr for Chain {
 
 #[derive(Debug)]
 struct Module<'a> {
-	module: Option<&'a ModuleMetadata>, // no module mans we are probably decoding a signature or something
-	types: &'a dyn TypeDetective
+	module: Option<&'a ModuleMetadata>, // no module, or mismatched module, means we are probably decoding a signature. A signature is decoded before we know which module/call the extrinsic actually represents.
 }
 
 impl<'a> Module<'a> {
-	fn new(module: Option<&'a ModuleMetadata>, types: &'a dyn TypeDetective) -> Self {
-		Module { module, types }
+	fn new(module: Option<&'a ModuleMetadata>) -> Self {
+		Module { module }
 	}
 
 	fn set(&mut self, module: &'a ModuleMetadata) {
@@ -161,7 +160,6 @@ impl<'a> DecodeState<'a> {
 	fn new(
 		module: Option<&'a ModuleMetadata>,
 		call: Option<CallMetadata>,
-		types: &'a dyn TypeDetective,
 		metadata: &'a Metadata,
 		cursor: usize,
 		spec: SpecVersion,
@@ -169,7 +167,7 @@ impl<'a> DecodeState<'a> {
 	) -> Self {
 		let call = Rc::new(RefCell::new(call));
 		let cursor = AtomicUsize::new(cursor);
-		let module = Module::new(module, types);
+		let module = Module::new(module);
 		Self { module, call, metadata, cursor, spec, data }
 	}
 
@@ -180,6 +178,7 @@ impl<'a> DecodeState<'a> {
 	/// Loads the module at the current index.
 	/// Increments the cursor by 1.
 	fn load_module(&mut self) -> Result<(), Error> {
+		log::trace!("Loading module in index {}", self.index());
 		let module = self
 			.metadata
 			.module_by_index(ModuleIndex::Call(self.index()))
@@ -411,7 +410,7 @@ impl Decoder {
 		match &storage_info.meta.ty {
 			StorageType::Plain(rtype) => {
 				log::trace!("{:?}, module {}, spec {}", rtype, storage_info.module.name(), spec);
-				let mut state = DecodeState::new(Some(&storage_info.module), None, self.types.as_ref(), &meta, 0, spec, value);
+				let mut state = DecodeState::new(Some(&storage_info.module), None, &meta, 0, spec, value);
 				let value = self.decode_single(&mut state, rtype, false)?;
 				let key = self.get_key_data(key, storage_info, &lookup_table);
 				let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
@@ -425,7 +424,7 @@ impl Decoder {
 					spec
 				);
 				let key = self.get_key_data(key, storage_info, &lookup_table);
-				let mut state = DecodeState::new(Some(&storage_info.module), None, self.types.as_ref(), &meta, 0, spec, value);
+				let mut state = DecodeState::new(Some(&storage_info.module), None, &meta, 0, spec, value);
 				let value = self.decode_single(&mut state, val_rtype, false)?;
 				let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
 				Ok(storage)
@@ -438,7 +437,7 @@ impl Decoder {
 					spec
 				);
 				let key = self.get_key_data(key, storage_info, &lookup_table);
-				let mut state = DecodeState::new(Some(&storage_info.module), None, self.types.as_ref(), &meta, 0, spec, value);
+				let mut state = DecodeState::new(Some(&storage_info.module), None, &meta, 0, spec, value);
 				let value = self.decode_single(&mut state, val_rtype, false)?;
 				let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
 				Ok(storage)
@@ -453,7 +452,7 @@ impl Decoder {
 		let meta = self.versions.get(&spec).expect("Spec does not exist"); // TODO: remove panic
 		log::trace!("Decoding {} Total Extrinsics. CALLS: {:#?}", length, meta.modules_by_call_index);
 
-		let mut state = DecodeState::new(None, None, self.types.as_ref(), meta, prefix, spec, data);
+		let mut state = DecodeState::new(None, None, meta, prefix, spec, data);
 		for (idx, extrinsic) in ChunkedExtrinsic::new(&data[prefix..]).enumerate() {
 			log::trace!("Extrinsic {}:{:?}", idx, extrinsic);
 			state.reset(extrinsic);
@@ -467,9 +466,7 @@ impl Decoder {
 	/// Decode an extrinsic
 	fn decode_extrinsic(&self, state: &mut DecodeState) -> Result<GenericExtrinsic, Error> {
 		let signature = if state.interpret_version() {
-			log::debug!("SIGNED");
-			let signature = self.decode_signature(state)?;
-			Some(signature)
+			Some(self.decode_signature(state)?)
 		} else {
 			None
 		};
@@ -526,7 +523,6 @@ impl Decoder {
 				if let Some(t) = self.decode_sub_type(state, v, is_compact)? {
 					t
 				} else {
-					log::trace!("Definitely resolving");
 					let new_type =
 						self.types.get(self.chain.as_str(), state.spec, state.module_name(), v).ok_or_else(|| {
 							Error::from(format!(
@@ -558,7 +554,6 @@ impl Decoder {
 				let ty = self.decode_structlike(v, state, is_compact)?;
 				SubstrateType::Struct(ty)
 			}
-			// TODO: test
 			RustTypeMarker::Set(v) => {
 				log::trace!("Set::cursor = {}", state.cursor());
 				// a set item must be an u8
@@ -653,7 +648,7 @@ impl Decoder {
 					}
 				}
 				CommonTypes::Compact(v) => {
-					log::trace!("Compact::cursor={}", state.cursor());
+					log::trace!("COMPACT SWITCHED! Compact::cursor={}", state.cursor());
 					self.decode_single(state, v, true)?
 				}
 			},
@@ -719,18 +714,17 @@ impl Decoder {
 			RustTypeMarker::U128 => {
 				log::trace!("Decoding u128");
 				state.observe(line!());
-				let num: u128 = if is_compact {
+				if is_compact {
 					let num: Compact<u128> = state.decode()?;
 					let num: u128 = num.into();
 					let compact_len = Compact::compact_len(&num);
-					log::trace!("CompactLen::u128({})", compact_len);
+					log::trace!("CompactLen::u128({}): decoded u128 {}", compact_len, num);
 					state.add(compact_len);
-					num
+					num.into()
 				} else {
 					let num: u128 = state.do_decode(16)?;
-					num
-				};
-				num.into()
+					num.into()
+				}
 			}
 			RustTypeMarker::USize => {
 				panic!("usize decoding not possible!")

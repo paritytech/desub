@@ -318,4 +318,5 @@ mod tests {
 		let types = Modules::new(DEFINITIONS)?;
 		dbg!(&types);
 		Ok(())
-	} }
+	}
+}
