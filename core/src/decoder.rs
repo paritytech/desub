@@ -243,8 +243,9 @@ impl<'a> DecodeState<'a> {
 		number
 	}
 
-	/// Decode with an incrementor
-	fn do_decode<T: Decode>(&self) -> Result<T, Error> {
+	/// Decode a value, automatically incrementing `cursor`
+	/// the correct number of bits.
+	fn decode<T: Decode>(&self) -> Result<T, Error> {
 		let input = &mut &self.data[self.cursor.load(Ordering::Relaxed)..];
 		let remaining_len = input.remaining_len()?.expect("&'a u8 is always Some()");
 		let ty = Decode::decode(input)?;
@@ -252,11 +253,6 @@ impl<'a> DecodeState<'a> {
 		let inc = remaining_len - after_remaining_len;
 		self.add(inc);
 		Ok(ty)
-	}
-
-	/// Decode at the present point of `cursor`
-	fn decode<T: Decode>(&self) -> Result<T, Error> {
-		Decode::decode(&mut &self.data[self.cursor.load(Ordering::Relaxed)..]).map_err(Into::into)
 	}
 
 	fn add(&self, inc: usize) {
@@ -674,10 +670,9 @@ impl Decoder {
 			RustTypeMarker::U8 => {
 				let num: u8 = if is_compact {
 					let num: Compact<u8> = state.decode()?;
-					state.add(Compact::compact_len(&u8::from(num)));
 					num.into()
 				} else {
-					let num: u8 = state.do_decode()?;
+					let num: u8 = state.decode()?;
 					num
 				};
 				num.into()
@@ -686,10 +681,9 @@ impl Decoder {
 				log::trace!("Decoding u16");
 				let num: u16 = if is_compact {
 					let num: Compact<u16> = state.decode()?;
-					state.add(Compact::compact_len(&u16::from(num)));
 					num.into()
 				} else {
-					let num: u16 = state.do_decode()?;
+					let num: u16 = state.decode()?;
 					num
 				};
 				num.into()
@@ -699,11 +693,9 @@ impl Decoder {
 				state.observe(line!());
 				let num: u32 = if is_compact {
 					let num: Compact<u32> = state.decode()?;
-					state.add(Compact::compact_len(&u32::from(num)));
-					log::trace!("Compact<u32>:{:?}", num);
 					num.into()
 				} else {
-					let num: u32 = state.do_decode()?;
+					let num: u32 = state.decode()?;
 					log::trace!("u32:{}", num);
 					num
 				};
@@ -711,13 +703,11 @@ impl Decoder {
 			}
 			RustTypeMarker::U64 => {
 				log::trace!("Decoding u64");
-				let num: u64 = if is_compact {
+				let num = if is_compact {
 					let num: Compact<u64> = state.decode()?;
-					let num: u64 = num.into();
-					state.add(Compact::compact_len(&num));
-					num
+					num.into()
 				} else {
-					let num: u64 = state.do_decode()?;
+					let num: u64 = state.decode()?;
 					num
 				};
 				num.into()
@@ -725,17 +715,14 @@ impl Decoder {
 			RustTypeMarker::U128 => {
 				log::trace!("Decoding u128");
 				state.observe(line!());
-				if is_compact {
+				let num = if is_compact {
 					let num: Compact<u128> = state.decode()?;
-					let num: u128 = num.into();
-					let compact_len = Compact::compact_len(&num);
-					log::trace!("CompactLen::u128({}): decoded u128 {}", compact_len, num);
-					state.add(compact_len);
-					num.into()
+					 num.into()
 				} else {
-					let num: u128 = state.do_decode()?;
-					num.into()
-				}
+					let num: u128 = state.decode()?;
+					num
+				};
+				num.into()
 			}
 			RustTypeMarker::USize => {
 				panic!("usize decoding not possible!")
@@ -748,17 +735,17 @@ impl Decoder {
 			}
 			RustTypeMarker::I8 => {
 				log::trace!("Decoding i8");
-				let num: i8 = if is_compact { unimplemented!() } else { state.do_decode()? };
+				let num: i8 = if is_compact { unimplemented!() } else { state.decode()? };
 				num.into()
 			}
 			RustTypeMarker::I16 => {
 				log::trace!("Decoding i16");
-				let num: i16 = if is_compact { unimplemented!() } else { state.do_decode()? };
+				let num: i16 = if is_compact { unimplemented!() } else { state.decode()? };
 				num.into()
 			}
 			RustTypeMarker::I32 => {
 				log::trace!("Decoding i32");
-				let num: i32 = if is_compact { unimplemented!() } else { state.do_decode()? };
+				let num: i32 = if is_compact { unimplemented!() } else { state.decode()? };
 				num.into()
 			}
 			RustTypeMarker::I64 => {
@@ -768,13 +755,13 @@ impl Decoder {
 					// num.into()
 					unimplemented!()
 				} else {
-					state.do_decode()?
+					state.decode()?
 				};
 				num.into()
 			}
 			RustTypeMarker::I128 => {
 				log::trace!("Decoding i128");
-				let num: i128 = if is_compact { unimplemented!() } else { state.do_decode()? };
+				let num: i128 = if is_compact { unimplemented!() } else { state.decode()? };
 				num.into()
 			}
 			RustTypeMarker::ISize => {
@@ -806,7 +793,7 @@ impl Decoder {
 			RustTypeMarker::String => unimplemented!(),
 			RustTypeMarker::Bool => {
 				log::trace!("Decoding boolean");
-				let boo: bool = state.do_decode()?;
+				let boo: bool = state.decode()?;
 				//   . - .
 				//  ( o o )
 				//  |  0  \
@@ -908,13 +895,6 @@ impl Decoder {
 			"Data" => {
 				log::trace!("Decoding Data");
 				let identity_data: substrate_types::Data = state.decode()?;
-				match &identity_data {
-					substrate_types::Data::None => (),
-					substrate_types::Data::Raw(v) => state.add(v.len()),
-					_ => state.add(32),
-				};
-				// for the enum byte
-				state.increment();
 				Ok(Some(SubstrateType::Data(identity_data)))
 			}
 			"Call" | "GenericCall" => {
@@ -926,7 +906,7 @@ impl Decoder {
 			}
 			"GenericVote" => {
 				log::trace!("Decoding GenericVote");
-				let vote: pallet_democracy::Vote = state.do_decode()?;
+				let vote: pallet_democracy::Vote = state.decode()?;
 				Ok(Some(SubstrateType::GenericVote(vote)))
 			}
 			// Old Address Format for backwards-compatibility https://github.com/paritytech/substrate/pull/7380
@@ -944,7 +924,7 @@ impl Decoder {
 				Ok(Some(self.decode_single(state, &RustTypeMarker::TypePointer("LookupSource".into()), is_compact)?))
 			},
 			"GenericMultiAddress" => {
-				let val: substrate_types::Address = state.do_decode()?;
+				let val: substrate_types::Address = state.decode()?;
 				log::trace!("Address: {:?}", val);
 				Ok(Some(SubstrateType::Address(val)))
 			}
@@ -952,20 +932,14 @@ impl Decoder {
 				log::trace!("ERA DATA: {:X?}", &state.data[state.cursor()]);
 				let val: runtime_primitives::generic::Era = state.decode()?;
 				log::trace!("Resolved Era: {:?}", val);
-				match val {
-					// although phase and period are both u64, era is Encoded
-					// in only two bytes
-					runtime_primitives::generic::Era::Immortal => state.increment(),
-					runtime_primitives::generic::Era::Mortal(_, _) => state.add(2),
-				};
 				Ok(Some(SubstrateType::Era(val)))
 			}
 			"H256" => {
-				let val: primitives::H256 = state.do_decode()?;
+				let val: primitives::H256 = state.decode()?;
 				Ok(Some(SubstrateType::H256(val)))
 			}
 			"H512" => {
-				let val: primitives::H512 = state.do_decode()?;
+				let val: primitives::H512 = state.decode()?;
 				log::trace!("H512: {}", hex::encode(val.as_bytes()));
 				Ok(Some(SubstrateType::H512(val)))
 			}
