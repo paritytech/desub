@@ -16,3 +16,4 @@ serde_json = { version = "1", features = ["preserve_order"] }
 codec = { version = "2", package = "parity-scale-codec" }
 hex = "0.4.3"
 pallet_democracy = { package = "pallet-democracy", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+derive_more = "0.99.16"

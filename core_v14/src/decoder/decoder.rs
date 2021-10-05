@@ -1,6 +1,6 @@
 use crate::metadata::Metadata;
 use crate::generic_extrinsic::GenericExtrinsic;
-use super::utils::{ scaled_extrinsic_bytes, ExtrinsicBytesError };
+use super::utils::{ ExtrinsicBytes, ExtrinsicBytesError };
 
 pub struct Decoder {
     metadata: Metadata
@@ -23,7 +23,7 @@ impl Decoder {
 
     /// Decode a SCALE encoded vector of extrinsics against the metadata provided
     pub fn decode_extrinsics(&self, data: &[u8]) -> Result<Vec<GenericExtrinsic>, DecodeError> {
-        let extrinsic_bytes = scaled_extrinsic_bytes(data)?;
+        let extrinsic_bytes = ExtrinsicBytes::new(data)?;
         log::trace!("Decoding {} Total Extrinsics.", extrinsic_bytes.len());
 
         let mut out = Vec::with_capacity(extrinsic_bytes.len());

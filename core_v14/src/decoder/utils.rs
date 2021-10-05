@@ -1,24 +1,3 @@
-/// Iterate over a SCALE encoded vector of extrinsics and return the bytes associated with each one.
-/// Conceptually, the vector of extrinsics is encoded in the form:
-///
-/// `Vec<(Compact<u32>, Extrinsic)>`
-///
-/// Where Each extrinsic is prefixed with a compact encoding of its length in bytes. This is because
-/// extrinsics are themselves just treated as opaque vectors of btyes when they are encoded.
-///
-/// On each iteration, we return the extrinsic bytes, or a `usize` denoting the position at
-pub fn scaled_extrinsic_bytes(data: &[u8]) -> Result<ExtrinsicBytes, ExtrinsicBytesError> {
-    let (vec_len, vec_len_bytes) = match decode_compact_u32(data) {
-        Some(res) => res,
-        None => return Err(ExtrinsicBytesError { index: 0 })
-    };
-
-    Ok(ExtrinsicBytes {
-        len: vec_len,
-        data: &data[vec_len_bytes..]
-    })
-}
-
 /// A structure representing a set of extrinsics in terms of their raw SCALE encoded bytes.
 #[derive(Clone, Copy)]
 pub struct ExtrinsicBytes<'a> {
@@ -27,13 +6,31 @@ pub struct ExtrinsicBytes<'a> {
 }
 
 impl <'a> ExtrinsicBytes<'a> {
+    /// Treat the bytes provided as a set of Extrinsics, which Conceptually has the shape
+    /// `Vec<(Compact<u32>, Extrinsic)>`. Return an error if the bytes are obviously not
+    /// such a shape.
+    pub fn new(bytes: &'a [u8]) -> Result<ExtrinsicBytes<'a>, ExtrinsicBytesError> {
+        let (vec_len, vec_len_bytes) = match decode_compact_u32(bytes) {
+            Some(res) => res,
+            None => return Err(ExtrinsicBytesError { index: 0 })
+        };
+
+        Ok(ExtrinsicBytes {
+            len: vec_len,
+            data: &bytes[vec_len_bytes..]
+        })
+    }
+}
+
+impl <'a> ExtrinsicBytes<'a> {
     /// How many extrinsics are there?
     pub fn len(&self) -> usize {
         self.len
     }
 
-    /// Iterate over the bytes, returning each extrinsic found in the form of its bytes,
-    /// or an error if we cannot decode the bytes as expected.
+    /// Iterate over a SCALE encoded vector of extrinsics and return the bytes associated with each one.
+    /// On each iteration, we return the extrinsic bytes, or an error containing the position at which
+    /// decoding failed.
     pub fn iter(&self) -> ExtrinsicBytesIter<'a> {
         ExtrinsicBytesIter { data: &self.data, cursor: 0 }
     }
