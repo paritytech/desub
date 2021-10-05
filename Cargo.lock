@@ -352,6 +352,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
 
 [[package]]
+name = "core_v14"
+version = "0.1.0"
+dependencies = [
+ "frame-metadata 14.0.0-rc.2",
+ "hex",
+ "log",
+ "pallet-democracy",
+ "parity-scale-codec 2.2.0",
+ "serde",
+ "serde_json",
+ "sp-core 4.0.0-dev",
+ "sp-runtime",
+ "thiserror",
+]
+
+[[package]]
 name = "cpufeatures"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

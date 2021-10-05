@@ -1,6 +1,7 @@
 [workspace]
 members = [
 	"core",
+	"core_v14",
 	"extras",
 	"integration_tests",
 	"substrate-metadata-versions/metadatav8",
