@@ -38,10 +38,10 @@ use crate::{regex, RustTypeMarker};
 
 use frame_metadata::{
 	decode_different::DecodeDifferent,
-	v12::{
-		EventMetadata as EventMetadatav12, ModuleMetadata as ModuleMetadatav12,
-		StorageEntryMetadata as StorageEntryMetadatav12, StorageEntryModifier as StorageEntryModifierv12,
-		StorageEntryType, StorageHasher as StorageHasherv12, RuntimeMetadataV12,
+	v13::{
+		EventMetadata as EventMetadataV13, ModuleMetadata as ModuleMetadataV13, RuntimeMetadataV13,
+		StorageEntryMetadata as StorageEntryMetadataV13, StorageEntryModifier as StorageEntryModifierV13,
+		StorageEntryType, StorageHasher as StorageHasherV13,
 	},
 };
 
@@ -50,9 +50,10 @@ use std::{
 	convert::{TryFrom, TryInto},
 };
 
-impl TryFrom<RuntimeMetadataV12> for Metadata {
+impl TryFrom<RuntimeMetadataV13> for Metadata {
 	type Error = Error;
-	fn try_from(metadata: RuntimeMetadataV12) -> Result<Self, Self::Error> {
+
+	fn try_from(metadata: RuntimeMetadataV13) -> Result<Self, Self::Error> {
 		let mut modules = HashMap::new();
 		let (mut modules_by_event_index, mut modules_by_call_index) = (HashMap::new(), HashMap::new());
 		let mut event_index = 0;
@@ -79,7 +80,6 @@ impl TryFrom<RuntimeMetadataV12> for Metadata {
 		let extrinsics = ExtrinsicMetadata::new(metadata.extrinsic.version, extensions);
 
 		Ok(Metadata { modules, modules_by_event_index, modules_by_call_index, extrinsics: Some(extrinsics) })
-
 	}
 }
 
@@ -90,7 +90,7 @@ fn convert<B: 'static, O: 'static>(dd: DecodeDifferent<B, O>) -> Result<O, Error
 	}
 }
 
-fn convert_module(module: ModuleMetadatav12) -> Result<ModuleMetadata, Error> {
+fn convert_module(module: ModuleMetadataV13) -> Result<ModuleMetadata, Error> {
 	let mut storage_map = HashMap::new();
 	if let Some(storage) = module.storage {
 		let storage = convert(storage)?;
@@ -135,7 +135,7 @@ fn convert_module(module: ModuleMetadatav12) -> Result<ModuleMetadata, Error> {
 	})
 }
 
-fn convert_event(event: EventMetadatav12) -> Result<ModuleEventMetadata, Error> {
+fn convert_event(event: EventMetadataV13) -> Result<ModuleEventMetadata, Error> {
 	let name = convert(event.name)?;
 	let mut arguments = HashSet::new();
 	for arg in convert(event.arguments)? {
@@ -145,7 +145,7 @@ fn convert_event(event: EventMetadatav12) -> Result<ModuleEventMetadata, Error> 
 	Ok(ModuleEventMetadata { name, arguments })
 }
 
-fn convert_entry(prefix: String, entry: StorageEntryMetadatav12) -> Result<StorageMetadata, Error> {
+fn convert_entry(prefix: String, entry: StorageEntryMetadataV13) -> Result<StorageMetadata, Error> {
 	let default = convert(entry.default)?;
 	let documentation = convert(entry.documentation)?;
 	Ok(StorageMetadata {
@@ -159,31 +159,31 @@ fn convert_entry(prefix: String, entry: StorageEntryMetadatav12) -> Result<Stora
 
 /// Temporary struct for converting between `StorageEntryModifier`
 /// and `DesubStorageEntryModifier`
-struct StorageEntryModifierTemp(StorageEntryModifierv12);
+struct StorageEntryModifierTemp(StorageEntryModifierV13);
 impl From<StorageEntryModifierTemp> for DesubStorageEntryModifier {
 	fn from(entry: StorageEntryModifierTemp) -> DesubStorageEntryModifier {
 		let entry = entry.0;
 		match entry {
-			StorageEntryModifierv12::Optional => DesubStorageEntryModifier::Optional,
-			StorageEntryModifierv12::Default => DesubStorageEntryModifier::Default,
+			StorageEntryModifierV13::Optional => DesubStorageEntryModifier::Optional,
+			StorageEntryModifierV13::Default => DesubStorageEntryModifier::Default,
 		}
 	}
 }
 
 /// Temprorary struct for converting between `StorageHasher` and
 /// `DesubStorageHasher`
-struct TempStorageHasher(StorageHasherv12);
+struct TempStorageHasher(StorageHasherV13);
 impl From<TempStorageHasher> for DesubStorageHasher {
 	fn from(hasher: TempStorageHasher) -> DesubStorageHasher {
 		let hasher = hasher.0;
 		match hasher {
-			StorageHasherv12::Blake2_128 => DesubStorageHasher::Blake2_128,
-			StorageHasherv12::Blake2_128Concat => DesubStorageHasher::Blake2_128,
-			StorageHasherv12::Blake2_256 => DesubStorageHasher::Blake2_256,
-			StorageHasherv12::Twox128 => DesubStorageHasher::Twox128,
-			StorageHasherv12::Twox256 => DesubStorageHasher::Twox256,
-			StorageHasherv12::Twox64Concat => DesubStorageHasher::Twox64Concat,
-			StorageHasherv12::Identity => DesubStorageHasher::Identity,
+			StorageHasherV13::Blake2_128 => DesubStorageHasher::Blake2_128,
+			StorageHasherV13::Blake2_128Concat => DesubStorageHasher::Blake2_128,
+			StorageHasherV13::Blake2_256 => DesubStorageHasher::Blake2_256,
+			StorageHasherV13::Twox128 => DesubStorageHasher::Twox128,
+			StorageHasherV13::Twox256 => DesubStorageHasher::Twox256,
+			StorageHasherV13::Twox64Concat => DesubStorageHasher::Twox64Concat,
+			StorageHasherV13::Identity => DesubStorageHasher::Identity,
 		}
 	}
 }
@@ -217,6 +217,19 @@ impl TryFrom<StorageEntryType> for StorageType {
 					value: regex::parse(&value).ok_or(Error::InvalidType(value))?,
 					key2_hasher: TempStorageHasher(key2_hasher).into(),
 				}
+			}
+			StorageEntryType::NMap { keys, hashers, value } => {
+				let keys = convert(keys)?;
+				let hashers = convert(hashers)?;
+				let value = convert(value)?;
+				let hashers =
+					hashers.into_iter().map(|h| TempStorageHasher(h).into()).collect::<Vec<DesubStorageHasher>>();
+				let keys = keys
+					.into_iter()
+					.map(|k| regex::parse(&k).ok_or(Error::InvalidType(k)))
+					.collect::<Result<_, Error>>()?;
+				let value = regex::parse(&value).ok_or(Error::InvalidType(value))?;
+				StorageType::NMap { hashers, keys, value }
 			}
 		};
 		Ok(entry)

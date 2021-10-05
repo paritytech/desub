@@ -33,9 +33,12 @@ mod version_09;
 mod version_10;
 mod version_11;
 mod version_12;
-mod versions;
+mod version_13;
 
-pub use frame_metadata::decode_different::DecodeDifferent;
+pub use frame_metadata::{
+	decode_different::DecodeDifferent,
+	RuntimeMetadata, RuntimeMetadataPrefixed
+};
 
 use super::storage::{StorageInfo, StorageLookupTable};
 use crate::RustTypeMarker;
@@ -47,7 +50,7 @@ use serde::{Deserialize, Serialize};
 
 use std::{
 	collections::{HashMap, HashSet},
-	convert::TryInto,
+	convert::{TryInto, TryFrom},
 	fmt,
 	marker::PhantomData,
 	str::FromStr,
@@ -462,6 +465,11 @@ pub enum StorageType {
 		value: RustTypeMarker,
 		key2_hasher: StorageHasher,
 	},
+	NMap {
+		keys: Vec<RustTypeMarker>,
+		hashers: Vec<StorageHasher>,
+		value: RustTypeMarker
+	}
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
@@ -585,6 +593,19 @@ impl EventArg {
 	}
 }
 
+impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
+	type Error = Error;
+
+	fn try_from(metadata: RuntimeMetadataPrefixed) -> Result<Self, Self::Error> {
+		match metadata.1 {
+			RuntimeMetadata::V12(meta) => meta.try_into(),
+			RuntimeMetadata::V13(meta) => meta.try_into(),
+			RuntimeMetadata::V14(_meta) => unimplemented!(),
+			_ => return Err(Error::InvalidVersion)
+		}
+	}
+}
+
 #[derive(Error, Debug)]
 pub enum Error {
 	#[error("Invalid Prefix")]
@@ -598,6 +619,7 @@ pub enum Error {
 	#[error("Invalid Type {0}")]
 	InvalidType(String),
 }
+
 
 #[cfg(test)]
 pub mod tests {

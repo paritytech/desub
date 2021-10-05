@@ -389,7 +389,8 @@ impl Decoder {
 						key2_type: key2.clone(),
 					}),
 				}
-			}
+			},
+			StorageType::NMap { .. } => unimplemented!(),
 		}
 	}
 
@@ -447,7 +448,8 @@ impl Decoder {
 				let value = self.decode_single(&mut state, val_rtype, false)?;
 				let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
 				Ok(storage)
-			}
+			},
+			StorageType::NMap { .. } => unimplemented!()
 		}
 	}
 
@@ -814,10 +816,6 @@ impl Decoder {
 	/// These types override anything defined in JSON
 	/// Tries to decode a type that is native to substrate
 	/// for example, H256. Returns none if type cannot be deduced
-	/// Supported types:
-	/// - H256
-	/// - H512
-	// TODO: test this with the substrate types used
 	fn decode_sub_type(
 		&self,
 		state: &mut DecodeState,
