@@ -21,16 +21,14 @@ use super::{
 };
 use crate::regex;
 use runtime_metadata10::{
-	DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier, StorageEntryType, StorageHasher,
+	RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier, StorageEntryType, StorageHasher,
 	META_RESERVED,
 };
+use frame_metadata::decode_different::*;
 use std::{
 	collections::{HashMap, HashSet},
 	convert::{TryFrom, TryInto},
 };
-
-type DecodeDifferentStr = DecodeDifferent<&'static str, String>;
-type LatestDecodeDifferentStr = super::DecodeDifferent<&'static str, String>;
 
 impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
 	type Error = Error;
@@ -164,19 +162,6 @@ impl From<TempStorageHasher> for DesubStorageHasher {
 			StorageHasher::Twox128 => DesubStorageHasher::Twox128,
 			StorageHasher::Twox256 => DesubStorageHasher::Twox256,
 			StorageHasher::Twox64Concat => DesubStorageHasher::Twox64Concat,
-		}
-	}
-}
-
-/// Temporary struct for converting between `DecodeDifferentStr` and
-/// `DecodeDifferentStrLatest`
-struct TempDecodeDifferentStr(DecodeDifferentStr);
-impl From<TempDecodeDifferentStr> for LatestDecodeDifferentStr {
-	fn from(decode_str: TempDecodeDifferentStr) -> LatestDecodeDifferentStr {
-		let decode_str = decode_str.0;
-		match decode_str {
-			DecodeDifferent::Encode(b) => super::DecodeDifferent::Encode(b),
-			DecodeDifferent::Decoded(o) => super::DecodeDifferent::Decoded(o),
 		}
 	}
 }

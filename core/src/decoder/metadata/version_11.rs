@@ -36,10 +36,10 @@ use super::{
 };
 use crate::{regex, RustTypeMarker};
 use runtime_metadata11::{
-	DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier, StorageEntryType, StorageHasher,
+	RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier, StorageEntryType, StorageHasher,
 	META_RESERVED,
 };
-
+use frame_metadata::decode_different::*;
 use std::{
 	collections::{HashMap, HashSet},
 	convert::{TryFrom, TryInto},

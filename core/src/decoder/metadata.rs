@@ -43,8 +43,6 @@ pub use frame_metadata::{
 use super::storage::{StorageInfo, StorageLookupTable};
 use crate::RustTypeMarker;
 use codec::{Decode, Encode, EncodeAsRef, HasCompact};
-use codec1::Decode as Decode1;
-// use codec411::Decode as OldDecode;
 use primitives::{storage::StorageKey, twox_128};
 use serde::{Deserialize, Serialize};
 
@@ -156,25 +154,25 @@ impl<'a> Metadata {
 			0x08 => {
 				log::debug!("Metadata V8");
 				let meta: runtime_metadata08::RuntimeMetadataPrefixed =
-					Decode1::decode(&mut &*bytes).expect("Decode failed");
+					Decode::decode(&mut &*bytes).expect("Decode failed");
 				meta.try_into().expect("Conversion failed")
 			}
 			0x09 => {
 				log::debug!("Metadata V9");
 				let meta: runtime_metadata09::RuntimeMetadataPrefixed =
-					Decode1::decode(&mut &*bytes).expect("Decode Failed");
+					Decode::decode(&mut &*bytes).expect("Decode Failed");
 				meta.try_into().expect("Conversion Failed")
 			}
 			0xA => {
 				log::debug!("Metadata V10");
 				let meta: runtime_metadata10::RuntimeMetadataPrefixed =
-					Decode1::decode(&mut &*bytes).expect("Decode failed");
+					Decode::decode(&mut &*bytes).expect("Decode failed");
 				meta.try_into().expect("Conversion failed")
 			}
 			0xB => {
 				log::debug!("Metadata V11");
 				let meta: runtime_metadata11::RuntimeMetadataPrefixed =
-					Decode1::decode(&mut &*bytes).expect("Decode failed");
+					Decode::decode(&mut &*bytes).expect("Decode failed");
 				meta.try_into().expect("Conversion failed")
 			}
 			0xC => {
