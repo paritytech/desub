@@ -146,11 +146,6 @@ impl<'a> Metadata {
 		let version = bytes[4];
 
 		match version {
-			/* 0x07 => {
-				let meta: runtime_metadata07::RuntimeMetadataPrefixed =
-					OldDecode::decode(&mut &*bytes).expect("Decode failed");
-				meta.try_into().expect("Conversion failed")
-			} */
 			0x08 => {
 				log::debug!("Metadata V8");
 				let meta: runtime_metadata08::RuntimeMetadataPrefixed =

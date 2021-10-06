@@ -26,6 +26,7 @@ use self::remote::*;
 use crate::{Error, SetField};
 use primitives::crypto::AccountId32;
 use primitives::crypto::{Ss58AddressFormat, Ss58Codec};
+use bitvec::order::Lsb0 as BitOrderLsb0;
 use serde::Serialize;
 use std::{convert::TryFrom, fmt};
 
@@ -47,7 +48,7 @@ pub enum SubstrateType {
 	H256(primitives::H256),
 
 	/// BitVec type
-	BitVec(bitvec::vec::BitVec),
+	BitVec(bitvec::vec::BitVec<BitOrderLsb0, u8>),
 
 	/// Recursive Call Type
 	Call(Vec<(String, SubstrateType)>),

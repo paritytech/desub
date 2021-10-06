@@ -45,6 +45,7 @@ use crate::{
 	CommonTypes, RustTypeMarker, TypeDetective,
 };
 use codec::{Compact, CompactLen, Decode, Input};
+use bitvec::order::Lsb0 as BitOrderLsb0;
 use std::{
 	collections::HashMap, convert::TryFrom, str::FromStr,
 	cell::RefCell, rc::Rc, sync::atomic::{AtomicUsize,Ordering}
@@ -897,7 +898,7 @@ impl Decoder {
 			}
 			"BitVec" => {
 				log::trace!("Decoding BitVec");
-				let bit_vec: bitvec::vec::BitVec = state.decode()?;
+				let bit_vec: bitvec::vec::BitVec<BitOrderLsb0, u8> = state.decode()?;
 				Ok(Some(SubstrateType::BitVec(bit_vec)))
 			},
 			"Call" | "GenericCall" => {
