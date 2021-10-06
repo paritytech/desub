@@ -46,6 +46,9 @@ pub enum SubstrateType {
 	/// 256-bit hash type
 	H256(primitives::H256),
 
+	/// BitVec type
+	BitVec(bitvec::vec::BitVec),
+
 	/// Recursive Call Type
 	Call(Vec<(String, SubstrateType)>),
 	/// Era
@@ -56,8 +59,6 @@ pub enum SubstrateType {
 	GenericVote(pallet_democracy::Vote),
 
 	/// Substrate Indices Address Type
-	// TODO: this is not generic for any chain that doesn't use a
-	// u32 and [u8; 32] for its index/id
 	#[serde(with = "RemoteAddress")]
 	Address(Address),
 	/// Data Identity Type
@@ -125,6 +126,7 @@ impl fmt::Display for SubstrateType {
 		match self {
 			SubstrateType::H512(v) => write!(f, "{}", v),
 			SubstrateType::H256(v) => write!(f, "{}", v),
+			SubstrateType::BitVec(v) => write!(f, "{}", v),
 			SubstrateType::Call(c) => {
 				write!(f, "CALL")?;
 				for arg in c.iter() {
