@@ -34,5 +34,17 @@ use frame_metadata::{ RuntimeMetadataV14 };
 
 /// Decode V14 metadata into our general Metadata struct
 pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, DecodeError> {
-	Ok(Metadata {  })
+
+	let pallets = vec![];
+	for pallet in meta.pallets {
+		println!("{}", pallet.name);
+
+		if let Some(calls) = pallet.calls {
+			let calls_ty = calls.ty.id();
+			println!("{:?}", meta.types.resolve(calls_ty));
+		}
+
+	}
+
+	Ok(Metadata { pallets })
 }

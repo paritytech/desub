@@ -35,11 +35,13 @@ pub enum DecodeError {
     #[error("metadata version {0} is not supported")]
     UnsupportedVersion(u8),
     #[error("{0}")]
-    DecodeError(#[from] codec::Error)
+    DecodeError(#[from] codec::Error),
+	#[error("unexpected type; expecting a Variant type, but got {got}")]
+	ExpectedVariantType { got: String }
 }
 
 pub struct Metadata {
-
+	pub (crate) pallets: Vec<MetadataPallet>
 }
 
 impl Metadata {
@@ -98,6 +100,87 @@ impl Metadata {
 		}
 	}
 }
+
+pub type TypeDef = scale_info::TypeDef<scale_info::form::PortableForm>;
+pub type Type = scale_info::Type<scale_info::form::PortableForm>;
+
+pub struct MetadataPallet {
+	name: String,
+	calls: Vec<MetadataCall>
+}
+
+pub struct MetadataCall {
+	name: String,
+	args: Vec<TypeDef>
+}
+
+// use scale_info::PortableRegistry;
+// use std::io::Write;
+// /// Output a human readable name for the type provided
+// fn type_name<W: Write>(ty: &Type, registry: &PortableRegistry, w: &mut W) -> Result<(), std::io::Error> {
+// 	let def = ty.type_def();
+
+// 	let to_type = |ty: &<scale_info::form::PortableForm as scale_info::form::Form>::Type | {
+// 		registry
+// 			.resolve(ty.id())
+// 			.expect("type ID to exist in registry")
+// 	};
+
+// 	match def {
+// 		TypeDef::Array(inner) => {
+// 			w.write_all(b"[")?;
+// 			type_name(to_type(inner.type_param()), registry, w)?;
+// 			w.write_all(b"; ")?;
+// 			w.write_all(inner.len().to_string().as_bytes())?;
+// 			w.write_all(b"]")?;
+// 		},
+// 		TypeDef::BitSequence(bits) => {
+// 			w.write_all(b"BitSequence")?;
+// 		},
+// 		TypeDef::Compact(inner) => {
+// 			w.write_all(b"Compact<")?;
+// 			type_name(to_type(inner.type_param()), registry, w)?;
+// 			w.write_all(b">")?;
+// 		},
+// 		TypeDef::Composite(inner) => {
+// 			w.write_all(b"{ ")?;
+// 			for field in inner.fields() {
+// 				if let Some(name) = field.name() {
+// 					w.write_all(name.as_bytes())?;
+// 					w.write_all(b": ")?;
+// 				}
+// 				type_name(to_type(field.ty()), registry, w)?;
+// 				w.write_all(b", ")?;
+// 			}
+// 			w.write_all(b" }")?;
+// 		},
+// 		TypeDef::Primitive(prim) => {
+// 			use scale_info::TypeDefPrimitive;
+// 			match prim {
+// 				TypeDefPrimitive::Bool => w.write_all(b"bool")?,
+// 				TypeDefPrimitive::Char => w.write_all(b"char")?,
+// 				TypeDefPrimitive::Str => w.write_all(b"str")?,
+// 				TypeDefPrimitive::U8 => w.write_all(b"u8")?,
+// 				TypeDefPrimitive::U16 => w.write_all(b"u16")?,
+// 				TypeDefPrimitive::U32 => w.write_all(b"u32")?,
+// 				TypeDefPrimitive::U64 => w.write_all(b"u64")?,
+// 				TypeDefPrimitive::U128 => w.write_all(b"u128")?,
+// 				TypeDefPrimitive::U256 => w.write_all(b"u256")?,
+// 				TypeDefPrimitive::I8 => w.write_all(b"i8")?,
+// 				TypeDefPrimitive::I16 => w.write_all(b"i16")?,
+// 				TypeDefPrimitive::I32 => w.write_all(b"i32")?,
+// 				TypeDefPrimitive::I64 => w.write_all(b"i64")?,
+// 				TypeDefPrimitive::I128 => w.write_all(b"i128")?,
+// 				TypeDefPrimitive::I256 => w.write_all(b"i256")?,
+// 			}
+// 		},
+// 		TypeDef::Sequence(seq) => {
+
+// 		}
+// 	};
+
+// 	w.flush()
+// }
 
 /*
 //! A generic metadata structure that delegates decoding of metadata to its
