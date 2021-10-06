@@ -31,92 +31,13 @@ use codec::{Decode, Input, Error};
 use codec::{Encode, Output};
 use sp_std::vec::Vec;
 use sp_core::RuntimeDebug;
+use frame_metadata::decode_different::*;
 
 #[cfg(feature = "std")]
 type StringBuf = String;
 
 /// Current prefix of metadata
 pub const META_RESERVED: u32 = 0x6174656d; // 'meta' warn endianness
-
-/// On `no_std` we do not support `Decode` and thus `StringBuf` is just `&'static str`.
-/// So, if someone tries to decode this stuff on `no_std`, they will get a compilation error.
-#[cfg(not(feature = "std"))]
-type StringBuf = &'static str;
-
-/// A type that decodes to a different type than it encodes.
-/// The user needs to make sure that both types use the same encoding.
-///
-/// For example a `&'static [ &'static str ]` can be decoded to a `Vec<String>`.
-#[derive(Clone)]
-pub enum DecodeDifferent<B, O> where B: 'static, O: 'static {
-	Encode(B),
-	Decoded(O),
-}
-
-impl<B, O> Encode for DecodeDifferent<B, O> where B: Encode + 'static, O: Encode + 'static {
-	fn encode_to<W: Output>(&self, dest: &mut W) {
-		match self {
-			DecodeDifferent::Encode(b) => b.encode_to(dest),
-			DecodeDifferent::Decoded(o) => o.encode_to(dest),
-		}
-	}
-}
-
-impl<B, O> codec::EncodeLike for DecodeDifferent<B, O> where B: Encode + 'static, O: Encode + 'static {}
-
-#[cfg(feature = "std")]
-impl<B, O> Decode for DecodeDifferent<B, O> where B: 'static, O: Decode + 'static {
-	fn decode<I: Input>(input: &mut I) -> Result<Self, Error> {
-		<O>::decode(input).map(|val| {
-			DecodeDifferent::Decoded(val)
-		})
-	}
-}
-
-impl<B, O> PartialEq for DecodeDifferent<B, O>
-where
-	B: Encode + Eq + PartialEq + 'static,
-	O: Encode + Eq + PartialEq + 'static,
-{
-	fn eq(&self, other: &Self) -> bool {
-		self.encode() == other.encode()
-	}
-}
-
-impl<B, O> Eq for DecodeDifferent<B, O>
-	where B: Encode + Eq + PartialEq + 'static, O: Encode + Eq + PartialEq + 'static
-{}
-
-impl<B, O> sp_std::fmt::Debug for DecodeDifferent<B, O>
-	where
-		B: sp_std::fmt::Debug + Eq + 'static,
-		O: sp_std::fmt::Debug + Eq + 'static,
-{
-	fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
-		match self {
-			DecodeDifferent::Encode(b) => b.fmt(f),
-			DecodeDifferent::Decoded(o) => o.fmt(f),
-		}
-	}
-}
-
-#[cfg(feature = "std")]
-impl<B, O> serde::Serialize for DecodeDifferent<B, O>
-	where
-		B: serde::Serialize + 'static,
-		O: serde::Serialize + 'static,
-{
-	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: serde::Serializer {
-		match self {
-			DecodeDifferent::Encode(b) => b.serialize(serializer),
-			DecodeDifferent::Decoded(o) => o.serialize(serializer),
-		}
-	}
-}
-
-pub type DecodeDifferentArray<B, O=B> = DecodeDifferent<&'static [B], Vec<O>>;
-
-type DecodeDifferentStr = DecodeDifferent<&'static str, StringBuf>;
 
 /// All the metadata about a function.
 #[derive(Clone, PartialEq, Eq, Encode, RuntimeDebug)]
@@ -140,7 +61,7 @@ pub struct FunctionArgumentMetadata {
 pub struct FnEncode<E>(pub fn() -> E) where E: Encode + 'static;
 
 impl<E: Encode> Encode for FnEncode<E> {
-	fn encode_to<W: Output>(&self, dest: &mut W) {
+	fn encode_to<W: Output + ?Sized>(&self, dest: &mut W) {
 		self.0().encode_to(dest);
 	}
 }
@@ -239,7 +160,7 @@ pub struct DefaultByteGetter(pub &'static dyn DefaultByte);
 pub type ByteGetter = DecodeDifferent<DefaultByteGetter, Vec<u8>>;
 
 impl Encode for DefaultByteGetter {
-	fn encode_to<W: Output>(&self, dest: &mut W) {
+	fn encode_to<W: Output + ?Sized>(&self, dest: &mut W) {
 		self.0.default_byte().encode_to(dest)
 	}
 }
@@ -373,7 +294,7 @@ pub enum RuntimeMetadata {
 pub enum RuntimeMetadataDeprecated { }
 
 impl Encode for RuntimeMetadataDeprecated {
-	fn encode_to<W: Output>(&self, _dest: &mut W) {}
+	fn encode_to<W: Output + ?Sized>(&self, _dest: &mut W) {}
 }
 
 impl codec::EncodeLike for RuntimeMetadataDeprecated {}

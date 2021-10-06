@@ -895,6 +895,11 @@ impl Decoder {
 				let identity_data: substrate_types::Data = state.decode()?;
 				Ok(Some(SubstrateType::Data(identity_data)))
 			}
+			"BitVec" => {
+				log::trace!("Decoding BitVec");
+				let bit_vec: bitvec::vec::BitVec = state.decode()?;
+				Ok(Some(SubstrateType::BitVec(bit_vec)))
+			},
 			"Call" | "GenericCall" => {
 				log::trace!("Decoding Call | GenericCall");
 				state.load_module()?;
