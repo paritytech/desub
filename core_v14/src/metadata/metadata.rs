@@ -17,6 +17,89 @@
 // taken directly and modified from substrate-subxt:
 // https://github.com/paritytech/substrate-subxt
 
+use codec::{ Decode };
+use frame_metadata::{
+	RuntimeMetadataPrefixed,
+	RuntimeMetadata
+};
+use super::version_14;
+
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum MetadataError {
+    #[error("Cannot decode bytes into metadata: {0}")]
+    DecodeError(#[from] DecodeError),
+}
+
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum DecodeError {
+    #[error("metadata version {0} is not supported")]
+    UnsupportedVersion(u8),
+    #[error("{0}")]
+    DecodeError(#[from] codec::Error)
+}
+
+pub struct Metadata {
+
+}
+
+impl Metadata {
+	pub fn new(bytes: &[u8]) -> Result<Self, MetadataError> {
+        log::trace!("Decoding metadata");
+        let meta = frame_metadata::RuntimeMetadataPrefixed::decode(&mut &*bytes)
+            .map_err(|e| MetadataError::DecodeError(e.into()))?;
+
+		match meta {
+			RuntimeMetadataPrefixed(_, RuntimeMetadata::V0(_)) => {
+				Err(MetadataError::DecodeError(DecodeError::UnsupportedVersion(0)))
+			},
+			RuntimeMetadataPrefixed(_, RuntimeMetadata::V1(_)) => {
+				Err(MetadataError::DecodeError(DecodeError::UnsupportedVersion(1)))
+			},
+			RuntimeMetadataPrefixed(_, RuntimeMetadata::V2(_)) => {
+				Err(MetadataError::DecodeError(DecodeError::UnsupportedVersion(2)))
+			},
+			RuntimeMetadataPrefixed(_, RuntimeMetadata::V3(_)) => {
+				Err(MetadataError::DecodeError(DecodeError::UnsupportedVersion(3)))
+			},
+			RuntimeMetadataPrefixed(_, RuntimeMetadata::V4(_)) => {
+				Err(MetadataError::DecodeError(DecodeError::UnsupportedVersion(4)))
+			},
+			RuntimeMetadataPrefixed(_, RuntimeMetadata::V5(_)) => {
+				Err(MetadataError::DecodeError(DecodeError::UnsupportedVersion(5)))
+			},
+			RuntimeMetadataPrefixed(_, RuntimeMetadata::V6(_)) => {
+				Err(MetadataError::DecodeError(DecodeError::UnsupportedVersion(6)))
+			},
+			RuntimeMetadataPrefixed(_, RuntimeMetadata::V7(_)) => {
+				Err(MetadataError::DecodeError(DecodeError::UnsupportedVersion(7)))
+			},
+			RuntimeMetadataPrefixed(_, RuntimeMetadata::V8(_)) => {
+				Err(MetadataError::DecodeError(DecodeError::UnsupportedVersion(8)))
+			},
+			RuntimeMetadataPrefixed(_, RuntimeMetadata::V9(_)) => {
+				Err(MetadataError::DecodeError(DecodeError::UnsupportedVersion(9)))
+			},
+			RuntimeMetadataPrefixed(_, RuntimeMetadata::V10(_)) => {
+				Err(MetadataError::DecodeError(DecodeError::UnsupportedVersion(10)))
+			},
+			RuntimeMetadataPrefixed(_, RuntimeMetadata::V11(_)) => {
+				Err(MetadataError::DecodeError(DecodeError::UnsupportedVersion(11)))
+			},
+			RuntimeMetadataPrefixed(_, RuntimeMetadata::V12(_)) => {
+				Err(MetadataError::DecodeError(DecodeError::UnsupportedVersion(12)))
+			},
+			RuntimeMetadataPrefixed(_, RuntimeMetadata::V13(_)) => {
+				Err(MetadataError::DecodeError(DecodeError::UnsupportedVersion(13)))
+			},
+			RuntimeMetadataPrefixed(_, RuntimeMetadata::V14(meta_v14)) => {
+				log::trace!("V14 metadata found.");
+				version_14::decode(meta_v14).map_err(|e| e.into())
+			}
+		}
+	}
+}
+
+/*
 //! A generic metadata structure that delegates decoding of metadata to its
 //! native metadata version/structure in substrate runtime.
 //! Everything is converted to a generalized representation of the metadata via the
@@ -142,7 +225,7 @@ impl<'a> Metadata {
         log::debug!("Decoding V14 Metadata");
         let meta = frame_metadata::RuntimeMetadataPrefixed::decode(&mut &*bytes)
             .map_err(|e| MetadataError::DecodeError(e.into()))?;
-        meta.try_into().expect("Conversion failed")
+        meta.try_into().map_err(|e| )
 	}
 
 	/// returns an iterate over all Modules
@@ -294,11 +377,10 @@ pub struct ModuleMetadata {
 	/// name of the module
 	name: String,
 	/// Name of storage entry -> Metadata of storage entry
-	pub storage: HashMap<String, StorageMetadata>,
+	storage: HashMap<String, StorageMetadata>,
 	/// Calls in the module, CallName -> encoded calls
 	calls: HashMap<String, CallMetadata>,
-	events: HashMap<u8, ModuleEventMetadata>,
-	// constants
+	events: HashMap<u8, ModuleEventMetadata>
 }
 
 impl ModuleMetadata {
@@ -560,3 +642,4 @@ pub mod tests {
 		assert_eq!(first_key, key);
 	}
 }
+*/
