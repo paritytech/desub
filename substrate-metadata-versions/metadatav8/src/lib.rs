@@ -309,9 +309,9 @@ pub struct ModuleMetadata {
 type ODFnA<T> = Option<DFnA<T>>;
 type DFnA<T> = DecodeDifferent<FnEncode<&'static [T]>, Vec<T>>;
 
-impl Into<primitives::OpaqueMetadata> for RuntimeMetadataPrefixed {
-	fn into(self) -> primitives::OpaqueMetadata {
-		primitives::OpaqueMetadata::new(self.encode())
+impl Into<frame_metadata::OpaqueMetadata> for RuntimeMetadataPrefixed {
+	fn into(self) -> frame_metadata::OpaqueMetadata {
+		frame_metadata::OpaqueMetadata(self.encode())
 	}
 }
 

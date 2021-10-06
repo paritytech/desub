@@ -7,7 +7,6 @@ members = [
 	"substrate-metadata-versions/metadatav9",
 	"substrate-metadata-versions/metadatav10",
 	"substrate-metadata-versions/metadatav11",
-	"substrate-metadata-versions/sp_core_versions/core-7314a"
 ]
 
 exclude = [
