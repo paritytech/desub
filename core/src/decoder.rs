@@ -497,7 +497,6 @@ impl Decoder {
 			.expect("Signature must not be empty");
 		log::trace!("Signature type is: {}", signature);
 		state.observe(line!());
-		// Ok(Some(self.decode_single("runtime", spec, signature, data, cursor, false)?))
 		self.decode_single(state, signature, false)
 	}
 
