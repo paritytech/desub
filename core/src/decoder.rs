@@ -840,7 +840,6 @@ impl Decoder {
 						.get_extrinsic_ty(self.chain.as_str(), state.spec, "SignedExtra")
 						.ok_or_else(|| Error::from("Could not find type `SignedExtra`"))?;
 					self.decode_single(state, ty, is_compact).map(Option::Some)
-					// TODO
 					// self.decode_single("", state.spec, ty, state.data, state.cursor, is_compact).map(Option::Some)
 				}
 			}
