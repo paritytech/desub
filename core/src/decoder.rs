@@ -245,7 +245,7 @@ impl<'a> DecodeState<'a> {
 	}
 
 	/// Decode a value, automatically incrementing `cursor`
-	/// the correct number of bits.
+	/// the correct number of bytes.
 	fn decode<T: Decode>(&self) -> Result<T, Error> {
 		let input = &mut &self.data[self.cursor.load(Ordering::Relaxed)..];
 		let remaining_len = input.remaining_len()?.expect("&'a u8 is always Some()");
