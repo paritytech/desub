@@ -58,7 +58,7 @@ pub struct App {
 	/// decode all blocks
 	all: bool,
 	#[argh(option, short = 'u')]
-	///	decode all blocks up to a spec version.
+	/// decode all blocks up to a spec version.
 	to: Option<i32>,
 	#[argh(switch, short = 'v')]
 	/// extra information about the programs execution.

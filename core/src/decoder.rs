@@ -832,8 +832,6 @@ impl Decoder {
 					self.versions.get(&state.spec).ok_or(format!("Metadata for spec {} not found", state.spec))?;
 				if let Some(extensions) = meta.signed_extensions() {
 					let extensions = RustTypeMarker::Tuple(extensions.to_vec());
-					// TODO
-					// self.decode_single(", state.spec, &extensions, state.data, state.cursor, is_compact).map(Option::Some)
 					self.decode_single(state, &extensions, is_compact).map(Option::Some)
 				} else {
 					let ty = self
@@ -841,8 +839,6 @@ impl Decoder {
 						.get_extrinsic_ty(self.chain.as_str(), state.spec, "SignedExtra")
 						.ok_or_else(|| Error::from("Could not find type `SignedExtra`"))?;
 					self.decode_single(state, ty, is_compact).map(Option::Some)
-					// TODO
-					// self.decode_single("", state.spec, ty, state.data, state.cursor, is_compact).map(Option::Some)
 				}
 			}
 			// identity info may be added to in the future
