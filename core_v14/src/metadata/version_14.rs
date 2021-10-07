@@ -29,7 +29,7 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::metadata::{ Metadata, MetadataPallet, MetadataCall, DecodeError, TypeDef, full_type_name };
+use super::{ Metadata, MetadataPallet, MetadataCall, MetadataExtrinsic, DecodeError, TypeDef, full_type_name };
 use frame_metadata::{ RuntimeMetadataV14 };
 
 /// Decode V14 metadata into our general Metadata struct
@@ -37,9 +37,27 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, DecodeError> {
 	let registry = meta.types;
 	let mut pallets = vec![];
 
-	for pallet in meta.pallets {
-		println!("{}", pallet.name);
+	//// Since a version change could lead to more global changes than
+	//// just this, it's debatable that using it is actually useful, versus
+	//// just inspecting the version and manually decoding accordingly:
+	// let signed_extensions = meta.extrinsic.signed_extensions
+	// 	.into_iter()
+	// 	.map(|ext| {
+	// 		registry
+	// 			.resolve(ext.ty.id())
+	// 			.ok_or(DecodeError::TypeNotFound(ext.ty.id()))
+	// 			.map(|t| t.clone())
+	// 	})
+	// 	.collect::<Result<_,_>>()?;
 
+	// Gather some details about the extrinsic itself:
+	let extrinsic = MetadataExtrinsic {
+		version: meta.extrinsic.version,
+		// signed_extensions
+	};
+
+	// Gather information about the pallets in use:
+	for pallet in meta.pallets {
 		let mut calls = vec![];
 		if let Some(call_md) = pallet.calls {
 			// Get the type representing the variant of available calls:
@@ -77,7 +95,6 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, DecodeError> {
 
 				calls.push(MetadataCall { name, args });
 			}
-
 		}
 
 		pallets.push(MetadataPallet {
@@ -86,5 +103,8 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, DecodeError> {
 		})
 	}
 
-	Ok(Metadata { pallets })
+	Ok(Metadata {
+		pallets,
+		extrinsic,
+	})
 }
