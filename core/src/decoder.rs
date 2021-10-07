@@ -1306,10 +1306,8 @@ mod tests {
 	#[test]
 	fn should_chunk_extrinsic() {
 		let test = vec![vec![0u8, 1, 2], vec![3, 4, 5], vec![6, 7, 8]];
-		println!("{:?}", test);
 		let encoded: Vec<u8> = test.encode();
 		let (_length, prefix) = Decoder::scale_length(encoded.as_slice()).unwrap();
-		println!("{:?}", encoded);
 		let mut chunked = ChunkedExtrinsic::new(&encoded[prefix..]);
 		assert_eq!(chunked.next(), Some(vec![0, 1, 2].as_slice()));
 		assert_eq!(chunked.next(), Some(vec![3, 4, 5].as_slice()));
