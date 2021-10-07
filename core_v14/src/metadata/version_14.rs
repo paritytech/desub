@@ -106,5 +106,6 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, DecodeError> {
 	Ok(Metadata {
 		pallets,
 		extrinsic,
+		types: registry,
 	})
 }

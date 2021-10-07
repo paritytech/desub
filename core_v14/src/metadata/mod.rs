@@ -24,7 +24,7 @@ use frame_metadata::{
 	RuntimeMetadataPrefixed,
 	RuntimeMetadata
 };
-use scale_info::PortableRegistry;
+use scale_info::{PortableRegistry, form::PortableForm};
 use std::fmt::Write;
 use crate::util::{ for_each_between, ForEachBetween };
 
@@ -40,6 +40,7 @@ pub enum MetadataError {
     DecodeError(#[from] DecodeError),
 }
 
+/// An error related to attempting to decode metadata from a slice of byres.
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum DecodeError {
     #[error("metadata version {0} is not supported")]
@@ -52,13 +53,16 @@ pub enum DecodeError {
 	TypeNotFound(u32)
 }
 
+/// A Representation of some metadata for a node which aids in the
+/// decoding of SCALE encoded data and such.
 pub struct Metadata {
 	extrinsic: MetadataExtrinsic,
 	pallets: Vec<MetadataPallet>,
+    types: PortableRegistry,
 }
 
 #[derive(Debug)]
-pub struct MetadataPallet {
+struct MetadataPallet {
 	name: String,
 	calls: Vec<MetadataCall>,
 }
@@ -95,6 +99,11 @@ impl Metadata {
     /// Return information about the metadata extrinsic format.
     pub fn extrinsic(&self) -> &MetadataExtrinsic {
         &self.extrinsic
+    }
+
+    /// Given a type identifier, attempt to resolve it into a Type description using the metadata.
+    pub fn resolve_type(&self, id: &<PortableForm as scale_info::form::Form>::Type) -> Option<&Type> {
+        self.types.resolve(id.id())
     }
 }
 
