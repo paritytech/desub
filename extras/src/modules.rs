@@ -224,7 +224,6 @@ fn clean_struct(map: &mut Map<String, Value>) -> Result<Option<RustTypeMarker>, 
 	}
 }
 
-// TODO: Account for 'bitlength' in _set
 fn parse_set(obj: &Map<String, Value>) -> Result<RustTypeMarker, Error> {
 	let mut set_vec = Vec::new();
 	for (key, value) in obj.iter() {
@@ -251,7 +250,7 @@ fn parse_enum(value: &Value) -> Result<RustTypeMarker, Error> {
 		// If all the values are numbers then we need to order the enum according to those numbers.
 		// Some types like `ProxyType` in the runtime may vary from chain-to-chain.
 		// So afaict Polkadot-Js types solve this by attaching a number to each variant according to index.
-		let rust_enum = if value.values().fold(true, |_, v| v.is_number()) { // TODO: TEST THIS AGAINST PROXYTYPE
+		let rust_enum = if value.values().fold(true, |_, v| v.is_number()) {
 			let mut tuples = value.values()
 				.map(|v| v.as_u64().expect("Must be u64"))
 				.zip(

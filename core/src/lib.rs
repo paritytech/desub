@@ -81,7 +81,6 @@ impl SetField {
 	}
 }
 
-/// TODO: Allow mixed struct-unit types
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct EnumField {
 	/// name of the Variant

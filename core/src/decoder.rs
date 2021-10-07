@@ -454,11 +454,11 @@ impl Decoder {
 		}
 	}
 
-	/// Decode a Vec<Extrinsic>
+	/// Decode a Vec<Extrinsic>. (Vec<Vec<u8>>)
 	pub fn decode_extrinsics(&self, spec: SpecVersion, data: &[u8]) -> Result<Vec<GenericExtrinsic>, Error> {
 		let mut ext = Vec::new();
 		let (length, prefix) = Self::scale_length(data)?;
-		let meta = self.versions.get(&spec).expect("Spec does not exist"); // TODO: remove panic
+		let meta = self.versions.get(&spec).ok_or(Error::MissingSpec(spec))?;
 		log::trace!("Decoding {} Total Extrinsics. CALLS: {:#?}", length, meta.modules_by_call_index);
 
 		let mut state = DecodeState::new(None, None, meta, prefix, spec, data);

@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-// TODO: write tests for all 'parse_xxx' functions
 use super::{CommonTypes, RustTypeMarker};
 use onig::{Regex, Region, SearchOptions};
 
@@ -241,7 +240,6 @@ pub fn parse_struct_array(s: &str) -> Option<RustTypeMarker> {
 ///
 /// # Panics
 ///
-/// TODO: Use errors instead of returning option
 pub fn parse_primitive_array(s: &str) -> Option<RustTypeMarker> {
 	let re = rust_array_decl_prim();
 	if !re.is_match(s) {
