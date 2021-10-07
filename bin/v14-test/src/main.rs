@@ -15,7 +15,7 @@ fn main() -> Result<(), anyhow::Error> {
 
 	let metadata_bytes = std::fs::read(opts.metadata)?;
 
-	Metadata::new(&metadata_bytes)?;
+	Metadata::from_bytes(&metadata_bytes)?;
 
 	Ok(())
 }

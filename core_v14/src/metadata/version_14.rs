@@ -29,21 +29,61 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::metadata::{ Metadata, DecodeError };
+use super::metadata::{ Metadata, MetadataPallet, MetadataCall, DecodeError, TypeDef, full_type_name };
 use frame_metadata::{ RuntimeMetadataV14 };
 
 /// Decode V14 metadata into our general Metadata struct
 pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, DecodeError> {
+	let registry = meta.types;
+	let mut pallets = vec![];
 
-	let pallets = vec![];
 	for pallet in meta.pallets {
 		println!("{}", pallet.name);
 
-		if let Some(calls) = pallet.calls {
-			let calls_ty = calls.ty.id();
-			println!("{:?}", meta.types.resolve(calls_ty));
+		let mut calls = vec![];
+		if let Some(call_md) = pallet.calls {
+			// Get the type representing the variant of available calls:
+			let call_ty_id = call_md.ty.id();
+			let call_ty = registry
+				.resolve(call_ty_id)
+				.ok_or(DecodeError::TypeNotFound(call_ty_id))?;
+
+			// Expect that type to be a variant:
+			let call_ty_def = call_ty.type_def();
+			let call_variant = match call_ty_def {
+				TypeDef::Variant(variant) => {
+					variant
+				},
+				_ => {
+					let name = full_type_name(call_ty, &registry);
+					return Err(DecodeError::ExpectedVariantType { got: name })
+				}
+			};
+
+			// Treat each variant as a function call and push to our calls list
+			for variant in call_variant.variants() {
+				// Allow case insensitive matching; lowercase the name:
+				let name = variant.name().to_ascii_lowercase();
+				let args = variant
+					.fields()
+					.iter()
+					.map(|field| {
+						let id = field.ty().id();
+						registry.resolve(id)
+							.ok_or(DecodeError::TypeNotFound(id))
+							.map(|t| t.clone())
+					})
+					.collect::<Result<_,_>>()?;
+
+				calls.push(MetadataCall { name, args });
+			}
+
 		}
 
+		pallets.push(MetadataPallet {
+			name: pallet.name,
+			calls
+		})
 	}
 
 	Ok(Metadata { pallets })

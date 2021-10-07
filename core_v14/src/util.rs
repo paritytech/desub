@@ -75,3 +75,50 @@ pub fn as_substrate_address<S: Serializer>(ty: &SubstrateValue, serializer: S) -
 		_ => Err(ser::Error::custom(format!("Could not format {:?} as Ss58 Address", ty))),
 	}
 }
+
+/// Run a function for each item in an iterator, and run another function between
+/// each item in the iterator.
+pub fn for_each_between<I, T>(iter: I) -> impl Iterator<Item = ForEachBetween<T>>
+where I: IntoIterator<Item = T>,
+{
+	let mut peekable = iter.into_iter().peekable();
+	let mut item_next = true;
+	let mut is_between = true;
+
+	std::iter::from_fn(move || {
+		let res = if item_next {
+			peekable.next().map(ForEachBetween::Item)
+		} else if is_between {
+			Some(ForEachBetween::Between)
+		} else {
+			return None;
+		};
+
+		item_next = !item_next;
+		is_between = peekable.peek().is_some();
+		res
+	})
+}
+
+#[derive(Clone,Copy,PartialEq,Debug)]
+pub enum ForEachBetween<T> {
+	Item(T),
+	Between
+}
+
+#[cfg(test)]
+mod test {
+	use super::*;
+
+	#[test]
+	fn is_between_works() {
+		let mut iter = for_each_between(vec![1,2,3]);
+		assert_eq!(iter.next(), Some(ForEachBetween::Item(1)));
+		assert_eq!(iter.next(), Some(ForEachBetween::Between));
+		assert_eq!(iter.next(), Some(ForEachBetween::Item(2)));
+		assert_eq!(iter.next(), Some(ForEachBetween::Between));
+		assert_eq!(iter.next(), Some(ForEachBetween::Item(3)));
+		assert_eq!(iter.next(), None);
+		assert_eq!(iter.next(), None);
+	}
+}
