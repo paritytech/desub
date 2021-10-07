@@ -1,4 +1,3 @@
-use crate::test_suite;
 use codec::Encode;
 use desub_core::{
 	decoder::{Chain, Decoder, Metadata},
@@ -6,6 +5,7 @@ use desub_core::{
 };
 use primitives::twox_128;
 use anyhow::Result;
+use crate::runtime_metadata::*;
 
 
 /// T::BlockNumber in meta V11 Block 1768321
@@ -23,7 +23,7 @@ fn should_decode_plain() {
 	let types = extras::TypeResolver::default();
 	let mut decoder = Decoder::new(types, Chain::Kusama);
 
-	let meta = test_suite::runtime_v11();
+	let meta = runtime_v11();
 	let meta = Metadata::new(meta.as_slice());
 	decoder.register_version(2023, &meta);
 
@@ -38,7 +38,7 @@ fn should_decode_map() -> Result<()> {
 	let types = extras::TypeResolver::default();
 	let mut decoder = Decoder::new(types, Chain::Kusama);
 
-	let meta = test_suite::runtime_v11();
+	let meta = runtime_v11();
 	let meta = Metadata::new(meta.as_slice());
 	decoder.register_version(2023, &meta);
 	// AccountInfo from block 3944196
@@ -57,7 +57,7 @@ fn should_decode_map_ksm_3944195() -> Result<()> {
 	let types = extras::TypeResolver::default();
 	let mut decoder = Decoder::new(types, Chain::Kusama);
 
-	let meta = test_suite::runtime_v11();
+	let meta = runtime_v11();
 	let meta = Metadata::new(meta.as_slice());
 	decoder.register_version(2023, &meta);
 	// BlockHash from block 3944196
@@ -76,7 +76,7 @@ fn should_decode_double_map() {
 	let types = extras::TypeResolver::default();
 	let mut decoder = Decoder::new(types, Chain::Kusama);
 
-	let meta = test_suite::runtime_v11();
+	let meta = runtime_v11();
 	let meta = Metadata::new(meta.as_slice());
 	decoder.register_version(2023, &meta);
 	// THIS STORAGE KEY IS WRONG for "ImOnline AuthoredBlocks" type
