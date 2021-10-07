@@ -72,7 +72,7 @@ fn storage_mock() -> HashMap<String, StorageMetadata> {
 	let mut map = HashMap::new();
 	let moment = RustTypeMarker::TypePointer("T::Moment".to_string());
 	let precision = RustTypeMarker::U32;
-	let usize_t = RustTypeMarker::USize;
+	let u64_t = RustTypeMarker::U64;
 
 	map.insert(
 		"TestStorage0".to_string(),
@@ -90,7 +90,7 @@ fn storage_mock() -> HashMap<String, StorageMetadata> {
 		StorageMetadata {
 			prefix: "TestStorage1".to_string(),
 			modifier: StorageEntryModifier::Default,
-			ty: StorageType::Plain(usize_t),
+			ty: StorageType::Plain(u64_t),
 			default: vec![0, 0, 0, 0, 0, 0, 0, 0],
 			documentation: vec!["Some Kind of docs 2".to_string()],
 		},
@@ -148,14 +148,6 @@ fn call_mock() -> HashMap<String, CallMetadata> {
 				name: "foo_arg".to_string(),
 				ty: RustTypeMarker::TypePointer("SomeType".to_string()),
 			}],
-		},
-	);
-	map.insert(
-		"TestCall3".to_string(),
-		CallMetadata {
-			name: "foo_function3".to_string(),
-			index: 0,
-			arguments: vec![CallArgMetadata { name: "foo_arg".to_string(), ty: RustTypeMarker::F32 }],
 		},
 	);
 	map
