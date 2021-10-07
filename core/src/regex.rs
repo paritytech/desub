@@ -680,7 +680,7 @@ mod tests {
 	#[test]
 	fn should_match_struct_array() {
 		let re = rust_array_decl_struct();
-		assert_eq!(true, re.is_match("[Foo; 10]"))
+		assert!(re.is_match("[Foo; 10]"))
 	}
 
 	#[test]

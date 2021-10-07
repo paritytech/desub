@@ -121,25 +121,25 @@ impl TypeResolver {
 	pub fn get(&self, chain: &str, spec: u32, module: &str, ty: &str) -> Option<&RustTypeMarker> {
 		log::trace!("Getting Type: {}, module: {}, spec: {}", ty, module, spec);
 
-		if let Some(t) = self.check_overrides(&module, ty, spec, &chain) {
+		if let Some(t) = self.check_overrides(module, ty, spec, chain) {
 			log::trace!("Resolving to Override");
 			Some(t)
-		} else if let Some(t) = self.extrinsics.get(ty, spec, &chain) {
+		} else if let Some(t) = self.extrinsics.get(ty, spec, chain) {
 			log::trace!("Resolving to Extrinsic Type");
 			Some(t)
 		} else {
 			log::trace!("Resolving to Type Pointer");
-			self.resolve_helper(&module, &ty)
+			self.resolve_helper(module, ty)
 		}
 	}
 
 	pub fn try_fallback(&self, module: &str, ty: &str) -> Option<&RustTypeMarker> {
-		self.mods.try_fallback(&module, &ty)
+		self.mods.try_fallback(module, ty)
 	}
 
 	/// Get type for decoding an Extrinsic
 	pub fn get_ext_ty(&self, chain: &str, spec: u32, ty: &str) -> Option<&RustTypeMarker> {
-		if let Some(t) = self.extrinsics.get(&ty, spec, &chain) {
+		if let Some(t) = self.extrinsics.get(ty, spec, chain) {
 			match t {
 				RustTypeMarker::TypePointer(t) => self.resolve_helper("runtime", t),
 				t => Some(t),
@@ -153,10 +153,10 @@ impl TypeResolver {
 	fn resolve_helper(&self, module: &str, ty_pointer: &str) -> Option<&RustTypeMarker> {
 		log::trace!("Helper resolving {}, {}", module, ty_pointer);
 
-		if let Some(t) = self.mods.get_type(module, &ty_pointer) {
+		if let Some(t) = self.mods.get_type(module, ty_pointer) {
 			log::trace!("Type {} found in module {}", &ty_pointer, module);
 			Some(t)
-		} else if let Some(t) = self.mods.get_type("runtime", &ty_pointer) {
+		} else if let Some(t) = self.mods.get_type("runtime", ty_pointer) {
 			log::trace!("Type not found in {}, trying `runtime` for type {}", module, ty_pointer);
 			Some(t)
 		} else if let Some(t) = self.check_other_modules(ty_pointer) {
@@ -172,7 +172,7 @@ impl TypeResolver {
 	/// if it does, return the types/type pointer
 	fn check_overrides(&self, module: &str, ty: &str, spec: u32, chain: &str) -> Option<&RustTypeMarker> {
 		// check if the type is a module override first
-		if let Some(m) = self.overrides.get_module_types(&module) {
+		if let Some(m) = self.overrides.get_module_types(module) {
 			if let Some(ty) = m.get(ty) {
 				return Some(ty);
 			}

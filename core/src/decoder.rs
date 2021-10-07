@@ -418,7 +418,7 @@ impl Decoder {
 		match &storage_info.meta.ty {
 			StorageType::Plain(rtype) => {
 				log::trace!("{:?}, module {}, spec {}", rtype, storage_info.module.name(), spec);
-				let mut state = DecodeState::new(Some(&storage_info.module), None, &meta, 0, spec, value);
+				let mut state = DecodeState::new(Some(&storage_info.module), None, meta, 0, spec, value);
 				let value = self.decode_single(&mut state, rtype, false)?;
 				let key = self.get_key_data(key, storage_info, &lookup_table);
 				let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
@@ -432,7 +432,7 @@ impl Decoder {
 					spec
 				);
 				let key = self.get_key_data(key, storage_info, &lookup_table);
-				let mut state = DecodeState::new(Some(&storage_info.module), None, &meta, 0, spec, value);
+				let mut state = DecodeState::new(Some(&storage_info.module), None, meta, 0, spec, value);
 				let value = self.decode_single(&mut state, val_rtype, false)?;
 				let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
 				Ok(storage)
@@ -445,7 +445,7 @@ impl Decoder {
 					spec
 				);
 				let key = self.get_key_data(key, storage_info, &lookup_table);
-				let mut state = DecodeState::new(Some(&storage_info.module), None, &meta, 0, spec, value);
+				let mut state = DecodeState::new(Some(&storage_info.module), None, meta, 0, spec, value);
 				let value = self.decode_single(&mut state, val_rtype, false)?;
 				let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
 				Ok(storage)
@@ -1038,7 +1038,7 @@ mod tests {
 			Some(&RustTypeMarker::I128)
 		}
 
-		fn try_fallback(&self, _chain: &str, _module: &str, _ty: &str) -> Option<&RustTypeMarker> {
+		fn try_fallback(&self, _module: &str, _ty: &str) -> Option<&RustTypeMarker> {
 			None
 		}
 
@@ -1064,7 +1064,7 @@ mod tests {
 		let mut decoder = Decoder::new(GenericTypes, Chain::Kusama);
 		let rt_version = test_suite::mock_runtime(0);
 		let meta = meta_test_suite::test_metadata();
-		decoder.register_version(rt_version.spec_version.clone(), &meta);
+		decoder.register_version(rt_version.spec_version, &meta);
 		let _other_meta = decoder.get_version_metadata(rt_version.spec_version);
 		assert_eq!(Some(&meta), _other_meta.clone())
 	}
@@ -1084,7 +1084,7 @@ mod tests {
 			let val = $v.encode();
 			let decoder = Decoder::new(GenericTypes, Chain::Kusama);
 			let meta = meta_test_suite::test_metadata();
-			let mut state = DecodeState::new(None, None, decoder.types.as_ref(), &meta, 0, 1031, val.as_slice());
+			let mut state = DecodeState::new(None, None, &meta, 0, 1031, val.as_slice());
 			let res = decoder.decode_single(&mut state, &$x, false).unwrap();
 			assert_eq!($r, res)
 		}};

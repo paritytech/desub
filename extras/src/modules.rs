@@ -337,7 +337,7 @@ mod tests {
 	use crate::ModuleTypes;
 	use core::{EnumField, RustTypeMarker, SetField, StructField};
 	use std::collections::HashMap;
-	const RAW_JSON: &'static str = r#"
+	const RAW_JSON: &str = r#"
 {
 	"runtime": {
 		"types": {

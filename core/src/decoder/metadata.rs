@@ -594,7 +594,7 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
 			RuntimeMetadata::V12(meta) => meta.try_into(),
 			RuntimeMetadata::V13(meta) => meta.try_into(),
 			RuntimeMetadata::V14(_meta) => unimplemented!(),
-			_ => return Err(Error::InvalidVersion)
+			_ => Err(Error::InvalidVersion)
 		}
 	}
 }
