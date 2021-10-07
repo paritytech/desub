@@ -303,7 +303,6 @@ impl<'a> Iterator for ChunkedExtrinsic<'a> {
 	type Item = &'a [u8];
 	fn next(&mut self) -> Option<&'a [u8]> {
 		let (length, prefix) = Decoder::scale_length(&self.data[self.cursor..]).ok()?;
-		log::trace!("Length {}, Prefix: {}", length, prefix);
 		let extrinsic = &self.data[(self.cursor + prefix)..(self.cursor + length + prefix)];
 		self.cursor += length + prefix;
 		Some(extrinsic)
@@ -1302,5 +1301,18 @@ mod tests {
 				])))
 			))
 		);
+	}
+
+	#[test]
+	fn should_chunk_extrinsic() {
+		let test = vec![vec![0u8, 1, 2], vec![3, 4, 5], vec![6, 7, 8]];
+		println!("{:?}", test);
+		let encoded: Vec<u8> = test.encode();
+		let (_length, prefix) = Decoder::scale_length(encoded.as_slice()).unwrap();
+		println!("{:?}", encoded);
+		let mut chunked = ChunkedExtrinsic::new(&encoded[prefix..]);
+		assert_eq!(chunked.next(), Some(vec![0, 1, 2].as_slice()));
+		assert_eq!(chunked.next(), Some(vec![3, 4, 5].as_slice()));
+		assert_eq!(chunked.next(), Some(vec![6, 7, 8].as_slice()));
 	}
 }
