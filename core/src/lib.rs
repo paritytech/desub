@@ -202,9 +202,6 @@ pub enum RustTypeMarker {
 	U64,
 	/// primitive unsigned 128 bit integer
 	U128,
-	/// primitive unsigned word-sized integer
-	USize,
-
 	/// primitive signed 8 bit integer
 	I8,
 	/// primitive signed 16 bit integer
@@ -268,7 +265,6 @@ impl Display for RustTypeMarker {
 			RustTypeMarker::U32 => type_marker.push_str("u32"),
 			RustTypeMarker::U64 => type_marker.push_str("u64"),
 			RustTypeMarker::U128 => type_marker.push_str("u128"),
-			RustTypeMarker::USize => type_marker.push_str("usize"),
 
 			RustTypeMarker::I8 => type_marker.push_str("i8"),
 			RustTypeMarker::I16 => type_marker.push_str("i16"),

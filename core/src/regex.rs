@@ -469,7 +469,6 @@ pub fn parse(s: &str) -> Option<RustTypeMarker> {
 		"u32" => Some(RustTypeMarker::U32),
 		"u64" => Some(RustTypeMarker::U64),
 		"u128" => Some(RustTypeMarker::U128),
-		"usize" => Some(RustTypeMarker::USize),
 
 		"i8" => Some(RustTypeMarker::I8),
 		"i16" => Some(RustTypeMarker::I16),
@@ -653,14 +652,6 @@ mod tests {
 			RustTypeMarker::Array { size: 32, ty: Box::new(RustTypeMarker::I128) }
 		);
 		assert_eq!(
-			parse_primitive_array("[f32; 32]").unwrap(),
-			RustTypeMarker::Array { size: 32, ty: Box::new(RustTypeMarker::F32) }
-		);
-		assert_eq!(
-			parse_primitive_array("[f64; 32]").unwrap(),
-			RustTypeMarker::Array { size: 32, ty: Box::new(RustTypeMarker::F64) }
-		);
-		assert_eq!(
 			parse_primitive_array("[i128; 999999]").unwrap(),
 			RustTypeMarker::Array { size: 999_999, ty: Box::new(RustTypeMarker::I128) }
 		);
@@ -832,17 +823,13 @@ mod tests {
 		assert_eq!(parse("u32").unwrap(), RustTypeMarker::U32);
 		assert_eq!(parse("u64").unwrap(), RustTypeMarker::U64);
 		assert_eq!(parse("u128").unwrap(), RustTypeMarker::U128);
-		assert_eq!(parse("usize").unwrap(), RustTypeMarker::USize);
 
 		assert_eq!(parse("i8").unwrap(), RustTypeMarker::I8);
 		assert_eq!(parse("i16").unwrap(), RustTypeMarker::I16);
 		assert_eq!(parse("i32").unwrap(), RustTypeMarker::I32);
 		assert_eq!(parse("i64").unwrap(), RustTypeMarker::I64);
 		assert_eq!(parse("i128").unwrap(), RustTypeMarker::I128);
-		assert_eq!(parse("isize").unwrap(), RustTypeMarker::ISize);
 
-		assert_eq!(parse("f32").unwrap(), RustTypeMarker::F32);
-		assert_eq!(parse("f64").unwrap(), RustTypeMarker::F64);
 
 		assert_eq!(parse("bool").unwrap(), RustTypeMarker::Bool);
 		assert_eq!(parse("Null").unwrap(), RustTypeMarker::Null);

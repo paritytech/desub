@@ -725,15 +725,6 @@ impl Decoder {
 				};
 				num.into()
 			}
-			RustTypeMarker::USize => {
-				panic!("usize decoding not possible!")
-				/* let size = std::mem::size_of::<usize>();
-				let num: usize =
-					Decode::decode(&mut &data[*cursor..=*cursor+size])?;
-				*cursor += std::mem::size_of::<usize>();
-				num.into()
-				 */
-			}
 			RustTypeMarker::I8 => {
 				log::trace!("Decoding i8");
 				let num: i8 = if is_compact { unimplemented!() } else { state.decode()? };
