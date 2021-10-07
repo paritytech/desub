@@ -230,7 +230,7 @@ pub async fn app(app: App) -> Result<(), Error> {
 	}
 
 	for e in errors.iter() {
-		log::error!("{}", e);
+		println!("{}", e);
 	}
 	Ok(())
 }
