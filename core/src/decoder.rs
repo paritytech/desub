@@ -765,33 +765,9 @@ impl Decoder {
 				let num: i128 = if is_compact { unimplemented!() } else { state.decode()? };
 				num.into()
 			}
-			RustTypeMarker::ISize => {
-				panic!("isize decoding impossible!")
-				/*
-				let idx = std::mem::size_of::<isize>();
-				let num: isize =
-					Decode::decode(&mut &data[*cursor..=*cursor + idx])?;
-				*cursor += std::mem::size_of::<isize>();
-				num.into()
-				*/
-			}
-			RustTypeMarker::F32 => {
-				/*
-				let num: f32 = Decode::decode(&mut &data[*cursor..=*cursor + 4])?;
-				*cursor += 5;
-				num.into()
-				 */
-				panic!("f32 decoding impossible!");
-			}
-			RustTypeMarker::F64 => {
-				/*
-				let num: f64 = Decode::decode(&mut &data[*cursor..=*cursor + 8])?;
-				*cursor += 9;
-				num.into()
-				 */
-				panic!("f64 decoding impossible!");
-			}
-			RustTypeMarker::String => unimplemented!(),
+			RustTypeMarker::ISize => panic!("isize decoding impossible!"),
+			RustTypeMarker::F32 => panic!("f32 decoding impossible!"),
+			RustTypeMarker::F64 => panic!("f64 decoding impossible!"),
 			RustTypeMarker::Bool => {
 				log::trace!("Decoding boolean");
 				let boo: bool = state.decode()?;
@@ -1307,7 +1283,7 @@ mod tests {
 	fn should_chunk_extrinsic() {
 		let test = vec![vec![0u8, 1, 2], vec![3, 4, 5], vec![6, 7, 8]];
 		let encoded: Vec<u8> = test.encode();
-		let (_length, prefix) = Decoder::scale_length(encoded.as_slice()).unwrap();
+		let (_length, prefix) = Decoder::scale_length(encoded.as_slice()).unwrap(); // get the overall length first
 		let mut chunked = ChunkedExtrinsic::new(&encoded[prefix..]);
 		assert_eq!(chunked.next(), Some(vec![0, 1, 2].as_slice()));
 		assert_eq!(chunked.next(), Some(vec![3, 4, 5].as_slice()));

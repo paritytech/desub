@@ -226,9 +226,6 @@ pub enum RustTypeMarker {
 	/// Boolean true/false type
 	Bool,
 
-	/// String type
-	String,
-
 	/// Used for fields that don't exist (ex Unit variant in an enum with both
 	/// units/structs)
 	Null,
@@ -291,8 +288,6 @@ impl Display for RustTypeMarker {
 			RustTypeMarker::F64 => type_marker.push_str("f64"),
 
 			RustTypeMarker::Bool => type_marker.push_str("bool"),
-
-			RustTypeMarker::String => type_marker.push_str("string"),
 
 			RustTypeMarker::Null => type_marker.push_str("null"),
 		}
