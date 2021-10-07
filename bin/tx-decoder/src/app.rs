@@ -110,7 +110,7 @@ impl<'a> AppState<'a> {
 		let mut error_count = 0;
 		let decoder = self.decoder.read();
 		while let Some(Ok(block)) = blocks.next().await {
-			let version = if upgrade_block == Some(block.block_num.try_into()?) {
+			let version = if upgrade_block == Some(block.block_num.try_into()?)  && upgrade_block != 0 {
 				previous.expect("Upgrade block must have previous version; qed")
 			} else {
 				version
