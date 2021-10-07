@@ -304,31 +304,26 @@ fn parse_array(s: &str, re: Regex) -> Option<RustTypeMarker> {
 		8 => match t {
 			"u" => RustTypeMarker::U8,
 			"i" => RustTypeMarker::I8,
-			"f" => panic!("type does not exist 'f8'"),
 			_ => panic!("impossible match encountered"),
 		},
 		16 => match t {
 			"u" => RustTypeMarker::U16,
 			"i" => RustTypeMarker::I16,
-			"f" => panic!("type does not exist 'f16'"),
 			_ => panic!("impossible match encountered"),
 		},
 		32 => match t {
 			"u" => RustTypeMarker::U32,
 			"i" => RustTypeMarker::I32,
-			"f" => RustTypeMarker::F32,
 			_ => panic!("impossible match encountered"),
 		},
 		64 => match t {
 			"u" => RustTypeMarker::U64,
 			"i" => RustTypeMarker::I64,
-			"f" => RustTypeMarker::F64,
 			_ => panic!("impossible match encountered"),
 		},
 		128 => match t {
 			"u" => RustTypeMarker::U128,
 			"i" => RustTypeMarker::I128,
-			"f" => panic!("type does not exist: 'f128'"),
 			_ => panic!("impossible match encountered"),
 		},
 		_ => panic!("Couldn't determine bit-width of types in array"),
@@ -481,10 +476,6 @@ pub fn parse(s: &str) -> Option<RustTypeMarker> {
 		"i32" => Some(RustTypeMarker::I32),
 		"i64" => Some(RustTypeMarker::I64),
 		"i128" => Some(RustTypeMarker::I128),
-		"isize" => Some(RustTypeMarker::ISize),
-
-		"f32" => Some(RustTypeMarker::F32),
-		"f64" => Some(RustTypeMarker::F64),
 
 		"bool" => Some(RustTypeMarker::Bool),
 		"Null" => Some(RustTypeMarker::Null),

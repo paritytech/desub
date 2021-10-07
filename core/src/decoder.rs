@@ -765,9 +765,6 @@ impl Decoder {
 				let num: i128 = if is_compact { unimplemented!() } else { state.decode()? };
 				num.into()
 			}
-			RustTypeMarker::ISize => panic!("isize decoding impossible!"),
-			RustTypeMarker::F32 => panic!("f32 decoding impossible!"),
-			RustTypeMarker::F64 => panic!("f64 decoding impossible!"),
 			RustTypeMarker::Bool => {
 				log::trace!("Decoding boolean");
 				let boo: bool = state.decode()?;

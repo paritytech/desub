@@ -215,13 +215,6 @@ pub enum RustTypeMarker {
 	I64,
 	/// primitive signed 128 bit integer
 	I128,
-	/// primitive signed word-sized integer
-	ISize,
-
-	/// primitive IEEE-spec 32-bit floating-point number
-	F32,
-	/// primitive IEEE-spec 64-bit floating-point number
-	F64,
 
 	/// Boolean true/false type
 	Bool,
@@ -282,13 +275,7 @@ impl Display for RustTypeMarker {
 			RustTypeMarker::I32 => type_marker.push_str("i32"),
 			RustTypeMarker::I64 => type_marker.push_str("i64"),
 			RustTypeMarker::I128 => type_marker.push_str("i128"),
-			RustTypeMarker::ISize => type_marker.push_str("isize"),
-
-			RustTypeMarker::F32 => type_marker.push_str("f32"),
-			RustTypeMarker::F64 => type_marker.push_str("f64"),
-
 			RustTypeMarker::Bool => type_marker.push_str("bool"),
-
 			RustTypeMarker::Null => type_marker.push_str("null"),
 		}
 		write!(f, "{}", type_marker)
