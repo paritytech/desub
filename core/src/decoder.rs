@@ -126,7 +126,9 @@ impl FromStr for Chain {
 
 #[derive(Debug)]
 struct Module<'a> {
-	module: Option<&'a ModuleMetadata>, // no module, or mismatched module, means we are probably decoding a signature. A signature is decoded before we know which module/call the extrinsic actually represents.
+	// no module, means we are probably decoding a signature.
+	// A signature is decoded before we know which module/call the extrinsic actually represents.
+	module: Option<&'a ModuleMetadata>,
 }
 
 impl<'a> Module<'a> {
