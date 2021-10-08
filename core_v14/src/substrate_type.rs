@@ -10,6 +10,7 @@ type ScaleInfoType = scale_info::Type<scale_info::form::PortableForm>;
 
 /// This roughly mirrors [`scale_info::TypeDef`], but is slightly simplified
 /// and fully public, so that it's possible to construct types ourselves.
+#[derive(Clone)]
 pub enum SubstrateType {
     Composite(CompositeType),
     Variant(VariantType),
@@ -37,6 +38,7 @@ impl Debug for SubstrateType {
 }
 
 /// Named or unnamed struct or variant fields.
+#[derive(Clone)]
 pub struct CompositeType {
     /// The name of the type. If the type is a Struct, this will
     /// be the path to it, and if it's a Variant type it'll be the
@@ -46,6 +48,7 @@ pub struct CompositeType {
     pub fields: CompositeTypeFields,
 }
 
+#[derive(Clone)]
 pub enum CompositeTypeFields {
     /// Eg `{ foo: u32, bar: bool }`
     Named(Vec<(String, SubstrateType)>),
@@ -55,17 +58,17 @@ pub enum CompositeTypeFields {
 
 impl Debug for CompositeType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.fields {
+        match &self.fields {
             CompositeTypeFields::Named(fields) => {
-                let struc = f.debug_struct(&self.name);
-                for (name, ty) in &fields {
+                let mut struc = f.debug_struct(&self.name);
+                for (name, ty) in fields {
                     struc.field(name, ty);
                 }
                 struc.finish()
             },
             CompositeTypeFields::Unnamed(fields) => {
-                let struc = f.debug_tuple(&self.name);
-                for ty in &fields {
+                let mut struc = f.debug_tuple(&self.name);
+                for ty in fields {
                     struc.field(ty);
                 }
                 struc.finish()
@@ -76,6 +79,7 @@ impl Debug for CompositeType {
 
 /// A representation of some enum variants, where each has a name
 /// and 0 or more named or unnamed fields associaetd with it.
+#[derive(Clone)]
 pub struct VariantType {
     /// The name of the Variant. This will be a path, and is not used
     /// for (en|de)coding, but is useful for diagnostic messages.
@@ -104,6 +108,7 @@ impl Debug for VariantType {
 }
 
 /// A sequence of values of some type, like `Vec<T>`.
+#[derive(Clone)]
 pub struct SequenceType {
     /// The type of values in the sequence.
     pub values: Box<SubstrateType>
@@ -118,6 +123,7 @@ impl Debug for SequenceType {
 }
 
 /// An array type with a fixed length, like `[u8; 32]`.
+#[derive(Clone)]
 pub struct ArrayType {
     /// The type of values in the array.
     pub values: Box<SubstrateType>,
@@ -136,6 +142,7 @@ impl Debug for ArrayType {
 }
 
 /// A tuple of values of possibly different types.
+#[derive(Clone)]
 pub struct TupleType {
     /// The type of each field in the tuple.
     pub fields: Vec<SubstrateType>
@@ -143,7 +150,7 @@ pub struct TupleType {
 
 impl Debug for TupleType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let tup = f.debug_tuple("");
+        let mut tup = f.debug_tuple("");
         for field in &self.fields {
             tup.field(field);
         }
@@ -153,6 +160,7 @@ impl Debug for TupleType {
 
 /// Primitive types. Copied from [`scale_info::TypeDefPrimitive`] but with
 /// different Debug impl.
+#[derive(Clone, Copy)]
 pub enum PrimitiveType {
     Bool, Char, Str,
     U8, U16, U32, U64, U128, U256,
@@ -205,6 +213,7 @@ impl Debug for PrimitiveType {
 
 
 /// A type that has been compact-encoded.
+#[derive(Clone)]
 pub struct CompactType {
     /// Type of the value that has been compact-encoded.
     pub value: Box<SubstrateType>
@@ -219,6 +228,7 @@ impl Debug for CompactType {
 }
 
 /// Represent a `bitvec`.
+#[derive(Clone)]
 pub struct BitSequenceType {
     /// What order do we read the bits from the underlying type.
     pub bit_order_type: Box<SubstrateType>,
@@ -248,12 +258,6 @@ impl SubstrateType {
     pub fn from_scale_info_type(ty: &ScaleInfoType, registry: &PortableRegistry) -> Result<SubstrateType, ConvertError> {
         let def = ty.type_def();
         match def {
-            ScaleInfoTypeDef::Array(inner) => {
-                let len = inner.len();
-                let values_ty = resolve_to_substrate_type(inner.type_param(), registry)?;
-                let values = Box::new(values_ty);
-                Ok(SubstrateType::Array(ArrayType { len, values }))
-            },
             ScaleInfoTypeDef::Composite(inner) => {
                 let name = join_path(ty.path().segments());
                 let fields = composite_fields(inner.fields(), registry)?;
