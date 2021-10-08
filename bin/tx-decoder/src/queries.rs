@@ -48,6 +48,8 @@ pub async fn blocks_in_spec(conn: &mut PgConnection, spec: i32) -> Result<i64, E
 	)
 }
 
+
+/// returns the total amount of blocks
 pub async fn total_block_count(conn: &mut PgConnection) -> Result<i64, Error> {
 	Ok(sqlx::query_as::<_, Count>("SELECT COUNT(*) FROM blocks")
 		.fetch_one(conn)
