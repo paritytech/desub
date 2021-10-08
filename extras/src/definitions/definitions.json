@@ -2889,7 +2889,8 @@
       "SealV0": "(u64, Signature)",
       "Seal": "(ConsensusEngineId, Bytes)",
       "Consensus": "(ConsensusEngineId, Bytes)",
-      "Bytes": "Vec<u8>"
+      "Bytes": "Vec<u8>",
+	  "StorageKey": "Vec<u8>"
     }
   },
   "scaleinfo": {
