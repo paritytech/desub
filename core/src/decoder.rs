@@ -122,11 +122,7 @@ impl FromStr for Chain {
 			"westend" | "wnd" => Ok(Chain::Westend),
 			"centrifuge" => Ok(Chain::Centrifuge),
 			"rococo" => Ok(Chain::Rococo),
-			_ => Err(Error::Fail(
-				"Network must be one of: 'kusama', 'polkadot', 'westend', 'centrifuge', 'rococo' or their
-				token abbreviations."
-					.into(),
-			)),
+			_ => Ok(Chain::Custom(s.to_string()))
 		}
 	}
 }
