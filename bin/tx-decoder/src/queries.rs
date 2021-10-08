@@ -48,6 +48,8 @@ pub async fn blocks_in_spec(conn: &mut PgConnection, spec: i32) -> Result<i64, E
 	)
 }
 
+
+/// returns the total amount of blocks
 pub async fn total_block_count(conn: &mut PgConnection) -> Result<i64, Error> {
 	Ok(sqlx::query_as::<_, Count>("SELECT COUNT(*) FROM blocks")
 		.fetch_one(conn)
@@ -56,6 +58,7 @@ pub async fn total_block_count(conn: &mut PgConnection) -> Result<i64, Error> {
 	)
 }
 
+/// returns how many blocks exist up to a spec version
 pub async fn count_upto_spec(conn: &mut PgConnection, spec: i32) -> Result<i64, Error> {
 	Ok(sqlx::query_as::<_, Count>("SELECT COUNT(*) FROM blocks WHERE spec < $1")
 		.bind(spec)
@@ -108,6 +111,8 @@ pub async fn spec_versions(conn: &mut PgConnection) -> Result<Vec<u32>, Error> {
 
 }
 
+
+/// returns all spec versions up to a specified version
 pub async fn spec_versions_upto(conn: &mut PgConnection, upto: i32) -> Result<Vec<u32>, Error> {
 	sqlx::query_as!(Version, "SELECT version FROM metadata WHERE version < $1", upto)
 		.fetch_all(conn)
