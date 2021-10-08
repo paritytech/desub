@@ -44,11 +44,15 @@ use crate::{
 	substrate_types::{self, StructField, SubstrateType},
 	CommonTypes, RustTypeMarker, TypeDetective,
 };
-use codec::{Compact, CompactLen, Decode, Input};
 use bitvec::order::Lsb0 as BitOrderLsb0;
+use codec::{Compact, CompactLen, Decode, Input};
 use std::{
-	collections::HashMap, convert::TryFrom, str::FromStr,
-	cell::RefCell, rc::Rc, sync::atomic::{AtomicUsize,Ordering}
+	cell::RefCell,
+	collections::HashMap,
+	convert::TryFrom,
+	rc::Rc,
+	str::FromStr,
+	sync::atomic::{AtomicUsize, Ordering},
 };
 
 type SpecVersion = u32;
@@ -115,8 +119,11 @@ impl FromStr for Chain {
 		match s.to_lowercase().as_str() {
 			"polkadot" | "dot" => Ok(Chain::Polkadot),
 			"kusama" | "ksm" => Ok(Chain::Kusama),
+			"westend" | "wnd" => Ok(Chain::Westend),
+			"centrifuge" => Ok(Chain::Centrifuge),
+			"rococo" => Ok(Chain::Rococo),
 			_ => Err(Error::Fail(
-				"Network must be one of: 'kusama', 'polkadot', 'moonriver', or their
+				"Network must be one of: 'kusama', 'polkadot', 'westend', 'centrifuge', 'rococo' or their
 				token abbreviations."
 					.into(),
 			)),
@@ -281,9 +288,13 @@ impl<'a> DecodeState<'a> {
 		let value_at_cursor = &self.data[cursor];
 		let data_at_cursor = &self.data[cursor..];
 
-		log::debug!("line: {}, module = {}, call = {:?}, cursor = {}, data[cursor] = {}, data[cursor..] = {:?}",
-			line, module, self.call.borrow().as_ref().map(|c| c.name()),
-			cursor, value_at_cursor,
+		log::debug!(
+			"line: {}, module = {}, call = {:?}, cursor = {}, data[cursor] = {}, data[cursor..] = {:?}",
+			line,
+			module,
+			self.call.borrow().as_ref().map(|c| c.name()),
+			cursor,
+			value_at_cursor,
 			data_at_cursor,
 		)
 	}
@@ -291,7 +302,7 @@ impl<'a> DecodeState<'a> {
 
 struct ChunkedExtrinsic<'a> {
 	data: &'a [u8],
-	cursor: usize
+	cursor: usize,
 }
 
 impl<'a> ChunkedExtrinsic<'a> {
@@ -391,7 +402,7 @@ impl Decoder {
 						key2_type: key2.clone(),
 					}),
 				}
-			},
+			}
 			StorageType::NMap { .. } => unimplemented!(),
 		}
 	}
@@ -450,8 +461,8 @@ impl Decoder {
 				let value = self.decode_single(&mut state, val_rtype, false)?;
 				let storage = GenericStorage::new(key, Some(StorageValue::new(value)));
 				Ok(storage)
-			},
-			StorageType::NMap { .. } => unimplemented!()
+			}
+			StorageType::NMap { .. } => unimplemented!(),
 		}
 	}
 
@@ -475,11 +486,7 @@ impl Decoder {
 
 	/// Decode an extrinsic
 	fn decode_extrinsic(&self, state: &mut DecodeState) -> Result<GenericExtrinsic, Error> {
-		let signature = if state.interpret_version() {
-			Some(self.decode_signature(state)?)
-		} else {
-			None
-		};
+		let signature = if state.interpret_version() { Some(self.decode_signature(state)?) } else { None };
 
 		state.load_module()?;
 		let types = self.decode_call(state)?;
@@ -547,9 +554,7 @@ impl Decoder {
 					let saved_cursor = state.cursor();
 					let resolved = self.decode_single(state, new_type, is_compact);
 					if resolved.is_err() {
-						if let Some(fallback) =
-							self.types.try_fallback(state.module_name(), v)
-						{
+						if let Some(fallback) = self.types.try_fallback(state.module_name(), v) {
 							log::trace!("Falling back to type: {}", fallback);
 							state.set_cursor(saved_cursor);
 							return self.decode_single(state, fallback, is_compact);
@@ -626,9 +631,7 @@ impl Decoder {
 					log::trace!("Option::cursor={}", state.cursor());
 					match state.do_index() {
 						// None
-						0x00 => {
-							SubstrateType::Option(Box::new(None))
-						}
+						0x00 => SubstrateType::Option(Box::new(None)),
 						// Some
 						0x01 => {
 							let ty = self.decode_single(state, v, is_compact)?;
@@ -720,7 +723,7 @@ impl Decoder {
 				state.observe(line!());
 				let num = if is_compact {
 					let num: Compact<u128> = state.decode()?;
-					 num.into()
+					num.into()
 				} else {
 					let num: u128 = state.decode()?;
 					num
@@ -860,7 +863,7 @@ impl Decoder {
 				log::trace!("Decoding BitVec");
 				let bit_vec: bitvec::vec::BitVec<BitOrderLsb0, u8> = state.decode()?;
 				Ok(Some(SubstrateType::BitVec(bit_vec)))
-			},
+			}
 			"Call" | "GenericCall" => {
 				log::trace!("Decoding Call | GenericCall");
 				state.load_module()?;
@@ -881,12 +884,12 @@ impl Decoder {
 				let val: substrate_types::Address = decode_old_address(state)?;
 				log::trace!("Decode Successful {:?}", &val);
 				Ok(Some(SubstrateType::Address(val)))
-			},
+			}
 			"<T::Lookup as StaticLookup>::Source" => {
 				log::trace!("Decoding <T::Lookup as StaticLookup>::Source");
 				state.observe(line!());
 				Ok(Some(self.decode_single(state, &RustTypeMarker::TypePointer("LookupSource".into()), is_compact)?))
-			},
+			}
 			"GenericMultiAddress" => {
 				let val: substrate_types::Address = state.decode()?;
 				log::trace!("Address: {:?}", val);
@@ -919,8 +922,7 @@ impl Decoder {
 		// alternative to `DecodeLength` trait, to avoid casting from a trait
 		let length = u32::from(Compact::<u32>::decode(&mut data)?);
 		let prefix = Compact::<u32>::compact_len(&length);
-		let length =
-			usize::try_from(length).map_err(|_| Error::from("Failed convert decoded size into usize."))?;
+		let length = usize::try_from(length).map_err(|_| Error::from("Failed convert decoded size into usize."))?;
 		Ok((length, prefix))
 	}
 
@@ -955,14 +957,17 @@ fn decode_old_address(state: &DecodeState) -> Result<substrate_types::Address, E
 	}
 
 	let inc;
-	let addr = match state.do_index() { // do_index for byte 0x00-0xff
+	let addr = match state.do_index() {
+		// do_index for byte 0x00-0xff
 		x @ 0x00..=0xef => {
 			inc = 0;
 			substrate_types::Address::Index(x as u32)
 		}
 		0xfc => {
 			inc = 2;
-			substrate_types::Address::Index(need_more_than(0xef, u16::decode(&mut &state.data[(state.cursor())..])?)? as u32)
+			substrate_types::Address::Index(
+				need_more_than(0xef, u16::decode(&mut &state.data[(state.cursor())..])?)? as u32
+			)
 		}
 		0xfd => {
 			inc = 4;
