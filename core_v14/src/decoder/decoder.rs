@@ -1,6 +1,6 @@
 use crate::metadata::Metadata;
 use crate::substrate_value::SubstrateValue;
-use super::utils::{ ExtrinsicBytes, ExtrinsicBytesError };
+use super::extrinsic_bytes::{ ExtrinsicBytes, ExtrinsicBytesError };
 
 pub struct Decoder {
     metadata: Metadata
@@ -13,7 +13,6 @@ pub enum DecodeError {
 }
 
 impl Decoder {
-
     /// Create a new decoder using the provided metadata.
     pub fn with_metadata<M: Into<Metadata>>(metadata: M) -> Decoder {
         Decoder {
@@ -39,5 +38,4 @@ impl Decoder {
     pub fn decode_extrinsic(&self, data: &[u8]) -> Result<SubstrateValue, DecodeError> {
         todo!()
     }
-
 }

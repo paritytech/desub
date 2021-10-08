@@ -28,15 +28,16 @@ impl <'a> ExtrinsicBytes<'a> {
         self.len
     }
 
-    /// Iterate over a SCALE encoded vector of extrinsics and return the bytes associated with each one.
-    /// On each iteration, we return the extrinsic bytes, or an error containing the position at which
-    /// decoding failed.
+    /// Iterate over a SCALE encoded vector of extrinsics and return the bytes associated
+    /// with each one, or an error containing the position at which decoding failed.
     pub fn iter(&self) -> ExtrinsicBytesIter<'a> {
         ExtrinsicBytesIter { data: &self.data, cursor: 0 }
     }
 }
 
 /// An iterator that returns the set of bytes representing each extrinsic found.
+/// On each iteration, we return either the extrinsic bytes, or an error containing
+/// the position at which decoding failed.
 pub struct ExtrinsicBytesIter<'a> {
     data: &'a [u8],
     cursor: usize
@@ -61,6 +62,7 @@ impl <'a> Iterator for ExtrinsicBytesIter<'a> {
     }
 }
 
+/// An error containing the index into the byte slice at which decoding failed.
 #[derive(Debug, Clone, Copy, thiserror::Error)]
 #[error("Expected a compact encoded u32 at byte index {index}, but did not find one")]
 pub struct ExtrinsicBytesError {

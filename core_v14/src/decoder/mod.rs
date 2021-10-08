@@ -1,4 +1,4 @@
 mod decoder;
-mod utils;
+mod extrinsic_bytes;
 
 pub use decoder::Decoder;
