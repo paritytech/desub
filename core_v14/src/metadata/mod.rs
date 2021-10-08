@@ -24,15 +24,8 @@ use frame_metadata::{
 	RuntimeMetadataPrefixed,
 	RuntimeMetadata
 };
-use scale_info::{PortableRegistry, form::PortableForm};
-use std::fmt::Write;
-use crate::util::{ for_each_between, ForEachBetween };
-
-/// A variant describing the shape of a type.
-pub type TypeDef = scale_info::TypeDef<scale_info::form::PortableForm>;
-
-/// Information about a type, including its shape.
-pub type Type = scale_info::Type<scale_info::form::PortableForm>;
+use scale_info::PortableRegistry;
+use crate::substrate_type::{ SubstrateType, ConvertError };
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum MetadataError {
@@ -46,11 +39,13 @@ pub enum DecodeError {
     #[error("metadata version {0} is not supported")]
     UnsupportedVersion(usize),
     #[error("{0}")]
-    DecodeError(#[from] codec::Error),
+    CodecError(#[from] codec::Error),
 	#[error("unexpected type; expecting a Variant type, but got {got}")]
 	ExpectedVariantType { got: String },
+	#[error("could not convert type into the desired format: {0}")]
+	ConvertError(#[from] ConvertError),
 	#[error("could not find type with ID {0}")]
-	TypeNotFound(u32)
+    TypeNotFound(u32),
 }
 
 /// A Representation of some metadata for a node which aids in the
@@ -60,6 +55,13 @@ pub struct Metadata {
 	pallets: Vec<MetadataPallet>,
     types: PortableRegistry,
 }
+
+/// Types are internally stored away in a type registry. Rather than exposing
+/// The scale-info logic, we store and hand back these pointers to the type
+/// information. This can be resolved into [`crate::substrate_type::SubstrateType`]
+/// when you'd like the full type information to work with.
+#[derive(Debug, Clone, Copy)]
+pub struct TypeId(u32);
 
 #[derive(Debug)]
 struct MetadataPallet {
@@ -101,9 +103,17 @@ impl Metadata {
         &self.extrinsic
     }
 
-    /// Given a type identifier, attempt to resolve it into a Type description using the metadata.
-    pub fn resolve_type(&self, id: &<PortableForm as scale_info::form::Form>::Type) -> Option<&Type> {
-        self.types.resolve(id.id())
+    /// Given a [`TypeId`], attempt to resolve it into a [`SubstrateType`].
+    ///
+    /// We hand back [`TypeId`]'s rather than [`SubstrateType`]'s in most places because [`SubstrateType`]'s
+    /// are not as space/allocation friendly as the type registry. That said, they are easier to work with and
+    /// can be manually constructed, which makes it easier to use them.
+    pub fn resolve_type(&self, id: &TypeId) -> Result<SubstrateType, MetadataError> {
+        let ty = self.types.resolve(id.0)
+            .ok_or(MetadataError::DecodeError(DecodeError::TypeNotFound(id.0)))?;
+        let substrate_ty = SubstrateType::from_scale_info_type(ty, &self.types)
+            .map_err(|e| MetadataError::DecodeError(e.into()))?;
+        Ok(substrate_ty)
     }
 }
 
@@ -133,7 +143,7 @@ fn runtime_metadata_version(meta: &RuntimeMetadata) -> usize {
 #[derive(Debug)]
 pub struct MetadataCall {
 	name: String,
-	args: Vec<Type>
+	args: Vec<TypeId>
 }
 
 impl MetadataCall {
@@ -141,8 +151,11 @@ impl MetadataCall {
 	pub fn name(&self) -> &str {
 		&self.name
 	}
+
 	/// The types expected to be provided as arguments to this call.
-	pub fn args(&self) -> &[Type] {
+    /// [`TypeId`]'s can be resolved into [`SubstrateType`]'s using
+    /// [`Metadata::resolve_type`]
+	pub fn args(&self) -> &[TypeId] {
 		&self.args
 	}
 }
@@ -162,92 +175,4 @@ impl MetadataExtrinsic {
     pub fn version(&self) -> u8 {
         self.version
     }
-}
-
-/// Output a human readable representation of the type provided.
-fn full_type_name(ty: &Type, registry: &PortableRegistry) -> String {
-	let mut s = String::new();
-	write_full_type_name(ty, registry, &mut s).expect("string shouldn't fmt error");
-	s
-}
-
-/// Output a human readable representation of the type to the writer provided.
-fn write_full_type_name<W: Write>(ty: &Type, registry: &PortableRegistry, w: &mut W) -> Result<(), std::fmt::Error> {
-	let def = ty.type_def();
-	let to_type = |ty: &<scale_info::form::PortableForm as scale_info::form::Form>::Type | {
-		registry
-			.resolve(ty.id())
-			.expect("type ID to exist in registry")
-	};
-
-	match def {
-		TypeDef::Array(inner) => {
-			w.write_str("[")?;
-			write_full_type_name(to_type(inner.type_param()), registry, w)?;
-			w.write_str("; ")?;
-			w.write_str(&inner.len().to_string())?;
-			w.write_str("]")?;
-		},
-		TypeDef::BitSequence(_) => {
-			w.write_str("BitSequence")?;
-		},
-		TypeDef::Compact(inner) => {
-			w.write_str("Compact<")?;
-			write_full_type_name(to_type(inner.type_param()), registry, w)?;
-			w.write_str(">")?;
-		},
-		TypeDef::Primitive(prim) => {
-			use scale_info::TypeDefPrimitive;
-			match prim {
-				TypeDefPrimitive::Bool => w.write_str("bool")?,
-				TypeDefPrimitive::Char => w.write_str("char")?,
-				TypeDefPrimitive::Str => w.write_str("str")?,
-				TypeDefPrimitive::U8 => w.write_str("u8")?,
-				TypeDefPrimitive::U16 => w.write_str("u16")?,
-				TypeDefPrimitive::U32 => w.write_str("u32")?,
-				TypeDefPrimitive::U64 => w.write_str("u64")?,
-				TypeDefPrimitive::U128 => w.write_str("u128")?,
-				TypeDefPrimitive::U256 => w.write_str("u256")?,
-				TypeDefPrimitive::I8 => w.write_str("i8")?,
-				TypeDefPrimitive::I16 => w.write_str("i16")?,
-				TypeDefPrimitive::I32 => w.write_str("i32")?,
-				TypeDefPrimitive::I64 => w.write_str("i64")?,
-				TypeDefPrimitive::I128 => w.write_str("i128")?,
-				TypeDefPrimitive::I256 => w.write_str("i256")?,
-			}
-		},
-		TypeDef::Sequence(seq) => {
-			w.write_str("Seq<")?;
-			write_full_type_name(to_type(seq.type_param()), registry, w)?;
-			w.write_str(">")?;
-		},
-		TypeDef::Tuple(tup) => {
-			w.write_str("(")?;
-			for field in for_each_between(tup.fields()) {
-				match field {
-					ForEachBetween::Item(field) => {
-						write_full_type_name(to_type(field), registry, w)?;
-					},
-					ForEachBetween::Between => {
-						w.write_str(", ")?;
-					}
-				}
-			}
-			w.write_str(")")?;
-		},
-		TypeDef::Variant(_) | TypeDef::Composite(_) => {
-			// Just print the path for conciseness.
-			for item in for_each_between(ty.path().segments()) {
-				match item {
-					ForEachBetween::Item(item) => {
-						w.write_str(item)?;
-					},
-					ForEachBetween::Between => {
-						w.write_str("::")?;
-					}
-				}
-			}
-		}
-	};
-	Ok(())
 }
