@@ -37,7 +37,7 @@ Currently Supported Metadata Versions (From Kusama CC1):
 - [x] V11
 - [x] V12
 - [x] V13
-- [x] V14
+- [ ] V14
 
 ### (Tentative) Release & Maintenence
 #### Note: Release description is in no way complete because of current & active development for legacy desub types & scale-info based types. it is purely here as a record for things that _should_ be taken into account in the future
