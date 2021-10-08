@@ -44,6 +44,6 @@ Currently Supported Metadata Versions (From Kusama CC1):
 	- it is purely here as a record for things that _should_ be taken into account in the future
 
 - Depending on changes in legacy desub code, bump version in Cargo.toml for `extras/`, `core/`
-	- note `upgrade-blocks` present [here](https://github.com/polkadot-js/api/tree/master/packages/types-known/src/upgrades) and in Polkadot release notes [here](https://github.com/paritytech/polkadot/releases) and modify the hard-coded upgrade blocks as necessary in the desub `runtimes.rs` file.
-		- NOTE: this step may-or-may not be necessary depending on `scale-info` integration in the future.
+- note `upgrade-blocks` present [here](https://github.com/polkadot-js/api/tree/master/packages/types-known/src/upgrades) and in Polkadot release notes [here](https://github.com/paritytech/polkadot/releases) and modify the hard-coded upgrade blocks as necessary in the desub `runtimes.rs` file.
+	- NOTE: this step may-or-may not be necessary depending on `scale-info` integration in the future.
 
