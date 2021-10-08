@@ -37,6 +37,64 @@ impl Debug for SubstrateType {
     }
 }
 
+impl SubstrateType {
+    /// Convert a type from a [`ScaleInfoType`] to a [`SubstrateType`]. We do this because we can't manually
+    /// construct and work with some of the [`ScaleInfoType`] values, but we'd like to be able to do so to
+    /// manually drive and test decoding. This also removes the reliance on a separate type registry, by
+    /// inlining the relevant type information (at the expense of more allocations/space).
+    pub fn from_scale_info_type(ty: &ScaleInfoType, registry: &PortableRegistry) -> Result<SubstrateType, ConvertError> {
+        let def = ty.type_def();
+        match def {
+            ScaleInfoTypeDef::Composite(inner) => {
+                let name = join_path(ty.path().segments());
+                let fields = composite_fields(inner.fields(), registry)?;
+                Ok(SubstrateType::Composite(CompositeType { name, fields }))
+            },
+            ScaleInfoTypeDef::Variant(inner) => {
+                let name = join_path(ty.path().segments());
+                let variants_iter = inner.variants().iter().map(|variant| {
+                    let name = variant.name().clone();
+                    let fields = composite_fields(variant.fields(), registry)?;
+                    Ok(CompositeType { name, fields })
+                });
+                Ok(SubstrateType::Variant(VariantType {
+                    name,
+                    variants: variants_iter.collect::<Result<_,_>>()?
+                }))
+            },
+            ScaleInfoTypeDef::Sequence(inner) => {
+                let inner_ty = resolve_to_substrate_type(inner.type_param(), registry)?;
+                Ok(SubstrateType::Sequence(SequenceType { values: Box::new(inner_ty) }))
+            },
+            ScaleInfoTypeDef::Array(inner) => {
+                let len = inner.len();
+                let inner_ty = resolve_to_substrate_type(inner.type_param(), registry)?;
+                Ok(SubstrateType::Array(ArrayType { len, values: Box::new(inner_ty) }))
+            },
+            ScaleInfoTypeDef::Tuple(inner) => {
+                let fields_iter = inner
+                    .fields()
+                    .iter()
+                    .map(|ty| resolve_to_substrate_type(ty, registry));
+                let fields = fields_iter.collect::<Result<_,_>>()?;
+                Ok(SubstrateType::Tuple(TupleType { fields }))
+            },
+            ScaleInfoTypeDef::Primitive(inner) => {
+                Ok(SubstrateType::Primitive(inner.clone().into()))
+            },
+            ScaleInfoTypeDef::Compact(inner) => {
+                let inner_ty = resolve_to_substrate_type(inner.type_param(), registry)?;
+                Ok(SubstrateType::Compact(CompactType { value: Box::new(inner_ty) }))
+            },
+            ScaleInfoTypeDef::BitSequence(inner) => {
+                let bit_order_type = Box::new(resolve_to_substrate_type(inner.bit_order_type(), registry)?);
+                let bit_store_type = Box::new(resolve_to_substrate_type(inner.bit_store_type(), registry)?);
+                Ok(SubstrateType::BitSequence(BitSequenceType { bit_order_type, bit_store_type }))
+            },
+        }
+    }
+}
+
 /// Named or unnamed struct or variant fields.
 #[derive(Clone)]
 pub struct CompositeType {
@@ -248,64 +306,6 @@ impl Debug for BitSequenceType {
 pub enum ConvertError {
     #[error("could not find type with ID {0} in the type registry")]
     TypeNotFound(u32)
-}
-
-impl SubstrateType {
-    /// Convert a type from a [`ScaleInfoType`] to a [`SubstrateType`]. We do this because we can't manually
-    /// construct and work with some of the [`ScaleInfoType`] values, but we'd like to be able to do so to
-    /// manually drive and test decoding. This also removes the reliance on a separate type registry, by
-    /// inlining the relevant type information (at the expense of more allocations/space).
-    pub fn from_scale_info_type(ty: &ScaleInfoType, registry: &PortableRegistry) -> Result<SubstrateType, ConvertError> {
-        let def = ty.type_def();
-        match def {
-            ScaleInfoTypeDef::Composite(inner) => {
-                let name = join_path(ty.path().segments());
-                let fields = composite_fields(inner.fields(), registry)?;
-                Ok(SubstrateType::Composite(CompositeType { name, fields }))
-            },
-            ScaleInfoTypeDef::Variant(inner) => {
-                let name = join_path(ty.path().segments());
-                let variants_iter = inner.variants().iter().map(|variant| {
-                    let name = variant.name().clone();
-                    let fields = composite_fields(variant.fields(), registry)?;
-                    Ok(CompositeType { name, fields })
-                });
-                Ok(SubstrateType::Variant(VariantType {
-                    name,
-                    variants: variants_iter.collect::<Result<_,_>>()?
-                }))
-            },
-            ScaleInfoTypeDef::Sequence(inner) => {
-                let inner_ty = resolve_to_substrate_type(inner.type_param(), registry)?;
-                Ok(SubstrateType::Sequence(SequenceType { values: Box::new(inner_ty) }))
-            },
-            ScaleInfoTypeDef::Array(inner) => {
-                let len = inner.len();
-                let inner_ty = resolve_to_substrate_type(inner.type_param(), registry)?;
-                Ok(SubstrateType::Array(ArrayType { len, values: Box::new(inner_ty) }))
-            },
-            ScaleInfoTypeDef::Tuple(inner) => {
-                let fields_iter = inner
-                    .fields()
-                    .iter()
-                    .map(|ty| resolve_to_substrate_type(ty, registry));
-                let fields = fields_iter.collect::<Result<_,_>>()?;
-                Ok(SubstrateType::Tuple(TupleType { fields }))
-            },
-            ScaleInfoTypeDef::Primitive(inner) => {
-                Ok(SubstrateType::Primitive(inner.clone().into()))
-            },
-            ScaleInfoTypeDef::Compact(inner) => {
-                let inner_ty = resolve_to_substrate_type(inner.type_param(), registry)?;
-                Ok(SubstrateType::Compact(CompactType { value: Box::new(inner_ty) }))
-            },
-            ScaleInfoTypeDef::BitSequence(inner) => {
-                let bit_order_type = Box::new(resolve_to_substrate_type(inner.bit_order_type(), registry)?);
-                let bit_store_type = Box::new(resolve_to_substrate_type(inner.bit_store_type(), registry)?);
-                Ok(SubstrateType::BitSequence(BitSequenceType { bit_order_type, bit_store_type }))
-            },
-        }
-    }
 }
 
 /// Convert a slice of [`scale_info::Field`] into our [`CompositeTypeFields`] representation.

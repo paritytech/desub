@@ -76,8 +76,9 @@
 // 	}
 // }
 
-/// Run a function for each item in an iterator, and run another function between
-/// each item in the iterator.
+/// Iterate over each item, returning the item itself, or returning `Between` between each item.
+/// This gives you the opportunity to easily execute logic between each iteration (such as adding a comma
+/// between items as you're writing to a `String`).
 pub fn for_each_between<I, T>(iter: I) -> impl Iterator<Item = ForEachBetween<T>>
 where I: IntoIterator<Item = T>,
 {
