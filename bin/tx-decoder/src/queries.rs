@@ -111,6 +111,8 @@ pub async fn spec_versions(conn: &mut PgConnection) -> Result<Vec<u32>, Error> {
 
 }
 
+
+/// returns all spec versions up to a specified version
 pub async fn spec_versions_upto(conn: &mut PgConnection, upto: i32) -> Result<Vec<u32>, Error> {
 	sqlx::query_as!(Version, "SELECT version FROM metadata WHERE version < $1", upto)
 		.fetch_all(conn)
