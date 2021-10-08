@@ -56,6 +56,7 @@ pub async fn total_block_count(conn: &mut PgConnection) -> Result<i64, Error> {
 	)
 }
 
+/// returns how many blocks exist up to a spec version
 pub async fn count_upto_spec(conn: &mut PgConnection, spec: i32) -> Result<i64, Error> {
 	Ok(sqlx::query_as::<_, Count>("SELECT COUNT(*) FROM blocks WHERE spec < $1")
 		.bind(spec)
