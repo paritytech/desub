@@ -30,7 +30,6 @@ Supports Metadata versions from v8, which means all of Kusama (from CC1). Older 
 |  Kulupu      |            |         |     |            |                  |         	    |               |
 
 
-
 Currently Supported Metadata Versions (From Kusama CC1):
 - [x] V8
 - [x] V9
@@ -39,3 +38,12 @@ Currently Supported Metadata Versions (From Kusama CC1):
 - [x] V12
 - [x] V13
 - [x] V14
+
+### (Tentative) Release & Maintenence
+#### Note: Release description is in no way complete because of current & active development for legacy desub types & scale-info based types
+	- it is purely here as a record for things that _should_ be taken into account in the future
+
+- Depending on changes in legacy desub code, bump version in Cargo.toml for `extras/`, `core/`
+	- note `upgrade-blocks` present [here](https://github.com/polkadot-js/api/tree/master/packages/types-known/src/upgrades) and in Polkadot release notes [here](https://github.com/paritytech/polkadot/releases) and modify the hard-coded upgrade blocks as necessary in the desub `runtimes.rs` file.
+		- NOTE: this step may-or-may not be necessary depending on `scale-info` integration in the future.
+
