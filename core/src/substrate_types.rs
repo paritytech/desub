@@ -24,9 +24,9 @@ mod remote;
 
 use self::remote::*;
 use crate::{Error, SetField};
+use bitvec::order::Lsb0 as BitOrderLsb0;
 use primitives::crypto::AccountId32;
 use primitives::crypto::{Ss58AddressFormat, Ss58Codec};
-use bitvec::order::Lsb0 as BitOrderLsb0;
 use serde::Serialize;
 use std::{convert::TryFrom, fmt};
 

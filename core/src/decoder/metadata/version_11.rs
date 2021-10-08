@@ -35,11 +35,10 @@ use super::{
 	StorageType,
 };
 use crate::{regex, RustTypeMarker};
-use runtime_metadata11::{
-	RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier, StorageEntryType, StorageHasher,
-	META_RESERVED,
-};
 use frame_metadata::decode_different::*;
+use runtime_metadata11::{
+	RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier, StorageEntryType, StorageHasher, META_RESERVED,
+};
 use std::{
 	collections::{HashMap, HashSet},
 	convert::{TryFrom, TryInto},

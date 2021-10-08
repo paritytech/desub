@@ -39,9 +39,9 @@ use crate::{regex, RustTypeMarker};
 use frame_metadata::{
 	decode_different::DecodeDifferent,
 	v12::{
-		EventMetadata as EventMetadatav12, ModuleMetadata as ModuleMetadatav12,
+		EventMetadata as EventMetadatav12, ModuleMetadata as ModuleMetadatav12, RuntimeMetadataV12,
 		StorageEntryMetadata as StorageEntryMetadatav12, StorageEntryModifier as StorageEntryModifierv12,
-		StorageEntryType, StorageHasher as StorageHasherv12, RuntimeMetadataV12,
+		StorageEntryType, StorageHasher as StorageHasherv12,
 	},
 };
 
@@ -79,7 +79,6 @@ impl TryFrom<RuntimeMetadataV12> for Metadata {
 		let extrinsics = ExtrinsicMetadata::new(metadata.extrinsic.version, extensions);
 
 		Ok(Metadata { modules, modules_by_event_index, modules_by_call_index, extrinsics: Some(extrinsics) })
-
 	}
 }
 

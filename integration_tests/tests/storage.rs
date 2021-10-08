@@ -1,12 +1,11 @@
+use crate::runtime_metadata::*;
+use anyhow::Result;
 use codec::Encode;
 use desub_core::{
 	decoder::{Chain, Decoder, Metadata},
 	SubstrateType,
 };
 use primitives::twox_128;
-use anyhow::Result;
-use crate::runtime_metadata::*;
-
 
 /// T::BlockNumber in meta V11 Block 1768321
 fn get_plain_value() -> (Vec<u8>, Option<Vec<u8>>) {
@@ -61,14 +60,15 @@ fn should_decode_map_ksm_3944195() -> Result<()> {
 	let meta = Metadata::new(meta.as_slice());
 	decoder.register_version(2023, &meta);
 	// BlockHash from block 3944196
-	let storage_key = hex::decode("26aa394eea5630e07c48ae0c9558cef7a44704b568d21667356a5a050c1187465eb805861b659fd1022f3c00").unwrap();
+	let storage_key =
+		hex::decode("26aa394eea5630e07c48ae0c9558cef7a44704b568d21667356a5a050c1187465eb805861b659fd1022f3c00")
+			.unwrap();
 	let encoded_hash = hex::decode("38f14d3d028e2f5b9ce889a444b49e774b88bcb3fe205fa4f5a10c2e66290c59").unwrap();
 
 	let res = decoder.decode_storage(2023, (storage_key, Some(encoded_hash)))?;
 	println!("{:?}", res);
 	Ok(())
 }
-
 
 #[test]
 fn should_decode_double_map() {

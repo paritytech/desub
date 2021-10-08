@@ -122,7 +122,7 @@ impl FromStr for Chain {
 			"westend" | "wnd" => Ok(Chain::Westend),
 			"centrifuge" => Ok(Chain::Centrifuge),
 			"rococo" => Ok(Chain::Rococo),
-			_ => Ok(Chain::Custom(s.to_string()))
+			_ => Ok(Chain::Custom(s.to_string())),
 		}
 	}
 }

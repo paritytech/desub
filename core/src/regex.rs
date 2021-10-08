@@ -158,7 +158,8 @@ pub fn remove_prefix<S: AsRef<str>>(s: S) -> Option<String> {
 pub fn remove_path<S: AsRef<str>>(s: S) -> Option<String> {
 	let s: &str = s.as_ref();
 
-	let re = Regex::new(r"\b(?<outer_type>\w+)<(?<inner_type>[\w<>,: ]+)>").expect("Regex expression should be infallible; qed");
+	let re = Regex::new(r"\b(?<outer_type>\w+)<(?<inner_type>[\w<>,: ]+)>")
+		.expect("Regex expression should be infallible; qed");
 	let caps = re.captures(s)?;
 	caps.iter().nth(1)?.map(|s| s.to_string())
 }
@@ -168,7 +169,8 @@ pub fn remove_path<S: AsRef<str>>(s: S) -> Option<String> {
 pub fn remove_trait<S: AsRef<str>>(s: S) -> Option<String> {
 	let s: &str = s.as_ref();
 
-	let re = Regex::new(r"^(?:<T as Trait|<T as Config<\w>|<T as Trait<\w>)[><\w]+:*([\W\w]*)").expect("Regex expression should be infallible; qed");
+	let re = Regex::new(r"^(?:<T as Trait|<T as Config<\w>|<T as Trait<\w>)[><\w]+:*([\W\w]*)")
+		.expect("Regex expression should be infallible; qed");
 	let caps = re.captures(s)?;
 	caps.iter().nth(1)?.map(|s| s.to_string())
 }
@@ -180,7 +182,6 @@ pub fn remove_empty_generic<S: AsRef<str>>(s: S) -> Option<String> {
 	let caps = re.captures(s)?;
 	caps.iter().nth(1)?.map(|s| s.to_string())
 }
-
 
 /// Sanitizes a type and returns parts that might correspond to PolkadotJS types
 pub fn sanitize_ty(ty: &str) -> Option<String> {
@@ -248,7 +249,6 @@ pub fn parse_primitive_array(s: &str) -> Option<RustTypeMarker> {
 	parse_array(s, re)
 }
 
-
 /// Parse an array that's in the form [u8; 20; H160]
 /// the extra type information 'H160' is discarded.
 fn parse_array_with_extra_type(s: &str) -> Option<RustTypeMarker> {
@@ -260,7 +260,6 @@ fn parse_array_with_extra_type(s: &str) -> Option<RustTypeMarker> {
 }
 
 fn parse_array(s: &str, re: Regex) -> Option<RustTypeMarker> {
-
 	let mut region = Region::new();
 
 	let (mut t, mut size, mut ty) = (None, None, None);
@@ -830,7 +829,6 @@ mod tests {
 		assert_eq!(parse("i64").unwrap(), RustTypeMarker::I64);
 		assert_eq!(parse("i128").unwrap(), RustTypeMarker::I128);
 
-
 		assert_eq!(parse("bool").unwrap(), RustTypeMarker::Bool);
 		assert_eq!(parse("Null").unwrap(), RustTypeMarker::Null);
 
@@ -893,7 +891,6 @@ mod tests {
 		assert_eq!(remove_prefix("T::Generic<Runtime>").unwrap(), "Generic<Runtime>");
 		// assert_eq!(remove_prefix("schedule::Period<T::BlockNumber>").unwrap(), "Period<T::BlockNumber>");
 		// assert_eq!(remove_prefix("Period<T::BlockNumber>").unwrap(), "BlockNumber");
-
 	}
 
 	#[test]
@@ -940,6 +937,6 @@ mod tests {
 		let _ = pretty_env_logger::try_init();
 		let ty = "[u8; 20; H160]";
 		let ty = parse_array_with_extra_type(ty);
-		assert_eq!(ty, Some(RustTypeMarker::Array{size: 20, ty: Box::new(RustTypeMarker::U8)}));
+		assert_eq!(ty, Some(RustTypeMarker::Array { size: 20, ty: Box::new(RustTypeMarker::U8) }));
 	}
 }

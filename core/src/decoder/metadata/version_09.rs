@@ -23,11 +23,10 @@ use super::{
 	StorageType,
 };
 use crate::regex;
-use runtime_metadata09::{
-	RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier, StorageEntryType, StorageHasher,
-	META_RESERVED,
-};
 use frame_metadata::decode_different::*;
+use runtime_metadata09::{
+	RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier, StorageEntryType, StorageHasher, META_RESERVED,
+};
 use std::{
 	collections::{HashMap, HashSet},
 	convert::{TryFrom, TryInto},

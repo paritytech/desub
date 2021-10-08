@@ -18,7 +18,7 @@ use serde::{
 	de::{self, Deserializer, MapAccess, Visitor},
 	Deserialize, Serialize,
 };
-use serde_json::{Value, map::Map};
+use serde_json::{map::Map, Value};
 use std::{collections::HashMap, fmt};
 
 /// Types for each substrate Module
@@ -58,7 +58,7 @@ impl Modules {
 pub struct ModuleTypes {
 	/// Type Name -> Type
 	types: HashMap<String, RustTypeMarker>,
-	fallbacks: HashMap<String, RustTypeMarker>
+	fallbacks: HashMap<String, RustTypeMarker>,
 }
 
 impl ModuleTypes {
@@ -77,7 +77,6 @@ impl ModuleTypes {
 		let other = other.clone();
 		types.extend(other.types.into_iter());
 		fallbacks.extend(other.fallbacks.into_iter());
-
 
 		ModuleTypes { types, fallbacks }
 	}
@@ -161,7 +160,6 @@ impl<'de> Visitor<'de> for ModuleTypeVisitor {
 
 type TypeMap = HashMap<String, RustTypeMarker>;
 
-
 /// In Polkadot-JS Definitions, an _object_ can be:
 /// - Struct (no identifier),
 /// - Enum (`_enum` identifier)
@@ -173,20 +171,19 @@ fn parse_mod_types(
 	module_types: &mut TypeMap,
 	fallbacks: &mut TypeMap,
 	key: &str,
-	val: &mut Value
+	val: &mut Value,
 ) -> Result<(), Error> {
-
 	match val {
 		Value::String(s) => {
-			module_types.insert(key.to_string(), regex::parse(s).ok_or_else(||Error::from(s.to_string()))?);
-		},
+			module_types.insert(key.to_string(), regex::parse(s).ok_or_else(|| Error::from(s.to_string()))?);
+		}
 		Value::Object(ref mut obj) => {
 			if obj.len() == 1 && obj.keys().any(|k| k == "_enum" || k == "_set") {
 				let ty = match obj.iter().next().map(|(s, v)| (s.as_str(), v)) {
 					Some(("_enum", v)) => parse_enum(v)?,
 					Some(("_set", v)) => parse_set(v.as_object().expect("set is always an object"))?,
 					Some((_, _)) => return Err(Error::UnexpectedType),
-					None => panic!("This should never occur, checked for object length.")
+					None => panic!("This should never occur, checked for object length."),
 				};
 				module_types.insert(key.to_string(), ty);
 			} else {
@@ -196,10 +193,10 @@ fn parse_mod_types(
 				let ty = parse_struct(obj)?;
 				module_types.insert(key.to_string(), ty);
 			}
-		},
+		}
 		Value::Null => {
 			module_types.insert(key.to_string(), RustTypeMarker::Null);
-		},
+		}
 		_ => return Err(Error::UnexpectedType),
 	}
 	Ok(())
@@ -216,7 +213,7 @@ fn clean_struct(map: &mut Map<String, Value>) -> Result<Option<RustTypeMarker>, 
 			Value::Object(o) => parse_struct(&o)?,
 			Value::Array(a) => parse_tuple(&a)?,
 			Value::Null => RustTypeMarker::Null,
-			_ => return Err(Error::UnexpectedType)
+			_ => return Err(Error::UnexpectedType),
 		};
 		Ok(Some(ty))
 	} else {
@@ -240,10 +237,13 @@ fn parse_set(obj: &Map<String, Value>) -> Result<RustTypeMarker, Error> {
 fn parse_enum(value: &Value) -> Result<RustTypeMarker, Error> {
 	if value.is_array() {
 		let arr = value.as_array().expect("checked before cast; qed");
-		let rust_enum = arr.iter().map(|u| {
-			let name = u.as_str().expect("Will be string according to polkadot-js defs").to_string();
-			EnumField::new(name, None)
-		}).collect::<Vec<_>>();
+		let rust_enum = arr
+			.iter()
+			.map(|u| {
+				let name = u.as_str().expect("Will be string according to polkadot-js defs").to_string();
+				EnumField::new(name, None)
+			})
+			.collect::<Vec<_>>();
 		Ok(RustTypeMarker::Enum(rust_enum))
 	} else if value.is_object() {
 		let value = value.as_object().expect("Checked before casting; qed");
@@ -251,11 +251,10 @@ fn parse_enum(value: &Value) -> Result<RustTypeMarker, Error> {
 		// Some types like `ProxyType` in the runtime may vary from chain-to-chain.
 		// So afaict Polkadot-Js types solve this by attaching a number to each variant according to index.
 		let rust_enum = if value.values().fold(true, |_, v| v.is_number()) {
-			let mut tuples = value.values()
+			let mut tuples = value
+				.values()
 				.map(|v| v.as_u64().expect("Must be u64"))
-				.zip(
-					value.keys().map(|k| EnumField::new(k.into(), None))
-				)
+				.zip(value.keys().map(|k| EnumField::new(k.into(), None)))
 				.collect::<Vec<(u64, EnumField)>>();
 			tuples.sort_by_key(|(num, _)| *num);
 			tuples.into_iter().map(|t| t.1).collect::<Vec<_>>()
@@ -265,13 +264,13 @@ fn parse_enum(value: &Value) -> Result<RustTypeMarker, Error> {
 				match value {
 					Value::Null => rust_enum.push(EnumField::new(key.into(), Some(RustTypeMarker::Null))),
 					Value::String(s) => {
-						let field = regex::parse(s).ok_or_else(||Error::from(s.to_string()))?;
+						let field = regex::parse(s).ok_or_else(|| Error::from(s.to_string()))?;
 						rust_enum.push(EnumField::new(key.into(), Some(field)));
-					},
+					}
 					Value::Object(o) => {
 						let rust_struct = parse_struct(o)?;
 						rust_enum.push(EnumField::new(key.into(), Some(rust_struct)));
-					},
+					}
 					_ => return Err(Error::UnexpectedType),
 				};
 			}
@@ -291,22 +290,24 @@ fn parse_struct(rust_struct: &Map<String, Value>) -> Result<RustTypeMarker, Erro
 			Value::Null => {
 				let field = StructField::new(key, RustTypeMarker::Null);
 				fields.push(field);
-			},
-			Value::String(s) => { // points to some other type
+			}
+			Value::String(s) => {
+				// points to some other type
 				let ty = regex::parse(s).ok_or_else(|| s.to_string())?;
 				let field = StructField::new(key, ty);
 				fields.push(field);
-			},
-			Value::Object(o) => { // struct-within-a-struct
+			}
+			Value::Object(o) => {
+				// struct-within-a-struct
 				let inner_struct = parse_struct(o)?;
 				let field = StructField::new(key, inner_struct);
 				fields.push(field);
-			},
+			}
 			Value::Array(a) => {
 				let tuples = parse_tuple(a)?;
 				let field = StructField::new(key, tuples);
 				fields.push(field);
-			},
+			}
 			_ => return Err(Error::UnexpectedType),
 		}
 	}
@@ -321,8 +322,8 @@ fn parse_tuple(json_tuple: &[Value]) -> Result<RustTypeMarker, Error> {
 			Value::String(s) => {
 				let ty = regex::parse(s).ok_or_else(|| s.to_string())?;
 				tuple.push(ty);
-			},
-			_ => return Err(Error::UnexpectedType)
+			}
+			_ => return Err(Error::UnexpectedType),
 		}
 	}
 	Ok(RustTypeMarker::Tuple(tuple))

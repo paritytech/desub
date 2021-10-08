@@ -35,10 +35,7 @@ mod version_11;
 mod version_12;
 mod version_13;
 
-pub use frame_metadata::{
-	decode_different::DecodeDifferent,
-	RuntimeMetadata, RuntimeMetadataPrefixed
-};
+pub use frame_metadata::{decode_different::DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed};
 
 use super::storage::{StorageInfo, StorageLookupTable};
 use crate::RustTypeMarker;
@@ -48,7 +45,7 @@ use serde::{Deserialize, Serialize};
 
 use std::{
 	collections::{HashMap, HashSet},
-	convert::{TryInto, TryFrom},
+	convert::{TryFrom, TryInto},
 	fmt,
 	marker::PhantomData,
 	str::FromStr,
@@ -461,8 +458,8 @@ pub enum StorageType {
 	NMap {
 		keys: Vec<RustTypeMarker>,
 		hashers: Vec<StorageHasher>,
-		value: RustTypeMarker
-	}
+		value: RustTypeMarker,
+	},
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
@@ -594,7 +591,7 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
 			RuntimeMetadata::V12(meta) => meta.try_into(),
 			RuntimeMetadata::V13(meta) => meta.try_into(),
 			RuntimeMetadata::V14(_meta) => unimplemented!(),
-			_ => Err(Error::InvalidVersion)
+			_ => Err(Error::InvalidVersion),
 		}
 	}
 }
@@ -612,7 +609,6 @@ pub enum Error {
 	#[error("Invalid Type {0}")]
 	InvalidType(String),
 }
-
 
 #[cfg(test)]
 pub mod tests {
