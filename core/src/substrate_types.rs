@@ -35,7 +35,6 @@ pub use self::data::Data;
 pub type Address = runtime_primitives::MultiAddress<AccountId32, u32>;
 pub type Vote = pallet_democracy::Vote;
 pub type Conviction = pallet_democracy::Conviction;
-
 /// A 'stateful' version of [RustTypeMarker](enum.RustTypeMarker.html).
 /// 'Std' variant is not here like in RustTypeMarker.
 /// Instead common types are just apart of the enum
@@ -64,6 +63,10 @@ pub enum SubstrateType {
 	Address(Address),
 	/// Data Identity Type
 	Data(Data),
+
+	/// Identity fields but as just an enum.
+	IdentityField(u64),
+
 	/// SignedExtension Type
 	SignedExtra(String),
 
@@ -152,6 +155,7 @@ impl fmt::Display for SubstrateType {
 			SubstrateType::Data(d) => write!(f, "{:?}", d),
 			SubstrateType::SignedExtra(v) => write!(f, "{}", v),
 			SubstrateType::Unit(u) => write!(f, "{}", u),
+			SubstrateType::IdentityField(field) => write!(f, "{:?}", field),
 			SubstrateType::Composite(v) => {
 				let mut s = String::from("");
 				for v in v.iter() {

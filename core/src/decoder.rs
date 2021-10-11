@@ -855,6 +855,12 @@ impl Decoder {
 				let identity_data: substrate_types::Data = state.decode()?;
 				Ok(Some(SubstrateType::Data(identity_data)))
 			}
+			"IdentityFields" => {
+				log::trace!("Decoding Identity Fields");
+				// identity field are just bitflags that can be interpreted by a frontend
+				let field: u64 = state.decode()?;
+				Ok(Some(SubstrateType::IdentityField(field)))
+			},
 			"BitVec" => {
 				log::trace!("Decoding BitVec");
 				let bit_vec: bitvec::vec::BitVec<BitOrderLsb0, u8> = state.decode()?;
@@ -922,7 +928,7 @@ impl Decoder {
 		Ok((length, prefix))
 	}
 
-	/// internal api to decode a vector of struct IdentityFields
+	/// internal api to decode a vector of struct
 	fn decode_structlike(
 		&self,
 		fields: &[crate::StructField],
