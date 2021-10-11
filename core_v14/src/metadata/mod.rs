@@ -19,10 +19,13 @@
 
 mod version_14;
 
-use crate::substrate_type::{ConvertError, SubstrateType};
 use codec::Decode;
 use frame_metadata::{RuntimeMetadata, RuntimeMetadataPrefixed};
-use scale_info::PortableRegistry;
+use scale_info::{ PortableRegistry, form::PortableForm };
+
+pub type Type = scale_info::Type<PortableForm>;
+pub type TypeDef = scale_info::TypeDef<PortableForm>;
+pub type TypeId = <scale_info::form::PortableForm as scale_info::form::Form>::Type;
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum MetadataError {
@@ -39,8 +42,6 @@ pub enum DecodeError {
 	CodecError(#[from] codec::Error),
 	#[error("unexpected type; expecting a Variant type, but got {got}")]
 	ExpectedVariantType { got: String },
-	#[error("could not convert type into the desired format: {0}")]
-	ConvertError(#[from] ConvertError),
 	#[error("could not find type with ID {0}")]
 	TypeNotFound(u32),
 }
@@ -52,13 +53,6 @@ pub struct Metadata {
 	pallets: Vec<MetadataPallet>,
 	types: PortableRegistry,
 }
-
-/// Types are internally stored away in a type registry. Rather than exposing
-/// The scale-info logic, we store and hand back these pointers to the type
-/// information. This can be resolved into [`crate::substrate_type::SubstrateType`]
-/// when you'd like the full type information to work with.
-#[derive(Debug, Clone, Copy)]
-pub struct TypeId(u32);
 
 #[derive(Debug)]
 struct MetadataPallet {
@@ -105,11 +99,8 @@ impl Metadata {
 	/// We hand back [`TypeId`]'s rather than [`SubstrateType`]'s in most places because [`SubstrateType`]'s
 	/// are not as space/allocation friendly as the type registry. That said, they are easier to work with and
 	/// can be manually constructed, which makes it easier to use them.
-	pub fn resolve_type(&self, id: &TypeId) -> Result<SubstrateType, MetadataError> {
-		let ty = self.types.resolve(id.0).ok_or(MetadataError::DecodeError(DecodeError::TypeNotFound(id.0)))?;
-		let substrate_ty =
-			SubstrateType::from_scale_info_type(ty, &self.types).map_err(|e| MetadataError::DecodeError(e.into()))?;
-		Ok(substrate_ty)
+	pub fn resolve_type<'a>(&'a self, id: &TypeId) -> Option<&'a Type> {
+		self.types.resolve(id.id())
 	}
 }
 

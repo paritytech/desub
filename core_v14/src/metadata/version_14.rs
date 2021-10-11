@@ -29,8 +29,7 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{DecodeError, Metadata, MetadataCall, MetadataExtrinsic, MetadataPallet, TypeId};
-use crate::substrate_type::SubstrateType;
+use super::{DecodeError, Metadata, MetadataCall, MetadataExtrinsic, MetadataPallet};
 use frame_metadata::RuntimeMetadataV14;
 
 /// Decode V14 metadata into our general Metadata struct
@@ -70,8 +69,7 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, DecodeError> {
 			let call_variant = match call_ty_def {
 				scale_info::TypeDef::Variant(variant) => variant,
 				_ => {
-					let substrate_ty = SubstrateType::from_scale_info_type(call_ty, &registry)?;
-					return Err(DecodeError::ExpectedVariantType { got: format!("{:?}", substrate_ty) });
+					return Err(DecodeError::ExpectedVariantType { got: format!("{:?}", call_ty_def) });
 				}
 			};
 
@@ -82,10 +80,7 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, DecodeError> {
 				let args = variant
 					.fields()
 					.iter()
-					.map(|field| {
-						let id = field.ty().id();
-						TypeId(id)
-					})
+					.map(|field| field.ty().clone())
 					.collect();
 
 				calls.push(MetadataCall { name, args });

@@ -1,6 +1,6 @@
 use super::decode_type::{decode_type, DecodeTypeError};
 use super::extrinsic_bytes::{ExtrinsicBytes, ExtrinsicBytesError};
-use crate::metadata::{Metadata, MetadataError};
+use crate::metadata::{Metadata};
 use crate::substrate_value::SubstrateValue;
 use sp_runtime::{ MultiAddress, MultiSignature, AccountId32, generic::Era };
 use codec::{ Decode };
@@ -23,15 +23,20 @@ pub enum DecodeError {
 	CannotDecodeExtrinsicVersion(u8),
 	#[error("Cannot find call corresponding to extrinsic with pallet index {0} and call index {1}")]
 	CannotFindCall(u8, u8),
-	#[error("Failed to decode extrinsic: {0}")]
-	CannotFindType(#[from] MetadataError),
+	#[error("Failed to decode extrinsic: cannot find type ID {0}")]
+	CannotFindType(u32),
 }
 
 impl Decoder {
 	/// Create a new decoder using the provided metadata.
-	pub fn with_metadata<M: Into<Metadata>>(metadata: M) -> Decoder {
+	pub fn with_metadata(metadata: Metadata) -> Decoder {
 		Decoder { metadata: metadata.into() }
 	}
+
+    /// Return the metadata back, consuming the decoder.
+    pub fn into_metadata(self) -> Metadata {
+        self.metadata
+    }
 
 	/// Decode a SCALE encoded vector of extrinsics against the metadata provided
 	pub fn decode_extrinsics(&self, data: &[u8]) -> Result<Vec<GenericExtrinsic>, DecodeError> {
@@ -107,8 +112,8 @@ impl Decoder {
 		// Decode each of the argument values in the extrinsic:
 		let mut arguments = vec![];
 		for arg in call.args() {
-			let ty = self.metadata.resolve_type(arg)?;
-			let val = match decode_type(data, &ty) {
+			let ty = self.metadata.resolve_type(arg).ok_or(DecodeError::CannotFindType(arg.id()))?;
+			let val = match decode_type(data, &ty, &self.metadata) {
 				Ok(val) => val,
 				Err(err) => return Err(err.into()),
 			};
