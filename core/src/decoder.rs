@@ -860,7 +860,7 @@ impl Decoder {
 				// identity field are just bitflags that can be interpreted by a frontend
 				let field: u64 = state.decode()?;
 				Ok(Some(SubstrateType::IdentityField(field)))
-			},
+			}
 			"BitVec" => {
 				log::trace!("Decoding BitVec");
 				let bit_vec: bitvec::vec::BitVec<BitOrderLsb0, u8> = state.decode()?;

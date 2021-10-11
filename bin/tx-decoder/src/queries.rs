@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use sqlx::{PgConnection, FromRow};
-use futures::{Stream, TryStreamExt};
 use anyhow::{Context, Error};
-use serde::{Serialize, Deserialize};
+use futures::{Stream, TryStreamExt};
+use serde::{Deserialize, Serialize};
+use sqlx::{FromRow, PgConnection};
 
 /// Struct modeling data returned from database when querying for a block
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow)]
@@ -35,7 +35,7 @@ pub struct BlockModel {
 
 #[derive(FromRow)]
 struct Count {
-	count: i64
+	count: i64,
 }
 
 /// returns how many blocks exist for a spec version.
@@ -44,18 +44,12 @@ pub async fn blocks_in_spec(conn: &mut PgConnection, spec: i32) -> Result<i64, E
 		.bind(spec)
 		.fetch_one(conn)
 		.await?
-		.count
-	)
+		.count)
 }
-
 
 /// returns the total amount of blocks
 pub async fn total_block_count(conn: &mut PgConnection) -> Result<i64, Error> {
-	Ok(sqlx::query_as::<_, Count>("SELECT COUNT(*) FROM blocks")
-		.fetch_one(conn)
-		.await?
-		.count
-	)
+	Ok(sqlx::query_as::<_, Count>("SELECT COUNT(*) FROM blocks").fetch_one(conn).await?.count)
 }
 
 /// returns how many blocks exist up to a spec version
@@ -64,15 +58,12 @@ pub async fn count_upto_spec(conn: &mut PgConnection, spec: i32) -> Result<i64, 
 		.bind(spec)
 		.fetch_one(conn)
 		.await?
-		.count
-	)
+		.count)
 }
 
 /// returns all blocks in the database of a specific spec as a stream
 pub fn blocks_by_spec(conn: &mut PgConnection, spec: i32) -> impl Stream<Item = Result<BlockModel, Error>> + '_ {
-	sqlx::query_as!(BlockModel, "SELECT * FROM blocks WHERE spec = $1", spec)
-		.fetch(conn)
-		.map_err(Into::into)
+	sqlx::query_as!(BlockModel, "SELECT * FROM blocks WHERE spec = $1", spec).fetch(conn).map_err(Into::into)
 }
 
 /// get a single block
@@ -85,7 +76,7 @@ pub async fn single_block(conn: &mut PgConnection, number: i32) -> Result<BlockM
 
 #[derive(FromRow)]
 struct Meta {
-	pub meta: Vec<u8>
+	pub meta: Vec<u8>,
 }
 
 pub async fn metadata(conn: &mut PgConnection, spec: i32) -> Result<Vec<u8>, Error> {
@@ -98,7 +89,7 @@ pub async fn metadata(conn: &mut PgConnection, spec: i32) -> Result<Vec<u8>, Err
 
 #[derive(FromRow)]
 struct Version {
-	pub version: i32
+	pub version: i32,
 }
 
 /// Gets all spec versions
@@ -108,9 +99,7 @@ pub async fn spec_versions(conn: &mut PgConnection) -> Result<Vec<u32>, Error> {
 		.await
 		.map_err(Into::into)
 		.map(|r| r.iter().map(|v| v.version as u32).collect())
-
 }
-
 
 /// returns all spec versions up to a specified version
 pub async fn spec_versions_upto(conn: &mut PgConnection, upto: i32) -> Result<Vec<u32>, Error> {
@@ -124,20 +113,18 @@ pub async fn spec_versions_upto(conn: &mut PgConnection, upto: i32) -> Result<Ve
 #[derive(FromRow)]
 struct PastAndPresentVersion {
 	pub present: i32,
-	pub past: Option<i32>
+	pub past: Option<i32>,
 }
 
-pub async fn past_and_present_version(
-	conn: &mut PgConnection,
-	spec: i32) -> Result<(Option<u32>, u32), Error>
-{
+pub async fn past_and_present_version(conn: &mut PgConnection, spec: i32) -> Result<(Option<u32>, u32), Error> {
 	let version = sqlx::query_as::<_, PastAndPresentVersion>(
-	"
+		"
 	SELECT version as present, past_version as past FROM (
 		SELECT version, metadata,
 			LAG(version, 1) OVER (ORDER BY version) as past_version
 		FROM metadata
-	) as z WHERE version = $1;")
+	) as z WHERE version = $1;",
+	)
 	.bind(spec)
 	.fetch_one(conn)
 	.await
@@ -153,14 +140,17 @@ struct MetaAndVersion {
 }
 
 pub async fn version_by_block(conn: &mut PgConnection, number: u32) -> Result<i32, Error> {
-	sqlx::query_as!(MetaAndVersion,
+	sqlx::query_as!(
+		MetaAndVersion,
 		"SELECT version FROM (
 			SELECT block_num, blocks.spec, metadata.version FROM blocks, metadata
 			WHERE
 				block_num = $1
 			AND
 				blocks.spec = metadata.version
-		) as z;", number as i32)
+		) as z;",
+		number as i32
+	)
 	.fetch_one(conn)
 	.await
 	.map_err(Into::into)

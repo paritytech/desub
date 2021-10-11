@@ -18,18 +18,15 @@ mod app;
 mod queries;
 
 use anyhow::Error;
-use fern::colors::{Color, ColoredLevelConfig};
 use colored::Colorize;
+use fern::colors::{Color, ColoredLevelConfig};
 
 #[async_std::main]
 async fn main() -> Result<(), Error> {
-    let app: self::app::App = argh::from_env();
-	let level = if app.verbose {
-		log::LevelFilter::Trace
-	} else {
-		log::LevelFilter::Warn
-	};
-	let colors = ColoredLevelConfig::new().trace(Color::Magenta).error(Color::Red).debug(Color::Blue).info(Color::Green);
+	let app: self::app::App = argh::from_env();
+	let level = if app.verbose { log::LevelFilter::Trace } else { log::LevelFilter::Warn };
+	let colors =
+		ColoredLevelConfig::new().trace(Color::Magenta).error(Color::Red).debug(Color::Blue).info(Color::Green);
 
 	// Configure logger at runtime
 	fern::Dispatch::new()
