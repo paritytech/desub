@@ -80,7 +80,8 @@
 /// This gives you the opportunity to easily execute logic between each iteration (such as adding a comma
 /// between items as you're writing to a `String`).
 pub fn for_each_between<I, T>(iter: I) -> impl Iterator<Item = ForEachBetween<T>>
-where I: IntoIterator<Item = T>,
+where
+	I: IntoIterator<Item = T>,
 {
 	let mut peekable = iter.into_iter().peekable();
 	let mut item_next = true;
@@ -101,10 +102,10 @@ where I: IntoIterator<Item = T>,
 	})
 }
 
-#[derive(Clone,Copy,PartialEq,Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum ForEachBetween<T> {
 	Item(T),
-	Between
+	Between,
 }
 
 #[cfg(test)]
@@ -113,7 +114,7 @@ mod test {
 
 	#[test]
 	fn is_between_works() {
-		let mut iter = for_each_between(vec![1,2,3]);
+		let mut iter = for_each_between(vec![1, 2, 3]);
 		assert_eq!(iter.next(), Some(ForEachBetween::Item(1)));
 		assert_eq!(iter.next(), Some(ForEachBetween::Between));
 		assert_eq!(iter.next(), Some(ForEachBetween::Item(2)));

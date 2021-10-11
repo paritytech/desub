@@ -25,12 +25,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(feature = "std")]
-use serde::Serialize;
-#[cfg(feature = "std")]
-use codec::{Decode, Input, Error};
+use codec::{Decode, Error, Input};
 use codec::{Encode, Output};
-use sp_std::vec::Vec;
 use frame_metadata::decode_different::*;
+#[cfg(feature = "std")]
+use serde::Serialize;
+use sp_std::vec::Vec;
 
 #[cfg(feature = "std")]
 type StringBuf = String;
@@ -57,7 +57,9 @@ pub struct FunctionArgumentMetadata {
 
 /// Newtype wrapper for support encoding functions (actual the result of the function).
 #[derive(Clone, Eq)]
-pub struct FnEncode<E>(pub fn() -> E) where E: Encode + 'static;
+pub struct FnEncode<E>(pub fn() -> E)
+where
+	E: Encode + 'static;
 
 impl<E: Encode> Encode for FnEncode<E> {
 	fn encode_to<W: Output + ?Sized>(&self, dest: &mut W) {
@@ -81,7 +83,10 @@ impl<E: Encode + sp_std::fmt::Debug> sp_std::fmt::Debug for FnEncode<E> {
 
 #[cfg(feature = "std")]
 impl<E: Encode + serde::Serialize> serde::Serialize for FnEncode<E> {
-	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: serde::Serializer {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: serde::Serializer,
+	{
 		self.0().serialize(serializer)
 	}
 }
@@ -91,10 +96,8 @@ impl<E: Encode + serde::Serialize> serde::Serialize for FnEncode<E> {
 #[cfg_attr(feature = "std", derive(Decode, Serialize))]
 pub struct OuterEventMetadata {
 	pub name: DecodeDifferentStr,
-	pub events: DecodeDifferentArray<
-		(&'static str, FnEncode<&'static [EventMetadata]>),
-		(StringBuf, Vec<EventMetadata>)
-	>,
+	pub events:
+		DecodeDifferentArray<(&'static str, FnEncode<&'static [EventMetadata]>), (StringBuf, Vec<EventMetadata>)>,
 }
 
 /// All the metadata about an event.
@@ -174,11 +177,14 @@ impl PartialEq<DefaultByteGetter> for DefaultByteGetter {
 	}
 }
 
-impl Eq for DefaultByteGetter { }
+impl Eq for DefaultByteGetter {}
 
 #[cfg(feature = "std")]
 impl serde::Serialize for DefaultByteGetter {
-	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: serde::Serializer {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: serde::Serializer,
+	{
 		self.0.default_byte().serialize(serializer)
 	}
 }
@@ -290,7 +296,7 @@ pub enum RuntimeMetadata {
 /// Enum that should fail.
 #[derive(Eq, PartialEq)]
 #[cfg_attr(feature = "std", derive(Serialize))]
-pub enum RuntimeMetadataDeprecated { }
+pub enum RuntimeMetadataDeprecated {}
 
 impl Encode for RuntimeMetadataDeprecated {
 	fn encode_to<W: Output + ?Sized>(&self, _dest: &mut W) {}
