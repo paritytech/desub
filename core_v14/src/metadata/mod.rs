@@ -91,11 +91,13 @@ impl Metadata {
 
 	/// Given the `u8` variant index of a pallet and call, this returns information about
 	/// the call if it's fgound, or `None` if it no such call exists at those indexes.
-	pub fn call_by_variant_index(&self, pallet: u8, call: u8) -> Option<&MetadataCall> {
+	pub fn call_by_variant_index(&self, pallet: u8, call: u8) -> Option<(&str, &MetadataCall)> {
 		self.pallets
 			.get(pallet as usize)
-			.map(|p| p.calls.get(call as usize))
-			.flatten()
+			.and_then(|p| {
+				let call = p.calls.get(call as usize)?;
+				Some((&*p.name, call))
+			})
 	}
 
     /// Return information about the metadata extrinsic format.
