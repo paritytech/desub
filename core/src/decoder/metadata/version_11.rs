@@ -31,14 +31,14 @@
 
 use super::{
 	CallArgMetadata, CallMetadata, Error, EventArg, ExtrinsicMetadata, Metadata, ModuleEventMetadata, ModuleMetadata,
-	StorageMetadata, StorageType, StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as DesubStorageHasher
+	StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as DesubStorageHasher, StorageMetadata,
+	StorageType,
 };
 use crate::{regex, RustTypeMarker};
+use frame_metadata::decode_different::*;
 use runtime_metadata11::{
-	DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier, StorageEntryType, StorageHasher,
-	META_RESERVED,
+	RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier, StorageEntryType, StorageHasher, META_RESERVED,
 };
-
 use std::{
 	collections::{HashMap, HashSet},
 	convert::{TryFrom, TryInto},

@@ -71,4 +71,3 @@ pub fn runtime_v12_block_4643974() -> Vec<u8> {
 	f.read_to_end(&mut buffer).expect("Reading file failed");
 	buffer
 }
-

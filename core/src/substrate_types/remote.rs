@@ -19,7 +19,6 @@ use serde::{Deserialize, Serialize};
 
 use super::{Address, Conviction, Vote};
 
-
 #[derive(Serialize, Deserialize)]
 #[serde(remote = "Address")]
 pub enum RemoteAddress {

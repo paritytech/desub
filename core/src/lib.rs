@@ -16,7 +16,6 @@
 
 #[forbid(unsafe_code)]
 #[deny(unused)]
-
 pub mod decoder;
 mod error;
 pub mod regex;
@@ -37,7 +36,7 @@ pub trait TypeDetective: fmt::Debug + dyn_clone::DynClone + Send + Sync {
 
 	/// Some types have a fallback type that may be decoded into if the original
 	/// type fails.
-	fn try_fallback(&self, chain: &str, spec: u32, module: &str, ty: &str) -> Option<&RustTypeMarker>;
+	fn try_fallback(&self, module: &str, ty: &str) -> Option<&RustTypeMarker>;
 
 	/// get a type specific to decoding extrinsics
 	fn get_extrinsic_ty(&self, chain: &str, spec: u32, ty: &str) -> Option<&RustTypeMarker>;
@@ -82,13 +81,12 @@ impl SetField {
 	}
 }
 
-/// TODO: Allow mixed struct-unit types
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct EnumField {
 	/// name of the Variant
 	/// if the variant is a Unit enum, it will not have a name
 	pub name: String,
-	pub value: Option<RustTypeMarker>
+	pub value: Option<RustTypeMarker>,
 }
 
 impl EnumField {
@@ -204,9 +202,6 @@ pub enum RustTypeMarker {
 	U64,
 	/// primitive unsigned 128 bit integer
 	U128,
-	/// primitive unsigned word-sized integer
-	USize,
-
 	/// primitive signed 8 bit integer
 	I8,
 	/// primitive signed 16 bit integer
@@ -217,19 +212,9 @@ pub enum RustTypeMarker {
 	I64,
 	/// primitive signed 128 bit integer
 	I128,
-	/// primitive signed word-sized integer
-	ISize,
-
-	/// primitive IEEE-spec 32-bit floating-point number
-	F32,
-	/// primitive IEEE-spec 64-bit floating-point number
-	F64,
 
 	/// Boolean true/false type
 	Bool,
-
-	/// String type
-	String,
 
 	/// Used for fields that don't exist (ex Unit variant in an enum with both
 	/// units/structs)
@@ -280,22 +265,13 @@ impl Display for RustTypeMarker {
 			RustTypeMarker::U32 => type_marker.push_str("u32"),
 			RustTypeMarker::U64 => type_marker.push_str("u64"),
 			RustTypeMarker::U128 => type_marker.push_str("u128"),
-			RustTypeMarker::USize => type_marker.push_str("usize"),
 
 			RustTypeMarker::I8 => type_marker.push_str("i8"),
 			RustTypeMarker::I16 => type_marker.push_str("i16"),
 			RustTypeMarker::I32 => type_marker.push_str("i32"),
 			RustTypeMarker::I64 => type_marker.push_str("i64"),
 			RustTypeMarker::I128 => type_marker.push_str("i128"),
-			RustTypeMarker::ISize => type_marker.push_str("isize"),
-
-			RustTypeMarker::F32 => type_marker.push_str("f32"),
-			RustTypeMarker::F64 => type_marker.push_str("f64"),
-
 			RustTypeMarker::Bool => type_marker.push_str("bool"),
-
-			RustTypeMarker::String => type_marker.push_str("string"),
-
 			RustTypeMarker::Null => type_marker.push_str("null"),
 		}
 		write!(f, "{}", type_marker)

@@ -17,15 +17,13 @@
 //! Copy of this: https://substrate.dev/rustdocs/latest/pallet_identity/enum.Data.html
 //! For the purpose of Decoding the Data field.
 //! Because of the specificity/complexity of decoding:
-//!		- `BoundedVec` includes private tuple fields with no getters so Serde `remote` does not work
-//!		- `Data` has a special way of encoding/decoding
-//!	Data impl is copied over and must be maintaned against substrate master.
-
+//!  - `BoundedVec` includes private tuple fields with no getters so Serde `remote` does not work
+//!  - `Data` has a special way of encoding/decoding
+//! Data impl is copied over and must be maintaned against substrate master.
 
 use codec::{Decode, Encode};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::iter::once;
-
 
 /// Either underlying data blob if it is at most 32 bytes, or a hash of it. If the data is greater
 /// than 32-bytes then it will be truncated when encoding.
@@ -56,7 +54,7 @@ impl Decode for Data {
 		let b = input.read_byte()?;
 		Ok(match b {
 			0 => Data::None,
-			n @ 1 ..= 33 => {
+			n @ 1..=33 => {
 				let mut r = vec![0u8; n as usize - 1];
 				input.read(&mut r[..])?;
 				Data::Raw(r)
@@ -94,4 +92,3 @@ impl Default for Data {
 		Self::None
 	}
 }
-

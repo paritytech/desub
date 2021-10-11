@@ -19,11 +19,12 @@
 //! Serialization and Deserialization Implementations (to serialize as if it were a native type)
 //! Display Implementation
 
-mod remote;
 mod data;
+mod remote;
 
 use self::remote::*;
 use crate::{Error, SetField};
+use bitvec::order::Lsb0 as BitOrderLsb0;
 use primitives::crypto::AccountId32;
 use primitives::crypto::{Ss58AddressFormat, Ss58Codec};
 use serde::Serialize;
@@ -34,7 +35,6 @@ pub use self::data::Data;
 pub type Address = runtime_primitives::MultiAddress<AccountId32, u32>;
 pub type Vote = pallet_democracy::Vote;
 pub type Conviction = pallet_democracy::Conviction;
-
 /// A 'stateful' version of [RustTypeMarker](enum.RustTypeMarker.html).
 /// 'Std' variant is not here like in RustTypeMarker.
 /// Instead common types are just apart of the enum
@@ -46,6 +46,9 @@ pub enum SubstrateType {
 	/// 256-bit hash type
 	H256(primitives::H256),
 
+	/// BitVec type
+	BitVec(bitvec::vec::BitVec<BitOrderLsb0, u8>),
+
 	/// Recursive Call Type
 	Call(Vec<(String, SubstrateType)>),
 	/// Era
@@ -56,12 +59,14 @@ pub enum SubstrateType {
 	GenericVote(pallet_democracy::Vote),
 
 	/// Substrate Indices Address Type
-	// TODO: this is not generic for any chain that doesn't use a
-	// u32 and [u8; 32] for its index/id
 	#[serde(with = "RemoteAddress")]
 	Address(Address),
 	/// Data Identity Type
 	Data(Data),
+
+	/// Identity fields but as just an enum.
+	IdentityField(u64),
+
 	/// SignedExtension Type
 	SignedExtra(String),
 
@@ -125,6 +130,7 @@ impl fmt::Display for SubstrateType {
 		match self {
 			SubstrateType::H512(v) => write!(f, "{}", v),
 			SubstrateType::H256(v) => write!(f, "{}", v),
+			SubstrateType::BitVec(v) => write!(f, "{}", v),
 			SubstrateType::Call(c) => {
 				write!(f, "CALL")?;
 				for arg in c.iter() {
@@ -149,6 +155,7 @@ impl fmt::Display for SubstrateType {
 			SubstrateType::Data(d) => write!(f, "{:?}", d),
 			SubstrateType::SignedExtra(v) => write!(f, "{}", v),
 			SubstrateType::Unit(u) => write!(f, "{}", u),
+			SubstrateType::IdentityField(field) => write!(f, "{:?}", field),
 			SubstrateType::Composite(v) => {
 				let mut s = String::from("");
 				for v in v.iter() {
@@ -194,7 +201,7 @@ pub struct EnumField {
 	/// name of the field.
 	pub name: String,
 	/// Optional field value. An enum field without a value are unit fields.
-	pub value: Option<Box<SubstrateType>>
+	pub value: Option<Box<SubstrateType>>,
 }
 
 impl EnumField {

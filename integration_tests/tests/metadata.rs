@@ -1,19 +1,19 @@
-use crate::test_suite;
+use crate::runtime_metadata::*;
 use desub_core::decoder::Metadata;
 use primitives::twox_128;
 
 #[test]
 fn should_create_metadata_v9() {
-	let meta = test_suite::runtime_v9();
+	let meta = runtime_v9();
 	let meta: Metadata = Metadata::new(meta.as_slice());
 	println!("{}", meta.pretty());
-	let meta = test_suite::runtime_v9_block6();
+	let meta = runtime_v9_block6();
 	let _meta: Metadata = Metadata::new(meta.as_slice());
 }
 
 #[test]
 fn should_create_metadata_v10() {
-	let meta = test_suite::runtime_v10();
+	let meta = runtime_v10();
 	let meta: Metadata = Metadata::new(meta.as_slice());
 	println!("{}", meta.pretty());
 }
@@ -21,7 +21,7 @@ fn should_create_metadata_v10() {
 #[test]
 fn should_create_metadata_v9_block500000() {
 	let _ = pretty_env_logger::try_init();
-	let meta = test_suite::runtime_v9_block500k();
+	let meta = runtime_v9_block500k();
 	let meta: Metadata = Metadata::new(meta.as_slice());
 	println!("{}", meta.pretty());
 }
@@ -29,14 +29,14 @@ fn should_create_metadata_v9_block500000() {
 #[test]
 fn should_create_metadata_v12_block_4643974() {
 	let _ = pretty_env_logger::try_init();
-	let meta = test_suite::runtime_v12_block_4643974();
+	let meta = runtime_v12_block_4643974();
 	let meta: Metadata = Metadata::new(meta.as_slice());
 	println!("{}", meta.pretty());
 }
 
 #[test]
 fn should_get_correct_lookup_table() {
-	let meta = test_suite::runtime_v11();
+	let meta = runtime_v11();
 	let meta: Metadata = Metadata::new(meta.as_slice());
 	let lookup_table = meta.storage_lookup_table();
 	let mut key = twox_128("System".as_bytes()).to_vec();

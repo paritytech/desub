@@ -18,21 +18,19 @@
 // https://github.com/paritytech/substrate-subxt
 
 use super::{
-	CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata, StorageMetadata,
-	StorageType, StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as DesubStorageHasher
+	CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata,
+	StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as DesubStorageHasher, StorageMetadata,
+	StorageType,
 };
 use crate::regex;
+use frame_metadata::decode_different::*;
 use runtime_metadata08::{
-	DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier, StorageEntryType, StorageHasher,
-	META_RESERVED,
+	RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier, StorageEntryType, StorageHasher, META_RESERVED,
 };
 use std::{
 	collections::{HashMap, HashSet},
 	convert::{TryFrom, TryInto},
 };
-
-type DecodeDifferentStr = DecodeDifferent<&'static str, String>;
-type LatestDecodeDifferentStr = frame_metadata::decode_different::DecodeDifferent<&'static str, String>;
 
 impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
 	type Error = Error;
@@ -166,19 +164,6 @@ impl From<TempStorageHasher> for DesubStorageHasher {
 			StorageHasher::Twox128 => DesubStorageHasher::Twox128,
 			StorageHasher::Twox256 => DesubStorageHasher::Twox256,
 			StorageHasher::Twox64Concat => DesubStorageHasher::Twox64Concat,
-		}
-	}
-}
-
-/// Temporary struct for converting between `DecodeDifferentStr` and
-/// `DecodeDifferentStrLatest`
-struct TempDecodeDifferentStr(DecodeDifferentStr);
-impl From<TempDecodeDifferentStr> for LatestDecodeDifferentStr {
-	fn from(decode_str: TempDecodeDifferentStr) -> LatestDecodeDifferentStr {
-		let decode_str = decode_str.0;
-		match decode_str {
-			DecodeDifferent::Encode(b) => super::DecodeDifferent::Encode(b),
-			DecodeDifferent::Decoded(o) => super::DecodeDifferent::Decoded(o),
 		}
 	}
 }

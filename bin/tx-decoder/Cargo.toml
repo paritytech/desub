@@ -16,4 +16,10 @@ futures = "0.3.17"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.67"
 log = "0.4.14"
-pretty_env_logger = "0.4.0"
+argh = "0.1.6"
+fern = {version = "0.6.0", features = [ "colored" ] }
+colored = "2.0.0"
+indicatif = { version = "0.16.2", features = [ "rayon" ] }
+rayon = "1.5.1"
+parking_lot = "0.11.2"
+num_cpus = "1.13.0"

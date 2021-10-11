@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::metadata::{ModuleMetadata, StorageMetadata, StorageHasher};
+use super::metadata::{ModuleMetadata, StorageHasher, StorageMetadata};
 use crate::RustTypeMarker;
 use serde::Serialize;
 use std::collections::HashMap;

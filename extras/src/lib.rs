@@ -6,6 +6,7 @@ mod extrinsics;
 mod modules;
 mod overrides;
 mod resolver;
+pub mod runtimes;
 
 pub use self::error::*;
 pub use self::extrinsics::*;
@@ -29,8 +30,8 @@ pub struct TypeRange {
 fn is_in_range(spec: u32, over_ride: &TypeRange) -> bool {
 	match over_ride.min_max {
 		[Some(min), Some(max)] => (min..=max).contains(&(spec as usize)),
-		[Some(min), None] => (spec as usize) > min,
-		[None, Some(max)] => (spec as usize) < max,
+		[Some(min), None] => (spec as usize) >= min,
+		[None, Some(max)] => (spec as usize) <= max,
 		// presumably, this would be for null -> null,
 		// so for every spec
 		[None, None] => true,
