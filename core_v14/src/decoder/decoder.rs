@@ -49,7 +49,11 @@ impl Decoder {
 
 	/// Decode a SCALE encoded extrinsic against the metadata provided
 	pub fn decode_extrinsic(&self, mut data: &[u8]) -> Result<GenericExtrinsic, DecodeError> {
+
+        // A mutably pointer to the slice, so that we can update out view into the bytes as
+        // we decode things from it.
         let data = &mut data;
+
 		if data.len() == 0 {
 			return Err(DecodeError::EarlyEof("extrinsic length should be > 0"));
 		}

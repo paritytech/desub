@@ -651,7 +651,6 @@ dependencies = [
  "frame-metadata 14.0.0",
  "hex",
  "log",
- "pallet-democracy",
  "parity-scale-codec",
  "scale-info",
  "serde",
