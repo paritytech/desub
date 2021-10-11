@@ -1,8 +1,9 @@
 use super::decode_type::{decode_type, DecodeTypeError};
 use super::extrinsic_bytes::{ExtrinsicBytes, ExtrinsicBytesError};
 use crate::metadata::{Metadata, MetadataError};
-use crate::substrate_type::{CompositeType, SubstrateType};
 use crate::substrate_value::SubstrateValue;
+use sp_runtime::{ MultiAddress, MultiSignature, AccountId32, generic::Era };
+use codec::{ Decode };
 
 pub struct Decoder {
 	metadata: Metadata,
@@ -12,6 +13,8 @@ pub struct Decoder {
 pub enum DecodeError {
 	#[error("Failed to parse the provided vector of extrinsics: {0}")]
 	UnexpectedExtrinsicsShape(#[from] ExtrinsicBytesError),
+    #[error("Failed to decode: {0}")]
+    CodecError(#[from] codec::Error),
 	#[error("Failed to decode type: {0}")]
 	DecodeTypeError(#[from] DecodeTypeError),
 	#[error("Failed to decode: expected more data")]
@@ -46,42 +49,52 @@ impl Decoder {
 
 	/// Decode a SCALE encoded extrinsic against the metadata provided
 	pub fn decode_extrinsic(&self, mut data: &[u8]) -> Result<GenericExtrinsic, DecodeError> {
+        let data = &mut data;
 		if data.len() == 0 {
 			return Err(DecodeError::EarlyEof("extrinsic length should be > 0"));
 		}
 
-		let info = interpret_extrinsic_version(data[0]);
-
-		// We only know how to decode V4 extrinsics at the moment
-		if info.version != 4 {
-			return Err(DecodeError::CannotDecodeExtrinsicVersion(info.version));
-		}
-
-		// If the extrinsic is signed, decode the signature first. Remember that V4
-		// extrinsics are laid out roughly as follows:
+        // V4 extrinsics (the format we can decode here) are laid out roughly as follows:
 		//
 		// first byte: abbbbbbb (a = 0 for unsigned, 1 for signed, b = version)
+        //
 		// signature, which is made up of (in order):
 		// - sp_runtime::MultiAddress enum (sender)
 		// - sp_runtime::MultiSignature enum
 		// - sp_runtime::generic::Era enum
 		// - compact encoded u32 (nonce; prior transaction count)
 		// - compact encoded u128 (tip paid to block producer/treasury)
+        //
 		// call, which is made up roughly of:
 		// - enum pallet index (for pallets variant)
 		// - call index (for inner variant)
 		// - call args (types can be pulled from metadata for each arg we expect)
-		let mut signature = None;
-		if info.is_signed {}
+        //
+        // So, we start by getting the version/signed from the first byte and go from there.
+        let is_signed = data[0] & 0b1000_0000 != 0;
+        let version = data[0] & 0b0111_1111;
+        *data = &data[1..];
 
+		// We only know how to decode V4 extrinsics at the moment
+		if version != 4 {
+			return Err(DecodeError::CannotDecodeExtrinsicVersion(version));
+		}
+
+		// If the extrinsic is signed, decode the signature next.
+		let signature = match is_signed {
+            true => Some(ExtrinsicSignature::decode(data)?),
+            false => None
+        };
+
+        // Pluck out the u8's representing the pallet and call enum next.
 		if data.len() < 2 {
 			return Err(DecodeError::EarlyEof("expected at least 2 more bytes for the pallet/call index"));
 		}
-
-		// Work out which call the extrinsic data represents and get type info for it:
 		let pallet_index = data[0];
 		let call_index = data[1];
-		data = &data[2..];
+		*data = &data[2..];
+
+		// Work out which call the extrinsic data represents and get type info for it:
 		let (pallet_name, call) = match self.metadata.call_by_variant_index(pallet_index, call_index) {
 			Some(call) => call,
 			None => return Err(DecodeError::CannotFindCall(pallet_index, call_index)),
@@ -92,11 +105,8 @@ impl Decoder {
 		for arg in call.args() {
 			let ty = self.metadata.resolve_type(arg)?;
 			let val = match decode_type(data, &ty) {
-				Ok((val, rest)) => {
-					data = rest;
-					val
-				}
-				Err((err, _rest)) => return Err(err.into()),
+				Ok(val) => val,
+				Err(err) => return Err(err.into()),
 			};
 			arguments.push(val);
 		}
@@ -112,20 +122,23 @@ pub struct GenericExtrinsic {
 	/// The name of the call made
 	pub call: String,
 	/// The signature (if any) associated with the extrinsic
-	pub signature: Option<SubstrateValue>,
+	pub signature: Option<ExtrinsicSignature>,
 	/// The arguments to pass to the call
 	pub arguments: Vec<SubstrateValue>,
 }
 
-struct ExtrinsicVersionInfo {
-	/// Which version is this extrinsic?
-	version: u8,
-	/// Does this extrinsic have a signature?
-	is_signed: bool,
-}
-
-fn interpret_extrinsic_version(byte: u8) -> ExtrinsicVersionInfo {
-	let is_signed = byte & 0b1000_0000 != 0;
-	let version = byte & 0b0111_1111;
-	ExtrinsicVersionInfo { version, is_signed }
+#[derive(Decode)]
+pub struct ExtrinsicSignature {
+    /// Address the extrinsic is being sent from
+    pub address: MultiAddress<AccountId32, u32>,
+    /// Signature to prove validity
+    pub signature: MultiSignature,
+    /// Lifetime of this extrinsic
+    pub era: Era,
+    /// How many past transactions from this address?
+    #[codec(compact)]
+    pub nonce: u32,
+    /// Tip to help get the extrinsic included faster
+    #[codec(compact)]
+    pub tip: u128
 }

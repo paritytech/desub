@@ -142,6 +142,28 @@ pub struct VariantType {
 	pub variants: Vec<CompositeType>,
 }
 
+impl VariantType {
+	/// Create a new unnamed variant type.
+	/// This is handy for quickly creating enums we can attempt to decode values into,
+	/// since named fields and such are not required for proper decoding.
+	pub fn new() -> VariantType {
+		VariantType {
+			name: String::new(),
+			variants: Vec::new()
+		}
+	}
+
+	/// Add an unnamed variant by providing a list of the (unnamed) arguments it expects.
+	/// We ignore names here because they are unnecessary for decoding.
+	pub fn unnamed_variant(&mut self, args: Vec<SubstrateType>) -> &mut Self {
+		self.variants.push(CompositeType {
+			name: String::new(),
+			fields: CompositeTypeFields::Unnamed(args)
+		});
+		self
+	}
+}
+
 impl Debug for VariantType {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.write_str(&self.name)?;
