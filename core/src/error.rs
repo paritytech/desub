@@ -18,6 +18,8 @@ pub enum Error {
 	Regex(#[from] onig::Error),
 	#[error("Conversion from {0} to {1} not possible")]
 	Conversion(String, String),
+	#[error("Spec version {0} not present in Decoder")]
+	MissingSpec(u32),
 }
 
 impl From<&str> for Error {

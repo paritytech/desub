@@ -1,2 +1,0 @@
-- Don't expose regex public functions
-- move `RustTypeMarker` into its own file

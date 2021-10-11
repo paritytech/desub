@@ -1,4 +1,3 @@
-mod extrinsics;
 mod metadata;
+mod runtime_metadata;
 mod storage;
-mod test_suite;

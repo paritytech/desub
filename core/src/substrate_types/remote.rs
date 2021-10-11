@@ -1,4 +1,4 @@
-// Copyright 2019 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of substrate-desub.
 //
 // substrate-desub is free software: you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 use primitives::crypto::AccountId32;
 use serde::{Deserialize, Serialize};
 
-use super::{Address, Conviction, Data, Vote};
+use super::{Address, Conviction, Vote};
 
 #[derive(Serialize, Deserialize)]
 #[serde(remote = "Address")]
@@ -40,31 +40,6 @@ pub struct RemoteVote {
 	pub aye: bool,
 	#[serde(with = "RemoteConviction")]
 	pub conviction: Conviction,
-}
-
-/// Either underlying data blob if it is at most 32 bytes, or a hash of it. If the data is greater
-/// than 32-bytes then it will be truncated when encoding.
-///
-/// Can also be `None`.
-#[derive(Serialize, Deserialize)]
-#[serde(remote = "Data")]
-pub enum RemoteData {
-	/// No data here.
-	None,
-	/// The data is stored directly.
-	Raw(Vec<u8>),
-	/// Only the Blake2 hash of the data is stored. The preimage of the hash may be retrieved
-	/// through some hash-lookup service.
-	BlakeTwo256([u8; 32]),
-	/// Only the SHA2-256 hash of the data is stored. The preimage of the hash may be retrieved
-	/// through some hash-lookup service.
-	Sha256([u8; 32]),
-	/// Only the Keccak-256 hash of the data is stored. The preimage of the hash may be retrieved
-	/// through some hash-lookup service.
-	Keccak256([u8; 32]),
-	/// Only the SHA3-256 hash of the data is stored. The preimage of the hash may be retrieved
-	/// through some hash-lookup service.
-	ShaThree256([u8; 32]),
 }
 
 #[derive(Serialize, Deserialize)]

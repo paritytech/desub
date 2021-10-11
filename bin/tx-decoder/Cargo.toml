@@ -1,0 +1,25 @@
+[package]
+name = "tx-decoder"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-std = { version = "1.10.0", features = [ "attributes" ] }
+async-stream = "0.3.2"
+sqlx = { version = "0.5", features = [ "runtime-async-std-rustls", "postgres" ]}
+desub = { path = "../../core/", package = "desub-core" }
+desub-extras = { path = "../../extras", features = [ "polkadot" ]}
+anyhow = "1.0.43"
+futures = "0.3.17"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.67"
+log = "0.4.14"
+argh = "0.1.6"
+fern = {version = "0.6.0", features = [ "colored" ] }
+colored = "2.0.0"
+indicatif = { version = "0.16.2", features = [ "rayon" ] }
+rayon = "1.5.1"
+parking_lot = "0.11.2"
+num_cpus = "1.13.0"

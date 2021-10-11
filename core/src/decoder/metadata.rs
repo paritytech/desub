@@ -33,18 +33,19 @@ mod version_09;
 mod version_10;
 mod version_11;
 mod version_12;
-mod versions;
+mod version_13;
+
+pub use frame_metadata::{decode_different::DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed};
 
 use super::storage::{StorageInfo, StorageLookupTable};
 use crate::RustTypeMarker;
 use codec::{Decode, Encode, EncodeAsRef, HasCompact};
-// use codec411::Decode as OldDecode;
 use primitives::{storage::StorageKey, twox_128};
-use runtime_metadata_latest::{StorageEntryModifier, StorageHasher};
+use serde::{Deserialize, Serialize};
 
 use std::{
 	collections::{HashMap, HashSet},
-	convert::TryInto,
+	convert::{TryFrom, TryInto},
 	fmt,
 	marker::PhantomData,
 	str::FromStr,
@@ -95,11 +96,11 @@ pub enum ModuleIndex {
 /// Metadata struct encompassing calls, storage, and events
 pub struct Metadata {
 	/// Hashmap of Modules (name -> module-specific metadata)
-	modules: HashMap<String, std::sync::Arc<ModuleMetadata>>,
+	modules: HashMap<String, Arc<ModuleMetadata>>,
 	/// modules by their index in the event enum
 	modules_by_event_index: HashMap<u8, String>,
 	/// modules by their index in the Call Enum
-	modules_by_call_index: HashMap<u8, String>,
+	pub modules_by_call_index: HashMap<u8, String>,
 	/// Optional extrinsic metadata. Only chains which use meta
 	/// version 11+ support this.
 	extrinsics: Option<ExtrinsicMetadata>,
@@ -123,7 +124,7 @@ impl From<&Metadata> for Metadata {
 	}
 }
 
-impl Metadata {
+impl<'a> Metadata {
 	/// Create a new Metadata type from raw encoded bytes
 	///
 	/// # Panics
@@ -142,11 +143,6 @@ impl Metadata {
 		let version = bytes[4];
 
 		match version {
-			/* 0x07 => {
-				let meta: runtime_metadata07::RuntimeMetadataPrefixed =
-					OldDecode::decode(&mut &*bytes).expect("Decode failed");
-				meta.try_into().expect("Conversion failed")
-			} */
 			0x08 => {
 				log::debug!("Metadata V8");
 				let meta: runtime_metadata08::RuntimeMetadataPrefixed =
@@ -173,8 +169,20 @@ impl Metadata {
 			}
 			0xC => {
 				log::debug!("Metadata V12");
-				let meta: runtime_metadata_latest::RuntimeMetadataPrefixed =
+				let meta: frame_metadata::RuntimeMetadataPrefixed =
 					Decode::decode(&mut &*bytes).expect("Decode failed");
+				meta.try_into().expect("Conversion failed")
+			}
+			0xD => {
+				log::debug!("Metadata V13");
+				let meta: frame_metadata::RuntimeMetadataPrefixed =
+					Decode::decode(&mut &*bytes).expect("decode failed");
+				meta.try_into().expect("Conversion failed")
+			}
+			0xE => {
+				log::debug!("Metadata V14");
+				let meta: frame_metadata::RuntimeMetadataPrefixed =
+					Decode::decode(&mut &*bytes).expect("decode failed");
 				meta.try_into().expect("Conversion failed")
 			}
 			/* TODO remove panics */
@@ -218,21 +226,21 @@ impl Metadata {
 	}
 
 	/// get a module by it's index
-	pub fn module_by_index(&self, module_index: ModuleIndex) -> Result<Arc<ModuleMetadata>, MetadataError> {
+	pub fn module_by_index(&'a self, module_index: ModuleIndex) -> Result<&'a ModuleMetadata, MetadataError> {
 		Ok(match module_index {
 			ModuleIndex::Call(i) => {
 				let name = self
 					.modules_by_call_index
 					.get(&i)
 					.ok_or(MetadataError::ModuleIndexNotFound(ModuleIndex::Call(i)))?;
-				self.modules.get(name).ok_or_else(|| MetadataError::ModuleNotFound(name.to_string()))?.clone()
+				self.modules.get(name).ok_or_else(|| MetadataError::ModuleNotFound(name.to_string()))?
 			}
 			ModuleIndex::Event(i) => {
 				let name = self
 					.modules_by_event_index
 					.get(&i)
 					.ok_or(MetadataError::ModuleIndexNotFound(ModuleIndex::Event(i)))?;
-				self.modules.get(name).ok_or_else(|| MetadataError::ModuleNotFound(name.to_string()))?.clone()
+				self.modules.get(name).ok_or_else(|| MetadataError::ModuleNotFound(name.to_string()))?
 			}
 			ModuleIndex::Storage(_) => {
 				// TODO remove panics
@@ -254,9 +262,8 @@ impl Metadata {
 		StorageLookupTable::new(lookup)
 	}
 
-	fn generate_key<S: Into<String>>(prefix: S) -> Vec<u8> {
-		let prefix: String = prefix.into();
-		prefix.split_ascii_whitespace().map(|s| twox_128(s.as_bytes()).to_vec()).flatten().collect()
+	fn generate_key<S: AsRef<str>>(prefix: S) -> Vec<u8> {
+		prefix.as_ref().split_ascii_whitespace().map(|s| twox_128(s.as_bytes()).to_vec()).flatten().collect()
 	}
 
 	/// print out a detailed but human readable description of the module
@@ -421,6 +428,17 @@ impl fmt::Display for CallArgMetadata {
 	}
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode, Serialize, Deserialize)]
+pub enum StorageHasher {
+	Blake2_128,
+	Blake2_256,
+	Blake2_128Concat,
+	Twox128,
+	Twox256,
+	Twox64Concat,
+	Identity,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum StorageType {
 	Plain(RustTypeMarker),
@@ -437,6 +455,17 @@ pub enum StorageType {
 		value: RustTypeMarker,
 		key2_hasher: StorageHasher,
 	},
+	NMap {
+		keys: Vec<RustTypeMarker>,
+		hashers: Vec<StorageHasher>,
+		value: RustTypeMarker,
+	},
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
+pub enum StorageEntryModifier {
+	Optional,
+	Default,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -550,6 +579,19 @@ impl EventArg {
 				}
 				primitives
 			}
+		}
+	}
+}
+
+impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
+	type Error = Error;
+
+	fn try_from(metadata: RuntimeMetadataPrefixed) -> Result<Self, Self::Error> {
+		match metadata.1 {
+			RuntimeMetadata::V12(meta) => meta.try_into(),
+			RuntimeMetadata::V13(meta) => meta.try_into(),
+			RuntimeMetadata::V14(_meta) => unimplemented!(),
+			_ => Err(Error::InvalidVersion),
 		}
 	}
 }

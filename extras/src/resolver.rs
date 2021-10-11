@@ -119,21 +119,25 @@ impl TypeResolver {
 	/// # Return
 	/// returns None if the type cannot be resolved
 	pub fn get(&self, chain: &str, spec: u32, module: &str, ty: &str) -> Option<&RustTypeMarker> {
-		let (module, ty, chain) = sanitize_types(module, ty, chain);
 		log::trace!("Getting Type: {}, module: {}, spec: {}", ty, module, spec);
 
-		if let Some(t) = self.check_overrides(&module, ty.as_str(), spec, &chain) {
+		if let Some(t) = self.check_overrides(module, ty, spec, chain) {
 			log::trace!("Resolving to Override");
 			Some(t)
-		} else if let Some(t) = self.extrinsics.get(ty.as_str(), spec, &chain) {
+		} else if let Some(t) = self.extrinsics.get(ty, spec, chain) {
 			log::trace!("Resolving to Extrinsic Type");
 			Some(t)
 		} else {
 			log::trace!("Resolving to Type Pointer");
-			self.resolve_helper(&module, &ty)
+			self.resolve_helper(module, ty)
 		}
 	}
 
+	pub fn try_fallback(&self, module: &str, ty: &str) -> Option<&RustTypeMarker> {
+		self.mods.try_fallback(module, ty)
+	}
+
+	/// Get type for decoding an Extrinsic
 	pub fn get_ext_ty(&self, chain: &str, spec: u32, ty: &str) -> Option<&RustTypeMarker> {
 		if let Some(t) = self.extrinsics.get(ty, spec, chain) {
 			match t {
@@ -150,7 +154,7 @@ impl TypeResolver {
 		log::trace!("Helper resolving {}, {}", module, ty_pointer);
 
 		if let Some(t) = self.mods.get_type(module, ty_pointer) {
-			log::trace!("Type {} found in module {}", ty_pointer, module);
+			log::trace!("Type {} found in module {}", &ty_pointer, module);
 			Some(t)
 		} else if let Some(t) = self.mods.get_type("runtime", ty_pointer) {
 			log::trace!("Type not found in {}, trying `runtime` for type {}", module, ty_pointer);
@@ -184,22 +188,27 @@ impl TypeResolver {
 	}
 }
 
-fn sanitize_types(module: &str, ty: &str, chain: &str) -> (String, String, String) {
-	let module = module.to_ascii_lowercase();
-	let chain = chain.to_ascii_lowercase();
-	let ty = if let Some(un_prefixed) = regex::remove_prefix(ty) { un_prefixed } else { ty.to_string() };
-
-	log::trace!("Possibly de-prefixed type: {}", ty);
-	(module, ty, chain)
-}
-
 impl TypeDetective for TypeResolver {
 	fn get(&self, chain: &str, spec: u32, module: &str, ty: &str) -> Option<&RustTypeMarker> {
-		TypeResolver::get(self, chain, spec, module, ty)
+		log::trace!("Getting type {}", ty);
+		let ty = regex::sanitize_ty(ty)?;
+		let module = module.to_ascii_lowercase();
+		let chain = chain.to_ascii_lowercase();
+		TypeResolver::get(self, &chain, spec, &module, &ty)
+	}
+
+	fn try_fallback(&self, module: &str, ty: &str) -> Option<&RustTypeMarker> {
+		let ty = regex::sanitize_ty(ty)?;
+		let module = module.to_ascii_lowercase();
+
+		TypeResolver::try_fallback(self, &module, &ty)
 	}
 
 	fn get_extrinsic_ty(&self, chain: &str, spec: u32, ty: &str) -> Option<&RustTypeMarker> {
-		TypeResolver::get_ext_ty(self, chain, spec, ty)
+		let ty = regex::sanitize_ty(ty)?;
+		let chain = chain.to_ascii_lowercase();
+
+		TypeResolver::get_ext_ty(self, &chain, spec, &ty)
 	}
 }
 
@@ -207,19 +216,21 @@ impl TypeDetective for TypeResolver {
 mod tests {
 	use super::default::*;
 	use super::*;
-	use core::{EnumField, StructField, StructUnitOrTuple};
+	use core::{EnumField, StructField};
 
 	#[test]
 	fn should_get_type_from_module() -> Result<()> {
 		let post_1031_dispatch_error = RustTypeMarker::Enum(vec![
-			EnumField::new(Some("Other".into()), StructUnitOrTuple::Tuple(RustTypeMarker::Null)),
-			EnumField::new(Some("CannotLookup".into()), StructUnitOrTuple::Tuple(RustTypeMarker::Null)),
-			EnumField::new(Some("BadOrigin".into()), StructUnitOrTuple::Tuple(RustTypeMarker::Null)),
-			EnumField::new(
-				Some("Module".into()),
-				StructUnitOrTuple::Tuple(RustTypeMarker::TypePointer("DispatchErrorModule".to_string())),
-			),
+			EnumField::new("Other".into(), Some(RustTypeMarker::Null)),
+			EnumField::new("CannotLookup".into(), Some(RustTypeMarker::Null)),
+			EnumField::new("BadOrigin".into(), Some(RustTypeMarker::Null)),
+			EnumField::new("Module".into(), Some(RustTypeMarker::TypePointer("DispatchErrorModule".to_string()))),
+			EnumField::new("ConsumerRemaining".into(), Some(RustTypeMarker::Null)),
+			EnumField::new("NoProviders".into(), Some(RustTypeMarker::Null)),
+			EnumField::new("Token".into(), Some(RustTypeMarker::TypePointer("TokenError".to_string()))),
+			EnumField::new("Arithmetic".into(), Some(RustTypeMarker::TypePointer("ArithmeticError".to_string()))),
 		]);
+
 		let types = TypeResolver::default();
 		let t = types.get("kusama", 1040, "system", "DispatchError").unwrap();
 		assert_eq!(t, &post_1031_dispatch_error);

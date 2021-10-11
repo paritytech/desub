@@ -1,21 +1,11 @@
-use crate::test_suite;
+use crate::runtime_metadata::*;
+use anyhow::Result;
 use codec::Encode;
 use desub_core::{
 	decoder::{Chain, Decoder, Metadata},
 	SubstrateType,
 };
-use frame_system::AccountInfo;
-use pallet_balances::AccountData;
 use primitives::twox_128;
-
-// hex(encoded): 010000000864000000000000000000000000000000c80000000000000000000000000000002c01000000000000000000000000000090010000000000000000000000000000
-fn mock_account_info() -> AccountInfo<u32, AccountData<u128>> {
-	let mock_account_data: AccountData<u128> =
-		AccountData { free: 100, reserved: 200, misc_frozen: 300, fee_frozen: 400 };
-	let mock_account_info: AccountInfo<u32, AccountData<u128>> =
-		AccountInfo { nonce: 1, refcount: 8, data: mock_account_data };
-	mock_account_info
-}
 
 /// T::BlockNumber in meta V11 Block 1768321
 fn get_plain_value() -> (Vec<u8>, Option<Vec<u8>>) {
@@ -32,7 +22,7 @@ fn should_decode_plain() {
 	let types = extras::TypeResolver::default();
 	let mut decoder = Decoder::new(types, Chain::Kusama);
 
-	let meta = test_suite::runtime_v11();
+	let meta = runtime_v11();
 	let meta = Metadata::new(meta.as_slice());
 	decoder.register_version(2023, &meta);
 
@@ -41,22 +31,43 @@ fn should_decode_plain() {
 }
 
 #[test]
-fn should_decode_map() {
+fn should_decode_map() -> Result<()> {
 	let _ = pretty_env_logger::try_init();
 
 	let types = extras::TypeResolver::default();
 	let mut decoder = Decoder::new(types, Chain::Kusama);
 
-	let meta = test_suite::runtime_v11();
+	let meta = runtime_v11();
 	let meta = Metadata::new(meta.as_slice());
 	decoder.register_version(2023, &meta);
-
-	let account = mock_account_info();
-	let encoded_account = account.encode();
+	// AccountInfo from block 3944196
+	let encoded_account = hex::decode("01000000037c127ed1d8c6010000000000000000000000000000000000000000000000000000406352bfc60100000000000000000000406352bfc601000000000000000000").unwrap();
 	let storage_key = hex::decode("26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da932a5935f6edc617ae178fef9eb1e211fbe5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f").unwrap();
 
-	let res = decoder.decode_storage(2023, (storage_key, Some(encoded_account))).unwrap();
+	let res = decoder.decode_storage(2023, (storage_key, Some(encoded_account)))?;
 	println!("{:?}", res);
+	Ok(())
+}
+
+#[test]
+fn should_decode_map_ksm_3944195() -> Result<()> {
+	let _ = pretty_env_logger::try_init();
+
+	let types = extras::TypeResolver::default();
+	let mut decoder = Decoder::new(types, Chain::Kusama);
+
+	let meta = runtime_v11();
+	let meta = Metadata::new(meta.as_slice());
+	decoder.register_version(2023, &meta);
+	// BlockHash from block 3944196
+	let storage_key =
+		hex::decode("26aa394eea5630e07c48ae0c9558cef7a44704b568d21667356a5a050c1187465eb805861b659fd1022f3c00")
+			.unwrap();
+	let encoded_hash = hex::decode("38f14d3d028e2f5b9ce889a444b49e774b88bcb3fe205fa4f5a10c2e66290c59").unwrap();
+
+	let res = decoder.decode_storage(2023, (storage_key, Some(encoded_hash)))?;
+	println!("{:?}", res);
+	Ok(())
 }
 
 #[test]
@@ -65,7 +76,7 @@ fn should_decode_double_map() {
 	let types = extras::TypeResolver::default();
 	let mut decoder = Decoder::new(types, Chain::Kusama);
 
-	let meta = test_suite::runtime_v11();
+	let meta = runtime_v11();
 	let meta = Metadata::new(meta.as_slice());
 	decoder.register_version(2023, &meta);
 	// THIS STORAGE KEY IS WRONG for "ImOnline AuthoredBlocks" type

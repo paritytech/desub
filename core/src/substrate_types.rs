@@ -19,20 +19,22 @@
 //! Serialization and Deserialization Implementations (to serialize as if it were a native type)
 //! Display Implementation
 
+mod data;
 mod remote;
 
 use self::remote::*;
 use crate::{Error, SetField};
+use bitvec::order::Lsb0 as BitOrderLsb0;
 use primitives::crypto::AccountId32;
 use primitives::crypto::{Ss58AddressFormat, Ss58Codec};
 use serde::Serialize;
 use std::{convert::TryFrom, fmt};
 
+pub use self::data::Data;
+
 pub type Address = runtime_primitives::MultiAddress<AccountId32, u32>;
 pub type Vote = pallet_democracy::Vote;
 pub type Conviction = pallet_democracy::Conviction;
-pub type Data = pallet_identity::Data;
-
 /// A 'stateful' version of [RustTypeMarker](enum.RustTypeMarker.html).
 /// 'Std' variant is not here like in RustTypeMarker.
 /// Instead common types are just apart of the enum
@@ -44,6 +46,9 @@ pub enum SubstrateType {
 	/// 256-bit hash type
 	H256(primitives::H256),
 
+	/// BitVec type
+	BitVec(bitvec::vec::BitVec<BitOrderLsb0, u8>),
+
 	/// Recursive Call Type
 	Call(Vec<(String, SubstrateType)>),
 	/// Era
@@ -54,16 +59,19 @@ pub enum SubstrateType {
 	GenericVote(pallet_democracy::Vote),
 
 	/// Substrate Indices Address Type
-	// TODO: this is not generic for any chain that doesn't use a
-	// u32 and [u8; 32] for its index/id
 	#[serde(with = "RemoteAddress")]
 	Address(Address),
-
-	#[serde(with = "RemoteData")]
+	/// Data Identity Type
 	Data(Data),
+
+	/// Identity fields but as just an enum.
+	IdentityField(u64),
 
 	/// SignedExtension Type
 	SignedExtra(String),
+
+	/// Rust unit type (Struct or enum variant)
+	Unit(String),
 
 	/// vectors, arrays, and tuples
 	#[serde(serialize_with = "crate::util::as_hex")]
@@ -72,7 +80,7 @@ pub enum SubstrateType {
 	/// C-Like Enum Type
 	Set(SetField),
 	/// Enum
-	Enum(StructUnitOrTuple),
+	Enum(EnumField),
 	/// Struct Type
 	Struct(Vec<StructField>),
 	/// Option Type
@@ -122,6 +130,7 @@ impl fmt::Display for SubstrateType {
 		match self {
 			SubstrateType::H512(v) => write!(f, "{}", v),
 			SubstrateType::H256(v) => write!(f, "{}", v),
+			SubstrateType::BitVec(v) => write!(f, "{}", v),
 			SubstrateType::Call(c) => {
 				write!(f, "CALL")?;
 				for arg in c.iter() {
@@ -145,6 +154,8 @@ impl fmt::Display for SubstrateType {
 			},
 			SubstrateType::Data(d) => write!(f, "{:?}", d),
 			SubstrateType::SignedExtra(v) => write!(f, "{}", v),
+			SubstrateType::Unit(u) => write!(f, "{}", u),
+			SubstrateType::IdentityField(field) => write!(f, "{:?}", field),
 			SubstrateType::Composite(v) => {
 				let mut s = String::from("");
 				for v in v.iter() {
@@ -186,31 +197,22 @@ impl fmt::Display for SubstrateType {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-#[serde(untagged)]
-pub enum StructUnitOrTuple {
-	Struct(Vec<StructField>),
-	Unit(String),
-	/// vector of variant name -> type
-	Tuple {
-		name: String,
-		ty: Box<SubstrateType>,
-	},
+pub struct EnumField {
+	/// name of the field.
+	pub name: String,
+	/// Optional field value. An enum field without a value are unit fields.
+	pub value: Option<Box<SubstrateType>>,
 }
 
-impl fmt::Display for StructUnitOrTuple {
+impl EnumField {
+	pub fn new(name: String, value: Option<Box<SubstrateType>>) -> Self {
+		Self { name, value }
+	}
+}
+
+impl fmt::Display for EnumField {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let mut _enum = String::from(" tuple[ ");
-		match self {
-			Self::Struct(v) => {
-				for val in v.iter() {
-					_enum.push_str(&format!("{}, ", val))
-				}
-			}
-			Self::Unit(v) => _enum.push_str(&format!("{}, ", v)),
-			Self::Tuple { name, ty } => _enum.push_str(&format!(" {}:{} ", name, ty.to_string())),
-		}
-		_enum.push_str(" ]");
-		write!(f, "{}", _enum)
+		write!(f, "enum[{}:{}]", self.name, self.value.as_ref().unwrap_or(&Box::new(SubstrateType::Null)))
 	}
 }
 

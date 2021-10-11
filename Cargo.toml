@@ -3,6 +3,14 @@ members = [
 	"core",
 	"extras",
 	"integration_tests",
+	"substrate-metadata-versions/metadatav8",
+	"substrate-metadata-versions/metadatav9",
+	"substrate-metadata-versions/metadatav10",
+	"substrate-metadata-versions/metadatav11",
+]
+
+exclude = [
+	"bin/tx-decoder"
 ]
 
 [patch.crates-io]

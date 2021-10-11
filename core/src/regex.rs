@@ -14,13 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-// TODO: write tests for all 'parse_xxx' functions
 use super::{CommonTypes, RustTypeMarker};
 use onig::{Regex, Region, SearchOptions};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum RegexSet {
 	ArrayPrimitive,
+	ArrayPrimitiveExtra,
 	BitSize,
 	ArrayStruct,
 	Vec,
@@ -38,6 +38,8 @@ impl RegexSet {
 	fn get_type(s: &str) -> Option<RegexSet> {
 		if rust_array_decl_prim().is_match(s) {
 			Some(RegexSet::ArrayPrimitive)
+		} else if rust_array_with_extra_type().is_match(s) {
+			Some(RegexSet::ArrayPrimitiveExtra)
 		} else if rust_bit_size().is_match(s) {
 			Some(RegexSet::BitSize)
 		} else if rust_array_decl_struct().is_match(s) {
@@ -64,6 +66,7 @@ impl RegexSet {
 	fn parse_type(&self, s: &str) -> Option<RustTypeMarker> {
 		match self {
 			RegexSet::ArrayPrimitive => parse_primitive_array(s),
+			RegexSet::ArrayPrimitiveExtra => parse_array_with_extra_type(s),
 			RegexSet::BitSize => parse_bit_size(s),
 			RegexSet::ArrayStruct => parse_struct_array(s),
 			RegexSet::Vec => parse_vec(s),
@@ -75,6 +78,13 @@ impl RegexSet {
 			RegexSet::Generic => parse_generic(s),
 		}
 	}
+}
+
+/// Matches an array like: [u8; 20; H160]
+fn rust_array_with_extra_type() -> Regex {
+	Regex::new(
+		r"^\[\s*?(?<type>[uif]{1})(?<bit8>8)?(?<bit16>16)?(?<bit32>32)?(?<bit64>64)?(?<bit128>128)?;\s*?(?<size>[\d]+)+\s*?;?\s*?([\d\w]*)\s*?]",
+	).expect("Regex Array with extra type info invalid")
 }
 
 // primitive array declaration with named capture groups, ie [u8; 99]
@@ -135,12 +145,54 @@ pub fn rust_generic_decl() -> Regex {
 
 /// Transforms a prefixed generic type (EX: T::Moment)
 /// into a non-prefixed type (T::Moment -> Moment)
-pub fn remove_prefix<'a, S: Into<&'a str>>(s: S) -> Option<String> {
-	let s: &str = s.into();
+pub fn remove_prefix<S: AsRef<str>>(s: S) -> Option<String> {
+	let s: &str = s.as_ref();
 
 	let re = Regex::new(r"[\w><]::([\w><]+)").expect("Regex expressions should be infallible; qed");
 	let caps = re.captures(s)?;
 	caps.iter().nth(1)?.map(|s| s.to_string())
+}
+
+/// Removes a path from a string that is a rust type.
+/// Ex: removes 'schedule' from schedule::Period<T::BlockNumber>
+pub fn remove_path<S: AsRef<str>>(s: S) -> Option<String> {
+	let s: &str = s.as_ref();
+
+	let re = Regex::new(r"\b(?<outer_type>\w+)<(?<inner_type>[\w<>,: ]+)>")
+		.expect("Regex expression should be infallible; qed");
+	let caps = re.captures(s)?;
+	caps.iter().nth(1)?.map(|s| s.to_string())
+}
+
+/// Removes the trait preceding the type.
+/// I.E Removes `<T as Trait>::` from <T as Trait>::Call
+pub fn remove_trait<S: AsRef<str>>(s: S) -> Option<String> {
+	let s: &str = s.as_ref();
+
+	let re = Regex::new(r"^(?:<T as Trait|<T as Config<\w>|<T as Trait<\w>)[><\w]+:*([\W\w]*)")
+		.expect("Regex expression should be infallible; qed");
+	let caps = re.captures(s)?;
+	caps.iter().nth(1)?.map(|s| s.to_string())
+}
+
+pub fn remove_empty_generic<S: AsRef<str>>(s: S) -> Option<String> {
+	let s: &str = s.as_ref();
+
+	let re = Regex::new(r"(\w*)<\(\)>").expect("Regex expression should be infallible; qed");
+	let caps = re.captures(s)?;
+	caps.iter().nth(1)?.map(|s| s.to_string())
+}
+
+/// Sanitizes a type and returns parts that might correspond to PolkadotJS types
+pub fn sanitize_ty(ty: &str) -> Option<String> {
+	log::trace!("sanitizing ty {}", ty);
+	let ty = if let Some(no_empty_gen) = remove_empty_generic(&ty) { no_empty_gen } else { ty.to_string() };
+	let ty = if let Some(no_trait) = remove_trait(&ty) { no_trait } else { ty };
+	let ty = if let Some(no_path) = remove_path(&ty) { no_path } else { ty };
+	let ty = if let Some(un_prefixed) = remove_prefix(&ty) { un_prefixed } else { ty };
+
+	log::trace!("Possibly sanitized type: {}", ty);
+	Some(ty)
 }
 
 /// Only captures text within the tuples,
@@ -189,13 +241,25 @@ pub fn parse_struct_array(s: &str) -> Option<RustTypeMarker> {
 ///
 /// # Panics
 ///
-/// TODO: Use errors instead of returning option
 pub fn parse_primitive_array(s: &str) -> Option<RustTypeMarker> {
 	let re = rust_array_decl_prim();
 	if !re.is_match(s) {
 		return None;
 	}
+	parse_array(s, re)
+}
 
+/// Parse an array that's in the form [u8; 20; H160]
+/// the extra type information 'H160' is discarded.
+fn parse_array_with_extra_type(s: &str) -> Option<RustTypeMarker> {
+	let re = rust_array_with_extra_type();
+	if !re.is_match(s) {
+		return None;
+	}
+	parse_array(s, re)
+}
+
+fn parse_array(s: &str, re: Regex) -> Option<RustTypeMarker> {
 	let mut region = Region::new();
 
 	let (mut t, mut size, mut ty) = (None, None, None);
@@ -230,6 +294,7 @@ pub fn parse_primitive_array(s: &str) -> Option<RustTypeMarker> {
 			true
 		});
 	};
+
 	let t = t?;
 	let size = size?;
 	let ty = ty?;
@@ -238,31 +303,26 @@ pub fn parse_primitive_array(s: &str) -> Option<RustTypeMarker> {
 		8 => match t {
 			"u" => RustTypeMarker::U8,
 			"i" => RustTypeMarker::I8,
-			"f" => panic!("type does not exist 'f8'"),
 			_ => panic!("impossible match encountered"),
 		},
 		16 => match t {
 			"u" => RustTypeMarker::U16,
 			"i" => RustTypeMarker::I16,
-			"f" => panic!("type does not exist 'f16'"),
 			_ => panic!("impossible match encountered"),
 		},
 		32 => match t {
 			"u" => RustTypeMarker::U32,
 			"i" => RustTypeMarker::I32,
-			"f" => RustTypeMarker::F32,
 			_ => panic!("impossible match encountered"),
 		},
 		64 => match t {
 			"u" => RustTypeMarker::U64,
 			"i" => RustTypeMarker::I64,
-			"f" => RustTypeMarker::F64,
 			_ => panic!("impossible match encountered"),
 		},
 		128 => match t {
 			"u" => RustTypeMarker::U128,
 			"i" => RustTypeMarker::I128,
-			"f" => panic!("type does not exist: 'f128'"),
 			_ => panic!("impossible match encountered"),
 		},
 		_ => panic!("Couldn't determine bit-width of types in array"),
@@ -408,17 +468,12 @@ pub fn parse(s: &str) -> Option<RustTypeMarker> {
 		"u32" => Some(RustTypeMarker::U32),
 		"u64" => Some(RustTypeMarker::U64),
 		"u128" => Some(RustTypeMarker::U128),
-		"usize" => Some(RustTypeMarker::USize),
 
 		"i8" => Some(RustTypeMarker::I8),
 		"i16" => Some(RustTypeMarker::I16),
 		"i32" => Some(RustTypeMarker::I32),
 		"i64" => Some(RustTypeMarker::I64),
 		"i128" => Some(RustTypeMarker::I128),
-		"isize" => Some(RustTypeMarker::ISize),
-
-		"f32" => Some(RustTypeMarker::F32),
-		"f64" => Some(RustTypeMarker::F64),
 
 		"bool" => Some(RustTypeMarker::Bool),
 		"Null" => Some(RustTypeMarker::Null),
@@ -596,14 +651,6 @@ mod tests {
 			RustTypeMarker::Array { size: 32, ty: Box::new(RustTypeMarker::I128) }
 		);
 		assert_eq!(
-			parse_primitive_array("[f32; 32]").unwrap(),
-			RustTypeMarker::Array { size: 32, ty: Box::new(RustTypeMarker::F32) }
-		);
-		assert_eq!(
-			parse_primitive_array("[f64; 32]").unwrap(),
-			RustTypeMarker::Array { size: 32, ty: Box::new(RustTypeMarker::F64) }
-		);
-		assert_eq!(
 			parse_primitive_array("[i128; 999999]").unwrap(),
 			RustTypeMarker::Array { size: 999_999, ty: Box::new(RustTypeMarker::I128) }
 		);
@@ -612,7 +659,7 @@ mod tests {
 	#[test]
 	fn should_match_struct_array() {
 		let re = rust_array_decl_struct();
-		assert_eq!(true, re.is_match("[Foo; 10]"))
+		assert!(re.is_match("[Foo; 10]"))
 	}
 
 	#[test]
@@ -775,17 +822,12 @@ mod tests {
 		assert_eq!(parse("u32").unwrap(), RustTypeMarker::U32);
 		assert_eq!(parse("u64").unwrap(), RustTypeMarker::U64);
 		assert_eq!(parse("u128").unwrap(), RustTypeMarker::U128);
-		assert_eq!(parse("usize").unwrap(), RustTypeMarker::USize);
 
 		assert_eq!(parse("i8").unwrap(), RustTypeMarker::I8);
 		assert_eq!(parse("i16").unwrap(), RustTypeMarker::I16);
 		assert_eq!(parse("i32").unwrap(), RustTypeMarker::I32);
 		assert_eq!(parse("i64").unwrap(), RustTypeMarker::I64);
 		assert_eq!(parse("i128").unwrap(), RustTypeMarker::I128);
-		assert_eq!(parse("isize").unwrap(), RustTypeMarker::ISize);
-
-		assert_eq!(parse("f32").unwrap(), RustTypeMarker::F32);
-		assert_eq!(parse("f64").unwrap(), RustTypeMarker::F64);
 
 		assert_eq!(parse("bool").unwrap(), RustTypeMarker::Bool);
 		assert_eq!(parse("Null").unwrap(), RustTypeMarker::Null);
@@ -847,6 +889,8 @@ mod tests {
 	fn should_remove_prefix() {
 		assert_eq!(remove_prefix("T::Moment").unwrap(), "Moment");
 		assert_eq!(remove_prefix("T::Generic<Runtime>").unwrap(), "Generic<Runtime>");
+		// assert_eq!(remove_prefix("schedule::Period<T::BlockNumber>").unwrap(), "Period<T::BlockNumber>");
+		// assert_eq!(remove_prefix("Period<T::BlockNumber>").unwrap(), "BlockNumber");
 	}
 
 	#[test]
@@ -878,5 +922,21 @@ mod tests {
 		assert_eq!(parse_bit_size(ty).unwrap(), RustTypeMarker::U128);
 		let ty = "Int<64, Balance>";
 		assert_eq!(parse_bit_size(ty).unwrap(), RustTypeMarker::I64);
+	}
+
+	#[test]
+	fn should_match_array_with_extra_info() {
+		let _ = pretty_env_logger::try_init();
+		let ty = "[u8; 20; H160]";
+		let re = rust_array_with_extra_type();
+		assert!(re.is_match(ty));
+	}
+
+	#[test]
+	fn should_parse_array_with_extra_info() {
+		let _ = pretty_env_logger::try_init();
+		let ty = "[u8; 20; H160]";
+		let ty = parse_array_with_extra_type(ty);
+		assert_eq!(ty, Some(RustTypeMarker::Array { size: 20, ty: Box::new(RustTypeMarker::U8) }));
 	}
 }

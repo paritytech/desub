@@ -1,4 +1,4 @@
-// Copyright 2019 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of substrate-desub.
 //
 // substrate-desub is free software: you can redistribute it and/or modify
@@ -15,6 +15,7 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 #[forbid(unsafe_code)]
+#[deny(unused)]
 pub mod decoder;
 mod error;
 pub mod regex;
@@ -32,6 +33,10 @@ use std::fmt::{self, Display};
 pub trait TypeDetective: fmt::Debug + dyn_clone::DynClone + Send + Sync {
 	/// Get a 'RustTypeMarker'
 	fn get(&self, chain: &str, spec: u32, module: &str, ty: &str) -> Option<&RustTypeMarker>;
+
+	/// Some types have a fallback type that may be decoded into if the original
+	/// type fails.
+	fn try_fallback(&self, module: &str, ty: &str) -> Option<&RustTypeMarker>;
 
 	/// get a type specific to decoding extrinsics
 	fn get_extrinsic_ty(&self, chain: &str, spec: u32, ty: &str) -> Option<&RustTypeMarker>;
@@ -76,49 +81,23 @@ impl SetField {
 	}
 }
 
-/// TODO: Allow mixed struct-unit types
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct EnumField {
 	/// name of the Variant
 	/// if the variant is a Unit enum, it will not have a name
-	pub variant_name: Option<String>,
-	pub ty: StructUnitOrTuple,
+	pub name: String,
+	pub value: Option<RustTypeMarker>,
 }
 
 impl EnumField {
-	pub fn new(variant_name: Option<String>, ty: StructUnitOrTuple) -> Self {
-		EnumField { variant_name, ty }
-	}
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-pub enum StructUnitOrTuple {
-	Struct(Vec<StructField>),
-	Unit(String),
-	Tuple(RustTypeMarker),
-}
-
-impl From<String> for EnumField {
-	fn from(s: String) -> EnumField {
-		EnumField { variant_name: None, ty: StructUnitOrTuple::Unit(s) }
+	pub fn new(name: String, value: Option<RustTypeMarker>) -> Self {
+		EnumField { name, value }
 	}
 }
 
 impl Display for EnumField {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		let mut _enum = String::from("enum");
-		match &self.ty {
-			StructUnitOrTuple::Struct(s) => {
-				for s in s.iter() {
-					_enum.push_str(&format!("{}, ", s));
-				}
-			}
-			StructUnitOrTuple::Unit(u) => {
-				_enum.push_str(&format!("{}, ", u));
-			}
-			StructUnitOrTuple::Tuple(v) => _enum.push_str(&format!("{} ", v)),
-		};
-		write!(f, "{}", _enum)
+		write!(f, "enum[{}:{}]", self.name, self.value.as_ref().unwrap_or(&RustTypeMarker::Null))
 	}
 }
 
@@ -180,6 +159,9 @@ pub enum RustTypeMarker {
 	/// name of a type that exists elsewhere in type declarations
 	TypePointer(String),
 
+	/// A unit type. A struct or the variant of an enum.
+	Unit(String),
+
 	/// Some Struct
 	/// Field Name -> Field Type
 	Struct(Vec<StructField>),
@@ -190,9 +172,7 @@ pub enum RustTypeMarker {
 	/// A tuple type (max size 32)
 	Tuple(Vec<RustTypeMarker>),
 
-	/// Some Enum
-	/// A Rust Enum that contains mixed "Struct" and Unit fields
-	/// will have unit fields as struct but with the type as "Null"
+	/// A Rust enum
 	Enum(Vec<EnumField>),
 
 	/// A sized array
@@ -210,6 +190,8 @@ pub enum RustTypeMarker {
 	/// A Generic Type, EX: HeartBeat<BlockNumber>
 	/// Tuple of (OuterType, InnerType)
 	Generic(Box<RustTypeMarker>, Box<RustTypeMarker>),
+	/// A Number for which the bit size is unknown
+	Number,
 	/// primitive unsigned 8 bit integer
 	U8,
 	/// primitive unsigned 16 bit integer
@@ -220,9 +202,6 @@ pub enum RustTypeMarker {
 	U64,
 	/// primitive unsigned 128 bit integer
 	U128,
-	/// primitive unsigned word-sized integer
-	USize,
-
 	/// primitive signed 8 bit integer
 	I8,
 	/// primitive signed 16 bit integer
@@ -233,19 +212,9 @@ pub enum RustTypeMarker {
 	I64,
 	/// primitive signed 128 bit integer
 	I128,
-	/// primitive signed word-sized integer
-	ISize,
-
-	/// primitive IEEE-spec 32-bit floating-point number
-	F32,
-	/// primitive IEEE-spec 64-bit floating-point number
-	F64,
 
 	/// Boolean true/false type
 	Bool,
-
-	/// String type
-	String,
 
 	/// Used for fields that don't exist (ex Unit variant in an enum with both
 	/// units/structs)
@@ -268,6 +237,7 @@ impl Display for RustTypeMarker {
 		let mut type_marker = String::from("");
 		match self {
 			RustTypeMarker::TypePointer(t) => type_marker.push_str(t),
+			RustTypeMarker::Unit(u) => type_marker.push_str(u),
 			RustTypeMarker::Struct(t) => {
 				for substring in t.iter() {
 					type_marker.push_str(&format!("{}, ", substring))
@@ -289,27 +259,19 @@ impl Display for RustTypeMarker {
 			RustTypeMarker::Array { size, ty } => type_marker.push_str(&format!("[{};{}], ", ty, size)),
 			RustTypeMarker::Std(t) => type_marker.push_str(&t.to_string()),
 			RustTypeMarker::Generic(outer, inner) => type_marker.push_str(&format!("{}<{}>", outer, inner)),
+			RustTypeMarker::Number => type_marker.push_str("number"),
 			RustTypeMarker::U8 => type_marker.push_str("u8"),
 			RustTypeMarker::U16 => type_marker.push_str("u16"),
 			RustTypeMarker::U32 => type_marker.push_str("u32"),
 			RustTypeMarker::U64 => type_marker.push_str("u64"),
 			RustTypeMarker::U128 => type_marker.push_str("u128"),
-			RustTypeMarker::USize => type_marker.push_str("usize"),
 
 			RustTypeMarker::I8 => type_marker.push_str("i8"),
 			RustTypeMarker::I16 => type_marker.push_str("i16"),
 			RustTypeMarker::I32 => type_marker.push_str("i32"),
 			RustTypeMarker::I64 => type_marker.push_str("i64"),
 			RustTypeMarker::I128 => type_marker.push_str("i128"),
-			RustTypeMarker::ISize => type_marker.push_str("isize"),
-
-			RustTypeMarker::F32 => type_marker.push_str("f32"),
-			RustTypeMarker::F64 => type_marker.push_str("f64"),
-
 			RustTypeMarker::Bool => type_marker.push_str("bool"),
-
-			RustTypeMarker::String => type_marker.push_str("string"),
-
 			RustTypeMarker::Null => type_marker.push_str("null"),
 		}
 		write!(f, "{}", type_marker)

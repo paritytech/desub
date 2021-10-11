@@ -18,21 +18,19 @@
 // https://github.com/paritytech/substrate-subxt
 
 use super::{
-	CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata, StorageMetadata,
+	CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata,
+	StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as DesubStorageHasher, StorageMetadata,
 	StorageType,
 };
 use crate::regex;
+use frame_metadata::decode_different::*;
 use runtime_metadata08::{
-	DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier, StorageEntryType, StorageHasher,
-	META_RESERVED,
+	RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier, StorageEntryType, StorageHasher, META_RESERVED,
 };
 use std::{
 	collections::{HashMap, HashSet},
 	convert::{TryFrom, TryInto},
 };
-
-type DecodeDifferentStr = DecodeDifferent<&'static str, String>;
-type LatestDecodeDifferentStr = runtime_metadata_latest::DecodeDifferent<&'static str, String>;
 
 impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
 	type Error = Error;
@@ -142,43 +140,30 @@ fn convert_entry(prefix: String, entry: runtime_metadata08::StorageEntryMetadata
 }
 
 /// Temporary struct for converting between `StorageEntryModifier`
-/// and `runtime_metadata_latest::StorageEntryModifier`
+/// and `DesubStorageEntryModifier`
 struct StorageEntryModifierTemp(StorageEntryModifier);
-impl From<StorageEntryModifierTemp> for runtime_metadata_latest::StorageEntryModifier {
-	fn from(entry: StorageEntryModifierTemp) -> runtime_metadata_latest::StorageEntryModifier {
+impl From<StorageEntryModifierTemp> for DesubStorageEntryModifier {
+	fn from(entry: StorageEntryModifierTemp) -> DesubStorageEntryModifier {
 		let entry = entry.0;
 		match entry {
-			StorageEntryModifier::Optional => runtime_metadata_latest::StorageEntryModifier::Optional,
-			StorageEntryModifier::Default => runtime_metadata_latest::StorageEntryModifier::Default,
+			StorageEntryModifier::Optional => DesubStorageEntryModifier::Optional,
+			StorageEntryModifier::Default => DesubStorageEntryModifier::Default,
 		}
 	}
 }
 
 /// Temprorary struct for converting between `StorageHasher` and
-/// `runtime_metadata_latest::StorageHasher`
+/// `DesubStorageHasher`
 struct TempStorageHasher(StorageHasher);
-impl From<TempStorageHasher> for runtime_metadata_latest::StorageHasher {
-	fn from(hasher: TempStorageHasher) -> runtime_metadata_latest::StorageHasher {
+impl From<TempStorageHasher> for DesubStorageHasher {
+	fn from(hasher: TempStorageHasher) -> DesubStorageHasher {
 		let hasher = hasher.0;
 		match hasher {
-			StorageHasher::Blake2_128 => runtime_metadata_latest::StorageHasher::Blake2_128,
-			StorageHasher::Blake2_256 => runtime_metadata_latest::StorageHasher::Blake2_256,
-			StorageHasher::Twox128 => runtime_metadata_latest::StorageHasher::Twox128,
-			StorageHasher::Twox256 => runtime_metadata_latest::StorageHasher::Twox256,
-			StorageHasher::Twox64Concat => runtime_metadata_latest::StorageHasher::Twox64Concat,
-		}
-	}
-}
-
-/// Temporary struct for converting between `DecodeDifferentStr` and
-/// `DecodeDifferentStrLatest`
-struct TempDecodeDifferentStr(DecodeDifferentStr);
-impl From<TempDecodeDifferentStr> for LatestDecodeDifferentStr {
-	fn from(decode_str: TempDecodeDifferentStr) -> LatestDecodeDifferentStr {
-		let decode_str = decode_str.0;
-		match decode_str {
-			DecodeDifferent::Encode(b) => runtime_metadata_latest::DecodeDifferent::Encode(b),
-			DecodeDifferent::Decoded(o) => runtime_metadata_latest::DecodeDifferent::Decoded(o),
+			StorageHasher::Blake2_128 => DesubStorageHasher::Blake2_128,
+			StorageHasher::Blake2_256 => DesubStorageHasher::Blake2_256,
+			StorageHasher::Twox128 => DesubStorageHasher::Twox128,
+			StorageHasher::Twox256 => DesubStorageHasher::Twox256,
+			StorageHasher::Twox64Concat => DesubStorageHasher::Twox64Concat,
 		}
 	}
 }
