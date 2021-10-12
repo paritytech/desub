@@ -1,5 +1,6 @@
 use std::convert::From;
 use std::fmt::Debug;
+use bitvec::{ vec::BitVec, order::Lsb0 };
 
 /// Whereas [`crate::substrate_type::SubstrateType`] is concerned with type information,
 /// [`SubstrateValue`] is concerned with holding a representation of actual values
@@ -19,6 +20,10 @@ pub enum SubstrateValue {
 	Variant(VariantValue),
 	/// A value corresponding to a sequence or array type, or even a BitVec.
 	Sequence(SequenceValue),
+	/// Special handling for BitVec (since it has it's own scale_info type).
+	/// We make assumptions about the bitvec structure (based on how we decoded
+	/// these prior to V14).
+	BitSequence(BitSequenceValue),
 	/// Any of the primitive values we can have.
 	Primitive(PrimitiveValue),
 }
@@ -30,6 +35,7 @@ impl Debug for SubstrateValue {
 			Self::Variant(val) => Debug::fmt(val, f),
 			Self::Sequence(val) => Debug::fmt(val, f),
 			Self::Primitive(val) => Debug::fmt(val, f),
+			Self::BitSequence(val) => Debug::fmt(val, f),
 		}
 	}
 }
@@ -155,3 +161,5 @@ impl From<PrimitiveValue> for SubstrateValue {
 		SubstrateValue::Primitive(val)
 	}
 }
+
+pub type BitSequenceValue = BitVec<Lsb0, u8>;

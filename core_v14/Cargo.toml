@@ -17,3 +17,5 @@ codec = { version = "2", package = "parity-scale-codec" }
 hex = "0.4.3"
 derive_more = "0.99.16"
 scale-info = "1.0.0"
+bitvec = { version = "0.20.2", features = ["serde", "alloc"] }
+
