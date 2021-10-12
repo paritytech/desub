@@ -13,7 +13,7 @@ sp_runtime = { package = "sp-runtime", git = "https://github.com/paritytech/subs
 frame-metadata = { version = "14.0.0", features = ["v14", "std", "scale-info"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
-codec = { version = "2", package = "parity-scale-codec" }
+codec = { version = "2", package = "parity-scale-codec", features = ["bit-vec"] }
 hex = "0.4.3"
 derive_more = "0.99.16"
 scale-info = "1.0.0"

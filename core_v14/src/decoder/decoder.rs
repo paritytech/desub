@@ -10,7 +10,7 @@ pub struct Decoder {
 }
 
 #[derive(Clone, Debug, thiserror::Error)]
-pub enum DecodeError {
+pub enum DecodeError<'a> {
 	#[error("Failed to parse the provided vector of extrinsics: {0}")]
 	UnexpectedExtrinsicsShape(#[from] ExtrinsicBytesError),
     #[error("Failed to decode: {0}")]
@@ -25,6 +25,8 @@ pub enum DecodeError {
 	CannotFindCall(u8, u8),
 	#[error("Failed to decode extrinsic: cannot find type ID {0}")]
 	CannotFindType(u32),
+	#[error("Decoding an extrinsic should consume all bytes, but {} bytes remain", .0.len())]
+	LateEof(&'a [u8], GenericExtrinsic)
 }
 
 impl Decoder {
@@ -39,7 +41,7 @@ impl Decoder {
     }
 
 	/// Decode a SCALE encoded vector of extrinsics against the metadata provided
-	pub fn decode_extrinsics(&self, data: &[u8]) -> Result<Vec<GenericExtrinsic>, DecodeError> {
+	pub fn decode_extrinsics<'a>(&self, data: &'a [u8]) -> Result<Vec<GenericExtrinsic>, DecodeError<'a>> {
 		let extrinsic_bytes = ExtrinsicBytes::new(data)?;
 		log::trace!("Decoding {} Total Extrinsics.", extrinsic_bytes.len());
 
@@ -53,7 +55,7 @@ impl Decoder {
 	}
 
 	/// Decode a SCALE encoded extrinsic against the metadata provided
-	pub fn decode_extrinsic(&self, mut data: &[u8]) -> Result<GenericExtrinsic, DecodeError> {
+	pub fn decode_extrinsic<'a>(&self, mut data: &'a [u8]) -> Result<GenericExtrinsic, DecodeError<'a>> {
 
         // A mutably pointer to the slice, so that we can update out view into the bytes as
         // we decode things from it.
@@ -99,9 +101,9 @@ impl Decoder {
 		if data.len() < 2 {
 			return Err(DecodeError::EarlyEof("expected at least 2 more bytes for the pallet/call index"));
 		}
-		let pallet_index = data[0];
-		let call_index = data[1];
-		*data = &data[2..];
+		let pallet_index = u8::decode(data)?;
+		let call_index = u8::decode(data)?;
+		log::trace!("pallet index: {}, call index: {}", pallet_index, call_index);
 
 		// Work out which call the extrinsic data represents and get type info for it:
 		let (pallet_name, call) = match self.metadata.call_by_variant_index(pallet_index, call_index) {
@@ -120,8 +122,15 @@ impl Decoder {
 			arguments.push(val);
 		}
 
+		let ext = GenericExtrinsic { pallet: pallet_name.to_owned(), call: call.name().to_owned(), signature, arguments };
+
+		// If there's data left to consume, it likely means we screwed up decoding:
+		if !data.is_empty() {
+			return Err(DecodeError::LateEof(*data, ext));
+		}
+
 		// Return a composite type representing the extrinsic arguments:
-		Ok(GenericExtrinsic { pallet: pallet_name.to_owned(), call: call.name().to_owned(), signature, arguments })
+		Ok(ext)
 	}
 }
 

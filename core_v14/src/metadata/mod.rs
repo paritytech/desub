@@ -80,6 +80,11 @@ impl Metadata {
 		}
 	}
 
+	/// Return details about the extrinsic.
+	pub fn extrinsic(&self) -> &MetadataExtrinsic {
+		&self.extrinsic
+	}
+
 	/// Given the `u8` variant index of a pallet and call, this returns information about
 	/// the call if it's fgound, or `None` if it no such call exists at those indexes.
 	pub fn call_by_variant_index(&self, pallet: u8, call: u8) -> Option<(&str, &MetadataCall)> {
@@ -145,7 +150,7 @@ impl MetadataCall {
 /// Information about the shape of an extrinsic. This is not complete, and so
 /// one must decode based on the extrinsic version number as much as anything,
 /// but we can use this to help decode part of the signature.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MetadataExtrinsic {
 	version: u8,
 }

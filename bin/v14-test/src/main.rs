@@ -13,10 +13,14 @@ struct Opts {
 
 fn main() -> Result<(), anyhow::Error> {
 	let opts = Opts::from_args();
+	pretty_env_logger::init();
 
 	let metadata_bytes = std::fs::read(opts.metadata)?;
 
 	let meta = Metadata::from_bytes(&metadata_bytes)?;
+
+	println!("Extrinsic version: {}", meta.extrinsic().version());
+
 	let decoder = Decoder::with_metadata(meta);
 
 	let ext = match opts.extrinsic.strip_prefix("0x") {

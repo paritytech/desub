@@ -3857,6 +3857,7 @@ dependencies = [
  "anyhow",
  "core_v14",
  "hex",
+ "pretty_env_logger",
  "structopt",
 ]
 
