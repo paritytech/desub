@@ -22,23 +22,9 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, DecodeError> {
 	let registry = meta.types;
 	let mut pallets = vec![];
 
-	//// Since a version change could lead to more global changes than
-	//// just this, it's debatable that using it is actually useful, versus
-	//// just inspecting the version and manually decoding accordingly:
-	// let signed_extensions = meta.extrinsic.signed_extensions
-	// 	.into_iter()
-	// 	.map(|ext| {
-	// 		registry
-	// 			.resolve(ext.ty.id())
-	// 			.ok_or(DecodeError::TypeNotFound(ext.ty.id()))
-	// 			.map(|t| t.clone())
-	// 	})
-	// 	.collect::<Result<_,_>>()?;
-
 	// Gather some details about the extrinsic itself:
 	let extrinsic = MetadataExtrinsic {
 		version: meta.extrinsic.version,
-		// signed_extensions
 	};
 
 	// Gather information about the pallets in use:
