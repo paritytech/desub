@@ -644,6 +644,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
 
 [[package]]
+name = "core_v14"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/desub?branch=jsdw-desub-new-v14#caea29403187b47c7c9bc9ae991b7582725fece5"
+dependencies = [
+ "bitvec",
+ "derive_more",
+ "frame-metadata 14.0.0",
+ "hex",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "serde_json",
+ "sp-core",
+ "sp-runtime",
+ "thiserror",
+]
+
+[[package]]
 name = "cpufeatures"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3636,6 +3655,7 @@ dependencies = [
  "async-std",
  "async-stream",
  "colored 2.0.0",
+ "core_v14",
  "desub-core",
  "desub-extras",
  "fern",
