@@ -125,6 +125,7 @@ impl Decoder {
 	}
 }
 
+#[derive(Debug, Clone)]
 pub struct GenericExtrinsic {
 	/// The name of the pallet that the extrinsic called into
 	pub pallet: String,
@@ -136,7 +137,7 @@ pub struct GenericExtrinsic {
 	pub arguments: Vec<SubstrateValue>,
 }
 
-#[derive(Decode)]
+#[derive(Decode, Debug, Clone)]
 pub struct ExtrinsicSignature {
     /// Address the extrinsic is being sent from
     pub address: MultiAddress<AccountId32, u32>,

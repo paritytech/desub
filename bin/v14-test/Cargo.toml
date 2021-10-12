@@ -9,3 +9,4 @@ edition = "2018"
 structopt = "0.3.23"
 core = { path = "../../core_v14", package = "core_v14" }
 anyhow = "1.0.44"
+hex = "0.4.3"

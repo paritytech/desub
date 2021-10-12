@@ -89,11 +89,6 @@ impl Metadata {
 		})
 	}
 
-	/// Return information about the metadata extrinsic format.
-	pub fn extrinsic(&self) -> &MetadataExtrinsic {
-		&self.extrinsic
-	}
-
 	/// Given a [`TypeId`], attempt to resolve it into a [`SubstrateType`].
 	///
 	/// We hand back [`TypeId`]'s rather than [`SubstrateType`]'s in most places because [`SubstrateType`]'s
