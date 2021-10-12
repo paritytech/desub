@@ -138,6 +138,8 @@ fn decode_sequence_type(
 	ty: &TypeDefSequence<PortableForm>,
     metadata: &Metadata
 ) -> Result<SequenceValue, DecodeTypeError> {
+    // We assume that the sequence is preceeded by a compact encoded length, so that
+    // we know how many values to try pulling out of the data.
     let len = Compact::<u64>::decode(data)?;
     let values: Vec<_> = (0..len.0)
         .map(|_| decode_type_by_id(data, ty.type_param(), metadata))
@@ -151,6 +153,8 @@ fn decode_array_type(
 	ty: &TypeDefArray<PortableForm>,
     metadata: &Metadata
 ) -> Result<SequenceValue, DecodeTypeError> {
+    // The length is known based on the type we want to decode into, so we pull out the number of items according
+    // to that, and don't need a length to exist in the SCALE encoded bytes
     let values: Vec<_> = (0..ty.len())
         .map(|_| decode_type_by_id(data, ty.type_param(), metadata))
         .collect::<Result<_,_>>()?;
