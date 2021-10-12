@@ -6,7 +6,7 @@ pub struct ExtrinsicBytes<'a> {
 }
 
 impl<'a> ExtrinsicBytes<'a> {
-	/// Treat the bytes provided as a set of Extrinsics, which Conceptually has the shape
+	/// Treat the bytes provided as a set of Extrinsics, which conceptually has the shape
 	/// `Vec<(Compact<u32>, Extrinsic)>`. Return an error if the bytes are obviously not
 	/// such a shape.
 	pub fn new(bytes: &'a [u8]) -> Result<ExtrinsicBytes<'a>, ExtrinsicBytesError> {
