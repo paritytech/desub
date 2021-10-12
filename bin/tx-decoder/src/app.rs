@@ -15,8 +15,9 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::queries::*;
+use crate::decoder::Decoder;
+use desub::decoder::Chain;
 
-use desub::decoder::{Chain, Decoder};
 use desub_extras::runtimes;
 
 use anyhow::Error;
@@ -37,7 +38,7 @@ use std::{
 	},
 };
 
-type SpecVersion = i32;
+pub type SpecVersion = i32;
 
 #[derive(FromArgs, PartialEq, Debug)]
 /// Decode Extrinsics And Storage from Substrate Archive
@@ -134,7 +135,7 @@ impl<'a> AppState<'a> {
 				Err(e)
 			}
 			Ok(d) => {
-				log::info!("Block {} Decoded Succesfully. {}", block.block_num, serde_json::to_string_pretty(&d)?);
+				log::info!("Block {} Decoded Succesfully. {}", block.block_num, &d);
 				Ok(())
 			}
 		}
@@ -145,15 +146,15 @@ impl<'a> AppState<'a> {
 	async fn register_metadata(&self, conn: &mut PgConnection, version: SpecVersion) -> Result<Option<u32>, Error> {
 		let (past, present) = past_and_present_version(conn, version).await?;
 		let mut decoder = self.decoder.write();
-		if !decoder.has_version(present) {
+		if !decoder.has_version(present.try_into().unwrap()) {
 			let meta = metadata(conn, present.try_into()?).await?;
-			decoder.register_version(present, meta);
+			decoder.register_version(present.try_into()?, &meta)?;
 		}
 
 		if let Some(p) = past {
-			if !decoder.has_version(p) {
+			if !decoder.has_version(p.try_into()?) {
 				let meta = metadata(conn, p.try_into()?).await?;
-				decoder.register_version(p, meta);
+				decoder.register_version(p.try_into()?, &meta)?;
 			}
 		}
 		Ok(past.try_into()?)
