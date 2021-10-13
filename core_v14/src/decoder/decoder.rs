@@ -14,11 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::decode_type::{decode_type, DecodeTypeError};
+use super::decode_type::{decode_type, decode_type_by_id, DecodeTypeError};
 use super::extrinsic_bytes::{ExtrinsicBytes, ExtrinsicBytesError};
 use crate::metadata::{Metadata};
 use crate::substrate_value::SubstrateValue;
-use sp_runtime::{ MultiAddress, MultiSignature, AccountId32, generic::Era };
+use sp_runtime::{ MultiAddress, MultiSignature, AccountId32 };
 use codec::{ Decode };
 
 pub struct Decoder {
@@ -109,7 +109,7 @@ impl Decoder {
 
 		// If the extrinsic is signed, decode the signature next.
 		let signature = match is_signed {
-            true => Some(ExtrinsicSignature::decode(data)?),
+            true => Some(decode_v4_signature(data, &self.metadata)?),
             false => None
         };
 
@@ -150,6 +150,7 @@ impl Decoder {
 	}
 }
 
+
 #[derive(Debug, Clone)]
 pub struct GenericExtrinsic {
 	/// The name of the pallet that the extrinsic called into
@@ -162,18 +163,34 @@ pub struct GenericExtrinsic {
 	pub arguments: Vec<SubstrateValue>,
 }
 
-#[derive(Decode, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct ExtrinsicSignature {
     /// Address the extrinsic is being sent from
     pub address: MultiAddress<AccountId32, u32>,
     /// Signature to prove validity
     pub signature: MultiSignature,
-    /// Lifetime of this extrinsic
-    pub era: Era,
-    /// How many past transactions from this address?
-    #[codec(compact)]
-    pub nonce: u32,
-    /// Tip to help get the extrinsic included faster
-    #[codec(compact)]
-    pub tip: u128
+	/// Signed extensions, which can vary by node. Here, we
+	/// return the name and value of each.
+	pub extensions: Vec<(String, SubstrateValue)>
+}
+
+fn decode_v4_signature<'a>(data: &mut &'a [u8], metadata: &Metadata) -> Result<ExtrinsicSignature, DecodeError<'a>> {
+	let address = <MultiAddress<AccountId32, u32>>::decode(data)?;
+	let signature = MultiSignature::decode(data)?;
+	let extensions = metadata
+		.extrinsic()
+		.signed_extensions()
+		.iter()
+		.map(|ext| {
+			let val = decode_type_by_id(data, &ext.ty, metadata)?;
+			let name = ext.identifier.to_string();
+			Ok((name, val))
+		})
+		.collect::<Result<_,DecodeError>>()?;
+
+	Ok(ExtrinsicSignature {
+		address,
+		signature,
+		extensions
+	})
 }

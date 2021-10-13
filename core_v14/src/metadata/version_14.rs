@@ -15,7 +15,7 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{DecodeError, Metadata, MetadataCall, MetadataExtrinsic, MetadataPallet};
-use frame_metadata::RuntimeMetadataV14;
+use frame_metadata::{ RuntimeMetadataV14 };
 
 /// Decode V14 metadata into our general Metadata struct
 pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, DecodeError> {
@@ -25,6 +25,7 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, DecodeError> {
 	// Gather some details about the extrinsic itself:
 	let extrinsic = MetadataExtrinsic {
 		version: meta.extrinsic.version,
+		signed_extensions: meta.extrinsic.signed_extensions
 	};
 
 	// Gather information about the pallets in use:

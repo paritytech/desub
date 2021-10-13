@@ -23,6 +23,7 @@ use scale_info::{ PortableRegistry, form::PortableForm };
 pub type Type = scale_info::Type<PortableForm>;
 pub type TypeDef = scale_info::TypeDef<PortableForm>;
 pub type TypeId = <scale_info::form::PortableForm as scale_info::form::Form>::Type;
+pub type SignedExtensionMetadata = frame_metadata::SignedExtensionMetadata<PortableForm>;
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum MetadataError {
@@ -150,6 +151,7 @@ impl MetadataCall {
 #[derive(Debug, Clone)]
 pub struct MetadataExtrinsic {
 	version: u8,
+	signed_extensions: Vec<SignedExtensionMetadata>
 }
 
 impl MetadataExtrinsic {
@@ -158,5 +160,11 @@ impl MetadataExtrinsic {
 	/// but it may be useful for encoding in the future.
 	pub fn version(&self) -> u8 {
 		self.version
+	}
+
+	/// Part of the extrinsic signature area can be varied to incldue whatever information
+	/// a ndoe decides is important. This returns details about that part.
+	pub fn signed_extensions(&self) -> &[SignedExtensionMetadata] {
+		&self.signed_extensions
 	}
 }

@@ -69,7 +69,10 @@ pub fn decode_type(
     }
 }
 
-fn decode_type_by_id(
+/// Decode data according to the type ID provided.
+/// The provided pointer to the data slice will be moved forwards as needed
+/// depending on what was decoded.
+pub fn decode_type_by_id(
 	data: &mut &[u8],
 	ty_id: &TypeId,
     metadata: &Metadata
