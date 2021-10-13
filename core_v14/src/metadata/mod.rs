@@ -18,7 +18,7 @@ mod version_14;
 
 use codec::Decode;
 use frame_metadata::{RuntimeMetadata, RuntimeMetadataPrefixed};
-use scale_info::{ PortableRegistry, form::PortableForm };
+use scale_info::{form::PortableForm, PortableRegistry};
 
 pub type Type = scale_info::Type<PortableForm>;
 pub type TypeDef = scale_info::TypeDef<PortableForm>;
@@ -85,7 +85,7 @@ impl Metadata {
 
 	/// Given the `u8` variant index of a pallet and call, this returns information about
 	/// the call if it's fgound, or `None` if it no such call exists at those indexes.
-	pub (crate) fn call_by_variant_index(&self, pallet: u8, call: u8) -> Option<(&str, &MetadataCall)> {
+	pub(crate) fn call_by_variant_index(&self, pallet: u8, call: u8) -> Option<(&str, &MetadataCall)> {
 		self.pallets.get(pallet as usize).and_then(|p| {
 			let call = p.calls.get(call as usize)?;
 			Some((&*p.name, call))
@@ -93,7 +93,7 @@ impl Metadata {
 	}
 
 	/// Return a reference to the type registry. This is used for helping to decode things.
-	pub (crate) fn types(&self) -> &PortableRegistry {
+	pub(crate) fn types(&self) -> &PortableRegistry {
 		&self.types
 	}
 }
@@ -147,7 +147,7 @@ impl MetadataCall {
 #[derive(Debug, Clone)]
 pub struct MetadataExtrinsic {
 	version: u8,
-	signed_extensions: Vec<SignedExtensionMetadata>
+	signed_extensions: Vec<SignedExtensionMetadata>,
 }
 
 impl MetadataExtrinsic {
@@ -161,7 +161,7 @@ impl MetadataExtrinsic {
 
 	/// Part of the extrinsic signature area can be varied to incldue whatever information
 	/// a ndoe decides is important. This returns details about that part.
-	pub (crate) fn signed_extensions(&self) -> &[SignedExtensionMetadata] {
+	pub(crate) fn signed_extensions(&self) -> &[SignedExtensionMetadata] {
 		&self.signed_extensions
 	}
 }

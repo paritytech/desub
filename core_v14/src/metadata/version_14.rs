@@ -15,7 +15,7 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{DecodeError, Metadata, MetadataCall, MetadataExtrinsic, MetadataPallet};
-use frame_metadata::{ RuntimeMetadataV14 };
+use frame_metadata::RuntimeMetadataV14;
 
 /// Decode V14 metadata into our general Metadata struct
 pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, DecodeError> {
@@ -23,10 +23,8 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, DecodeError> {
 	let mut pallets = vec![];
 
 	// Gather some details about the extrinsic itself:
-	let extrinsic = MetadataExtrinsic {
-		version: meta.extrinsic.version,
-		signed_extensions: meta.extrinsic.signed_extensions
-	};
+	let extrinsic =
+		MetadataExtrinsic { version: meta.extrinsic.version, signed_extensions: meta.extrinsic.signed_extensions };
 
 	// Gather information about the pallets in use:
 	for pallet in meta.pallets {
@@ -49,11 +47,7 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, DecodeError> {
 			for variant in call_variant.variants() {
 				// Allow case insensitive matching; lowercase the name:
 				let name = variant.name().to_ascii_lowercase();
-				let args = variant
-					.fields()
-					.iter()
-					.map(|field| field.ty().clone())
-					.collect();
+				let args = variant.fields().iter().map(|field| field.ty().clone()).collect();
 
 				calls.push(MetadataCall { name, args });
 			}

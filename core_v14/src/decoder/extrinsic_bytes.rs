@@ -72,19 +72,16 @@ impl<'a> Iterator for ExtrinsicBytesIter<'a> {
 		let res = &self.data[(self.cursor + vec_len_bytes)..(self.cursor + vec_len + vec_len_bytes)];
 		self.cursor += vec_len + vec_len_bytes;
 
-		Some(Ok(SingleExtrinsic {
-			data: res,
-			remaining: self.data.len() - self.cursor
-		}))
+		Some(Ok(SingleExtrinsic { data: res, remaining: self.data.len() - self.cursor }))
 	}
 }
 
 pub struct SingleExtrinsic<'a> {
 	data: &'a [u8],
-	remaining: usize
+	remaining: usize,
 }
 
-impl <'a> SingleExtrinsic<'a> {
+impl<'a> SingleExtrinsic<'a> {
 	/// The bytes representing a single extrinsic
 	pub fn bytes(&'a self) -> &'a [u8] {
 		&self.data

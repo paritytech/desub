@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
+use bitvec::{order::Lsb0, vec::BitVec};
 use std::convert::From;
 use std::fmt::Debug;
-use bitvec::{ vec::BitVec, order::Lsb0 };
 
 /// Whereas [`crate::substrate_type::SubstrateType`] is concerned with type information,
 /// [`SubstrateValue`] is concerned with holding a representation of actual values

@@ -16,10 +16,10 @@
 
 use super::decode_type::{decode_type, decode_type_by_id, DecodeTypeError};
 use super::extrinsic_bytes::{ExtrinsicBytes, ExtrinsicBytesError};
-use crate::metadata::{Metadata};
+use crate::metadata::Metadata;
 use crate::substrate_value::SubstrateValue;
-use sp_runtime::{ MultiAddress, MultiSignature, AccountId32 };
-use codec::{ Decode };
+use codec::Decode;
+use sp_runtime::{AccountId32, MultiAddress, MultiSignature};
 
 pub struct Decoder {
 	metadata: Metadata,
@@ -29,8 +29,8 @@ pub struct Decoder {
 pub enum DecodeError {
 	#[error("Failed to parse the provided vector of extrinsics: {0}")]
 	UnexpectedExtrinsicsShape(#[from] ExtrinsicBytesError),
-    #[error("Failed to decode: {0}")]
-    CodecError(#[from] codec::Error),
+	#[error("Failed to decode: {0}")]
+	CodecError(#[from] codec::Error),
 	#[error("Failed to decode type: {0}")]
 	DecodeTypeError(#[from] DecodeTypeError),
 	#[error("Failed to decode: expected more data")]
@@ -45,7 +45,7 @@ pub enum DecodeError {
 	/// of the extrinsic we think we decoded, and the number of bytes left in the slice provided (which we
 	/// expected to entirely consume, but did not).
 	#[error("Decoding an extrinsic should consume all bytes, but {0} bytes remain")]
-	LateEof(usize, GenericExtrinsic)
+	LateEof(usize, GenericExtrinsic),
 }
 
 impl Decoder {
@@ -54,17 +54,19 @@ impl Decoder {
 		Decoder { metadata: metadata.into() }
 	}
 
-    /// Return the metadata back, consuming the decoder.
-    pub fn into_metadata(self) -> Metadata {
-        self.metadata
-    }
+	/// Return the metadata back, consuming the decoder.
+	pub fn into_metadata(self) -> Metadata {
+		self.metadata
+	}
 
 	/// Decode a SCALE encoded vector of extrinsics against the metadata provided. We get back a vector
 	/// of the decoded extrinsics on success, else we get an error containing the extrinsics that were decoded
 	/// successfully before the error, and then the error itself.
-	pub fn decode_extrinsics(&self, data: &[u8]) -> Result<Vec<GenericExtrinsic>, (Vec<GenericExtrinsic>, DecodeError)> {
-		let extrinsic_bytes = ExtrinsicBytes::new(data)
-			.map_err(|e| (Vec::new(), e.into()))?;
+	pub fn decode_extrinsics(
+		&self,
+		data: &[u8],
+	) -> Result<Vec<GenericExtrinsic>, (Vec<GenericExtrinsic>, DecodeError)> {
+		let extrinsic_bytes = ExtrinsicBytes::new(data).map_err(|e| (Vec::new(), e.into()))?;
 
 		log::trace!("Decoding {} Total Extrinsics.", extrinsic_bytes.len());
 
@@ -72,7 +74,7 @@ impl Decoder {
 		for (idx, res) in extrinsic_bytes.iter().enumerate() {
 			let single_extrinsic = match res {
 				Ok(bytes) => bytes,
-				Err(e) => return Err((out, e.into()))
+				Err(e) => return Err((out, e.into())),
 			};
 
 			log::trace!("Extrinsic {}:{:?}", idx, single_extrinsic.bytes());
@@ -82,9 +84,9 @@ impl Decoder {
 				Err(DecodeError::LateEof(remaining, ext)) => {
 					// Returned from `decode_extrinsics`, we want the remaining bytes to be relative
 					// to the data slice passed in, and not the single extrinsic slice.
-					return Err((out, DecodeError::LateEof(single_extrinsic.remaining() + remaining, ext)))
-				},
-				Err(e) => return Err((out, e))
+					return Err((out, DecodeError::LateEof(single_extrinsic.remaining() + remaining, ext)));
+				}
+				Err(e) => return Err((out, e)),
 			};
 
 			out.push(ext);
@@ -94,19 +96,18 @@ impl Decoder {
 
 	/// Decode a SCALE encoded extrinsic against the metadata provided
 	pub fn decode_extrinsic(&self, mut data: &[u8]) -> Result<GenericExtrinsic, DecodeError> {
-
-        // A mutably pointer to the slice, so that we can update out view into the bytes as
-        // we decode things from it.
-        let data = &mut data;
+		// A mutably pointer to the slice, so that we can update out view into the bytes as
+		// we decode things from it.
+		let data = &mut data;
 
 		if data.len() == 0 {
 			return Err(DecodeError::EarlyEof("extrinsic length should be > 0"));
 		}
 
-        // V4 extrinsics (the format we can decode here) are laid out roughly as follows:
+		// V4 extrinsics (the format we can decode here) are laid out roughly as follows:
 		//
 		// first byte: abbbbbbb (a = 0 for unsigned, 1 for signed, b = version)
-        //
+		//
 		// signature, which is made up of (in order):
 		// - sp_runtime::MultiAddress enum (sender)
 		// - sp_runtime::MultiSignature enum
@@ -114,16 +115,16 @@ impl Decoder {
 		//   - sp_runtime::generic::Era enum
 		//   - compact encoded u32 (nonce; prior transaction count)
 		//   - compact encoded u128 (tip paid to block producer/treasury)
-        //
+		//
 		// call, which is made up roughly of:
 		// - enum pallet index (for pallets variant)
 		// - call index (for inner variant)
 		// - call args (types can be pulled from metadata for each arg we expect)
-        //
-        // So, we start by getting the version/signed from the first byte and go from there.
-        let is_signed = data[0] & 0b1000_0000 != 0;
-        let version = data[0] & 0b0111_1111;
-        *data = &data[1..];
+		//
+		// So, we start by getting the version/signed from the first byte and go from there.
+		let is_signed = data[0] & 0b1000_0000 != 0;
+		let version = data[0] & 0b0111_1111;
+		*data = &data[1..];
 
 		// We only know how to decode V4 extrinsics at the moment
 		if version != 4 {
@@ -132,11 +133,11 @@ impl Decoder {
 
 		// If the extrinsic is signed, decode the signature next.
 		let signature = match is_signed {
-            true => Some(decode_v4_signature(data, &self.metadata)?),
-            false => None
-        };
+			true => Some(decode_v4_signature(data, &self.metadata)?),
+			false => None,
+		};
 
-        // Pluck out the u8's representing the pallet and call enum next.
+		// Pluck out the u8's representing the pallet and call enum next.
 		if data.len() < 2 {
 			return Err(DecodeError::EarlyEof("expected at least 2 more bytes for the pallet/call index"));
 		}
@@ -161,7 +162,8 @@ impl Decoder {
 			arguments.push(val);
 		}
 
-		let ext = GenericExtrinsic { pallet: pallet_name.to_owned(), call: call.name().to_owned(), signature, arguments };
+		let ext =
+			GenericExtrinsic { pallet: pallet_name.to_owned(), call: call.name().to_owned(), signature, arguments };
 
 		// If there's data left to consume, it likely means we screwed up decoding:
 		if !data.is_empty() {
@@ -172,7 +174,6 @@ impl Decoder {
 		Ok(ext)
 	}
 }
-
 
 #[derive(Debug, Clone)]
 pub struct GenericExtrinsic {
@@ -188,13 +189,13 @@ pub struct GenericExtrinsic {
 
 #[derive(Debug, Clone)]
 pub struct ExtrinsicSignature {
-    /// Address the extrinsic is being sent from
-    pub address: MultiAddress<AccountId32, u32>,
-    /// Signature to prove validity
-    pub signature: MultiSignature,
+	/// Address the extrinsic is being sent from
+	pub address: MultiAddress<AccountId32, u32>,
+	/// Signature to prove validity
+	pub signature: MultiSignature,
 	/// Signed extensions, which can vary by node. Here, we
 	/// return the name and value of each.
-	pub extensions: Vec<(String, SubstrateValue)>
+	pub extensions: Vec<(String, SubstrateValue)>,
 }
 
 fn decode_v4_signature<'a>(data: &mut &'a [u8], metadata: &Metadata) -> Result<ExtrinsicSignature, DecodeError> {
@@ -209,11 +210,7 @@ fn decode_v4_signature<'a>(data: &mut &'a [u8], metadata: &Metadata) -> Result<E
 			let name = ext.identifier.to_string();
 			Ok((name, val))
 		})
-		.collect::<Result<_,DecodeError>>()?;
+		.collect::<Result<_, DecodeError>>()?;
 
-	Ok(ExtrinsicSignature {
-		address,
-		signature,
-		extensions
-	})
+	Ok(ExtrinsicSignature { address, signature, extensions })
 }
