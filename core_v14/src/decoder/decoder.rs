@@ -26,7 +26,7 @@ pub struct Decoder {
 }
 
 #[derive(Clone, Debug, thiserror::Error)]
-pub enum DecodeError<'a> {
+pub enum DecodeError {
 	#[error("Failed to parse the provided vector of extrinsics: {0}")]
 	UnexpectedExtrinsicsShape(#[from] ExtrinsicBytesError),
     #[error("Failed to decode: {0}")]
@@ -41,8 +41,11 @@ pub enum DecodeError<'a> {
 	CannotFindCall(u8, u8),
 	#[error("Failed to decode extrinsic: cannot find type ID {0}")]
 	CannotFindType(u32),
-	#[error("Decoding an extrinsic should consume all bytes, but {} bytes remain", .0.len())]
-	LateEof(&'a [u8], GenericExtrinsic)
+	/// Returned from either [`Decoder::decode_extrinsic`] or [`Decoder::decode_extrinsics`], this consists
+	/// of the extrinsic we think we decoded, and the number of bytes left in the slice provided (which we
+	/// expected to entirely consume, but did not).
+	#[error("Decoding an extrinsic should consume all bytes, but {0} bytes remain")]
+	LateEof(usize, GenericExtrinsic)
 }
 
 impl Decoder {
@@ -56,22 +59,41 @@ impl Decoder {
         self.metadata
     }
 
-	/// Decode a SCALE encoded vector of extrinsics against the metadata provided
-	pub fn decode_extrinsics<'a>(&self, data: &'a [u8]) -> Result<Vec<GenericExtrinsic>, DecodeError<'a>> {
-		let extrinsic_bytes = ExtrinsicBytes::new(data)?;
+	/// Decode a SCALE encoded vector of extrinsics against the metadata provided. We get back a vector
+	/// of the decoded extrinsics on success, else we get an error containing the extrinsics that were decoded
+	/// successfully before the error, and then the error itself.
+	pub fn decode_extrinsics(&self, data: &[u8]) -> Result<Vec<GenericExtrinsic>, (Vec<GenericExtrinsic>, DecodeError)> {
+		let extrinsic_bytes = ExtrinsicBytes::new(data)
+			.map_err(|e| (Vec::new(), e.into()))?;
+
 		log::trace!("Decoding {} Total Extrinsics.", extrinsic_bytes.len());
 
 		let mut out = Vec::with_capacity(extrinsic_bytes.len());
 		for (idx, res) in extrinsic_bytes.iter().enumerate() {
-			let bytes = res?;
-			log::trace!("Extrinsic {}:{:?}", idx, bytes);
-			out.push(self.decode_extrinsic(bytes)?);
+			let single_extrinsic = match res {
+				Ok(bytes) => bytes,
+				Err(e) => return Err((out, e.into()))
+			};
+
+			log::trace!("Extrinsic {}:{:?}", idx, single_extrinsic.bytes());
+
+			let ext = match self.decode_extrinsic(single_extrinsic.bytes()) {
+				Ok(ext) => ext,
+				Err(DecodeError::LateEof(remaining, ext)) => {
+					// Returned from `decode_extrinsics`, we want the remaining bytes to be relative
+					// to the data slice passed in, and not the single extrinsic slice.
+					return Err((out, DecodeError::LateEof(single_extrinsic.remaining() + remaining, ext)))
+				},
+				Err(e) => return Err((out, e))
+			};
+
+			out.push(ext);
 		}
 		Ok(out)
 	}
 
 	/// Decode a SCALE encoded extrinsic against the metadata provided
-	pub fn decode_extrinsic<'a>(&self, mut data: &'a [u8]) -> Result<GenericExtrinsic, DecodeError<'a>> {
+	pub fn decode_extrinsic(&self, mut data: &[u8]) -> Result<GenericExtrinsic, DecodeError> {
 
         // A mutably pointer to the slice, so that we can update out view into the bytes as
         // we decode things from it.
@@ -88,9 +110,10 @@ impl Decoder {
 		// signature, which is made up of (in order):
 		// - sp_runtime::MultiAddress enum (sender)
 		// - sp_runtime::MultiSignature enum
-		// - sp_runtime::generic::Era enum
-		// - compact encoded u32 (nonce; prior transaction count)
-		// - compact encoded u128 (tip paid to block producer/treasury)
+		// - For polkadot, these extensions (but can vary by chain):
+		//   - sp_runtime::generic::Era enum
+		//   - compact encoded u32 (nonce; prior transaction count)
+		//   - compact encoded u128 (tip paid to block producer/treasury)
         //
 		// call, which is made up roughly of:
 		// - enum pallet index (for pallets variant)
@@ -142,7 +165,7 @@ impl Decoder {
 
 		// If there's data left to consume, it likely means we screwed up decoding:
 		if !data.is_empty() {
-			return Err(DecodeError::LateEof(*data, ext));
+			return Err(DecodeError::LateEof(data.len(), ext));
 		}
 
 		// Return a composite type representing the extrinsic arguments:
@@ -174,7 +197,7 @@ pub struct ExtrinsicSignature {
 	pub extensions: Vec<(String, SubstrateValue)>
 }
 
-fn decode_v4_signature<'a>(data: &mut &'a [u8], metadata: &Metadata) -> Result<ExtrinsicSignature, DecodeError<'a>> {
+fn decode_v4_signature<'a>(data: &mut &'a [u8], metadata: &Metadata) -> Result<ExtrinsicSignature, DecodeError> {
 	let address = <MultiAddress<AccountId32, u32>>::decode(data)?;
 	let signature = MultiSignature::decode(data)?;
 	let extensions = metadata

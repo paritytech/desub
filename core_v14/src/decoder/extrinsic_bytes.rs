@@ -57,7 +57,7 @@ pub struct ExtrinsicBytesIter<'a> {
 }
 
 impl<'a> Iterator for ExtrinsicBytesIter<'a> {
-	type Item = Result<&'a [u8], ExtrinsicBytesError>;
+	type Item = Result<SingleExtrinsic<'a>, ExtrinsicBytesError>;
 	fn next(&mut self) -> Option<Self::Item> {
 		if self.data.is_empty() {
 			return None;
@@ -71,7 +71,27 @@ impl<'a> Iterator for ExtrinsicBytesIter<'a> {
 
 		let res = &self.data[(self.cursor + vec_len_bytes)..(self.cursor + vec_len + vec_len_bytes)];
 		self.cursor += vec_len + vec_len_bytes;
-		Some(Ok(res))
+
+		Some(Ok(SingleExtrinsic {
+			data: res,
+			remaining: self.data.len() - self.cursor
+		}))
+	}
+}
+
+pub struct SingleExtrinsic<'a> {
+	data: &'a [u8],
+	remaining: usize
+}
+
+impl <'a> SingleExtrinsic<'a> {
+	/// The bytes representing a single extrinsic
+	pub fn bytes(&'a self) -> &'a [u8] {
+		&self.data
+	}
+	/// How many bytes remain to be decoded after this extrinsic?
+	pub fn remaining(&self) -> usize {
+		self.remaining
 	}
 }
 
