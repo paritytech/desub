@@ -130,8 +130,8 @@ impl Decoder {
 		// Decode each of the argument values in the extrinsic:
 		let mut arguments = vec![];
 		for arg in call.args() {
-			let ty = self.metadata.resolve_type(arg).ok_or(DecodeError::CannotFindType(arg.id()))?;
-			let val = match decode_type(data, &ty, &self.metadata) {
+			let ty = self.metadata.types().resolve(arg.id()).ok_or(DecodeError::CannotFindType(arg.id()))?;
+			let val = match decode_type(data, &ty, self.metadata.types()) {
 				Ok(val) => val,
 				Err(err) => return Err(err.into()),
 			};
@@ -182,7 +182,7 @@ fn decode_v4_signature<'a>(data: &mut &'a [u8], metadata: &Metadata) -> Result<E
 		.signed_extensions()
 		.iter()
 		.map(|ext| {
-			let val = decode_type_by_id(data, &ext.ty, metadata)?;
+			let val = decode_type_by_id(data, &ext.ty, metadata.types())?;
 			let name = ext.identifier.to_string();
 			Ok((name, val))
 		})

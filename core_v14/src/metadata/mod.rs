@@ -85,20 +85,16 @@ impl Metadata {
 
 	/// Given the `u8` variant index of a pallet and call, this returns information about
 	/// the call if it's fgound, or `None` if it no such call exists at those indexes.
-	pub fn call_by_variant_index(&self, pallet: u8, call: u8) -> Option<(&str, &MetadataCall)> {
+	pub (crate) fn call_by_variant_index(&self, pallet: u8, call: u8) -> Option<(&str, &MetadataCall)> {
 		self.pallets.get(pallet as usize).and_then(|p| {
 			let call = p.calls.get(call as usize)?;
 			Some((&*p.name, call))
 		})
 	}
 
-	/// Given a [`TypeId`], attempt to resolve it into a [`SubstrateType`].
-	///
-	/// We hand back [`TypeId`]'s rather than [`SubstrateType`]'s in most places because [`SubstrateType`]'s
-	/// are not as space/allocation friendly as the type registry. That said, they are easier to work with and
-	/// can be manually constructed, which makes it easier to use them.
-	pub fn resolve_type<'a>(&'a self, id: &TypeId) -> Option<&'a Type> {
-		self.types.resolve(id.id())
+	/// Return a reference to the type registry. This is used for helping to decode things.
+	pub (crate) fn types(&self) -> &PortableRegistry {
+		&self.types
 	}
 }
 
@@ -158,13 +154,14 @@ impl MetadataExtrinsic {
 	/// The version of the extrinsic format in use by the node. Extrinsics have
 	/// a version embedded into them anyway, so we don't need this to decode them,
 	/// but it may be useful for encoding in the future.
+	#[allow(unused)]
 	pub fn version(&self) -> u8 {
 		self.version
 	}
 
 	/// Part of the extrinsic signature area can be varied to incldue whatever information
 	/// a ndoe decides is important. This returns details about that part.
-	pub fn signed_extensions(&self) -> &[SignedExtensionMetadata] {
+	pub (crate) fn signed_extensions(&self) -> &[SignedExtensionMetadata] {
 		&self.signed_extensions
 	}
 }

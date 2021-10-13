@@ -28,7 +28,7 @@ use bitvec::{ vec::BitVec, order::Lsb0 };
 /// construct a valid value for any type that we know about, and it should be possible to
 /// verify whether a value can be treated as a given [`crate::substrate_type::SubstrateType`]
 /// or not.
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum SubstrateValue {
 	/// Values for a named or unnamed struct or tuple.
 	Composite(CompositeValue),
@@ -56,7 +56,7 @@ impl Debug for SubstrateValue {
 	}
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum CompositeValue {
 	/// Eg `{ foo: 2, bar: false }`
 	Named(Vec<(String, SubstrateValue)>),
@@ -91,7 +91,7 @@ impl From<CompositeValue> for SubstrateValue {
 	}
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct VariantValue {
 	pub name: String,
 	pub fields: CompositeValue,
@@ -111,24 +111,7 @@ impl From<VariantValue> for SubstrateValue {
 	}
 }
 
-#[derive(Clone)]
-pub struct SequenceValue {
-	pub values: Vec<SubstrateValue>,
-}
-
-impl Debug for SequenceValue {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		f.debug_list().entries(&self.values).finish()
-	}
-}
-
-impl From<SequenceValue> for SubstrateValue {
-	fn from(val: SequenceValue) -> Self {
-		SubstrateValue::Sequence(val)
-	}
-}
-
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum PrimitiveValue {
 	Bool(bool),
 	Char(char),
@@ -178,4 +161,5 @@ impl From<PrimitiveValue> for SubstrateValue {
 	}
 }
 
+pub type SequenceValue = Vec<SubstrateValue>;
 pub type BitSequenceValue = BitVec<Lsb0, u8>;

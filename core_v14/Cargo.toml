@@ -16,6 +16,6 @@ serde_json = { version = "1", features = ["preserve_order"] }
 codec = { version = "2", package = "parity-scale-codec", features = ["bit-vec"] }
 hex = "0.4.3"
 derive_more = "0.99.16"
-scale-info = "1.0.0"
+scale-info = { version = "1.0.0", features = ["bit-vec", "derive"] }
 bitvec = { version = "0.20.2", features = ["serde", "alloc"] }
 
