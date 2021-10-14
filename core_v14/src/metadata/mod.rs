@@ -19,6 +19,7 @@ mod version_14;
 use codec::Decode;
 use frame_metadata::{RuntimeMetadata, RuntimeMetadataPrefixed};
 use scale_info::{form::PortableForm, PortableRegistry};
+use std::collections::HashMap;
 
 pub type Type = scale_info::Type<PortableForm>;
 pub type TypeDef = scale_info::TypeDef<PortableForm>;
@@ -48,14 +49,14 @@ pub enum DecodeError {
 /// decoding of SCALE encoded data and such.
 pub struct Metadata {
 	extrinsic: MetadataExtrinsic,
-	pallets: Vec<MetadataPallet>,
+	pallets: HashMap<u8, MetadataPallet>,
 	types: PortableRegistry,
 }
 
 #[derive(Debug)]
 struct MetadataPallet {
 	name: String,
-	calls: Vec<MetadataCall>,
+	calls: HashMap<u8, MetadataCall>,
 }
 
 impl Metadata {
@@ -86,8 +87,8 @@ impl Metadata {
 	/// Given the `u8` variant index of a pallet and call, this returns information about
 	/// the call if it's fgound, or `None` if it no such call exists at those indexes.
 	pub(crate) fn call_by_variant_index(&self, pallet: u8, call: u8) -> Option<(&str, &MetadataCall)> {
-		self.pallets.get(pallet as usize).and_then(|p| {
-			let call = p.calls.get(call as usize)?;
+		self.pallets.get(&pallet).and_then(|p| {
+			let call = p.calls.get(&call)?;
 			Some((&*p.name, call))
 		})
 	}

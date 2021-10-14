@@ -16,11 +16,12 @@
 
 use super::{DecodeError, Metadata, MetadataCall, MetadataExtrinsic, MetadataPallet};
 use frame_metadata::RuntimeMetadataV14;
+use std::collections::HashMap;
 
 /// Decode V14 metadata into our general Metadata struct
 pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, DecodeError> {
 	let registry = meta.types;
-	let mut pallets = vec![];
+	let mut pallets = HashMap::new();
 
 	// Gather some details about the extrinsic itself:
 	let extrinsic =
@@ -28,7 +29,7 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, DecodeError> {
 
 	// Gather information about the pallets in use:
 	for pallet in meta.pallets {
-		let mut calls = vec![];
+		let mut calls = HashMap::new();
 		if let Some(call_md) = pallet.calls {
 			// Get the type representing the variant of available calls:
 			let call_ty_id = call_md.ty.id();
@@ -49,11 +50,11 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, DecodeError> {
 				let name = variant.name().to_ascii_lowercase();
 				let args = variant.fields().iter().map(|field| field.ty().clone()).collect();
 
-				calls.push(MetadataCall { name, args });
+				calls.insert(variant.index(), MetadataCall { name, args });
 			}
 		}
 
-		pallets.push(MetadataPallet { name: pallet.name, calls })
+		pallets.insert(pallet.index, MetadataPallet { name: pallet.name, calls });
 	}
 
 	Ok(Metadata { pallets, extrinsic, types: registry })
