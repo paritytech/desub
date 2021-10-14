@@ -1,3 +1,19 @@
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
+// This file is part of substrate-desub.
+//
+// substrate-desub is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// substrate-desub is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
+
 use core_v14::{ Decoder, Metadata, Value, value };
 
 static V14_METADATA_POLKADOT_SCALE: &'static [u8] = include_bytes!("data/v14_metadata_polkadot.scale");
@@ -12,14 +28,82 @@ fn to_bytes(hex_str: &str) -> Vec<u8> {
     hex::decode(hex_str).expect("valid bytes from hex")
 }
 
-#[test]
-fn balance_transfer() {
-    let d = decoder();
-    let transfer_bytes = to_bytes("0x31028400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d016ada9b477ef454972200e098f1186d4a2aeee776f1f6a68609797f5ba052906ad2427bdca865442158d118e2dfc82226077e4dfdff975d005685bab66eefa38a150200000500001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07ce5c0");
-    let transfer_ext = d.decode_extrinsic(&transfer_bytes).expect("can decode extrinsic");
+// These tests are intended to roughly check that we can decode a range of "real" extrinsics into something
+// that looks sane.
+//
+// How did I write these tests (and how can you add more)?
+//
+// 1. Start up a polkadot node locally using `cargo run -- --dev --tmp` in the polkadot repo (I happened to
+//    be on polkadot master, commit 6da1cf6233728a8142e4b9cebdcf29cd67eb8352).
+//
+// 2. I downloaded the SCALE encoded metadata from it and save in this repo to include in the tests. You don't
+//    need to do this again (unless you'd like to make sure it's fully uptodate).
+//
+//    curl -sX POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"state_getMetadata", "id": 1}' localhost:9933 \
+//        | jq .result \
+//        | cut -d '"' -f 2 \
+//        | xxd -r -p > ./tests/node_runtime.scale
+//
+// 3. Navigate to https://polkadot.js.org/apps/#/explorer and switch it to pointing at a local development node.
+//    (the one you just started up in step 1).
+//
+// 4. In "Developer -> Extrinsics", we can now build, sign and submit extrinsics. Keep the network tab open and find
+//    the open WS connection. When an extrinsic is submitted, You'll see a new message to the method "author_submitAndWatchExtrinsic".
+//    Copy and use the hex string that is the param to that call, and in a test, assert that it decodes as you'd expect.
+//
+// 5. Alternately, We can just test that the call data itself decodes properly (this is the "main" chunk of an extrinsic
+//    anyway once we've made sure we can decode an extrinsic with or without a signature). The UI shows the call data hash
+//    directly when building an extrinsic, and we can just prepend "04" to the hex chars to turn the call data into an
+//    "unwrapped" unsigned extrinsic, and check that it decodes as expected.
 
-    assert_eq!(transfer_ext.pallet, "Balances".to_string());
-    assert_eq!(transfer_ext.call, "transfer".to_string());
-    assert_eq!(transfer_ext.arguments.len(), 2);
-    assert_eq!(transfer_ext.arguments[1], Value::Primitive(value::Primitive::U128(12345)));
+#[test]
+fn balance_transfer_ext() {
+    let d = decoder();
+
+    // Balances.transfer (amount: 12345)
+    let ext_bytes = to_bytes("0x31028400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d016ada9b477ef454972200e098f1186d4a2aeee776f1f6a68609797f5ba052906ad2427bdca865442158d118e2dfc82226077e4dfdff975d005685bab66eefa38a150200000500001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07ce5c0");
+    let ext = d.decode_extrinsic(&ext_bytes).expect("can decode extrinsic");
+
+    assert_eq!(ext.pallet, "Balances".to_string());
+    assert_eq!(ext.call, "transfer".to_string());
+    assert_eq!(ext.arguments.len(), 2);
+    assert_eq!(ext.arguments[1], Value::Primitive(value::Primitive::U128(12345)));
+}
+
+#[test]
+fn balance_transfer_all_ext() {
+    let d = decoder();
+
+    // Balances.transfer_all (keepalive: false)
+    let ext_bytes = to_bytes("0x2d028400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f0431ffe387134b4f84d92d3c3f1ac18c0f42237ad7dbd455bb0cf8a18efb1760528f052b2219ad1601d9a4719e1a446cf307bf6d7e9c56175bfe6e7bf8cbe81450304000504001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c00");
+    let ext = d.decode_extrinsic(&ext_bytes).expect("can decode extrinsic");
+
+    assert_eq!(ext.pallet, "Balances".to_string());
+    assert_eq!(ext.call, "transfer_all".to_string());
+    assert_eq!(ext.arguments.len(), 2);
+    assert_eq!(ext.arguments[1], Value::Primitive(value::Primitive::Bool(false)));
+}
+
+/// This test is interesting because:
+/// a) The Auctions pallet index is not the same as where it is listed in the list of pallets.
+/// b) One of the arguments is a compact-encoded wrapper struct.
+#[test]
+fn auctions_bid_call() {
+    let d = decoder();
+
+    // Auctions.bid (Args: (1,), 2, 3, 4, 5, all compact encoded).
+    let ext_bytes = to_bytes("0x04480104080c1014");
+    let ext = d.decode_unwrapped_extrinsic(&ext_bytes).expect("can decode extrinsic");
+
+    assert_eq!(ext.pallet, "Auctions".to_string());
+    assert_eq!(ext.call, "bid".to_string());
+    assert_eq!(ext.arguments.len(), 5);
+
+    assert_eq!(ext.arguments, vec![
+        Value::Composite(value::Composite::Unnamed(vec![Value::Primitive(value::Primitive::U32(1))])),
+        Value::Primitive(value::Primitive::U32(2)),
+        Value::Primitive(value::Primitive::U32(3)),
+        Value::Primitive(value::Primitive::U32(4)),
+        Value::Primitive(value::Primitive::U128(5)),
+    ]);
 }

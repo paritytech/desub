@@ -183,21 +183,51 @@ fn decode_compact_type(
 	ty: &TypeDefCompact<PortableForm>,
 	types: &PortableRegistry,
 ) -> Result<Value, DecodeTypeError> {
-	let inner = types.resolve(ty.type_param().id()).ok_or(DecodeTypeError::TypeIdNotFound(ty.type_param().id()))?;
 
-	use TypeDefPrimitive::*;
-	let primitive_val = match inner.type_def() {
-		// It's obvious how to decode basic primitive unsigned types, since we have impls for them.
-		TypeDef::Primitive(U8) => Primitive::U8(Compact::<u8>::decode(data)?.0),
-		TypeDef::Primitive(U16) => Primitive::U16(Compact::<u16>::decode(data)?.0),
-		TypeDef::Primitive(U32) => Primitive::U32(Compact::<u32>::decode(data)?.0),
-		TypeDef::Primitive(U64) => Primitive::U64(Compact::<u64>::decode(data)?.0),
-		TypeDef::Primitive(U128) => Primitive::U128(Compact::<u128>::decode(data)?.0),
-		// For now, we give up if we have been asked for any other type:
-		_cannot_decode_from => return Err(DecodeTypeError::CannotDecodeCompactIntoType(inner.clone())),
-	};
+	fn decode_compact(data: &mut &[u8], inner: &Type, types: &PortableRegistry) -> Result<Value, DecodeTypeError> {
+		use TypeDefPrimitive::*;
+		let val = match inner.type_def() {
+			// It's obvious how to decode basic primitive unsigned types, since we have impls for them.
+			TypeDef::Primitive(U8) => Value::Primitive(Primitive::U8(Compact::<u8>::decode(data)?.0)),
+			TypeDef::Primitive(U16) => Value::Primitive(Primitive::U16(Compact::<u16>::decode(data)?.0)),
+			TypeDef::Primitive(U32) => Value::Primitive(Primitive::U32(Compact::<u32>::decode(data)?.0)),
+			TypeDef::Primitive(U64) => Value::Primitive(Primitive::U64(Compact::<u64>::decode(data)?.0)),
+			TypeDef::Primitive(U128) => Value::Primitive(Primitive::U128(Compact::<u128>::decode(data)?.0)),
+			// A struct with exactly 1 field containing one of the above types can be sensible compact encoded/decoded.
+			TypeDef::Composite(composite) => {
+				if composite.fields().len() != 1 {
+					return Err(DecodeTypeError::CannotDecodeCompactIntoType(inner.clone()));
+				}
 
-	Ok(Value::Primitive(primitive_val))
+				// What type is the 1 field that we are able to decode?
+				let field = &composite.fields()[0];
+				let field_type_id = field.ty().id();
+				let inner_ty = types.resolve(field_type_id)
+					.ok_or(DecodeTypeError::TypeIdNotFound(field_type_id))?;
+
+				// Decode this inner type via compact decoding. This can recurse, in case
+				// the inner type is also a 1-field composite type.
+				let inner_value = decode_compact(data, inner_ty, types)?;
+
+				// Wrap the inner type in a representation of this outer composite type.
+				let composite = match field.name() {
+					Some(name) => Composite::Named(vec![(name.clone(), inner_value)]),
+					None => Composite::Unnamed(vec![inner_value])
+				};
+
+				Value::Composite(composite)
+			},
+			// For now, we give up if we have been asked for any other type:
+			_cannot_decode_from => return Err(DecodeTypeError::CannotDecodeCompactIntoType(inner.clone())),
+		};
+
+		Ok(val)
+	}
+
+	// Pluck the inner type out and run it through our compact decoding logic.
+	let inner = types.resolve(ty.type_param().id())
+		.ok_or(DecodeTypeError::TypeIdNotFound(ty.type_param().id()))?;
+	decode_compact(data, inner, types)
 }
 
 fn decode_bit_sequence_type(
@@ -287,14 +317,72 @@ mod test {
 	}
 
 	#[test]
-	fn decode_compacts() {
-		// We currently only support decoding unsigned ints from their
-		// compact representations:
+	fn decode_compact_primitives() {
 		encode_decode_check(Compact(123u8), Value::Primitive(Primitive::U8(123)));
 		encode_decode_check(Compact(123u16), Value::Primitive(Primitive::U16(123)));
 		encode_decode_check(Compact(123u32), Value::Primitive(Primitive::U32(123)));
 		encode_decode_check(Compact(123u64), Value::Primitive(Primitive::U64(123)));
 		encode_decode_check(Compact(123u128), Value::Primitive(Primitive::U128(123)));
+	}
+
+	#[test]
+	fn decode_compact_named_wrapper_struct() {
+		// A struct that can be compact encoded:
+		#[derive(Encode, scale_info::TypeInfo)]
+		struct MyWrapper {
+			inner: u32
+		}
+		impl From<Compact<MyWrapper>> for MyWrapper {
+			fn from(val: Compact<MyWrapper>) -> MyWrapper {
+				val.0
+			}
+		}
+		impl codec::CompactAs for MyWrapper {
+			type As = u32;
+
+			fn encode_as(&self) -> &Self::As {
+				&self.inner
+			}
+			fn decode_from(inner: Self::As) -> Result<Self, codec::Error> {
+				Ok(MyWrapper { inner })
+			}
+		}
+
+		encode_decode_check(
+			Compact(MyWrapper { inner: 123 }),
+			Value::Composite(Composite::Named(vec![
+				("inner".to_string(), Value::Primitive(Primitive::U32(123))),
+			]))
+		);
+	}
+
+	#[test]
+	fn decode_compact_unnamed_wrapper_struct() {
+		// A struct that can be compact encoded:
+		#[derive(Encode, scale_info::TypeInfo)]
+		struct MyWrapper(u32);
+		impl From<Compact<MyWrapper>> for MyWrapper {
+			fn from(val: Compact<MyWrapper>) -> MyWrapper {
+				val.0
+			}
+		}
+		impl codec::CompactAs for MyWrapper {
+			type As = u32;
+
+			fn encode_as(&self) -> &Self::As {
+				&self.0
+			}
+			fn decode_from(inner: Self::As) -> Result<Self, codec::Error> {
+				Ok(MyWrapper(inner))
+			}
+		}
+
+		encode_decode_check(
+			Compact(MyWrapper(123)),
+			Value::Composite(Composite::Unnamed(vec![
+				Value::Primitive(Primitive::U32(123)),
+			]))
+		);
 	}
 
 	#[test]
