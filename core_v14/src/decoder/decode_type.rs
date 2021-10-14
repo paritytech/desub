@@ -16,7 +16,7 @@
 
 use crate::{
 	metadata::{Type, TypeDef, TypeId},
-	substrate_value::{BitSequenceValue, CompositeValue, PrimitiveValue, SequenceValue, SubstrateValue, VariantValue},
+	value::{BitSequenceValue, CompositeValue, PrimitiveValue, SequenceValue, Value, VariantValue},
 };
 use codec::{Compact, Decode};
 use scale_info::{
@@ -43,16 +43,16 @@ pub enum DecodeTypeError {
 /// Decode data according to the [`SubstrateType`] provided.
 /// The provided pointer to the data slice will be moved forwards as needed
 /// depending on what was decoded.
-pub fn decode_type(data: &mut &[u8], ty: &Type, types: &PortableRegistry) -> Result<SubstrateValue, DecodeTypeError> {
+pub fn decode_type(data: &mut &[u8], ty: &Type, types: &PortableRegistry) -> Result<Value, DecodeTypeError> {
 	match ty.type_def() {
-		TypeDef::Composite(inner) => decode_composite_type(data, inner, types).map(SubstrateValue::Composite),
-		TypeDef::Variant(inner) => decode_variant_type(data, inner, types).map(SubstrateValue::Variant),
-		TypeDef::Sequence(inner) => decode_sequence_type(data, inner, types).map(SubstrateValue::Sequence),
-		TypeDef::Array(inner) => decode_array_type(data, inner, types).map(SubstrateValue::Sequence),
-		TypeDef::Tuple(inner) => decode_tuple_type(data, inner, types).map(SubstrateValue::Sequence),
-		TypeDef::Primitive(inner) => decode_primitive_type(data, inner).map(SubstrateValue::Primitive),
+		TypeDef::Composite(inner) => decode_composite_type(data, inner, types).map(Value::Composite),
+		TypeDef::Variant(inner) => decode_variant_type(data, inner, types).map(Value::Variant),
+		TypeDef::Sequence(inner) => decode_sequence_type(data, inner, types).map(Value::Sequence),
+		TypeDef::Array(inner) => decode_array_type(data, inner, types).map(Value::Sequence),
+		TypeDef::Tuple(inner) => decode_tuple_type(data, inner, types).map(Value::Sequence),
+		TypeDef::Primitive(inner) => decode_primitive_type(data, inner).map(Value::Primitive),
 		TypeDef::Compact(inner) => decode_compact_type(data, inner, types),
-		TypeDef::BitSequence(inner) => decode_bit_sequence_type(data, inner, types).map(SubstrateValue::BitSequence),
+		TypeDef::BitSequence(inner) => decode_bit_sequence_type(data, inner, types).map(Value::BitSequence),
 	}
 }
 
@@ -63,7 +63,7 @@ pub fn decode_type_by_id(
 	data: &mut &[u8],
 	ty_id: &TypeId,
 	types: &PortableRegistry,
-) -> Result<SubstrateValue, DecodeTypeError> {
+) -> Result<Value, DecodeTypeError> {
 	let inner_ty = types.resolve(ty_id.id()).ok_or(DecodeTypeError::TypeIdNotFound(ty_id.id()))?;
 	decode_type(data, inner_ty, types)
 }
@@ -182,7 +182,7 @@ fn decode_compact_type(
 	data: &mut &[u8],
 	ty: &TypeDefCompact<PortableForm>,
 	types: &PortableRegistry,
-) -> Result<SubstrateValue, DecodeTypeError> {
+) -> Result<Value, DecodeTypeError> {
 	let inner = types.resolve(ty.type_param().id()).ok_or(DecodeTypeError::TypeIdNotFound(ty.type_param().id()))?;
 
 	use TypeDefPrimitive::*;
@@ -197,7 +197,7 @@ fn decode_compact_type(
 		_cannot_decode_from => return Err(DecodeTypeError::CannotDecodeCompactIntoType(inner.clone())),
 	};
 
-	Ok(SubstrateValue::Primitive(primitive_val))
+	Ok(Value::Primitive(primitive_val))
 }
 
 fn decode_bit_sequence_type(
@@ -230,13 +230,13 @@ mod test {
 	/// Given a value to encode, and a representation of the decoded value, check that our decode functions
 	/// successfully decodes the type to the expected value, based on the implicit SCALE type info that the type
 	/// carries
-	fn encode_decode_check<T: Encode + scale_info::TypeInfo>(val: T, ex: SubstrateValue) {
+	fn encode_decode_check<T: Encode + scale_info::TypeInfo>(val: T, ex: Value) {
 		encode_decode_check_explicit_info(val, T::type_info(), ex)
 	}
 
 	/// Given a value to encode, a type to decode it back into, and a representation of
 	/// the decoded value, check that our decode functions successfully decodes as expected.
-	fn encode_decode_check_explicit_info<T: Encode, Ty: Into<scale_info::Type>>(val: T, ty: Ty, ex: SubstrateValue) {
+	fn encode_decode_check_explicit_info<T: Encode, Ty: Into<scale_info::Type>>(val: T, ty: Ty, ex: Value) {
 		let encoded = val.encode();
 		let encoded = &mut &*encoded;
 
@@ -254,35 +254,35 @@ mod test {
 	fn decode_primitives() {
 		use scale_info::TypeDefPrimitive;
 
-		encode_decode_check(true, SubstrateValue::Primitive(PrimitiveValue::Bool(true)));
-		encode_decode_check(false, SubstrateValue::Primitive(PrimitiveValue::Bool(false)));
+		encode_decode_check(true, Value::Primitive(PrimitiveValue::Bool(true)));
+		encode_decode_check(false, Value::Primitive(PrimitiveValue::Bool(false)));
 		encode_decode_check_explicit_info(
 			'a' as u32,
 			TypeDefPrimitive::Char,
-			SubstrateValue::Primitive(PrimitiveValue::Char('a')),
+			Value::Primitive(PrimitiveValue::Char('a')),
 		);
-		encode_decode_check("hello", SubstrateValue::Primitive(PrimitiveValue::Str("hello".into())));
+		encode_decode_check("hello", Value::Primitive(PrimitiveValue::Str("hello".into())));
 		encode_decode_check(
 			"hello".to_string(), // String or &str (above) decode OK
-			SubstrateValue::Primitive(PrimitiveValue::Str("hello".into())),
+			Value::Primitive(PrimitiveValue::Str("hello".into())),
 		);
-		encode_decode_check(123u8, SubstrateValue::Primitive(PrimitiveValue::U8(123)));
-		encode_decode_check(123u16, SubstrateValue::Primitive(PrimitiveValue::U16(123)));
-		encode_decode_check(123u32, SubstrateValue::Primitive(PrimitiveValue::U32(123)));
-		encode_decode_check(123u64, SubstrateValue::Primitive(PrimitiveValue::U64(123)));
+		encode_decode_check(123u8, Value::Primitive(PrimitiveValue::U8(123)));
+		encode_decode_check(123u16, Value::Primitive(PrimitiveValue::U16(123)));
+		encode_decode_check(123u32, Value::Primitive(PrimitiveValue::U32(123)));
+		encode_decode_check(123u64, Value::Primitive(PrimitiveValue::U64(123)));
 		encode_decode_check_explicit_info(
 			[123u8; 32], // Anything 32 bytes long will do here
 			TypeDefPrimitive::U256,
-			SubstrateValue::Primitive(PrimitiveValue::U256([123u8; 32])),
+			Value::Primitive(PrimitiveValue::U256([123u8; 32])),
 		);
-		encode_decode_check(123i8, SubstrateValue::Primitive(PrimitiveValue::I8(123)));
-		encode_decode_check(123i16, SubstrateValue::Primitive(PrimitiveValue::I16(123)));
-		encode_decode_check(123i32, SubstrateValue::Primitive(PrimitiveValue::I32(123)));
-		encode_decode_check(123i64, SubstrateValue::Primitive(PrimitiveValue::I64(123)));
+		encode_decode_check(123i8, Value::Primitive(PrimitiveValue::I8(123)));
+		encode_decode_check(123i16, Value::Primitive(PrimitiveValue::I16(123)));
+		encode_decode_check(123i32, Value::Primitive(PrimitiveValue::I32(123)));
+		encode_decode_check(123i64, Value::Primitive(PrimitiveValue::I64(123)));
 		encode_decode_check_explicit_info(
 			[123u8; 32], // Anything 32 bytes long will do here
 			TypeDefPrimitive::I256,
-			SubstrateValue::Primitive(PrimitiveValue::I256([123u8; 32])),
+			Value::Primitive(PrimitiveValue::I256([123u8; 32])),
 		);
 	}
 
@@ -290,37 +290,37 @@ mod test {
 	fn decode_compacts() {
 		// We currently only support decoding unsigned ints from their
 		// compact representations:
-		encode_decode_check(Compact(123u8), SubstrateValue::Primitive(PrimitiveValue::U8(123)));
-		encode_decode_check(Compact(123u16), SubstrateValue::Primitive(PrimitiveValue::U16(123)));
-		encode_decode_check(Compact(123u32), SubstrateValue::Primitive(PrimitiveValue::U32(123)));
-		encode_decode_check(Compact(123u64), SubstrateValue::Primitive(PrimitiveValue::U64(123)));
-		encode_decode_check(Compact(123u128), SubstrateValue::Primitive(PrimitiveValue::U128(123)));
+		encode_decode_check(Compact(123u8), Value::Primitive(PrimitiveValue::U8(123)));
+		encode_decode_check(Compact(123u16), Value::Primitive(PrimitiveValue::U16(123)));
+		encode_decode_check(Compact(123u32), Value::Primitive(PrimitiveValue::U32(123)));
+		encode_decode_check(Compact(123u64), Value::Primitive(PrimitiveValue::U64(123)));
+		encode_decode_check(Compact(123u128), Value::Primitive(PrimitiveValue::U128(123)));
 	}
 
 	#[test]
 	fn decode_sequence_array_tuple_types() {
 		encode_decode_check(
 			vec![1i32, 2, 3],
-			SubstrateValue::Sequence(vec![
-				SubstrateValue::Primitive(PrimitiveValue::I32(1)),
-				SubstrateValue::Primitive(PrimitiveValue::I32(2)),
-				SubstrateValue::Primitive(PrimitiveValue::I32(3)),
+			Value::Sequence(vec![
+				Value::Primitive(PrimitiveValue::I32(1)),
+				Value::Primitive(PrimitiveValue::I32(2)),
+				Value::Primitive(PrimitiveValue::I32(3)),
 			]),
 		);
 		encode_decode_check(
 			[1i32, 2, 3], //compile-time length known
-			SubstrateValue::Sequence(vec![
-				SubstrateValue::Primitive(PrimitiveValue::I32(1)),
-				SubstrateValue::Primitive(PrimitiveValue::I32(2)),
-				SubstrateValue::Primitive(PrimitiveValue::I32(3)),
+			Value::Sequence(vec![
+				Value::Primitive(PrimitiveValue::I32(1)),
+				Value::Primitive(PrimitiveValue::I32(2)),
+				Value::Primitive(PrimitiveValue::I32(3)),
 			]),
 		);
 		encode_decode_check(
 			(1i32, true, 123456u128),
-			SubstrateValue::Sequence(vec![
-				SubstrateValue::Primitive(PrimitiveValue::I32(1)),
-				SubstrateValue::Primitive(PrimitiveValue::Bool(true)),
-				SubstrateValue::Primitive(PrimitiveValue::U128(123456)),
+			Value::Sequence(vec![
+				Value::Primitive(PrimitiveValue::I32(1)),
+				Value::Primitive(PrimitiveValue::Bool(true)),
+				Value::Primitive(PrimitiveValue::U128(123456)),
 			]),
 		);
 	}
@@ -335,18 +335,18 @@ mod test {
 
 		encode_decode_check(
 			MyEnum::Foo(true),
-			SubstrateValue::Variant(VariantValue {
+			Value::Variant(VariantValue {
 				name: "Foo".to_string(),
-				fields: CompositeValue::Unnamed(vec![SubstrateValue::Primitive(PrimitiveValue::Bool(true))]),
+				fields: CompositeValue::Unnamed(vec![Value::Primitive(PrimitiveValue::Bool(true))]),
 			}),
 		);
 		encode_decode_check(
 			MyEnum::Bar { hi: "hello".to_string(), other: 123 },
-			SubstrateValue::Variant(VariantValue {
+			Value::Variant(VariantValue {
 				name: "Bar".to_string(),
 				fields: CompositeValue::Named(vec![
-					("hi".to_string(), SubstrateValue::Primitive(PrimitiveValue::Str("hello".to_string()))),
-					("other".to_string(), SubstrateValue::Primitive(PrimitiveValue::U128(123))),
+					("hi".to_string(), Value::Primitive(PrimitiveValue::Str("hello".to_string()))),
+					("other".to_string(), Value::Primitive(PrimitiveValue::U128(123))),
 				]),
 			}),
 		);
@@ -366,27 +366,27 @@ mod test {
 
 		encode_decode_check(
 			Unnamed(true, "James".into(), vec![1, 2, 3]),
-			SubstrateValue::Composite(CompositeValue::Unnamed(vec![
-				SubstrateValue::Primitive(PrimitiveValue::Bool(true)),
-				SubstrateValue::Primitive(PrimitiveValue::Str("James".to_string())),
-				SubstrateValue::Sequence(vec![
-					SubstrateValue::Primitive(PrimitiveValue::U8(1)),
-					SubstrateValue::Primitive(PrimitiveValue::U8(2)),
-					SubstrateValue::Primitive(PrimitiveValue::U8(3)),
+			Value::Composite(CompositeValue::Unnamed(vec![
+				Value::Primitive(PrimitiveValue::Bool(true)),
+				Value::Primitive(PrimitiveValue::Str("James".to_string())),
+				Value::Sequence(vec![
+					Value::Primitive(PrimitiveValue::U8(1)),
+					Value::Primitive(PrimitiveValue::U8(2)),
+					Value::Primitive(PrimitiveValue::U8(3)),
 				]),
 			])),
 		);
 		encode_decode_check(
 			Named { is_valid: true, name: "James".into(), bytes: vec![1, 2, 3] },
-			SubstrateValue::Composite(CompositeValue::Named(vec![
-				("is_valid".into(), SubstrateValue::Primitive(PrimitiveValue::Bool(true))),
-				("name".into(), SubstrateValue::Primitive(PrimitiveValue::Str("James".to_string()))),
+			Value::Composite(CompositeValue::Named(vec![
+				("is_valid".into(), Value::Primitive(PrimitiveValue::Bool(true))),
+				("name".into(), Value::Primitive(PrimitiveValue::Str("James".to_string()))),
 				(
 					"bytes".into(),
-					SubstrateValue::Sequence(vec![
-						SubstrateValue::Primitive(PrimitiveValue::U8(1)),
-						SubstrateValue::Primitive(PrimitiveValue::U8(2)),
-						SubstrateValue::Primitive(PrimitiveValue::U8(3)),
+					Value::Sequence(vec![
+						Value::Primitive(PrimitiveValue::U8(1)),
+						Value::Primitive(PrimitiveValue::U8(2)),
+						Value::Primitive(PrimitiveValue::U8(3)),
 					]),
 				),
 			])),
@@ -399,7 +399,7 @@ mod test {
 
 		encode_decode_check(
 			bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0],
-			SubstrateValue::BitSequence(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0]),
+			Value::BitSequence(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0]),
 		);
 	}
 }

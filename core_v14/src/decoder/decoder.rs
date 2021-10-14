@@ -17,7 +17,7 @@
 use super::decode_type::{decode_type, decode_type_by_id, DecodeTypeError};
 use super::extrinsic_bytes::{ExtrinsicBytes, ExtrinsicBytesError};
 use crate::metadata::Metadata;
-use crate::substrate_value::SubstrateValue;
+use crate::value::Value;
 use codec::{ Compact, Decode };
 use sp_runtime::{AccountId32, MultiAddress, MultiSignature};
 
@@ -115,8 +115,9 @@ impl Decoder {
 	/// assumes that the bytes provided do *not* start with a compact encoded count of the number of extrinsic bytes
 	/// to follow (ie, the extrinsic has been "unwrapped" already).
 	pub fn decode_unwrapped_extrinsic(&self, mut data: &[u8]) -> Result<GenericExtrinsic, DecodeError> {
-		// A mutably pointer to the slice, so that we can update out view into the bytes as
-		// we decode things from it.
+
+		// If we use a mutable reference to the data, `decode` functions will autoamtically
+		// update the bytes pointed to as they decode, to "move the cursor along".
 		let data = &mut data;
 
 		if data.len() == 0 {
@@ -203,7 +204,7 @@ pub struct GenericExtrinsic {
 	/// The signature (if any) associated with the extrinsic
 	pub signature: Option<ExtrinsicSignature>,
 	/// The arguments to pass to the call
-	pub arguments: Vec<SubstrateValue>,
+	pub arguments: Vec<Value>,
 }
 
 #[derive(Debug, Clone)]
@@ -214,7 +215,7 @@ pub struct ExtrinsicSignature {
 	pub signature: MultiSignature,
 	/// Signed extensions, which can vary by node. Here, we
 	/// return the name and value of each.
-	pub extensions: Vec<(String, SubstrateValue)>,
+	pub extensions: Vec<(String, Value)>,
 }
 
 fn decode_v4_signature<'a>(data: &mut &'a [u8], metadata: &Metadata) -> Result<ExtrinsicSignature, DecodeError> {

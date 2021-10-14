@@ -29,7 +29,7 @@ use std::fmt::Debug;
 /// verify whether a value can be treated as a given [`crate::substrate_type::SubstrateType`]
 /// or not.
 #[derive(Clone, PartialEq)]
-pub enum SubstrateValue {
+pub enum Value {
 	/// Values for a named or unnamed struct or tuple.
 	Composite(CompositeValue),
 	/// An enum variant.
@@ -44,7 +44,7 @@ pub enum SubstrateValue {
 	Primitive(PrimitiveValue),
 }
 
-impl Debug for SubstrateValue {
+impl Debug for Value {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
 			Self::Composite(val) => Debug::fmt(val, f),
@@ -59,9 +59,9 @@ impl Debug for SubstrateValue {
 #[derive(Clone, PartialEq)]
 pub enum CompositeValue {
 	/// Eg `{ foo: 2, bar: false }`
-	Named(Vec<(String, SubstrateValue)>),
+	Named(Vec<(String, Value)>),
 	/// Eg `(2, false)`
-	Unnamed(Vec<SubstrateValue>),
+	Unnamed(Vec<Value>),
 }
 
 impl Debug for CompositeValue {
@@ -85,9 +85,9 @@ impl Debug for CompositeValue {
 	}
 }
 
-impl From<CompositeValue> for SubstrateValue {
+impl From<CompositeValue> for Value {
 	fn from(val: CompositeValue) -> Self {
-		SubstrateValue::Composite(val)
+		Value::Composite(val)
 	}
 }
 
@@ -105,9 +105,9 @@ impl Debug for VariantValue {
 	}
 }
 
-impl From<VariantValue> for SubstrateValue {
+impl From<VariantValue> for Value {
 	fn from(val: VariantValue) -> Self {
-		SubstrateValue::Variant(val)
+		Value::Variant(val)
 	}
 }
 
@@ -155,11 +155,11 @@ impl Debug for PrimitiveValue {
 	}
 }
 
-impl From<PrimitiveValue> for SubstrateValue {
+impl From<PrimitiveValue> for Value {
 	fn from(val: PrimitiveValue) -> Self {
-		SubstrateValue::Primitive(val)
+		Value::Primitive(val)
 	}
 }
 
-pub type SequenceValue = Vec<SubstrateValue>;
+pub type SequenceValue = Vec<Value>;
 pub type BitSequenceValue = BitVec<Lsb0, u8>;

@@ -16,7 +16,9 @@
 
 mod decoder;
 mod metadata;
-mod substrate_value;
 
+pub mod value;
+
+pub use value::Value;
 pub use decoder::Decoder;
 pub use metadata::Metadata;
