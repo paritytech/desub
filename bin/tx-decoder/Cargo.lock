@@ -646,7 +646,7 @@ checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
 [[package]]
 name = "core_v14"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/desub?branch=jsdw-desub-new-v14#caea29403187b47c7c9bc9ae991b7582725fece5"
+source = "git+https://github.com/paritytech/desub?branch=jsdw-desub-new-v14#6a72b06411e389961b8c091179a43dc84af97289"
 dependencies = [
  "bitvec",
  "derive_more",

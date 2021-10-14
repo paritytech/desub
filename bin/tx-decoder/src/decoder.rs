@@ -34,8 +34,10 @@ impl Decoder {
 	}
 
 	pub fn register_version(&mut self, version: SpecVersion, meta: &[u8]) -> Result<(), Error> {
+		log::debug!("Registering version {}", version);
 		let new = MetadataNew::from_bytes(meta);
-		if new.is_err() {
+		if let Err(e) = new {
+			log::error!("{}", e);
 			self.old.register_version(version.try_into()?, meta);
 		} else {
 			self.new.insert(version.try_into()?, DecoderNew::with_metadata(new?));
@@ -46,11 +48,14 @@ impl Decoder {
 	// Decodes extrinsics and serializes to String
 	pub fn decode_extrinsics(&self, version: SpecVersion, data: &[u8]) -> Result<String, Error> {
 		if self.is_version_new(version) {
+			log::debug!("DECODING NEW");
 			let decoder = self.new.get(&version.try_into()?).ok_or_else(|| anyhow!("version {} not found for new decoder", version))?;
-			let ext = decoder.decode_extrinsics(data)?;
-			// Ok(serde_json::to_string_pretty(&ext)?)
-			Ok(format!("{:?}", ext))
+			match decoder.decode_extrinsics(&data) {
+				Ok(v) => Ok(format!("{:?}", v)),
+				Err(e) => Err(e.1.into())
+			}
 		} else {
+			log::debug!("DECODING OLD");
 			let ext = self.old.decode_extrinsics(version.try_into()?, data)?;
 			Ok(serde_json::to_string_pretty(&ext)?)
 		}

@@ -126,8 +126,8 @@ impl<'a> AppState<'a> {
 	}
 
 	fn decode(decoder: &Decoder, block: BlockModel, spec: SpecVersion, errors: &mut Vec<String>) -> Result<(), Error> {
-		log::debug!("-<<-<<-<<-<<-<<-<<-<<-<<-<< Decoding block {}, ext length {}", block.block_num, block.ext.len());
-		match decoder.decode_extrinsics(spec.try_into()?, block.ext.as_slice()) {
+		log::debug!("Decoding block {}, spec_version {}, ext length {}", block.block_num, spec, block.ext.len());
+		match decoder.decode_extrinsics(spec.try_into()?, &block.ext) {
 			Err(e) => {
 				let e: Error = e.into();
 				let e = e.context(format!("Failed to decode block {}", block.block_num));
