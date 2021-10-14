@@ -155,3 +155,42 @@ fn technical_committee_execute_unsigned() {
 	));
 	assert_eq!(&ext.arguments[1], &Value::Primitive(value::Primitive::U32(500)));
 }
+
+#[test]
+fn tips_report_awesome_unsigned() {
+	let d = decoder();
+
+	// Tips.report_awesome (Args: b"This person rocks!", AccountId).
+	let ext_bytes = to_bytes("0x042300485468697320706572736f6e20726f636b73211cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c");
+	let ext = d.decode_unwrapped_extrinsic(&ext_bytes).expect("can decode extrinsic");
+
+	assert_eq!(ext.pallet, "Tips".to_string());
+	assert_eq!(ext.call, "report_awesome".to_string());
+	assert_eq!(ext.arguments.len(), 2);
+	assert_eq!(
+		&ext.arguments[0],
+		&Value::Sequence("This person rocks!".bytes().map(|b| Value::Primitive(value::Primitive::U8(b))).collect())
+	);
+}
+
+// Named structs shouldn't be an issue; this extrinsic contains one.
+#[test]
+fn vesting_force_vested_transfer_unsigned() {
+	let d = decoder();
+
+	// Vesting.force_vested_transfer (Args: AccountId, AccountId, { locked: 1u128, perBlock: 2u128, startingBlock: 3u32 }).
+	let ext_bytes = to_bytes("0x04190300d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48010000000000000000000000000000000200000000000000000000000000000003000000");
+	let ext = d.decode_unwrapped_extrinsic(&ext_bytes).expect("can decode extrinsic");
+
+	assert_eq!(ext.pallet, "Vesting".to_string());
+	assert_eq!(ext.call, "force_vested_transfer".to_string());
+	assert_eq!(ext.arguments.len(), 3);
+	assert_eq!(
+		&ext.arguments[2],
+		&Value::Composite(value::Composite::Named(vec![
+			("locked".into(), Value::Primitive(value::Primitive::U128(1))),
+			("per_block".into(), Value::Primitive(value::Primitive::U128(2))),
+			("starting_block".into(), Value::Primitive(value::Primitive::U32(3))),
+		]))
+	);
+}
