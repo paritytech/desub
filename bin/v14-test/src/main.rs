@@ -1,4 +1,4 @@
-use core::{ Metadata, Decoder };
+use core::{Decoder, Metadata};
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -25,17 +25,17 @@ fn main() -> Result<(), anyhow::Error> {
 
 	let ext = match opts.extrinsic.strip_prefix("0x") {
 		Some(ext) => ext,
-		None => anyhow::bail!("Extrinsic should start with 0x")
+		None => anyhow::bail!("Extrinsic should start with 0x"),
 	};
 
 	let bytes = match hex::decode(ext) {
 		Ok(bytes) => bytes,
-		Err(e) => anyhow::bail!("Cannot decode hex string into bytes: {}", e)
+		Err(e) => anyhow::bail!("Cannot decode hex string into bytes: {}", e),
 	};
 
 	let decoded = match decoder.decode_extrinsic(&bytes) {
 		Ok(decoded) => decoded,
-		Err(e) => anyhow::bail!("Cannot decode extrinsic: {}", e)
+		Err(e) => anyhow::bail!("Cannot decode extrinsic: {}", e),
 	};
 
 	println!("{:?}", decoded);

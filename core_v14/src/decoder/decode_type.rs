@@ -59,11 +59,7 @@ pub fn decode_type(data: &mut &[u8], ty: &Type, types: &PortableRegistry) -> Res
 /// Decode data according to the type ID provided.
 /// The provided pointer to the data slice will be moved forwards as needed
 /// depending on what was decoded.
-pub fn decode_type_by_id(
-	data: &mut &[u8],
-	ty_id: &TypeId,
-	types: &PortableRegistry,
-) -> Result<Value, DecodeTypeError> {
+pub fn decode_type_by_id(data: &mut &[u8], ty_id: &TypeId, types: &PortableRegistry) -> Result<Value, DecodeTypeError> {
 	let inner_ty = types.resolve(ty_id.id()).ok_or(DecodeTypeError::TypeIdNotFound(ty_id.id()))?;
 	decode_type(data, inner_ty, types)
 }
@@ -183,7 +179,6 @@ fn decode_compact_type(
 	ty: &TypeDefCompact<PortableForm>,
 	types: &PortableRegistry,
 ) -> Result<Value, DecodeTypeError> {
-
 	fn decode_compact(data: &mut &[u8], inner: &Type, types: &PortableRegistry) -> Result<Value, DecodeTypeError> {
 		use TypeDefPrimitive::*;
 		let val = match inner.type_def() {
@@ -202,8 +197,7 @@ fn decode_compact_type(
 				// What type is the 1 field that we are able to decode?
 				let field = &composite.fields()[0];
 				let field_type_id = field.ty().id();
-				let inner_ty = types.resolve(field_type_id)
-					.ok_or(DecodeTypeError::TypeIdNotFound(field_type_id))?;
+				let inner_ty = types.resolve(field_type_id).ok_or(DecodeTypeError::TypeIdNotFound(field_type_id))?;
 
 				// Decode this inner type via compact decoding. This can recurse, in case
 				// the inner type is also a 1-field composite type.
@@ -212,11 +206,11 @@ fn decode_compact_type(
 				// Wrap the inner type in a representation of this outer composite type.
 				let composite = match field.name() {
 					Some(name) => Composite::Named(vec![(name.clone(), inner_value)]),
-					None => Composite::Unnamed(vec![inner_value])
+					None => Composite::Unnamed(vec![inner_value]),
 				};
 
 				Value::Composite(composite)
-			},
+			}
 			// For now, we give up if we have been asked for any other type:
 			_cannot_decode_from => return Err(DecodeTypeError::CannotDecodeCompactIntoType(inner.clone())),
 		};
@@ -225,8 +219,7 @@ fn decode_compact_type(
 	}
 
 	// Pluck the inner type out and run it through our compact decoding logic.
-	let inner = types.resolve(ty.type_param().id())
-		.ok_or(DecodeTypeError::TypeIdNotFound(ty.type_param().id()))?;
+	let inner = types.resolve(ty.type_param().id()).ok_or(DecodeTypeError::TypeIdNotFound(ty.type_param().id()))?;
 	decode_compact(data, inner, types)
 }
 
@@ -286,11 +279,7 @@ mod test {
 
 		encode_decode_check(true, Value::Primitive(Primitive::Bool(true)));
 		encode_decode_check(false, Value::Primitive(Primitive::Bool(false)));
-		encode_decode_check_explicit_info(
-			'a' as u32,
-			TypeDefPrimitive::Char,
-			Value::Primitive(Primitive::Char('a')),
-		);
+		encode_decode_check_explicit_info('a' as u32, TypeDefPrimitive::Char, Value::Primitive(Primitive::Char('a')));
 		encode_decode_check("hello", Value::Primitive(Primitive::Str("hello".into())));
 		encode_decode_check(
 			"hello".to_string(), // String or &str (above) decode OK
@@ -330,7 +319,7 @@ mod test {
 		// A struct that can be compact encoded:
 		#[derive(Encode, scale_info::TypeInfo)]
 		struct MyWrapper {
-			inner: u32
+			inner: u32,
 		}
 		impl From<Compact<MyWrapper>> for MyWrapper {
 			fn from(val: Compact<MyWrapper>) -> MyWrapper {
@@ -350,9 +339,7 @@ mod test {
 
 		encode_decode_check(
 			Compact(MyWrapper { inner: 123 }),
-			Value::Composite(Composite::Named(vec![
-				("inner".to_string(), Value::Primitive(Primitive::U32(123))),
-			]))
+			Value::Composite(Composite::Named(vec![("inner".to_string(), Value::Primitive(Primitive::U32(123)))])),
 		);
 	}
 
@@ -379,9 +366,7 @@ mod test {
 
 		encode_decode_check(
 			Compact(MyWrapper(123)),
-			Value::Composite(Composite::Unnamed(vec![
-				Value::Primitive(Primitive::U32(123)),
-			]))
+			Value::Composite(Composite::Unnamed(vec![Value::Primitive(Primitive::U32(123))])),
 		);
 	}
 

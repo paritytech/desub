@@ -19,6 +19,6 @@ mod metadata;
 
 pub mod value;
 
-pub use value::Value;
 pub use decoder::Decoder;
 pub use metadata::Metadata;
+pub use value::Value;

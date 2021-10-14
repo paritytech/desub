@@ -18,7 +18,7 @@ use super::decode_type::{decode_type, decode_type_by_id, DecodeTypeError};
 use super::extrinsic_bytes::{ExtrinsicBytes, ExtrinsicBytesError};
 use crate::metadata::Metadata;
 use crate::value::Value;
-use codec::{ Compact, Decode };
+use codec::{Compact, Decode};
 use sp_runtime::{AccountId32, MultiAddress, MultiSignature};
 
 pub struct Decoder {
@@ -115,7 +115,6 @@ impl Decoder {
 	/// assumes that the bytes provided do *not* start with a compact encoded count of the number of extrinsic bytes
 	/// to follow (ie, the extrinsic has been "unwrapped" already).
 	pub fn decode_unwrapped_extrinsic(&self, mut data: &[u8]) -> Result<GenericExtrinsic, DecodeError> {
-
 		// If we use a mutable reference to the data, `decode` functions will autoamtically
 		// update the bytes pointed to as they decode, to "move the cursor along".
 		let data = &mut data;
