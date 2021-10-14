@@ -23,25 +23,25 @@ use std::fmt::Debug;
 /// corresponding to each of those types.
 ///
 /// Not all types have an similar-named value; for example, sequences and array
-/// values can both be represented with [`SequenceValue`], and structs and tuple values can
-/// both be represented with [`CompositeValue`]. Only enough information is preserved to
+/// values can both be represented with [`Sequence`], and structs and tuple values can
+/// both be represented with [`Composite`]. Only enough information is preserved to
 /// construct a valid value for any type that we know about, and it should be possible to
 /// verify whether a value can be treated as a given [`crate::substrate_type::SubstrateType`]
 /// or not.
 #[derive(Clone, PartialEq)]
 pub enum Value {
 	/// Values for a named or unnamed struct or tuple.
-	Composite(CompositeValue),
+	Composite(Composite),
 	/// An enum variant.
-	Variant(VariantValue),
+	Variant(Variant),
 	/// A value corresponding to a sequence or array type, or even a BitVec.
-	Sequence(SequenceValue),
+	Sequence(Sequence),
 	/// Special handling for BitVec (since it has it's own scale_info type).
 	/// We make assumptions about the bitvec structure (based on how we decoded
 	/// these prior to V14).
-	BitSequence(BitSequenceValue),
+	BitSequence(BitSequence),
 	/// Any of the primitive values we can have.
-	Primitive(PrimitiveValue),
+	Primitive(Primitive),
 }
 
 impl Debug for Value {
@@ -57,24 +57,24 @@ impl Debug for Value {
 }
 
 #[derive(Clone, PartialEq)]
-pub enum CompositeValue {
+pub enum Composite {
 	/// Eg `{ foo: 2, bar: false }`
 	Named(Vec<(String, Value)>),
 	/// Eg `(2, false)`
 	Unnamed(Vec<Value>),
 }
 
-impl Debug for CompositeValue {
+impl Debug for Composite {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
-			CompositeValue::Named(fields) => {
+			Composite::Named(fields) => {
 				let mut struc = f.debug_struct("");
 				for (name, val) in fields {
 					struc.field(name, val);
 				}
 				struc.finish()
 			}
-			CompositeValue::Unnamed(fields) => {
+			Composite::Unnamed(fields) => {
 				let mut struc = f.debug_tuple("");
 				for val in fields {
 					struc.field(val);
@@ -85,19 +85,19 @@ impl Debug for CompositeValue {
 	}
 }
 
-impl From<CompositeValue> for Value {
-	fn from(val: CompositeValue) -> Self {
+impl From<Composite> for Value {
+	fn from(val: Composite) -> Self {
 		Value::Composite(val)
 	}
 }
 
 #[derive(Clone, PartialEq)]
-pub struct VariantValue {
+pub struct Variant {
 	pub name: String,
-	pub fields: CompositeValue,
+	pub fields: Composite,
 }
 
-impl Debug for VariantValue {
+impl Debug for Variant {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.write_str(&self.name)?;
 		f.write_str(" ")?;
@@ -105,14 +105,14 @@ impl Debug for VariantValue {
 	}
 }
 
-impl From<VariantValue> for Value {
-	fn from(val: VariantValue) -> Self {
+impl From<Variant> for Value {
+	fn from(val: Variant) -> Self {
 		Value::Variant(val)
 	}
 }
 
 #[derive(Clone, PartialEq)]
-pub enum PrimitiveValue {
+pub enum Primitive {
 	Bool(bool),
 	Char(char),
 	Str(String),
@@ -130,23 +130,23 @@ pub enum PrimitiveValue {
 	I256([u8; 32]),
 }
 
-impl Debug for PrimitiveValue {
+impl Debug for Primitive {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
-			PrimitiveValue::Bool(val) => Debug::fmt(val, f),
-			PrimitiveValue::Char(val) => Debug::fmt(val, f),
-			PrimitiveValue::Str(val) => Debug::fmt(val, f),
-			PrimitiveValue::U8(val) => Debug::fmt(val, f),
-			PrimitiveValue::U16(val) => Debug::fmt(val, f),
-			PrimitiveValue::U32(val) => Debug::fmt(val, f),
-			PrimitiveValue::U64(val) => Debug::fmt(val, f),
-			PrimitiveValue::U128(val) => Debug::fmt(val, f),
-			PrimitiveValue::I8(val) => Debug::fmt(val, f),
-			PrimitiveValue::I16(val) => Debug::fmt(val, f),
-			PrimitiveValue::I32(val) => Debug::fmt(val, f),
-			PrimitiveValue::I64(val) => Debug::fmt(val, f),
-			PrimitiveValue::I128(val) => Debug::fmt(val, f),
-			PrimitiveValue::U256(val) | PrimitiveValue::I256(val) => {
+			Primitive::Bool(val) => Debug::fmt(val, f),
+			Primitive::Char(val) => Debug::fmt(val, f),
+			Primitive::Str(val) => Debug::fmt(val, f),
+			Primitive::U8(val) => Debug::fmt(val, f),
+			Primitive::U16(val) => Debug::fmt(val, f),
+			Primitive::U32(val) => Debug::fmt(val, f),
+			Primitive::U64(val) => Debug::fmt(val, f),
+			Primitive::U128(val) => Debug::fmt(val, f),
+			Primitive::I8(val) => Debug::fmt(val, f),
+			Primitive::I16(val) => Debug::fmt(val, f),
+			Primitive::I32(val) => Debug::fmt(val, f),
+			Primitive::I64(val) => Debug::fmt(val, f),
+			Primitive::I128(val) => Debug::fmt(val, f),
+			Primitive::U256(val) | Primitive::I256(val) => {
 				f.write_str("BigNum(")?;
 				Debug::fmt(val, f)?;
 				f.write_str(")")
@@ -155,11 +155,11 @@ impl Debug for PrimitiveValue {
 	}
 }
 
-impl From<PrimitiveValue> for Value {
-	fn from(val: PrimitiveValue) -> Self {
+impl From<Primitive> for Value {
+	fn from(val: Primitive) -> Self {
 		Value::Primitive(val)
 	}
 }
 
-pub type SequenceValue = Vec<Value>;
-pub type BitSequenceValue = BitVec<Lsb0, u8>;
+pub type Sequence = Vec<Value>;
+pub type BitSequence = BitVec<Lsb0, u8>;

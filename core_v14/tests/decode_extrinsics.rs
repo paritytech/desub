@@ -1,4 +1,4 @@
-use core_v14::{ Decoder, Metadata, Value, value::{ PrimitiveValue } };
+use core_v14::{ Decoder, Metadata, Value, value };
 
 static V14_METADATA_POLKADOT_SCALE: &'static [u8] = include_bytes!("data/v14_metadata_polkadot.scale");
 
@@ -21,5 +21,5 @@ fn balance_transfer() {
     assert_eq!(transfer_ext.pallet, "Balances".to_string());
     assert_eq!(transfer_ext.call, "transfer".to_string());
     assert_eq!(transfer_ext.arguments.len(), 2);
-    assert_eq!(transfer_ext.arguments[1], Value::Primitive(PrimitiveValue::U128(12345)));
+    assert_eq!(transfer_ext.arguments[1], Value::Primitive(value::Primitive::U128(12345)));
 }

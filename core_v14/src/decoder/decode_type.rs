@@ -16,7 +16,7 @@
 
 use crate::{
 	metadata::{Type, TypeDef, TypeId},
-	value::{BitSequenceValue, CompositeValue, PrimitiveValue, SequenceValue, Value, VariantValue},
+	value::{BitSequence, Composite, Primitive, Sequence, Value, Variant},
 };
 use codec::{Compact, Decode};
 use scale_info::{
@@ -72,7 +72,7 @@ fn decode_composite_type(
 	data: &mut &[u8],
 	ty: &TypeDefComposite<PortableForm>,
 	types: &PortableRegistry,
-) -> Result<CompositeValue, DecodeTypeError> {
+) -> Result<Composite, DecodeTypeError> {
 	decode_fields(data, ty.fields(), types)
 }
 
@@ -80,7 +80,7 @@ fn decode_variant_type(
 	data: &mut &[u8],
 	ty: &TypeDefVariant<PortableForm>,
 	types: &PortableRegistry,
-) -> Result<VariantValue, DecodeTypeError> {
+) -> Result<Variant, DecodeTypeError> {
 	let index = *data.get(0).ok_or(DecodeTypeError::Eof)?;
 	*data = &data[1..];
 
@@ -92,7 +92,7 @@ fn decode_variant_type(
 		.ok_or_else(|| DecodeTypeError::VariantNotFound(index, ty.clone()))?;
 
 	let fields = decode_fields(data, variant.fields(), types)?;
-	Ok(VariantValue { name: variant.name().clone(), fields })
+	Ok(Variant { name: variant.name().clone(), fields })
 }
 
 /// Variant and Composite types both have fields; this will decode them into values.
@@ -100,7 +100,7 @@ fn decode_fields(
 	data: &mut &[u8],
 	fields: &[Field<PortableForm>],
 	types: &PortableRegistry,
-) -> Result<CompositeValue, DecodeTypeError> {
+) -> Result<Composite, DecodeTypeError> {
 	let are_named = fields.iter().any(|f| f.name().is_some());
 	let named_field_vals = fields.iter().map(|f| {
 		let name = f.name().cloned().unwrap_or(String::new());
@@ -109,10 +109,10 @@ fn decode_fields(
 
 	if are_named {
 		let vals = named_field_vals.collect::<Result<_, _>>()?;
-		Ok(CompositeValue::Named(vals))
+		Ok(Composite::Named(vals))
 	} else {
 		let vals = named_field_vals.map(|r| r.map(|(_, v)| v)).collect::<Result<_, _>>()?;
-		Ok(CompositeValue::Unnamed(vals))
+		Ok(Composite::Unnamed(vals))
 	}
 }
 
@@ -120,7 +120,7 @@ fn decode_sequence_type(
 	data: &mut &[u8],
 	ty: &TypeDefSequence<PortableForm>,
 	types: &PortableRegistry,
-) -> Result<SequenceValue, DecodeTypeError> {
+) -> Result<Sequence, DecodeTypeError> {
 	// We assume that the sequence is preceeded by a compact encoded length, so that
 	// we know how many values to try pulling out of the data.
 	let len = Compact::<u64>::decode(data)?;
@@ -134,7 +134,7 @@ fn decode_array_type(
 	data: &mut &[u8],
 	ty: &TypeDefArray<PortableForm>,
 	types: &PortableRegistry,
-) -> Result<SequenceValue, DecodeTypeError> {
+) -> Result<Sequence, DecodeTypeError> {
 	// The length is known based on the type we want to decode into, so we pull out the number of items according
 	// to that, and don't need a length to exist in the SCALE encoded bytes
 	let values: Vec<_> =
@@ -147,33 +147,33 @@ fn decode_tuple_type(
 	data: &mut &[u8],
 	ty: &TypeDefTuple<PortableForm>,
 	types: &PortableRegistry,
-) -> Result<SequenceValue, DecodeTypeError> {
+) -> Result<Sequence, DecodeTypeError> {
 	let values: Vec<_> = ty.fields().iter().map(|f| decode_type_by_id(data, f, types)).collect::<Result<_, _>>()?;
 
 	Ok(values)
 }
 
-fn decode_primitive_type(data: &mut &[u8], ty: &TypeDefPrimitive) -> Result<PrimitiveValue, DecodeTypeError> {
+fn decode_primitive_type(data: &mut &[u8], ty: &TypeDefPrimitive) -> Result<Primitive, DecodeTypeError> {
 	let val = match ty {
-		TypeDefPrimitive::Bool => PrimitiveValue::Bool(bool::decode(data)?),
+		TypeDefPrimitive::Bool => Primitive::Bool(bool::decode(data)?),
 		TypeDefPrimitive::Char => {
 			// [jsdw] TODO: There isn't a `char::decode`. Why? Is it wrong to use u32 or is there a more "proper" way?
 			let val = u32::decode(data)?;
-			PrimitiveValue::Char(char::from_u32(val).ok_or(DecodeTypeError::InvalidChar(val))?)
+			Primitive::Char(char::from_u32(val).ok_or(DecodeTypeError::InvalidChar(val))?)
 		}
-		TypeDefPrimitive::Str => PrimitiveValue::Str(String::decode(data)?),
-		TypeDefPrimitive::U8 => PrimitiveValue::U8(u8::decode(data)?),
-		TypeDefPrimitive::U16 => PrimitiveValue::U16(u16::decode(data)?),
-		TypeDefPrimitive::U32 => PrimitiveValue::U32(u32::decode(data)?),
-		TypeDefPrimitive::U64 => PrimitiveValue::U64(u64::decode(data)?),
-		TypeDefPrimitive::U128 => PrimitiveValue::U128(u128::decode(data)?),
-		TypeDefPrimitive::U256 => PrimitiveValue::U256(<[u8; 32]>::decode(data)?),
-		TypeDefPrimitive::I8 => PrimitiveValue::I8(i8::decode(data)?),
-		TypeDefPrimitive::I16 => PrimitiveValue::I16(i16::decode(data)?),
-		TypeDefPrimitive::I32 => PrimitiveValue::I32(i32::decode(data)?),
-		TypeDefPrimitive::I64 => PrimitiveValue::I64(i64::decode(data)?),
-		TypeDefPrimitive::I128 => PrimitiveValue::I128(i128::decode(data)?),
-		TypeDefPrimitive::I256 => PrimitiveValue::I256(<[u8; 32]>::decode(data)?),
+		TypeDefPrimitive::Str => Primitive::Str(String::decode(data)?),
+		TypeDefPrimitive::U8 => Primitive::U8(u8::decode(data)?),
+		TypeDefPrimitive::U16 => Primitive::U16(u16::decode(data)?),
+		TypeDefPrimitive::U32 => Primitive::U32(u32::decode(data)?),
+		TypeDefPrimitive::U64 => Primitive::U64(u64::decode(data)?),
+		TypeDefPrimitive::U128 => Primitive::U128(u128::decode(data)?),
+		TypeDefPrimitive::U256 => Primitive::U256(<[u8; 32]>::decode(data)?),
+		TypeDefPrimitive::I8 => Primitive::I8(i8::decode(data)?),
+		TypeDefPrimitive::I16 => Primitive::I16(i16::decode(data)?),
+		TypeDefPrimitive::I32 => Primitive::I32(i32::decode(data)?),
+		TypeDefPrimitive::I64 => Primitive::I64(i64::decode(data)?),
+		TypeDefPrimitive::I128 => Primitive::I128(i128::decode(data)?),
+		TypeDefPrimitive::I256 => Primitive::I256(<[u8; 32]>::decode(data)?),
 	};
 	Ok(val)
 }
@@ -188,11 +188,11 @@ fn decode_compact_type(
 	use TypeDefPrimitive::*;
 	let primitive_val = match inner.type_def() {
 		// It's obvious how to decode basic primitive unsigned types, since we have impls for them.
-		TypeDef::Primitive(U8) => PrimitiveValue::U8(Compact::<u8>::decode(data)?.0),
-		TypeDef::Primitive(U16) => PrimitiveValue::U16(Compact::<u16>::decode(data)?.0),
-		TypeDef::Primitive(U32) => PrimitiveValue::U32(Compact::<u32>::decode(data)?.0),
-		TypeDef::Primitive(U64) => PrimitiveValue::U64(Compact::<u64>::decode(data)?.0),
-		TypeDef::Primitive(U128) => PrimitiveValue::U128(Compact::<u128>::decode(data)?.0),
+		TypeDef::Primitive(U8) => Primitive::U8(Compact::<u8>::decode(data)?.0),
+		TypeDef::Primitive(U16) => Primitive::U16(Compact::<u16>::decode(data)?.0),
+		TypeDef::Primitive(U32) => Primitive::U32(Compact::<u32>::decode(data)?.0),
+		TypeDef::Primitive(U64) => Primitive::U64(Compact::<u64>::decode(data)?.0),
+		TypeDef::Primitive(U128) => Primitive::U128(Compact::<u128>::decode(data)?.0),
 		// For now, we give up if we have been asked for any other type:
 		_cannot_decode_from => return Err(DecodeTypeError::CannotDecodeCompactIntoType(inner.clone())),
 	};
@@ -204,11 +204,11 @@ fn decode_bit_sequence_type(
 	data: &mut &[u8],
 	_ty: &TypeDefBitSequence<PortableForm>,
 	_types: &PortableRegistry,
-) -> Result<BitSequenceValue, DecodeTypeError> {
+) -> Result<BitSequence, DecodeTypeError> {
 	// [jsdw] TODO: might be worth checking the bit_store and bit_order types
 	// and trying to work out whether they look like Lsb0 and u8, which is what
 	// we assume here.
-	let bit_vec: BitSequenceValue = Decode::decode(data)?;
+	let bit_vec: BitSequence = Decode::decode(data)?;
 	Ok(bit_vec)
 }
 
@@ -254,35 +254,35 @@ mod test {
 	fn decode_primitives() {
 		use scale_info::TypeDefPrimitive;
 
-		encode_decode_check(true, Value::Primitive(PrimitiveValue::Bool(true)));
-		encode_decode_check(false, Value::Primitive(PrimitiveValue::Bool(false)));
+		encode_decode_check(true, Value::Primitive(Primitive::Bool(true)));
+		encode_decode_check(false, Value::Primitive(Primitive::Bool(false)));
 		encode_decode_check_explicit_info(
 			'a' as u32,
 			TypeDefPrimitive::Char,
-			Value::Primitive(PrimitiveValue::Char('a')),
+			Value::Primitive(Primitive::Char('a')),
 		);
-		encode_decode_check("hello", Value::Primitive(PrimitiveValue::Str("hello".into())));
+		encode_decode_check("hello", Value::Primitive(Primitive::Str("hello".into())));
 		encode_decode_check(
 			"hello".to_string(), // String or &str (above) decode OK
-			Value::Primitive(PrimitiveValue::Str("hello".into())),
+			Value::Primitive(Primitive::Str("hello".into())),
 		);
-		encode_decode_check(123u8, Value::Primitive(PrimitiveValue::U8(123)));
-		encode_decode_check(123u16, Value::Primitive(PrimitiveValue::U16(123)));
-		encode_decode_check(123u32, Value::Primitive(PrimitiveValue::U32(123)));
-		encode_decode_check(123u64, Value::Primitive(PrimitiveValue::U64(123)));
+		encode_decode_check(123u8, Value::Primitive(Primitive::U8(123)));
+		encode_decode_check(123u16, Value::Primitive(Primitive::U16(123)));
+		encode_decode_check(123u32, Value::Primitive(Primitive::U32(123)));
+		encode_decode_check(123u64, Value::Primitive(Primitive::U64(123)));
 		encode_decode_check_explicit_info(
 			[123u8; 32], // Anything 32 bytes long will do here
 			TypeDefPrimitive::U256,
-			Value::Primitive(PrimitiveValue::U256([123u8; 32])),
+			Value::Primitive(Primitive::U256([123u8; 32])),
 		);
-		encode_decode_check(123i8, Value::Primitive(PrimitiveValue::I8(123)));
-		encode_decode_check(123i16, Value::Primitive(PrimitiveValue::I16(123)));
-		encode_decode_check(123i32, Value::Primitive(PrimitiveValue::I32(123)));
-		encode_decode_check(123i64, Value::Primitive(PrimitiveValue::I64(123)));
+		encode_decode_check(123i8, Value::Primitive(Primitive::I8(123)));
+		encode_decode_check(123i16, Value::Primitive(Primitive::I16(123)));
+		encode_decode_check(123i32, Value::Primitive(Primitive::I32(123)));
+		encode_decode_check(123i64, Value::Primitive(Primitive::I64(123)));
 		encode_decode_check_explicit_info(
 			[123u8; 32], // Anything 32 bytes long will do here
 			TypeDefPrimitive::I256,
-			Value::Primitive(PrimitiveValue::I256([123u8; 32])),
+			Value::Primitive(Primitive::I256([123u8; 32])),
 		);
 	}
 
@@ -290,11 +290,11 @@ mod test {
 	fn decode_compacts() {
 		// We currently only support decoding unsigned ints from their
 		// compact representations:
-		encode_decode_check(Compact(123u8), Value::Primitive(PrimitiveValue::U8(123)));
-		encode_decode_check(Compact(123u16), Value::Primitive(PrimitiveValue::U16(123)));
-		encode_decode_check(Compact(123u32), Value::Primitive(PrimitiveValue::U32(123)));
-		encode_decode_check(Compact(123u64), Value::Primitive(PrimitiveValue::U64(123)));
-		encode_decode_check(Compact(123u128), Value::Primitive(PrimitiveValue::U128(123)));
+		encode_decode_check(Compact(123u8), Value::Primitive(Primitive::U8(123)));
+		encode_decode_check(Compact(123u16), Value::Primitive(Primitive::U16(123)));
+		encode_decode_check(Compact(123u32), Value::Primitive(Primitive::U32(123)));
+		encode_decode_check(Compact(123u64), Value::Primitive(Primitive::U64(123)));
+		encode_decode_check(Compact(123u128), Value::Primitive(Primitive::U128(123)));
 	}
 
 	#[test]
@@ -302,25 +302,25 @@ mod test {
 		encode_decode_check(
 			vec![1i32, 2, 3],
 			Value::Sequence(vec![
-				Value::Primitive(PrimitiveValue::I32(1)),
-				Value::Primitive(PrimitiveValue::I32(2)),
-				Value::Primitive(PrimitiveValue::I32(3)),
+				Value::Primitive(Primitive::I32(1)),
+				Value::Primitive(Primitive::I32(2)),
+				Value::Primitive(Primitive::I32(3)),
 			]),
 		);
 		encode_decode_check(
 			[1i32, 2, 3], //compile-time length known
 			Value::Sequence(vec![
-				Value::Primitive(PrimitiveValue::I32(1)),
-				Value::Primitive(PrimitiveValue::I32(2)),
-				Value::Primitive(PrimitiveValue::I32(3)),
+				Value::Primitive(Primitive::I32(1)),
+				Value::Primitive(Primitive::I32(2)),
+				Value::Primitive(Primitive::I32(3)),
 			]),
 		);
 		encode_decode_check(
 			(1i32, true, 123456u128),
 			Value::Sequence(vec![
-				Value::Primitive(PrimitiveValue::I32(1)),
-				Value::Primitive(PrimitiveValue::Bool(true)),
-				Value::Primitive(PrimitiveValue::U128(123456)),
+				Value::Primitive(Primitive::I32(1)),
+				Value::Primitive(Primitive::Bool(true)),
+				Value::Primitive(Primitive::U128(123456)),
 			]),
 		);
 	}
@@ -335,18 +335,18 @@ mod test {
 
 		encode_decode_check(
 			MyEnum::Foo(true),
-			Value::Variant(VariantValue {
+			Value::Variant(Variant {
 				name: "Foo".to_string(),
-				fields: CompositeValue::Unnamed(vec![Value::Primitive(PrimitiveValue::Bool(true))]),
+				fields: Composite::Unnamed(vec![Value::Primitive(Primitive::Bool(true))]),
 			}),
 		);
 		encode_decode_check(
 			MyEnum::Bar { hi: "hello".to_string(), other: 123 },
-			Value::Variant(VariantValue {
+			Value::Variant(Variant {
 				name: "Bar".to_string(),
-				fields: CompositeValue::Named(vec![
-					("hi".to_string(), Value::Primitive(PrimitiveValue::Str("hello".to_string()))),
-					("other".to_string(), Value::Primitive(PrimitiveValue::U128(123))),
+				fields: Composite::Named(vec![
+					("hi".to_string(), Value::Primitive(Primitive::Str("hello".to_string()))),
+					("other".to_string(), Value::Primitive(Primitive::U128(123))),
 				]),
 			}),
 		);
@@ -366,27 +366,27 @@ mod test {
 
 		encode_decode_check(
 			Unnamed(true, "James".into(), vec![1, 2, 3]),
-			Value::Composite(CompositeValue::Unnamed(vec![
-				Value::Primitive(PrimitiveValue::Bool(true)),
-				Value::Primitive(PrimitiveValue::Str("James".to_string())),
+			Value::Composite(Composite::Unnamed(vec![
+				Value::Primitive(Primitive::Bool(true)),
+				Value::Primitive(Primitive::Str("James".to_string())),
 				Value::Sequence(vec![
-					Value::Primitive(PrimitiveValue::U8(1)),
-					Value::Primitive(PrimitiveValue::U8(2)),
-					Value::Primitive(PrimitiveValue::U8(3)),
+					Value::Primitive(Primitive::U8(1)),
+					Value::Primitive(Primitive::U8(2)),
+					Value::Primitive(Primitive::U8(3)),
 				]),
 			])),
 		);
 		encode_decode_check(
 			Named { is_valid: true, name: "James".into(), bytes: vec![1, 2, 3] },
-			Value::Composite(CompositeValue::Named(vec![
-				("is_valid".into(), Value::Primitive(PrimitiveValue::Bool(true))),
-				("name".into(), Value::Primitive(PrimitiveValue::Str("James".to_string()))),
+			Value::Composite(Composite::Named(vec![
+				("is_valid".into(), Value::Primitive(Primitive::Bool(true))),
+				("name".into(), Value::Primitive(Primitive::Str("James".to_string()))),
 				(
 					"bytes".into(),
 					Value::Sequence(vec![
-						Value::Primitive(PrimitiveValue::U8(1)),
-						Value::Primitive(PrimitiveValue::U8(2)),
-						Value::Primitive(PrimitiveValue::U8(3)),
+						Value::Primitive(Primitive::U8(1)),
+						Value::Primitive(Primitive::U8(2)),
+						Value::Primitive(Primitive::U8(3)),
 					]),
 				),
 			])),
