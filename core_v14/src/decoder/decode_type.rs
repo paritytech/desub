@@ -193,7 +193,7 @@ fn decode_compact_type(
 			TypeDef::Primitive(U32) => Value::Primitive(Primitive::U32(Compact::<u32>::decode(data)?.0)),
 			TypeDef::Primitive(U64) => Value::Primitive(Primitive::U64(Compact::<u64>::decode(data)?.0)),
 			TypeDef::Primitive(U128) => Value::Primitive(Primitive::U128(Compact::<u128>::decode(data)?.0)),
-			// A struct with exactly 1 field containing one of the above types can be sensible compact encoded/decoded.
+			// A struct with exactly 1 field containing one of the above types can be sensibly compact encoded/decoded.
 			TypeDef::Composite(composite) => {
 				if composite.fields().len() != 1 {
 					return Err(DecodeTypeError::CannotDecodeCompactIntoType(inner.clone()));

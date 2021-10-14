@@ -57,7 +57,7 @@ fn to_bytes(hex_str: &str) -> Vec<u8> {
 //    "unwrapped" unsigned extrinsic, and check that it decodes as expected.
 
 #[test]
-fn balance_transfer_ext() {
+fn balance_transfer_signed() {
     let d = decoder();
 
     // Balances.transfer (amount: 12345)
@@ -71,7 +71,7 @@ fn balance_transfer_ext() {
 }
 
 #[test]
-fn balance_transfer_all_ext() {
+fn balance_transfer_all_signed() {
     let d = decoder();
 
     // Balances.transfer_all (keepalive: false)
@@ -86,9 +86,9 @@ fn balance_transfer_all_ext() {
 
 /// This test is interesting because:
 /// a) The Auctions pallet index is not the same as where it is listed in the list of pallets.
-/// b) One of the arguments is a compact-encoded wrapper struct.
+/// b) One of the arguments is a compact-encoded wrapper struct, which caused a hiccup.
 #[test]
-fn auctions_bid_call() {
+fn auctions_bid_unsigned() {
     let d = decoder();
 
     // Auctions.bid (Args: (1,), 2, 3, 4, 5, all compact encoded).
@@ -106,4 +106,51 @@ fn auctions_bid_call() {
         Value::Primitive(value::Primitive::U32(4)),
         Value::Primitive(value::Primitive::U128(5)),
     ]);
+}
+
+#[test]
+fn system_fill_block_unsigned() {
+    let d = decoder();
+
+    // System.fill_block (Args: Perblock(1234)).
+    let ext_bytes = to_bytes("0x040000d2040000");
+    let ext = d.decode_unwrapped_extrinsic(&ext_bytes).expect("can decode extrinsic");
+
+    assert_eq!(ext.pallet, "System".to_string());
+    assert_eq!(ext.call, "fill_block".to_string());
+    assert_eq!(ext.arguments.len(), 1);
+
+    assert_eq!(ext.arguments, vec![
+        Value::Composite(value::Composite::Unnamed(vec![Value::Primitive(value::Primitive::U32(1234))])),
+    ]);
+}
+
+/// This test is interesting because you provide a nested enum representing a call
+/// as an argument to this call.
+#[test]
+fn technical_committee_execute_unsigned() {
+    let d = decoder();
+
+    // TechnicalCommittee.execute (Args: Balances.transfer(Alice -> Bob, 12345), 500).
+    let ext_bytes = to_bytes("0x0410010500001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07ce5c0d107");
+    let ext = d.decode_unwrapped_extrinsic(&ext_bytes).expect("can decode extrinsic");
+
+    assert_eq!(ext.pallet, "TechnicalCommittee".to_string());
+    assert_eq!(ext.call, "execute".to_string());
+    assert_eq!(ext.arguments.len(), 2);
+
+    // It's a bit hard matching the entire thing, so we just verify that the first arg looks like
+    // a variant representing a call to "Balances.transfer".
+    assert!(matches!(&ext.arguments[0],
+        Value::Variant(value::Variant {
+            name,
+            fields: value::Composite::Unnamed(args)
+        })
+        if &*name == "Balances"
+        && matches!(&args[0], Value::Variant(value::Variant { name, ..}) if &*name == "transfer")
+    ));
+    assert_eq!(
+        &ext.arguments[1],
+        &Value::Primitive(value::Primitive::U32(500))
+    );
 }
