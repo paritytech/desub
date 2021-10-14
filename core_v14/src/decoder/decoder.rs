@@ -99,7 +99,7 @@ impl Decoder {
 	/// a compact encoded count of the number of bytes to follow, and then the actual extrinsic information (optional
 	/// signature + call data).
 	///
-	/// If your extrinsic is not prefixed by the number of bytes to follow, use [`Decoder::decode_unwrapped_extrinsic()`] to
+	/// If your extrinsic is not prefixed by the number of bytes to follow, use [`Decoder::decode_unwrapped_extrinsic`] to
 	/// decode it.
 	pub fn decode_extrinsic(&self, mut data: &[u8]) -> Result<GenericExtrinsic, DecodeError> {
 		let data = &mut data;
@@ -111,9 +111,9 @@ impl Decoder {
 		self.decode_unwrapped_extrinsic(*data)
 	}
 
-	/// Decode a SCALE encoded extrinsic against the metadata provided. An individual extrinsic is essentially a compact
-	/// encoded count of the number of bytes to follow, and then the actual extrinsic information (optional signature + call
-	/// data).
+	/// Decode a SCALE encoded extrinsic against the metadata provided. Unlike [`Decoder::decode_extrinsic`], this
+	/// assumes that the bytes provided do *not* start with a compact encoded count of the number of extrinsic bytes
+	/// to follow (ie, the extrinsic has been "unwrapped" already).
 	pub fn decode_unwrapped_extrinsic(&self, mut data: &[u8]) -> Result<GenericExtrinsic, DecodeError> {
 		// A mutably pointer to the slice, so that we can update out view into the bytes as
 		// we decode things from it.
