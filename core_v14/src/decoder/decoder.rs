@@ -18,7 +18,7 @@ use super::decode_type::{decode_type, decode_type_by_id, DecodeTypeError};
 use super::extrinsic_bytes::{ExtrinsicBytes, ExtrinsicBytesError};
 use crate::metadata::Metadata;
 use crate::substrate_value::SubstrateValue;
-use codec::Decode;
+use codec::{ Compact, Decode };
 use sp_runtime::{AccountId32, MultiAddress, MultiSignature};
 
 pub struct Decoder {
@@ -59,9 +59,10 @@ impl Decoder {
 		self.metadata
 	}
 
-	/// Decode a SCALE encoded vector of extrinsics against the metadata provided. We get back a vector
-	/// of the decoded extrinsics on success, else we get an error containing the extrinsics that were decoded
-	/// successfully before the error, and then the error itself.
+	/// Decode a SCALE encoded vector of extrinsics against the metadata provided. Conceptually, extrinsics are
+	/// expected to be provided in a SCALE-encoded form equivalent to `Vec<Vec<Extrinsic>>`; in other words, we
+	/// start with a compact encoded count of how many extrinsics exist, and then each extrinsic is prefixed by
+	/// a compact encoding of the number of bytes it will take.
 	pub fn decode_extrinsics(
 		&self,
 		data: &[u8],
@@ -79,7 +80,7 @@ impl Decoder {
 
 			log::trace!("Extrinsic {}:{:?}", idx, single_extrinsic.bytes());
 
-			let ext = match self.decode_extrinsic(single_extrinsic.bytes()) {
+			let ext = match self.decode_unwrapped_extrinsic(single_extrinsic.bytes()) {
 				Ok(ext) => ext,
 				Err(DecodeError::LateEof(remaining, ext)) => {
 					// Returned from `decode_extrinsics`, we want the remaining bytes to be relative
@@ -94,8 +95,26 @@ impl Decoder {
 		Ok(out)
 	}
 
-	/// Decode a SCALE encoded extrinsic against the metadata provided
+	/// Decode a SCALE encoded extrinsic against the metadata provided. An individual extrinsic is normally represented as
+	/// a compact encoded count of the number of bytes to follow, and then the actual extrinsic information (optional
+	/// signature + call data).
+	///
+	/// If your extrinsic is not prefixed by the number of bytes to follow, use [`Decoder::decode_unwrapped_extrinsic()`] to
+	/// decode it.
 	pub fn decode_extrinsic(&self, mut data: &[u8]) -> Result<GenericExtrinsic, DecodeError> {
+		let data = &mut data;
+
+		// Ignore the expected extrinsic length here at the moment, since `decode_unwrapped_extrinsic` will
+		// error accordingly if the wrong number of bytes are consumed.
+		let _len = <Compact<u32>>::decode(data)?;
+
+		self.decode_unwrapped_extrinsic(*data)
+	}
+
+	/// Decode a SCALE encoded extrinsic against the metadata provided. An individual extrinsic is essentially a compact
+	/// encoded count of the number of bytes to follow, and then the actual extrinsic information (optional signature + call
+	/// data).
+	pub fn decode_unwrapped_extrinsic(&self, mut data: &[u8]) -> Result<GenericExtrinsic, DecodeError> {
 		// A mutably pointer to the slice, so that we can update out view into the bytes as
 		// we decode things from it.
 		let data = &mut data;

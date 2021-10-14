@@ -42,7 +42,8 @@ impl<'a> ExtrinsicBytes<'a> {
 	}
 
 	/// Iterate over a SCALE encoded vector of extrinsics and return the bytes associated
-	/// with each one, or an error containing the position at which decoding failed.
+	/// with each one (not including the length prefix), or an error containing the position
+	/// at which decoding failed.
 	pub fn iter(&self) -> ExtrinsicBytesIter<'a> {
 		ExtrinsicBytesIter { data: &self.data, cursor: 0 }
 	}
@@ -106,7 +107,6 @@ fn decode_compact_u32(mut data: &[u8]) -> Option<(usize, usize)> {
 	use codec::{Compact, CompactLen, Decode};
 	use std::convert::TryFrom;
 
-	// alternative to `DecodeLength` trait, to avoid casting from a trait
 	let length = u32::from(Compact::<u32>::decode(&mut data).ok()?);
 	let prefix = Compact::<u32>::compact_len(&length);
 	let length = usize::try_from(length).ok()?;
