@@ -54,7 +54,18 @@ pub struct Metadata {
 
 impl Metadata {
 	/// Attempt to convert some SCALE encoded bytes into Metadata, returning an
-	/// error if something goes wrong in doing so.
+	/// error if something goes wrong in doing so. Here's an example command using
+	/// `curl` and `jq` to download this from a locally running node (on the default port)
+	/// and save it as `node_metadata.scale`.
+	///
+	/// ```sh
+	/// curl -sX POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"state_getMetadata", "id": 1}' localhost:9933 \
+	///     | jq .result \
+	///     | cut -d '"' -f 2 \
+	///     | xxd -r -p > node_metadata.scale
+	/// ```
+	///
+	/// This file can then be read and passed directly to this method.
 	pub fn from_bytes(bytes: &[u8]) -> Result<Self, MetadataError> {
 		log::trace!("Decoding metadata");
 		let meta = frame_metadata::RuntimeMetadataPrefixed::decode(&mut &*bytes)?;

@@ -33,7 +33,7 @@ pub enum Value {
 	Variant(Variant),
 	/// A sequence or array type.
 	Sequence(Sequence),
-	/// A sequence of bits (which is more compactly encoded in a [`bitvec::BitVec`])
+	/// A sequence of bits (which is more compactly encoded using [`bitvec`])
 	BitSequence(BitSequence),
 	/// Any of the primitive values we can have.
 	Primitive(Primitive),

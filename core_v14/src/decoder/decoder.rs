@@ -14,9 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-/*!
+use super::decode_type::{decode_type, decode_type_by_id, DecodeTypeError};
+use super::extrinsic_bytes::{AllExtrinsicBytes, ExtrinsicBytesError};
+use crate::metadata::Metadata;
+use crate::value::Value;
+use codec::{Compact, Decode};
+use sp_runtime::{AccountId32, MultiAddress, MultiSignature};
+
+/**
 Given some [`Metadata`] obtained from a substrate node, this allows you to decode
-various SCALE encoded values from that node
+various SCALE encoded values from that node.
 
 # Examples
 
@@ -101,15 +108,6 @@ assert_eq!(extrinsic.pallet, "Auctions".to_string());
 assert_eq!(extrinsic.call, "bid".to_string());
 ```
 */
-
-use super::decode_type::{decode_type, decode_type_by_id, DecodeTypeError};
-use super::extrinsic_bytes::{AllExtrinsicBytes, ExtrinsicBytesError};
-use crate::metadata::Metadata;
-use crate::value::Value;
-use codec::{Compact, Decode};
-use sp_runtime::{AccountId32, MultiAddress, MultiSignature};
-
-/// A decoder for decoding SCALE encoded values given some metadata.
 pub struct Decoder {
 	metadata: Metadata,
 }
