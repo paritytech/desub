@@ -21,20 +21,17 @@ use frame_metadata::{RuntimeMetadata, RuntimeMetadataPrefixed};
 use scale_info::{form::PortableForm, PortableRegistry};
 use std::collections::HashMap;
 
-pub type Type = scale_info::Type<PortableForm>;
-pub type TypeDef = scale_info::TypeDef<PortableForm>;
-pub type TypeId = <scale_info::form::PortableForm as scale_info::form::Form>::Type;
-pub type SignedExtensionMetadata = frame_metadata::SignedExtensionMetadata<PortableForm>;
+// We don't expose anything scale-info or parity-scale-codec related outside of
+// this crate currently, so no need to expose these either:
+pub (crate) type Type = scale_info::Type<PortableForm>;
+pub (crate) type TypeDef = scale_info::TypeDef<PortableForm>;
+pub (crate) type TypeId = <scale_info::form::PortableForm as scale_info::form::Form>::Type;
+pub (crate) type SignedExtensionMetadata = frame_metadata::SignedExtensionMetadata<PortableForm>;
 
+/// An enum of the possible errors that can be returned from attempting to construct
+/// a [`Metadata`] struct.
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum MetadataError {
-	#[error("Cannot decode bytes into metadata: {0}")]
-	DecodeError(#[from] DecodeError),
-}
-
-/// An error related to attempting to decode metadata from a slice of byres.
-#[derive(Debug, Clone, thiserror::Error)]
-pub enum DecodeError {
 	#[error("metadata version {0} is not supported")]
 	UnsupportedVersion(usize),
 	#[error("{0}")]
@@ -45,27 +42,22 @@ pub enum DecodeError {
 	TypeNotFound(u32),
 }
 
-/// A Representation of some metadata for a node which aids in the
-/// decoding of SCALE encoded data and such.
+/// This is a representation of the SCALE encoded metadata obtained from a substrate
+/// node. While not very useful on its own, It can be passed to [`crate::Decoder`]
+/// to allow that to decode extrinsics compatible with the substrate node that
+/// this was obtained from.
 pub struct Metadata {
 	extrinsic: MetadataExtrinsic,
 	pallets: HashMap<u8, MetadataPallet>,
 	types: PortableRegistry,
 }
 
-#[derive(Debug)]
-struct MetadataPallet {
-	name: String,
-	calls: HashMap<u8, MetadataCall>,
-}
-
 impl Metadata {
-	/// Attempt to convert some SCALE encoded bytes into Metadata, returning
-	/// an error if something goes wrong in doing so.
+	/// Attempt to convert some SCALE encoded bytes into Metadata, returning an
+	/// error if something goes wrong in doing so.
 	pub fn from_bytes(bytes: &[u8]) -> Result<Self, MetadataError> {
 		log::trace!("Decoding metadata");
-		let meta = frame_metadata::RuntimeMetadataPrefixed::decode(&mut &*bytes)
-			.map_err(|e| MetadataError::DecodeError(e.into()))?;
+		let meta = frame_metadata::RuntimeMetadataPrefixed::decode(&mut &*bytes)?;
 
 		match meta {
 			RuntimeMetadataPrefixed(_, RuntimeMetadata::V14(meta_v14)) => {
@@ -74,12 +66,12 @@ impl Metadata {
 			}
 			RuntimeMetadataPrefixed(_, unsupported_meta) => {
 				let version = runtime_metadata_version(&unsupported_meta);
-				Err(MetadataError::DecodeError(DecodeError::UnsupportedVersion(version)))
+				Err(MetadataError::UnsupportedVersion(version))
 			}
 		}
 	}
 
-	/// Return details about the extrinsic.
+	/// Return details about the type of extrinsic supported by this metadata.
 	pub fn extrinsic(&self) -> &MetadataExtrinsic {
 		&self.extrinsic
 	}
@@ -121,6 +113,12 @@ fn runtime_metadata_version(meta: &RuntimeMetadata) -> usize {
 	}
 }
 
+#[derive(Debug)]
+struct MetadataPallet {
+	name: String,
+	calls: HashMap<u8, MetadataCall>,
+}
+
 /// This represents a single call (extrinsic) that exists in the system.
 #[derive(Debug)]
 pub struct MetadataCall {
@@ -142,9 +140,8 @@ impl MetadataCall {
 	}
 }
 
-/// Information about the shape of an extrinsic. This is not complete, and so
-/// one must decode based on the extrinsic version number as much as anything,
-/// but we can use this to help decode part of the signature.
+/// Information about the extrinsic format supported on the substrate node
+/// that the metadata was obtained from.
 #[derive(Debug, Clone)]
 pub struct MetadataExtrinsic {
 	version: u8,
@@ -152,16 +149,14 @@ pub struct MetadataExtrinsic {
 }
 
 impl MetadataExtrinsic {
-	/// The version of the extrinsic format in use by the node. Extrinsics have
-	/// a version embedded into them anyway, so we don't need this to decode them,
-	/// but it may be useful for encoding in the future.
+	/// The version of the extrinsic format in use by the node.
 	#[allow(unused)]
 	pub fn version(&self) -> u8 {
 		self.version
 	}
 
 	/// Part of the extrinsic signature area can be varied to incldue whatever information
-	/// a ndoe decides is important. This returns details about that part.
+	/// a node decides is important. This returns details about that part.
 	pub(crate) fn signed_extensions(&self) -> &[SignedExtensionMetadata] {
 		&self.signed_extensions
 	}

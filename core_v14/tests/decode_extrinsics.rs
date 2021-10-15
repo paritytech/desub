@@ -148,7 +148,7 @@ fn technical_committee_execute_unsigned() {
 	assert!(matches!(&ext.arguments[0],
 		Value::Variant(value::Variant {
 			name,
-			fields: value::Composite::Unnamed(args)
+			values: value::Composite::Unnamed(args)
 		})
 		if &*name == "Balances"
 		&& matches!(&args[0], Value::Variant(value::Variant { name, ..}) if &*name == "transfer")

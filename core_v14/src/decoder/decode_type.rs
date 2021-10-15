@@ -88,7 +88,7 @@ fn decode_variant_type(
 		.ok_or_else(|| DecodeTypeError::VariantNotFound(index, ty.clone()))?;
 
 	let fields = decode_fields(data, variant.fields(), types)?;
-	Ok(Variant { name: variant.name().clone(), fields })
+	Ok(Variant { name: variant.name().clone(), values: fields })
 }
 
 /// Variant and Composite types both have fields; this will decode them into values.
@@ -253,8 +253,8 @@ mod test {
 	/// Given a value to encode, and a representation of the decoded value, check that our decode functions
 	/// successfully decodes the type to the expected value, based on the implicit SCALE type info that the type
 	/// carries
-	fn encode_decode_check<T: Encode + scale_info::TypeInfo>(val: T, ex: Value) {
-		encode_decode_check_explicit_info(val, T::type_info(), ex)
+	fn encode_decode_check<T: Encode + scale_info::TypeInfo>(val: T, exp: Value) {
+		encode_decode_check_explicit_info(val, T::type_info(), exp)
 	}
 
 	/// Given a value to encode, a type to decode it back into, and a representation of
@@ -356,6 +356,11 @@ mod test {
 		impl codec::CompactAs for MyWrapper {
 			type As = u32;
 
+			// Node the requirement to return something with a lifetime tied
+			// to self here. This means that we can't implement this for things
+			// more complex than wrapper structs (eg `Foo(u32,u32,u32,u32)`) without
+			// shenanigans, meaning that (hopefully) supporting wrapper struct
+			// decoding and nothing fancier is sufficient.
 			fn encode_as(&self) -> &Self::As {
 				&self.0
 			}
@@ -410,14 +415,14 @@ mod test {
 			MyEnum::Foo(true),
 			Value::Variant(Variant {
 				name: "Foo".to_string(),
-				fields: Composite::Unnamed(vec![Value::Primitive(Primitive::Bool(true))]),
+				values: Composite::Unnamed(vec![Value::Primitive(Primitive::Bool(true))]),
 			}),
 		);
 		encode_decode_check(
 			MyEnum::Bar { hi: "hello".to_string(), other: 123 },
 			Value::Variant(Variant {
 				name: "Bar".to_string(),
-				fields: Composite::Named(vec![
+				values: Composite::Named(vec![
 					("hi".to_string(), Value::Primitive(Primitive::Str("hello".to_string()))),
 					("other".to_string(), Value::Primitive(Primitive::U128(123))),
 				]),

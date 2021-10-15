@@ -36,7 +36,9 @@ impl<'a> AllExtrinsicBytes<'a> {
 }
 
 impl<'a> AllExtrinsicBytes<'a> {
-	/// How many extrinsics are there?
+	/// How many extrinsics are there? Note that this is simply the reported number of extrinsics,
+	/// and if the extrinsic bytes are malformed, it may not equal the actual number of extrinsics
+	/// thae we are able to iterate over.
 	pub fn len(&self) -> usize {
 		self.len
 	}
@@ -60,17 +62,32 @@ pub struct ExtrinsicBytesIter<'a> {
 impl<'a> Iterator for ExtrinsicBytesIter<'a> {
 	type Item = Result<ExtrinsicBytes<'a>, ExtrinsicBytesError>;
 	fn next(&mut self) -> Option<Self::Item> {
-		if self.data.is_empty() {
+		if self.cursor >= self.data.len() {
 			return None;
 		}
 
-		let (vec_len, vec_len_bytes) = match decode_compact_u32(&self.data) {
+		let (vec_len, vec_len_bytes) = match decode_compact_u32(&self.data[self.cursor..]) {
 			Some(res) => res,
-			None => return Some(Err(ExtrinsicBytesError { index: self.cursor })),
+			None => {
+				// Ensure that if we try iterating again we get back `None`:
+				self.cursor = self.data.len();
+				return Some(Err(ExtrinsicBytesError { index: self.cursor }))
+			},
 		};
 		log::trace!("Length {}, Prefix: {}", vec_len, vec_len_bytes);
 
-		let res = &self.data[(self.cursor + vec_len_bytes)..(self.cursor + vec_len + vec_len_bytes)];
+		let start = self.cursor + vec_len_bytes;
+		let end = self.cursor + vec_len_bytes + vec_len;
+
+		// We are trusting the lengths reported. Avoid a panic by ensuring that if there
+		// aren't as many bytes as we expect, we bail with an error.
+		if end > self.data.len() {
+			// Ensure that if we try iterating again we get back `None`:
+			self.cursor = self.data.len();
+			return Some(Err(ExtrinsicBytesError { index: self.data.len() }))
+		}
+
+		let res = &self.data[start..end];
 		self.cursor += vec_len + vec_len_bytes;
 
 		Some(Ok(ExtrinsicBytes { data: res, remaining: self.data.len() - self.cursor }))
@@ -84,7 +101,7 @@ pub struct ExtrinsicBytes<'a> {
 
 impl<'a> ExtrinsicBytes<'a> {
 	/// The bytes representing a single extrinsic
-	pub fn bytes(&'a self) -> &'a [u8] {
+	pub fn bytes(&self) -> &'a [u8] {
 		&self.data
 	}
 	/// How many bytes remain to be decoded after this extrinsic?
@@ -94,7 +111,7 @@ impl<'a> ExtrinsicBytes<'a> {
 }
 
 /// An error containing the index into the byte slice at which decoding failed.
-#[derive(Debug, Clone, Copy, thiserror::Error)]
+#[derive(Debug, Clone, Copy, PartialEq, thiserror::Error)]
 #[error("Expected a compact encoded u32 at byte index {index}, but did not find one")]
 pub struct ExtrinsicBytesError {
 	pub index: usize,
@@ -111,4 +128,116 @@ fn decode_compact_u32(mut data: &[u8]) -> Option<(usize, usize)> {
 	let prefix = Compact::<u32>::compact_len(&length);
 	let length = usize::try_from(length).ok()?;
 	Some((length, prefix))
+}
+
+#[cfg(test)]
+mod test {
+
+	use super::*;
+	use codec::{ Encode, Compact };
+
+	fn iter_result_to_bytes<'a, E>(res: Option<Result<ExtrinsicBytes<'a>, E>>) -> Option<Result<&'a [u8], E>> {
+		res.map(|r| r.map(|e| e.bytes()))
+	}
+
+	#[test]
+	fn no_malformed_bytes_iterated_properly() {
+		let mut bytes: Vec<u8> = vec![];
+
+		// 2 entries in block (correct):
+		bytes.extend_from_slice(&Compact(2u32).encode());
+
+		// First entry; 4 bytes long (correct):
+		bytes.extend_from_slice(&Compact(4u32).encode());
+		bytes.extend_from_slice(&[1, 2, 3, 4]);
+
+		// Second entry; 3 bytes long (also correct):
+		bytes.extend_from_slice(&Compact(3u32).encode());
+		bytes.extend_from_slice(&[1, 2, 3]);
+
+		let exts = AllExtrinsicBytes::new(&bytes).unwrap();
+		assert_eq!(exts.len(), 2);
+
+		let mut exts = exts.iter();
+		assert_eq!(iter_result_to_bytes(exts.next()), Some(Ok(&[1, 2, 3, 4][..])));
+		assert_eq!(iter_result_to_bytes(exts.next()), Some(Ok(&[1, 2, 3][..])));
+		assert_eq!(iter_result_to_bytes(exts.next()), None);
+	}
+
+	#[test]
+	fn malformed_extrinsics_length() {
+		let mut bytes: Vec<u8> = vec![];
+
+		// 3 entries in block (wrong):
+		bytes.extend_from_slice(&Compact(3u32).encode());
+
+		// First entry; 4 bytes long (correct):
+		bytes.extend_from_slice(&Compact(4u32).encode());
+		bytes.extend_from_slice(&[1, 2, 3, 4]);
+
+		// Second entry; 3 bytes long (also correct):
+		bytes.extend_from_slice(&Compact(3u32).encode());
+		bytes.extend_from_slice(&[1, 2, 3]);
+
+		// No third entry (whoops; malformed).
+
+		let exts = AllExtrinsicBytes::new(&bytes).unwrap();
+		assert_eq!(exts.len(), 3); // Wrong length reported; we'll see when we iterate..
+
+		let mut exts = exts.iter();
+		assert_eq!(iter_result_to_bytes(exts.next()), Some(Ok(&[1, 2, 3, 4][..])));
+		assert_eq!(iter_result_to_bytes(exts.next()), Some(Ok(&[1, 2, 3][..])));
+		assert_eq!(iter_result_to_bytes(exts.next()), None);
+	}
+
+	#[test]
+	fn malformed_extrinsic_length() {
+		let mut bytes: Vec<u8> = vec![];
+
+		// 3 entries in block (correct):
+		bytes.extend_from_slice(&Compact(2u32).encode());
+
+		// First entry; 4 bytes long (correct):
+		bytes.extend_from_slice(&Compact(4u32).encode());
+		bytes.extend_from_slice(&[1, 2, 3, 4]);
+
+		// Second entry; 3 bytes long (wrong):
+		bytes.extend_from_slice(&Compact(3u32).encode());
+		bytes.extend_from_slice(&[1, 2]);
+
+		let exts = AllExtrinsicBytes::new(&bytes).unwrap();
+		assert_eq!(exts.len(), 2);
+
+		let mut exts = exts.iter();
+		assert_eq!(iter_result_to_bytes(exts.next()), Some(Ok(&[1, 2, 3, 4][..])));
+		assert_eq!(iter_result_to_bytes(exts.next()), Some(Err(ExtrinsicBytesError{ index: 8 })));
+		assert_eq!(iter_result_to_bytes(exts.next()), None);
+	}
+
+	#[test]
+	fn malformed_two_lengths() {
+		let mut bytes: Vec<u8> = vec![];
+
+		// 3 entries in block (wrong):
+		bytes.extend_from_slice(&Compact(3u32).encode());
+
+		// First entry; 4 bytes long (correct):
+		bytes.extend_from_slice(&Compact(4u32).encode());
+		bytes.extend_from_slice(&[1, 2, 3, 4]);
+
+		// Second entry; 3 bytes long (wrong):
+		bytes.extend_from_slice(&Compact(3u32).encode());
+		bytes.extend_from_slice(&[1, 2]);
+
+		// No third entry (whoops; malformed).
+
+		let exts = AllExtrinsicBytes::new(&bytes).unwrap();
+		assert_eq!(exts.len(), 3); // Wrong length reported
+
+		let mut exts = exts.iter();
+		assert_eq!(iter_result_to_bytes(exts.next()), Some(Ok(&[1, 2, 3, 4][..])));
+		assert_eq!(iter_result_to_bytes(exts.next()), Some(Err(ExtrinsicBytesError{ index: 8 })));
+		assert_eq!(iter_result_to_bytes(exts.next()), None);
+	}
+
 }

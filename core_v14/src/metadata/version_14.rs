@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{DecodeError, Metadata, MetadataCall, MetadataExtrinsic, MetadataPallet};
+use super::{MetadataError, Metadata, MetadataCall, MetadataExtrinsic, MetadataPallet};
 use frame_metadata::RuntimeMetadataV14;
 use std::collections::HashMap;
 
 /// Decode V14 metadata into our general Metadata struct
-pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, DecodeError> {
+pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, MetadataError> {
 	let registry = meta.types;
 	let mut pallets = HashMap::new();
 
@@ -33,14 +33,14 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, DecodeError> {
 		if let Some(call_md) = pallet.calls {
 			// Get the type representing the variant of available calls:
 			let call_ty_id = call_md.ty.id();
-			let call_ty = registry.resolve(call_ty_id).ok_or(DecodeError::TypeNotFound(call_ty_id))?;
+			let call_ty = registry.resolve(call_ty_id).ok_or(MetadataError::TypeNotFound(call_ty_id))?;
 
 			// Expect that type to be a variant:
 			let call_ty_def = call_ty.type_def();
 			let call_variant = match call_ty_def {
 				scale_info::TypeDef::Variant(variant) => variant,
 				_ => {
-					return Err(DecodeError::ExpectedVariantType { got: format!("{:?}", call_ty_def) });
+					return Err(MetadataError::ExpectedVariantType { got: format!("{:?}", call_ty_def) });
 				}
 			};
 

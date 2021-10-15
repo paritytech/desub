@@ -18,27 +18,22 @@ use bitvec::{order::Lsb0, vec::BitVec};
 use std::convert::From;
 use std::fmt::Debug;
 
-/// Whereas [`crate::substrate_type::SubstrateType`] is concerned with type information,
-/// [`SubstrateValue`] is concerned with holding a representation of actual values
-/// corresponding to each of those types.
+/// [`Value`] holds a representation of some value that has been decoded.
 ///
-/// Not all types have an similar-named value; for example, sequences and array
+/// Not all SCALE encoded types have an similar-named value; for example, sequences and array
 /// values can both be represented with [`Sequence`], and structs and tuple values can
-/// both be represented with [`Composite`]. Only enough information is preserved to
-/// construct a valid value for any type that we know about, and it should be possible to
-/// verify whether a value can be treated as a given [`crate::substrate_type::SubstrateType`]
-/// or not.
+/// both be represented with [`Composite`]. Only enough information is preserved here to
+/// construct a valid value for any type that we know about, and be able to verify that a given
+/// value is compatible with some type (see the [`scale_info`] crate).
 #[derive(Clone, PartialEq)]
 pub enum Value {
-	/// Values for a named or unnamed struct or tuple.
+	/// A named or unnamed struct or tuple.
 	Composite(Composite),
 	/// An enum variant.
 	Variant(Variant),
-	/// A value corresponding to a sequence or array type, or even a BitVec.
+	/// A sequence or array type.
 	Sequence(Sequence),
-	/// Special handling for BitVec (since it has it's own scale_info type).
-	/// We make assumptions about the bitvec structure (based on how we decoded
-	/// these prior to V14).
+	/// A sequence of bits (which is more compactly encoded in a [`bitvec::BitVec`])
 	BitSequence(BitSequence),
 	/// Any of the primitive values we can have.
 	Primitive(Primitive),
@@ -93,15 +88,17 @@ impl From<Composite> for Value {
 
 #[derive(Clone, PartialEq)]
 pub struct Variant {
+	/// The name of the variant.
 	pub name: String,
-	pub fields: Composite,
+	/// Values for each of the named or unnamed fields associated with this variant.
+	pub values: Composite,
 }
 
 impl Debug for Variant {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.write_str(&self.name)?;
 		f.write_str(" ")?;
-		Debug::fmt(&self.fields, f)
+		Debug::fmt(&self.values, f)
 	}
 }
 
@@ -111,6 +108,7 @@ impl From<Variant> for Value {
 	}
 }
 
+/// A "primitive" value (this includes strings).
 #[derive(Clone, PartialEq)]
 pub enum Primitive {
 	Bool(bool),
