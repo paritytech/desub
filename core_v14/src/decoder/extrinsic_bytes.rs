@@ -38,7 +38,7 @@ impl<'a> AllExtrinsicBytes<'a> {
 impl<'a> AllExtrinsicBytes<'a> {
 	/// How many extrinsics are there? Note that this is simply the reported number of extrinsics,
 	/// and if the extrinsic bytes are malformed, it may not equal the actual number of extrinsics
-	/// thae we are able to iterate over.
+	/// that we are able to iterate over.
 	pub fn len(&self) -> usize {
 		self.len
 	}
