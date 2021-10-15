@@ -26,11 +26,10 @@ use std::fmt::Debug;
 
 /// [`Value`] holds a representation of some value that has been decoded.
 ///
-/// Not all SCALE encoded types have an similar-named value; for example, sequences and array
-/// values can both be represented with [`Sequence`], and structs and tuple values can
-/// both be represented with [`Composite`]. Only enough information is preserved here to
-/// construct a valid value for any type that we know about, and be able to verify that a given
-/// value is compatible with some type (see the [`scale_info`] crate).
+/// Not all SCALE encoded types have an similar-named value; for instance, the values corresponding to
+/// sequence, array and composite types can all be represented with [`Composite`]. Only enough information
+/// is preserved here to construct a valid value for any type that we know about, and be able to verify
+/// that a given value is compatible with some type (see the [`scale_info`] crate), if we have both.
 #[derive(Clone, PartialEq)]
 pub enum Value {
 	/// A named or unnamed struct-like, array-like or tuple-like set of values.
@@ -54,9 +53,9 @@ impl Debug for Value {
 	}
 }
 
-/// This represents struct-like data (in other words, data with
-/// either named fields or not). It is also used to represent the values of
-/// an enum variant (which are also either named or unnamed).
+/// A named or unnamed struct-like, array-like or tuple-like set of values.
+/// This is used to represent a range of composite values on their own, or
+/// as values for a specific [`Variant`].
 #[derive(Clone, PartialEq)]
 pub enum Composite {
 	/// Eg `{ foo: 2, bar: false }`
