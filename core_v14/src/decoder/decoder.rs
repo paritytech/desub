@@ -15,7 +15,7 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::decode_type::{decode_type, decode_type_by_id, DecodeTypeError};
-use super::extrinsic_bytes::{ExtrinsicBytes, ExtrinsicBytesError};
+use super::extrinsic_bytes::{AllExtrinsicBytes, ExtrinsicBytesError};
 use crate::metadata::Metadata;
 use crate::value::Value;
 use codec::{Compact, Decode};
@@ -45,7 +45,7 @@ pub enum DecodeError {
 	/// of the extrinsic we think we decoded, and the number of bytes left in the slice provided (which we
 	/// expected to entirely consume, but did not).
 	#[error("Decoding an extrinsic should consume all bytes, but {0} bytes remain")]
-	LateEof(usize, GenericExtrinsic),
+	LateEof(usize, Extrinsic),
 }
 
 impl Decoder {
@@ -63,11 +63,8 @@ impl Decoder {
 	/// expected to be provided in a SCALE-encoded form equivalent to `Vec<Vec<Extrinsic>>`; in other words, we
 	/// start with a compact encoded count of how many extrinsics exist, and then each extrinsic is prefixed by
 	/// a compact encoding of the number of bytes it will take.
-	pub fn decode_extrinsics(
-		&self,
-		data: &[u8],
-	) -> Result<Vec<GenericExtrinsic>, (Vec<GenericExtrinsic>, DecodeError)> {
-		let extrinsic_bytes = ExtrinsicBytes::new(data).map_err(|e| (Vec::new(), e.into()))?;
+	pub fn decode_extrinsics(&self, data: &[u8]) -> Result<Vec<Extrinsic>, (Vec<Extrinsic>, DecodeError)> {
+		let extrinsic_bytes = AllExtrinsicBytes::new(data).map_err(|e| (Vec::new(), e.into()))?;
 
 		log::trace!("Decoding {} Total Extrinsics.", extrinsic_bytes.len());
 
@@ -101,7 +98,7 @@ impl Decoder {
 	///
 	/// If your extrinsic is not prefixed by the number of bytes to follow, use [`Decoder::decode_unwrapped_extrinsic`] to
 	/// decode it.
-	pub fn decode_extrinsic(&self, mut data: &[u8]) -> Result<GenericExtrinsic, DecodeError> {
+	pub fn decode_extrinsic(&self, mut data: &[u8]) -> Result<Extrinsic, DecodeError> {
 		let data = &mut data;
 
 		// Ignore the expected extrinsic length here at the moment, since `decode_unwrapped_extrinsic` will
@@ -114,7 +111,7 @@ impl Decoder {
 	/// Decode a SCALE encoded extrinsic against the metadata provided. Unlike [`Decoder::decode_extrinsic`], this
 	/// assumes that the bytes provided do *not* start with a compact encoded count of the number of extrinsic bytes
 	/// to follow (ie, the extrinsic has been "unwrapped" already).
-	pub fn decode_unwrapped_extrinsic(&self, mut data: &[u8]) -> Result<GenericExtrinsic, DecodeError> {
+	pub fn decode_unwrapped_extrinsic(&self, mut data: &[u8]) -> Result<Extrinsic, DecodeError> {
 		// If we use a mutable reference to the data, `decode` functions will autoamtically
 		// update the bytes pointed to as they decode, to "move the cursor along".
 		let data = &mut data;
@@ -181,8 +178,7 @@ impl Decoder {
 			arguments.push(val);
 		}
 
-		let ext =
-			GenericExtrinsic { pallet: pallet_name.to_owned(), call: call.name().to_owned(), signature, arguments };
+		let ext = Extrinsic { pallet: pallet_name.to_owned(), call: call.name().to_owned(), signature, arguments };
 
 		// If there's data left to consume, it likely means we screwed up decoding:
 		if !data.is_empty() {
@@ -195,7 +191,7 @@ impl Decoder {
 }
 
 #[derive(Debug, Clone)]
-pub struct GenericExtrinsic {
+pub struct Extrinsic {
 	/// The name of the pallet that the extrinsic called into
 	pub pallet: String,
 	/// The name of the call made

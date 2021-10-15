@@ -16,26 +16,26 @@
 
 /// A structure representing a set of extrinsics in terms of their raw SCALE encoded bytes.
 #[derive(Clone, Copy)]
-pub struct ExtrinsicBytes<'a> {
+pub struct AllExtrinsicBytes<'a> {
 	len: usize,
 	data: &'a [u8],
 }
 
-impl<'a> ExtrinsicBytes<'a> {
+impl<'a> AllExtrinsicBytes<'a> {
 	/// Treat the bytes provided as a set of Extrinsics, which conceptually has the shape
 	/// `Vec<(Compact<u32>, Extrinsic)>`. Return an error if the bytes are obviously not
 	/// such a shape.
-	pub fn new(bytes: &'a [u8]) -> Result<ExtrinsicBytes<'a>, ExtrinsicBytesError> {
+	pub fn new(bytes: &'a [u8]) -> Result<AllExtrinsicBytes<'a>, ExtrinsicBytesError> {
 		let (vec_len, vec_len_bytes) = match decode_compact_u32(bytes) {
 			Some(res) => res,
 			None => return Err(ExtrinsicBytesError { index: 0 }),
 		};
 
-		Ok(ExtrinsicBytes { len: vec_len, data: &bytes[vec_len_bytes..] })
+		Ok(AllExtrinsicBytes { len: vec_len, data: &bytes[vec_len_bytes..] })
 	}
 }
 
-impl<'a> ExtrinsicBytes<'a> {
+impl<'a> AllExtrinsicBytes<'a> {
 	/// How many extrinsics are there?
 	pub fn len(&self) -> usize {
 		self.len
@@ -58,7 +58,7 @@ pub struct ExtrinsicBytesIter<'a> {
 }
 
 impl<'a> Iterator for ExtrinsicBytesIter<'a> {
-	type Item = Result<SingleExtrinsic<'a>, ExtrinsicBytesError>;
+	type Item = Result<ExtrinsicBytes<'a>, ExtrinsicBytesError>;
 	fn next(&mut self) -> Option<Self::Item> {
 		if self.data.is_empty() {
 			return None;
@@ -73,16 +73,16 @@ impl<'a> Iterator for ExtrinsicBytesIter<'a> {
 		let res = &self.data[(self.cursor + vec_len_bytes)..(self.cursor + vec_len + vec_len_bytes)];
 		self.cursor += vec_len + vec_len_bytes;
 
-		Some(Ok(SingleExtrinsic { data: res, remaining: self.data.len() - self.cursor }))
+		Some(Ok(ExtrinsicBytes { data: res, remaining: self.data.len() - self.cursor }))
 	}
 }
 
-pub struct SingleExtrinsic<'a> {
+pub struct ExtrinsicBytes<'a> {
 	data: &'a [u8],
 	remaining: usize,
 }
 
-impl<'a> SingleExtrinsic<'a> {
+impl<'a> ExtrinsicBytes<'a> {
 	/// The bytes representing a single extrinsic
 	pub fn bytes(&'a self) -> &'a [u8] {
 		&self.data
