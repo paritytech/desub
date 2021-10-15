@@ -169,7 +169,7 @@ fn tips_report_awesome_unsigned() {
 	assert_eq!(ext.arguments.len(), 2);
 	assert_eq!(
 		&ext.arguments[0],
-		&Value::Sequence("This person rocks!".bytes().map(|b| Value::Primitive(value::Primitive::U8(b))).collect())
+		&Value::Composite(value::Composite::Unnamed("This person rocks!".bytes().map(|b| Value::Primitive(value::Primitive::U8(b))).collect()))
 	);
 }
 

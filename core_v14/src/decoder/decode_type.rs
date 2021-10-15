@@ -16,7 +16,7 @@
 
 use crate::{
 	metadata::{Type, TypeDef, TypeId},
-	value::{BitSequence, Composite, Primitive, Sequence, Value, Variant},
+	value::{BitSequence, Composite, Primitive, Value, Variant},
 };
 use codec::{Compact, Decode};
 use scale_info::{
@@ -46,10 +46,10 @@ pub enum DecodeTypeError {
 pub fn decode_type(data: &mut &[u8], ty: &Type, types: &PortableRegistry) -> Result<Value, DecodeTypeError> {
 	match ty.type_def() {
 		TypeDef::Composite(inner) => decode_composite_type(data, inner, types).map(Value::Composite),
+		TypeDef::Sequence(inner) => decode_sequence_type(data, inner, types).map(Value::Composite),
+		TypeDef::Array(inner) => decode_array_type(data, inner, types).map(Value::Composite),
+		TypeDef::Tuple(inner) => decode_tuple_type(data, inner, types).map(Value::Composite),
 		TypeDef::Variant(inner) => decode_variant_type(data, inner, types).map(Value::Variant),
-		TypeDef::Sequence(inner) => decode_sequence_type(data, inner, types).map(Value::Sequence),
-		TypeDef::Array(inner) => decode_array_type(data, inner, types).map(Value::Sequence),
-		TypeDef::Tuple(inner) => decode_tuple_type(data, inner, types).map(Value::Sequence),
 		TypeDef::Primitive(inner) => decode_primitive_type(data, inner).map(Value::Primitive),
 		TypeDef::Compact(inner) => decode_compact_type(data, inner, types),
 		TypeDef::BitSequence(inner) => decode_bit_sequence_type(data, inner, types).map(Value::BitSequence),
@@ -116,37 +116,37 @@ fn decode_sequence_type(
 	data: &mut &[u8],
 	ty: &TypeDefSequence<PortableForm>,
 	types: &PortableRegistry,
-) -> Result<Sequence, DecodeTypeError> {
+) -> Result<Composite, DecodeTypeError> {
 	// We assume that the sequence is preceeded by a compact encoded length, so that
 	// we know how many values to try pulling out of the data.
 	let len = Compact::<u64>::decode(data)?;
 	let values: Vec<_> =
 		(0..len.0).map(|_| decode_type_by_id(data, ty.type_param(), types)).collect::<Result<_, _>>()?;
 
-	Ok(values)
+	Ok(Composite::Unnamed(values))
 }
 
 fn decode_array_type(
 	data: &mut &[u8],
 	ty: &TypeDefArray<PortableForm>,
 	types: &PortableRegistry,
-) -> Result<Sequence, DecodeTypeError> {
+) -> Result<Composite, DecodeTypeError> {
 	// The length is known based on the type we want to decode into, so we pull out the number of items according
 	// to that, and don't need a length to exist in the SCALE encoded bytes
 	let values: Vec<_> =
 		(0..ty.len()).map(|_| decode_type_by_id(data, ty.type_param(), types)).collect::<Result<_, _>>()?;
 
-	Ok(values)
+	Ok(Composite::Unnamed(values))
 }
 
 fn decode_tuple_type(
 	data: &mut &[u8],
 	ty: &TypeDefTuple<PortableForm>,
 	types: &PortableRegistry,
-) -> Result<Sequence, DecodeTypeError> {
+) -> Result<Composite, DecodeTypeError> {
 	let values: Vec<_> = ty.fields().iter().map(|f| decode_type_by_id(data, f, types)).collect::<Result<_, _>>()?;
 
-	Ok(values)
+	Ok(Composite::Unnamed(values))
 }
 
 fn decode_primitive_type(data: &mut &[u8], ty: &TypeDefPrimitive) -> Result<Primitive, DecodeTypeError> {
@@ -380,27 +380,27 @@ mod test {
 	fn decode_sequence_array_tuple_types() {
 		encode_decode_check(
 			vec![1i32, 2, 3],
-			Value::Sequence(vec![
+			Value::Composite(Composite::Unnamed(vec![
 				Value::Primitive(Primitive::I32(1)),
 				Value::Primitive(Primitive::I32(2)),
 				Value::Primitive(Primitive::I32(3)),
-			]),
+			])),
 		);
 		encode_decode_check(
 			[1i32, 2, 3], //compile-time length known
-			Value::Sequence(vec![
+			Value::Composite(Composite::Unnamed(vec![
 				Value::Primitive(Primitive::I32(1)),
 				Value::Primitive(Primitive::I32(2)),
 				Value::Primitive(Primitive::I32(3)),
-			]),
+			])),
 		);
 		encode_decode_check(
 			(1i32, true, 123456u128),
-			Value::Sequence(vec![
+			Value::Composite(Composite::Unnamed(vec![
 				Value::Primitive(Primitive::I32(1)),
 				Value::Primitive(Primitive::Bool(true)),
 				Value::Primitive(Primitive::U128(123456)),
-			]),
+			])),
 		);
 	}
 
@@ -448,11 +448,11 @@ mod test {
 			Value::Composite(Composite::Unnamed(vec![
 				Value::Primitive(Primitive::Bool(true)),
 				Value::Primitive(Primitive::Str("James".to_string())),
-				Value::Sequence(vec![
+				Value::Composite(Composite::Unnamed(vec![
 					Value::Primitive(Primitive::U8(1)),
 					Value::Primitive(Primitive::U8(2)),
 					Value::Primitive(Primitive::U8(3)),
-				]),
+				])),
 			])),
 		);
 		encode_decode_check(
@@ -462,11 +462,11 @@ mod test {
 				("name".into(), Value::Primitive(Primitive::Str("James".to_string()))),
 				(
 					"bytes".into(),
-					Value::Sequence(vec![
+					Value::Composite(Composite::Unnamed(vec![
 						Value::Primitive(Primitive::U8(1)),
 						Value::Primitive(Primitive::U8(2)),
 						Value::Primitive(Primitive::U8(3)),
-					]),
+					])),
 				),
 			])),
 		);

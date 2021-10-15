@@ -33,12 +33,10 @@ use std::fmt::Debug;
 /// value is compatible with some type (see the [`scale_info`] crate).
 #[derive(Clone, PartialEq)]
 pub enum Value {
-	/// A named or unnamed struct or tuple.
+	/// A named or unnamed struct-like, array-like or tuple-like set of values.
 	Composite(Composite),
 	/// An enum variant.
 	Variant(Variant),
-	/// A sequence or array type.
-	Sequence(Sequence),
 	/// A sequence of bits (which is more compactly encoded using [`bitvec`])
 	BitSequence(BitSequence),
 	/// Any of the primitive values we can have.
@@ -50,7 +48,6 @@ impl Debug for Value {
 		match self {
 			Self::Composite(val) => Debug::fmt(val, f),
 			Self::Variant(val) => Debug::fmt(val, f),
-			Self::Sequence(val) => Debug::fmt(val, f),
 			Self::Primitive(val) => Debug::fmt(val, f),
 			Self::BitSequence(val) => Debug::fmt(val, f),
 		}
@@ -170,6 +167,5 @@ impl From<Primitive> for Value {
 	}
 }
 
-/// A sequence of [`Value`]s, which could be
-pub type Sequence = Vec<Value>;
+/// A sequence of bits.
 pub type BitSequence = BitVec<Lsb0, u8>;
