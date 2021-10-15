@@ -14,6 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
+/*!
+This module exposes the [`Value`] type and related subtypes, which are used as the runtime
+representations of SCALE encoded data (much like `serde_json::Value` is a runtime representation
+of JSON data).
+*/
+
 use bitvec::{order::Lsb0, vec::BitVec};
 use std::convert::From;
 use std::fmt::Debug;
@@ -51,6 +57,9 @@ impl Debug for Value {
 	}
 }
 
+/// This represents struct-like data (in other words, data with
+/// either named fields or not). It is also used to represent the values of
+/// an enum variant (which are also either named or unnamed).
 #[derive(Clone, PartialEq)]
 pub enum Composite {
 	/// Eg `{ foo: 2, bar: false }`
@@ -86,6 +95,8 @@ impl From<Composite> for Value {
 	}
 }
 
+/// This represents the value of a specific variant from an enum, and contains
+/// the name of the variant, and the named/unnamed values associated with it.
 #[derive(Clone, PartialEq)]
 pub struct Variant {
 	/// The name of the variant.
@@ -159,5 +170,6 @@ impl From<Primitive> for Value {
 	}
 }
 
+/// A sequence of [`Value`]s, which could be
 pub type Sequence = Vec<Value>;
 pub type BitSequence = BitVec<Lsb0, u8>;

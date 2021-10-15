@@ -14,19 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-mod decode_type;
-mod extrinsic_bytes;
-
-use crate::metadata::Metadata;
-use crate::value::Value;
-use codec::{Compact, Decode};
-use decode_type::{decode_type, decode_type_by_id, DecodeTypeError};
-use extrinsic_bytes::{AllExtrinsicBytes, ExtrinsicBytesError};
-use sp_runtime::{AccountId32, MultiAddress, MultiSignature};
-
-/**
-Given some [`Metadata`] obtained from a substrate node, this allows you to decode
-various SCALE encoded values from that node.
+/*!
+Given some [`Metadata`] obtained from a substrate node, this module exposes the functionality to
+decode various SCALE encoded values, such as extrinsics, that are compatible with that metadata.
 
 # Examples
 
@@ -111,6 +101,16 @@ assert_eq!(extrinsic.pallet, "Auctions".to_string());
 assert_eq!(extrinsic.call, "bid".to_string());
 ```
 */
+mod decode_type;
+mod extrinsic_bytes;
+
+use crate::metadata::Metadata;
+use crate::value::Value;
+use codec::{Compact, Decode};
+use decode_type::{decode_type, decode_type_by_id, DecodeTypeError};
+use extrinsic_bytes::{AllExtrinsicBytes, ExtrinsicBytesError};
+use sp_runtime::{AccountId32, MultiAddress, MultiSignature};
+
 pub struct Decoder {
 	metadata: Metadata,
 }
@@ -282,6 +282,7 @@ impl Decoder {
 	}
 }
 
+/// The result of successfully decoding an extrinsic.
 #[derive(Debug, Clone)]
 pub struct Extrinsic {
 	/// The name of the pallet that the extrinsic called into
@@ -294,6 +295,7 @@ pub struct Extrinsic {
 	pub arguments: Vec<Value>,
 }
 
+/// The signature information embedded in an extrinsic.
 #[derive(Debug, Clone)]
 pub struct ExtrinsicSignature {
 	/// Address the extrinsic is being sent from

@@ -14,6 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
+/*!
+Decode SCALE encoded metadata from a substrate node into a format that
+we can pass to a [`crate::Decoder`].
+*/
+
 mod version_14;
 
 use codec::Decode;
