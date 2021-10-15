@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{MetadataError, Metadata, MetadataCall, MetadataExtrinsic, MetadataPallet};
+use super::{Metadata, MetadataCall, MetadataError, MetadataExtrinsic, MetadataPallet};
 use frame_metadata::RuntimeMetadataV14;
 use std::collections::HashMap;
 
@@ -48,7 +48,7 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, MetadataError> {
 			for variant in call_variant.variants() {
 				// Allow case insensitive matching; lowercase the name:
 				let name = variant.name().to_ascii_lowercase();
-				let args = variant.fields().iter().map(|field| field.ty().clone()).collect();
+				let args = variant.fields().iter().map(|field| *field.ty()).collect();
 
 				calls.insert(variant.index(), MetadataCall { name, args });
 			}

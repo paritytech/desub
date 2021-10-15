@@ -60,7 +60,7 @@ pub fn decode_type(data: &mut &[u8], ty: &Type, types: &PortableRegistry) -> Res
 /// The provided pointer to the data slice will be moved forwards as needed
 /// depending on what was decoded.
 pub fn decode_type_by_id(data: &mut &[u8], ty_id: &TypeId, types: &PortableRegistry) -> Result<Value, DecodeTypeError> {
-	let inner_ty = types.resolve(ty_id.id()).ok_or(DecodeTypeError::TypeIdNotFound(ty_id.id()))?;
+	let inner_ty = types.resolve(ty_id.id()).ok_or_else(|| DecodeTypeError::TypeIdNotFound(ty_id.id()))?;
 	decode_type(data, inner_ty, types)
 }
 
@@ -99,7 +99,7 @@ fn decode_fields(
 ) -> Result<Composite, DecodeTypeError> {
 	let are_named = fields.iter().any(|f| f.name().is_some());
 	let named_field_vals = fields.iter().map(|f| {
-		let name = f.name().cloned().unwrap_or(String::new());
+		let name = f.name().cloned().unwrap_or_default();
 		decode_type_by_id(data, f.ty(), types).map(|val| (name, val))
 	});
 
@@ -219,7 +219,8 @@ fn decode_compact_type(
 	}
 
 	// Pluck the inner type out and run it through our compact decoding logic.
-	let inner = types.resolve(ty.type_param().id()).ok_or(DecodeTypeError::TypeIdNotFound(ty.type_param().id()))?;
+	let inner =
+		types.resolve(ty.type_param().id()).ok_or_else(|| DecodeTypeError::TypeIdNotFound(ty.type_param().id()))?;
 	decode_compact(data, inner, types)
 }
 

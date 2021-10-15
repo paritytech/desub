@@ -47,7 +47,7 @@ impl<'a> AllExtrinsicBytes<'a> {
 	/// with each one (not including the length prefix), or an error containing the position
 	/// at which decoding failed.
 	pub fn iter(&self) -> ExtrinsicBytesIter<'a> {
-		ExtrinsicBytesIter { data: &self.data, cursor: 0 }
+		ExtrinsicBytesIter { data: self.data, cursor: 0 }
 	}
 }
 
@@ -71,8 +71,8 @@ impl<'a> Iterator for ExtrinsicBytesIter<'a> {
 			None => {
 				// Ensure that if we try iterating again we get back `None`:
 				self.cursor = self.data.len();
-				return Some(Err(ExtrinsicBytesError { index: self.cursor }))
-			},
+				return Some(Err(ExtrinsicBytesError { index: self.cursor }));
+			}
 		};
 		log::trace!("Length {}, Prefix: {}", vec_len, vec_len_bytes);
 
@@ -84,7 +84,7 @@ impl<'a> Iterator for ExtrinsicBytesIter<'a> {
 		if end > self.data.len() {
 			// Ensure that if we try iterating again we get back `None`:
 			self.cursor = self.data.len();
-			return Some(Err(ExtrinsicBytesError { index: self.data.len() }))
+			return Some(Err(ExtrinsicBytesError { index: self.data.len() }));
 		}
 
 		let res = &self.data[start..end];
@@ -102,7 +102,7 @@ pub struct ExtrinsicBytes<'a> {
 impl<'a> ExtrinsicBytes<'a> {
 	/// The bytes representing a single extrinsic
 	pub fn bytes(&self) -> &'a [u8] {
-		&self.data
+		self.data
 	}
 	/// How many bytes remain to be decoded after this extrinsic?
 	pub fn remaining(&self) -> usize {
@@ -134,7 +134,7 @@ fn decode_compact_u32(mut data: &[u8]) -> Option<(usize, usize)> {
 mod test {
 
 	use super::*;
-	use codec::{ Encode, Compact };
+	use codec::{Compact, Encode};
 
 	fn iter_result_to_bytes<'a, E>(res: Option<Result<ExtrinsicBytes<'a>, E>>) -> Option<Result<&'a [u8], E>> {
 		res.map(|r| r.map(|e| e.bytes()))
@@ -210,7 +210,7 @@ mod test {
 
 		let mut exts = exts.iter();
 		assert_eq!(iter_result_to_bytes(exts.next()), Some(Ok(&[1, 2, 3, 4][..])));
-		assert_eq!(iter_result_to_bytes(exts.next()), Some(Err(ExtrinsicBytesError{ index: 8 })));
+		assert_eq!(iter_result_to_bytes(exts.next()), Some(Err(ExtrinsicBytesError { index: 8 })));
 		assert_eq!(iter_result_to_bytes(exts.next()), None);
 	}
 
@@ -236,8 +236,7 @@ mod test {
 
 		let mut exts = exts.iter();
 		assert_eq!(iter_result_to_bytes(exts.next()), Some(Ok(&[1, 2, 3, 4][..])));
-		assert_eq!(iter_result_to_bytes(exts.next()), Some(Err(ExtrinsicBytesError{ index: 8 })));
+		assert_eq!(iter_result_to_bytes(exts.next()), Some(Err(ExtrinsicBytesError { index: 8 })));
 		assert_eq!(iter_result_to_bytes(exts.next()), None);
 	}
-
 }

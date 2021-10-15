@@ -23,10 +23,10 @@ use std::collections::HashMap;
 
 // We don't expose anything scale-info or parity-scale-codec related outside of
 // this crate currently, so no need to expose these either:
-pub (crate) type Type = scale_info::Type<PortableForm>;
-pub (crate) type TypeDef = scale_info::TypeDef<PortableForm>;
-pub (crate) type TypeId = <scale_info::form::PortableForm as scale_info::form::Form>::Type;
-pub (crate) type SignedExtensionMetadata = frame_metadata::SignedExtensionMetadata<PortableForm>;
+pub(crate) type Type = scale_info::Type<PortableForm>;
+pub(crate) type TypeDef = scale_info::TypeDef<PortableForm>;
+pub(crate) type TypeId = <scale_info::form::PortableForm as scale_info::form::Form>::Type;
+pub(crate) type SignedExtensionMetadata = frame_metadata::SignedExtensionMetadata<PortableForm>;
 
 /// An enum of the possible errors that can be returned from attempting to construct
 /// a [`Metadata`] struct.
@@ -73,7 +73,7 @@ impl Metadata {
 		match meta {
 			RuntimeMetadataPrefixed(_, RuntimeMetadata::V14(meta_v14)) => {
 				log::trace!("V14 metadata found.");
-				version_14::decode(meta_v14).map_err(|e| e.into())
+				version_14::decode(meta_v14)
 			}
 			RuntimeMetadataPrefixed(_, unsupported_meta) => {
 				let version = runtime_metadata_version(&unsupported_meta);
