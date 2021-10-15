@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-pub mod metadata;
 pub mod decoder;
+pub mod metadata;
 pub mod value;
 
 pub use decoder::Decoder;
