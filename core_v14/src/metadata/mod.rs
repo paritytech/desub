@@ -149,7 +149,7 @@ impl MetadataCall {
 	}
 
 	/// The types expected to be provided as arguments to this call.
-	/// [`TypeId`]'s can be resolved into [`SubstrateType`]'s using
+	/// [`TypeId`]'s can be resolved into [`Type`]'s using
 	/// [`Metadata::resolve_type`]
 	pub fn args(&self) -> &[TypeId] {
 		&self.args
@@ -171,7 +171,7 @@ impl MetadataExtrinsic {
 		self.version
 	}
 
-	/// Part of the extrinsic signature area can be varied to incldue whatever information
+	/// Part of the extrinsic signature area can be varied to include whatever information
 	/// a node decides is important. This returns details about that part.
 	pub(crate) fn signed_extensions(&self) -> &[SignedExtensionMetadata] {
 		&self.signed_extensions

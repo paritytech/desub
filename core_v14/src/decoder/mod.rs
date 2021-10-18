@@ -202,7 +202,7 @@ impl Decoder {
 
 	/// Decode a SCALE encoded extrinsic against the metadata provided. Unlike [`Decoder::decode_extrinsic`], this
 	/// assumes that the bytes provided do *not* start with a compact encoded count of the extrinsic byte length
-	/// (ie, the extrinsic has been "unwrapped" already, and here we deal directly with the dignature and call data).
+	/// (ie, the extrinsic has been "unwrapped" already, and here we deal directly with the signature and call data).
 	pub fn decode_unwrapped_extrinsic(&self, mut data: &[u8]) -> Result<Extrinsic, DecodeError> {
 		// If we use a mutable reference to the data, `decode` functions will autoamtically
 		// update the bytes pointed to as they decode, to "move the cursor along".
