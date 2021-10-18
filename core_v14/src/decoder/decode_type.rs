@@ -40,7 +40,7 @@ pub enum DecodeTypeError {
 	CannotDecodeCompactIntoType(Type),
 }
 
-/// Decode data according to the [`SubstrateType`] provided.
+/// Decode data according to the [`Type`] provided.
 /// The provided pointer to the data slice will be moved forwards as needed
 /// depending on what was decoded.
 pub fn decode_type(data: &mut &[u8], ty: &Type, types: &PortableRegistry) -> Result<Value, DecodeTypeError> {
@@ -56,7 +56,7 @@ pub fn decode_type(data: &mut &[u8], ty: &Type, types: &PortableRegistry) -> Res
 	}
 }
 
-/// Decode data according to the type ID provided.
+/// Decode data according to the [`TypeId`] provided.
 /// The provided pointer to the data slice will be moved forwards as needed
 /// depending on what was decoded.
 pub fn decode_type_by_id(data: &mut &[u8], ty_id: &TypeId, types: &PortableRegistry) -> Result<Value, DecodeTypeError> {
