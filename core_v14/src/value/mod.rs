@@ -20,6 +20,8 @@ representations of SCALE encoded data (much like `serde_json::Value` is a runtim
 of JSON data).
 */
 
+mod deserialize;
+
 use bitvec::{order::Lsb0, vec::BitVec};
 use std::convert::From;
 use std::fmt::Debug;
