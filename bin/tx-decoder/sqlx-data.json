@@ -1,0 +1,217 @@
+{
+  "db": "PostgreSQL",
+  "3db2de0a9c8d747ed7e86742bc926fa762506a589df0077d7a9a8186381416aa": {
+    "query": "SELECT version FROM metadata WHERE version < $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "version",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "4246646843b9ca1ed6c3be341cebb814b2520b95702cf2597f5536f26d49768a": {
+    "query": "SELECT * FROM blocks WHERE block_num = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "parent_hash",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 2,
+          "name": "hash",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 3,
+          "name": "block_num",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 4,
+          "name": "state_root",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 5,
+          "name": "extrinsics_root",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 6,
+          "name": "digest",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 7,
+          "name": "ext",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 8,
+          "name": "spec",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "51240d7ed289ce201ceef2b58a98859bdac3c74c588c0cf8c03731be3fe04519": {
+    "query": "SELECT version FROM metadata",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "version",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "8792fc1441cb8d8e4ee9571db953ee2ea02dfb7db1bcb6d14c78f8daa3611cab": {
+    "query": "SELECT * FROM blocks WHERE spec = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "parent_hash",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 2,
+          "name": "hash",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 3,
+          "name": "block_num",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 4,
+          "name": "state_root",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 5,
+          "name": "extrinsics_root",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 6,
+          "name": "digest",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 7,
+          "name": "ext",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 8,
+          "name": "spec",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "9e6316290793ef9ca02c1a917d4bd3412497336b1928222381591f2a7a00e3cb": {
+    "query": "SELECT meta FROM metadata WHERE version = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "meta",
+          "type_info": "Bytea"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "dcd0df9ed6ee4fcab8f36da8764e3e6cb09b60ee985f4de6bcd7169376b4c0b2": {
+    "query": "SELECT version FROM (\n\t\t\tSELECT block_num, blocks.spec, metadata.version FROM blocks, metadata\n\t\t\tWHERE\n\t\t\t\tblock_num = $1\n\t\t\tAND\n\t\t\t\tblocks.spec = metadata.version\n\t\t) as z;",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "version",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  }
+}

@@ -3,3 +3,4 @@ target/
 .cargo-remote.toml
 .idea/
 .vscode/
+.DS_Store
