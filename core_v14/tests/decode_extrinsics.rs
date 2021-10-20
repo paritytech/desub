@@ -16,7 +16,7 @@
 
 use core_v14::{value, Decoder, Metadata, Value};
 
-static V14_METADATA_POLKADOT_SCALE: &'static [u8] = include_bytes!("data/v14_metadata_polkadot.scale");
+static V14_METADATA_POLKADOT_SCALE: &[u8] = include_bytes!("data/v14_metadata_polkadot.scale");
 
 fn decoder() -> Decoder {
 	let m = Metadata::from_bytes(V14_METADATA_POLKADOT_SCALE).expect("valid metadata");

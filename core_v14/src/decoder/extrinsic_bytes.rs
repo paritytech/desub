@@ -136,7 +136,7 @@ mod test {
 	use super::*;
 	use codec::{Compact, Encode};
 
-	fn iter_result_to_bytes<'a, E>(res: Option<Result<ExtrinsicBytes<'a>, E>>) -> Option<Result<&'a [u8], E>> {
+	fn iter_result_to_bytes<E>(res: Option<Result<ExtrinsicBytes<'_>, E>>) -> Option<Result<&[u8], E>> {
 		res.map(|r| r.map(|e| e.bytes()))
 	}
 

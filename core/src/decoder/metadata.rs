@@ -179,12 +179,6 @@ impl<'a> Metadata {
 					Decode::decode(&mut &*bytes).expect("decode failed");
 				meta.try_into().expect("Conversion failed")
 			}
-			0xE => {
-				log::debug!("Metadata V14");
-				let meta: frame_metadata::RuntimeMetadataPrefixed =
-					Decode::decode(&mut &*bytes).expect("decode failed");
-				meta.try_into().expect("Conversion failed")
-			}
 			/* TODO remove panics */
 			e => panic!("substrate metadata version {} is unknown, invalid or unsupported", e),
 		}
