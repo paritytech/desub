@@ -50,7 +50,7 @@ impl Decoder {
 		if self.is_version_new(version) {
 			log::debug!("DECODING NEW");
 			let decoder = self.new.get(&version.try_into()?).ok_or_else(|| anyhow!("version {} not found for new decoder", version))?;
-			match decoder.decode_extrinsics(&data) {
+			match decoder.decode_extrinsics(data) {
 				Ok(v) => Ok(format!("{:#?}", v)),
 				Err(e) => Err(e.1.into())
 			}
