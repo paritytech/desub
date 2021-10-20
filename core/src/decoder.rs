@@ -34,7 +34,7 @@ pub use self::storage::{GenericStorage, StorageInfo, StorageKey, StorageKeyData,
 pub use self::metadata::test_suite;
 
 pub use self::metadata::{
-	CallMetadata, Metadata, MetadataError, ModuleIndex, ModuleMetadata, StorageEntryModifier, StorageHasher,
+	CallMetadata, Metadata, Error as MetadataError, ModuleIndex, ModuleMetadata, StorageEntryModifier, StorageHasher,
 	StorageType,
 };
 pub use frame_metadata::v14::StorageEntryType;

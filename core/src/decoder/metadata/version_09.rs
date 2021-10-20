@@ -18,12 +18,11 @@
 // https://github.com/paritytech/substrate-subxt
 
 use super::{
-	CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata,
+	convert, CallArgMetadata, CallMetadata, Error, EventArg, Metadata, ModuleEventMetadata, ModuleMetadata,
 	StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as DesubStorageHasher, StorageMetadata,
 	StorageType,
 };
 use crate::regex;
-use frame_metadata::decode_different::*;
 use frame_metadata::v9::{self, RuntimeMetadataV9, StorageEntryModifier, StorageEntryType, StorageHasher};
 use std::{
 	collections::{HashMap, HashSet},
@@ -51,13 +50,6 @@ impl TryFrom<RuntimeMetadataV9> for Metadata {
 			modules.insert(module_name, std::sync::Arc::new(module_metadata));
 		}
 		Ok(Metadata { modules, modules_by_event_index, modules_by_call_index, extrinsics: None })
-	}
-}
-
-fn convert<B: 'static, O: 'static>(dd: DecodeDifferent<B, O>) -> Result<O, Error> {
-	match dd {
-		DecodeDifferent::Decoded(value) => Ok(value),
-		_ => Err(Error::ExpectedDecoded),
 	}
 }
 

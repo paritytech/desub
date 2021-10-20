@@ -30,12 +30,11 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-	CallArgMetadata, CallMetadata, Error, EventArg, ExtrinsicMetadata, Metadata, ModuleEventMetadata, ModuleMetadata,
+	convert, CallArgMetadata, CallMetadata, Error, EventArg, ExtrinsicMetadata, Metadata, ModuleEventMetadata, ModuleMetadata,
 	StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as DesubStorageHasher, StorageMetadata,
 	StorageType,
 };
 use crate::{regex, RustTypeMarker};
-use frame_metadata::decode_different::*;
 use frame_metadata::v11::{self, RuntimeMetadataV11, StorageEntryModifier, StorageEntryType, StorageHasher};
 use std::{
 	collections::{HashMap, HashSet},
@@ -73,13 +72,6 @@ impl TryFrom<RuntimeMetadataV11> for Metadata {
 		let extrinsics = ExtrinsicMetadata::new(metadata.extrinsic.version, extensions);
 
 		Ok(Metadata { modules, modules_by_event_index, modules_by_call_index, extrinsics: Some(extrinsics) })
-	}
-}
-
-fn convert<B: 'static, O: 'static>(dd: DecodeDifferent<B, O>) -> Result<O, Error> {
-	match dd {
-		DecodeDifferent::Decoded(value) => Ok(value),
-		_ => Err(Error::ExpectedDecoded),
 	}
 }
 

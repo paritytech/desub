@@ -51,7 +51,6 @@ use std::{
 	str::FromStr,
 	sync::Arc,
 };
-use thiserror::Error;
 
 /// Newtype struct around a Vec<u8> (vector of bytes)
 #[derive(Clone)]
@@ -69,8 +68,8 @@ pub fn compact<T: HasCompact>(t: T) -> Encoded {
 	Encoded(encodable.encode())
 }
 
-#[derive(Debug, Clone, Error)]
-pub enum MetadataError {
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum Error {
 	#[error("Module {0} not found")]
 	ModuleNotFound(String),
 	#[error("Call {0} not found")]
@@ -83,6 +82,16 @@ pub enum MetadataError {
 	StorageTypeError,
 	#[error("MapValueType Error")]
 	MapValueTypeError,
+	#[error(transparent)]
+	Decode(#[from] codec::Error),
+	#[error("Metadata Version {0} not supported")]
+	NotSupported(u32),
+	#[error("Expected Decoded")]
+	ExpectedDecoded,
+	#[error("Invalid Event {0}:{1}")]
+	InvalidEventArg(String, &'static str),
+	#[error("Invalid Type {0}")]
+	InvalidType(String),
 }
 
 #[derive(Debug, Clone, derive_more::Display)]
@@ -106,21 +115,24 @@ pub struct Metadata {
 	extrinsics: Option<ExtrinsicMetadata>,
 }
 
-impl From<Vec<u8>> for Metadata {
-	fn from(bytes: Vec<u8>) -> Metadata {
+impl TryFrom<Vec<u8>> for Metadata {
+	type Error = Error;
+	fn try_from(bytes: Vec<u8>) -> Result<Metadata, Self::Error> {
 		Metadata::new(bytes.as_slice())
 	}
 }
 
-impl From<&[u8]> for Metadata {
-	fn from(bytes: &[u8]) -> Metadata {
+impl TryFrom<&[u8]> for Metadata {
+	type Error = Error;
+	fn try_from(bytes: &[u8]) -> Result<Metadata, Self::Error> {
 		Metadata::new(bytes)
 	}
 }
 
-impl From<&Metadata> for Metadata {
-	fn from(meta: &Metadata) -> Metadata {
-		meta.clone()
+impl TryFrom<&Metadata> for Metadata {
+	type Error = Error;
+	fn try_from(meta: &Metadata) -> Result<Metadata, Self::Error> {
+		Ok(meta.clone())
 	}
 }
 
@@ -132,55 +144,16 @@ impl<'a> Metadata {
 	/// or the versiondebug is invalid
 	///
 	/// Panics if decoding into metadata prefixed fails
-	pub fn new(bytes: &[u8]) -> Self {
-		// Runtime metadata is a tuple struct with the following fields:
-		// RuntimeMetadataPrefixed(u32, RuntimeMetadata)
-		// this means when it's SCALE encoded, the first four bytes
-		// are the 'u32' prefix, and since `RuntimeMetadata` is an enum,
-		// the first byte is the index of the enum item.
-		// Since RuntimeMetadata is versioned starting from 0, this also corresponds to
-		// the Metadata version
-		let version = bytes[4];
+	pub fn new(mut bytes: &[u8]) -> Result<Self, Error> {
+		let metadata: frame_metadata::RuntimeMetadataPrefixed = Decode::decode(&mut bytes)?;
 
-		match version {
-			0x08 => {
-				log::debug!("Metadata V8");
-				let meta: frame_metadata::RuntimeMetadataPrefixed =
-					Decode::decode(&mut &*bytes).expect("Decode failed");
-				meta.try_into().expect("Conversion failed")
-			}
-			0x09 => {
-				log::debug!("Metadata V9");
-				let meta: frame_metadata::RuntimeMetadataPrefixed =
-					Decode::decode(&mut &*bytes).expect("Decode Failed");
-				meta.try_into().expect("Conversion Failed")
-			}
-			0xA => {
-				log::debug!("Metadata V10");
-				let meta: frame_metadata::RuntimeMetadataPrefixed =
-					Decode::decode(&mut &*bytes).expect("Decode failed");
-				meta.try_into().expect("Conversion failed")
-			}
-			0xB => {
-				log::debug!("Metadata V11");
-				let meta: frame_metadata::RuntimeMetadataPrefixed =
-					Decode::decode(&mut &*bytes).expect("Decode failed");
-				meta.try_into().expect("Conversion failed")
-			}
-			0xC => {
-				log::debug!("Metadata V12");
-				let meta: frame_metadata::RuntimeMetadataPrefixed =
-					Decode::decode(&mut &*bytes).expect("Decode failed");
-				meta.try_into().expect("Conversion failed")
-			}
-			0xD => {
-				log::debug!("Metadata V13");
-				let meta: frame_metadata::RuntimeMetadataPrefixed =
-					Decode::decode(&mut &*bytes).expect("decode failed");
-				meta.try_into().expect("Conversion failed")
-			}
-			/* TODO remove panics */
-			e => panic!("substrate metadata version {} is unknown, invalid or unsupported", e),
+		match metadata.1 {
+			RuntimeMetadata::V9(meta) => Ok(meta.try_into()?),
+			RuntimeMetadata::V10(meta) => Ok(meta.try_into()?),
+			RuntimeMetadata::V11(meta) => Ok(meta.try_into()?),
+			RuntimeMetadata::V12(meta) => Ok(meta.try_into()?),
+			RuntimeMetadata::V13(meta) => Ok(meta.try_into()?),
+			_ => Err(Error::NotSupported(1)),
 		}
 	}
 
@@ -190,12 +163,12 @@ impl<'a> Metadata {
 	}
 
 	/// returns a weak reference to a module from it's name
-	pub fn module<S>(&self, name: S) -> Result<Arc<ModuleMetadata>, MetadataError>
+	pub fn module<S>(&self, name: S) -> Result<Arc<ModuleMetadata>, Error>
 	where
 		S: ToString,
 	{
 		let name = name.to_string();
-		self.modules.get(&name).ok_or(MetadataError::ModuleNotFound(name)).map(|m| (*m).clone())
+		self.modules.get(&name).ok_or(Error::ModuleNotFound(name)).map(|m| (*m).clone())
 	}
 
 	pub fn signed_extensions(&self) -> Option<&[RustTypeMarker]> {
@@ -212,29 +185,25 @@ impl<'a> Metadata {
 	}
 
 	/// get the name of a module given it's event index
-	pub fn module_name(&self, module_index: u8) -> Result<String, MetadataError> {
+	pub fn module_name(&self, module_index: u8) -> Result<String, Error> {
 		self.modules_by_event_index
 			.get(&module_index)
 			.cloned()
-			.ok_or(MetadataError::ModuleIndexNotFound(ModuleIndex::Event(module_index)))
+			.ok_or(Error::ModuleIndexNotFound(ModuleIndex::Event(module_index)))
 	}
 
 	/// get a module by it's index
-	pub fn module_by_index(&'a self, module_index: ModuleIndex) -> Result<&'a ModuleMetadata, MetadataError> {
+	pub fn module_by_index(&'a self, module_index: ModuleIndex) -> Result<&'a ModuleMetadata, Error> {
 		Ok(match module_index {
 			ModuleIndex::Call(i) => {
-				let name = self
-					.modules_by_call_index
-					.get(&i)
-					.ok_or(MetadataError::ModuleIndexNotFound(ModuleIndex::Call(i)))?;
-				self.modules.get(name).ok_or_else(|| MetadataError::ModuleNotFound(name.to_string()))?
+				let name =
+					self.modules_by_call_index.get(&i).ok_or(Error::ModuleIndexNotFound(ModuleIndex::Call(i)))?;
+				self.modules.get(name).ok_or_else(|| Error::ModuleNotFound(name.to_string()))?
 			}
 			ModuleIndex::Event(i) => {
-				let name = self
-					.modules_by_event_index
-					.get(&i)
-					.ok_or(MetadataError::ModuleIndexNotFound(ModuleIndex::Event(i)))?;
-				self.modules.get(name).ok_or_else(|| MetadataError::ModuleNotFound(name.to_string()))?
+				let name =
+					self.modules_by_event_index.get(&i).ok_or(Error::ModuleIndexNotFound(ModuleIndex::Event(i)))?;
+				self.modules.get(name).ok_or_else(|| Error::ModuleNotFound(name.to_string()))?
 			}
 			ModuleIndex::Storage(_) => {
 				// TODO remove panics
@@ -346,8 +315,8 @@ impl ModuleMetadata {
 	}
 
 	/// Return a storage entry by its key
-	pub fn storage(&self, key: &'static str) -> Result<&StorageMetadata, MetadataError> {
-		self.storage.get(key).ok_or(MetadataError::StorageNotFound(key))
+	pub fn storage(&self, key: &'static str) -> Result<&StorageMetadata, Error> {
+		self.storage.get(key).ok_or(Error::StorageNotFound(key))
 	}
 
 	/// an iterator over all possible events for this module
@@ -367,12 +336,12 @@ impl ModuleMetadata {
 	}
 
 	/// get an event by its index in the module
-	pub fn event(&self, index: u8) -> Result<&ModuleEventMetadata, MetadataError> {
-		self.events.get(&index).ok_or(MetadataError::ModuleIndexNotFound(ModuleIndex::Event(index)))
+	pub fn event(&self, index: u8) -> Result<&ModuleEventMetadata, Error> {
+		self.events.get(&index).ok_or(Error::ModuleIndexNotFound(ModuleIndex::Event(index)))
 	}
 
-	pub fn call(&self, index: u8) -> Result<&CallMetadata, MetadataError> {
-		self.calls().find(|c| c.index == index).ok_or(MetadataError::ModuleIndexNotFound(ModuleIndex::Call(index)))
+	pub fn call(&self, index: u8) -> Result<&CallMetadata, Error> {
+		self.calls().find(|c| c.index == index).ok_or(Error::ModuleIndexNotFound(ModuleIndex::Call(index)))
 	}
 }
 
@@ -577,31 +546,11 @@ impl EventArg {
 	}
 }
 
-impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
-	type Error = Error;
-
-	fn try_from(metadata: RuntimeMetadataPrefixed) -> Result<Self, Self::Error> {
-		match metadata.1 {
-			RuntimeMetadata::V12(meta) => meta.try_into(),
-			RuntimeMetadata::V13(meta) => meta.try_into(),
-			RuntimeMetadata::V14(_meta) => unimplemented!(),
-			_ => Err(Error::InvalidVersion),
-		}
+fn convert<B: 'static, O: 'static>(dd: DecodeDifferent<B, O>) -> Result<O, Error> {
+	match dd {
+		DecodeDifferent::Decoded(value) => Ok(value),
+		_ => Err(Error::ExpectedDecoded),
 	}
-}
-
-#[derive(Error, Debug)]
-pub enum Error {
-	#[error("Invalid Prefix")]
-	InvalidPrefix,
-	#[error(" Invalid Version")]
-	InvalidVersion,
-	#[error("Expected Decoded")]
-	ExpectedDecoded,
-	#[error("Invalid Event {0}:{1}")]
-	InvalidEventArg(String, &'static str),
-	#[error("Invalid Type {0}")]
-	InvalidType(String),
 }
 
 #[cfg(test)]
