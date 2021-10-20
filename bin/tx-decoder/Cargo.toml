@@ -11,7 +11,7 @@ async-stream = "0.3.2"
 sqlx = { version = "0.5", features = [ "runtime-async-std-rustls", "postgres", "offline" ]}
 desub = { path = "../../core/", package = "desub-core" }
 desub-extras = { path = "../../extras", features = [ "polkadot" ]}
-desub-v14 = { git = "https://github.com/paritytech/desub", branch = "jsdw-desub-new-v14", package ="core_v14" }
+desub-v14 = { path = "../../core_v14", package = "core_v14" }
 anyhow = "1.0.43"
 futures = "0.3.17"
 serde = { version = "1.0", features = ["derive"] }

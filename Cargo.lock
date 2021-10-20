@@ -662,25 +662,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "core_v14"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/desub?branch=jsdw-desub-new-v14#5831844a0bf18e47057868b5d81dc89ed34d219a"
-dependencies = [
- "bitvec",
- "derive_more",
- "frame-metadata 14.0.0",
- "hex",
- "log",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "serde_json",
- "sp-core",
- "sp-runtime",
- "thiserror",
-]
-
-[[package]]
 name = "cpufeatures"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3780,7 +3761,7 @@ dependencies = [
  "async-std",
  "async-stream",
  "colored 2.0.0",
- "core_v14 0.1.0 (git+https://github.com/paritytech/desub?branch=jsdw-desub-new-v14)",
+ "core_v14",
  "desub-core",
  "desub-extras",
  "fern",
@@ -3881,7 +3862,7 @@ name = "v14-test"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "core_v14 0.1.0",
+ "core_v14",
  "hex",
  "pretty_env_logger",
  "structopt",
