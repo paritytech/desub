@@ -51,7 +51,7 @@ impl Decoder {
 			log::debug!("DECODING NEW");
 			let decoder = self.new.get(&version.try_into()?).ok_or_else(|| anyhow!("version {} not found for new decoder", version))?;
 			match decoder.decode_extrinsics(&data) {
-				Ok(v) => Ok(format!("{:?}", v)),
+				Ok(v) => Ok(format!("{:#?}", v)),
 				Err(e) => Err(e.1.into())
 			}
 		} else {
