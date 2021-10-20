@@ -66,6 +66,15 @@ pub enum Composite {
 	Unnamed(Vec<Value>),
 }
 
+impl Composite {
+	fn len(&self) -> usize {
+		match self {
+			Composite::Named(values) => values.len(),
+			Composite::Unnamed(values) => values.len()
+		}
+	}
+}
+
 impl Debug for Composite {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
