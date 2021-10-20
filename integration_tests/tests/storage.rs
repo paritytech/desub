@@ -23,8 +23,8 @@ fn should_decode_plain() {
 	let mut decoder = Decoder::new(types, Chain::Kusama);
 
 	let meta = runtime_v11();
-	let meta = Metadata::new(meta.as_slice());
-	decoder.register_version(2023, &meta);
+	let meta = Metadata::new(meta.as_slice()).unwrap();
+	decoder.register_version(2023, meta).unwrap();
 
 	let res = decoder.decode_storage(2023, get_plain_value()).unwrap();
 	assert_eq!(&SubstrateType::U32(1768321), res.value().unwrap().ty());
@@ -38,8 +38,8 @@ fn should_decode_map() -> Result<()> {
 	let mut decoder = Decoder::new(types, Chain::Kusama);
 
 	let meta = runtime_v11();
-	let meta = Metadata::new(meta.as_slice());
-	decoder.register_version(2023, &meta);
+	let meta = Metadata::new(meta.as_slice()).unwrap();
+	decoder.register_version(2023, meta).unwrap();
 	// AccountInfo from block 3944196
 	let encoded_account = hex::decode("01000000037c127ed1d8c6010000000000000000000000000000000000000000000000000000406352bfc60100000000000000000000406352bfc601000000000000000000").unwrap();
 	let storage_key = hex::decode("26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da932a5935f6edc617ae178fef9eb1e211fbe5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f").unwrap();
@@ -57,8 +57,8 @@ fn should_decode_map_ksm_3944195() -> Result<()> {
 	let mut decoder = Decoder::new(types, Chain::Kusama);
 
 	let meta = runtime_v11();
-	let meta = Metadata::new(meta.as_slice());
-	decoder.register_version(2023, &meta);
+	let meta = Metadata::new(meta.as_slice()).unwrap();
+	decoder.register_version(2023, meta).unwrap();
 	// BlockHash from block 3944196
 	let storage_key =
 		hex::decode("26aa394eea5630e07c48ae0c9558cef7a44704b568d21667356a5a050c1187465eb805861b659fd1022f3c00")
@@ -77,8 +77,8 @@ fn should_decode_double_map() {
 	let mut decoder = Decoder::new(types, Chain::Kusama);
 
 	let meta = runtime_v11();
-	let meta = Metadata::new(meta.as_slice());
-	decoder.register_version(2023, &meta);
+	let meta = Metadata::new(meta.as_slice()).unwrap();
+	decoder.register_version(2023, meta).unwrap();
 	// THIS STORAGE KEY IS WRONG for "ImOnline AuthoredBlocks" type
 	let storage_key = hex::decode("2b06af9719ac64d755623cda8ddd9b94b1c371ded9e9c565e89ba783c4d5f5f9b4def25cfda6ef3a00000000e535263148daaf49be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f").unwrap();
 	let authored_blocks: u32 = 250;
