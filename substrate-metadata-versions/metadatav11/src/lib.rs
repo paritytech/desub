@@ -55,42 +55,6 @@ pub struct FunctionArgumentMetadata {
 	pub ty: DecodeDifferentStr,
 }
 
-/// Newtype wrapper for support encoding functions (actual the result of the function).
-#[derive(Clone, Eq)]
-pub struct FnEncode<E>(pub fn() -> E)
-where
-	E: Encode + 'static;
-
-impl<E: Encode> Encode for FnEncode<E> {
-	fn encode_to<W: Output + ?Sized>(&self, dest: &mut W) {
-		self.0().encode_to(dest);
-	}
-}
-
-impl<E: Encode> codec::EncodeLike for FnEncode<E> {}
-
-impl<E: Encode + PartialEq> PartialEq for FnEncode<E> {
-	fn eq(&self, other: &Self) -> bool {
-		self.0().eq(&other.0())
-	}
-}
-
-impl<E: Encode + sp_std::fmt::Debug> sp_std::fmt::Debug for FnEncode<E> {
-	fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
-		self.0().fmt(f)
-	}
-}
-
-#[cfg(feature = "std")]
-impl<E: Encode + serde::Serialize> serde::Serialize for FnEncode<E> {
-	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-	where
-		S: serde::Serializer,
-	{
-		self.0().serialize(serializer)
-	}
-}
-
 /// All the metadata about an outer event.
 #[derive(Clone, PartialEq, Eq, Encode)]
 #[cfg_attr(feature = "std", derive(Decode, Serialize))]
@@ -291,24 +255,6 @@ pub enum RuntimeMetadata {
 	V10(RuntimeMetadataDeprecated),
 	/// Version 11 for runtime metadata.
 	V11(RuntimeMetadataV11),
-}
-
-/// Enum that should fail.
-#[derive(Eq, PartialEq)]
-#[cfg_attr(feature = "std", derive(Serialize))]
-pub enum RuntimeMetadataDeprecated {}
-
-impl Encode for RuntimeMetadataDeprecated {
-	fn encode_to<W: Output + ?Sized>(&self, _dest: &mut W) {}
-}
-
-impl codec::EncodeLike for RuntimeMetadataDeprecated {}
-
-#[cfg(feature = "std")]
-impl Decode for RuntimeMetadataDeprecated {
-	fn decode<I: Input>(_input: &mut I) -> Result<Self, Error> {
-		Err("Decoding is not supported".into())
-	}
 }
 
 /// The metadata of a runtime.

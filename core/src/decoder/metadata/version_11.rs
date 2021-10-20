@@ -36,30 +36,20 @@ use super::{
 };
 use crate::{regex, RustTypeMarker};
 use frame_metadata::decode_different::*;
-use runtime_metadata11::{
-	RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier, StorageEntryType, StorageHasher, META_RESERVED,
-};
+use frame_metadata::v11::{self, RuntimeMetadataV11, StorageEntryModifier, StorageEntryType, StorageHasher};
 use std::{
 	collections::{HashMap, HashSet},
 	convert::{TryFrom, TryInto},
 };
 
-impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
+impl TryFrom<RuntimeMetadataV11> for Metadata {
 	type Error = Error;
 
-	fn try_from(metadata: RuntimeMetadataPrefixed) -> Result<Self, Self::Error> {
-		if metadata.0 != META_RESERVED {
-			// 'meta' warn endiannes
-			return Err(Error::InvalidPrefix);
-		}
-		let meta = match metadata.1 {
-			RuntimeMetadata::V11(meta) => meta,
-			_ => return Err(Error::InvalidVersion),
-		};
+	fn try_from(metadata: RuntimeMetadataV11) -> Result<Self, Self::Error> {
 		let mut modules = HashMap::new();
 		let (mut modules_by_event_index, mut modules_by_call_index) = (HashMap::new(), HashMap::new());
 		let (mut event_index, mut call_index) = (0, 0);
-		for (i, module) in convert(meta.modules)?.into_iter().enumerate() {
+		for (i, module) in convert(metadata.modules)?.into_iter().enumerate() {
 			let module_name = convert(module.name.clone())?;
 			if module.calls.is_some() {
 				modules_by_call_index.insert(call_index, module_name.clone());
@@ -74,13 +64,13 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
 		}
 
 		let mut extensions: Vec<RustTypeMarker> = Vec::new();
-		for ext in meta.extrinsic.signed_extensions.iter() {
+		for ext in metadata.extrinsic.signed_extensions.iter() {
 			let name: String = convert(ext.clone())?;
 			let ty = regex::parse(&name).ok_or(Error::InvalidType(name))?;
 			extensions.push(ty);
 		}
 
-		let extrinsics = ExtrinsicMetadata::new(meta.extrinsic.version, extensions);
+		let extrinsics = ExtrinsicMetadata::new(metadata.extrinsic.version, extensions);
 
 		Ok(Metadata { modules, modules_by_event_index, modules_by_call_index, extrinsics: Some(extrinsics) })
 	}
@@ -93,7 +83,7 @@ fn convert<B: 'static, O: 'static>(dd: DecodeDifferent<B, O>) -> Result<O, Error
 	}
 }
 
-fn convert_module(index: usize, module: runtime_metadata11::ModuleMetadata) -> Result<ModuleMetadata, Error> {
+fn convert_module(index: usize, module: v11::ModuleMetadata) -> Result<ModuleMetadata, Error> {
 	let mut storage_map = HashMap::new();
 	if let Some(storage) = module.storage {
 		let storage = convert(storage)?;
@@ -138,7 +128,7 @@ fn convert_module(index: usize, module: runtime_metadata11::ModuleMetadata) -> R
 	})
 }
 
-fn convert_event(event: runtime_metadata11::EventMetadata) -> Result<ModuleEventMetadata, Error> {
+fn convert_event(event: v11::EventMetadata) -> Result<ModuleEventMetadata, Error> {
 	let name = convert(event.name)?;
 	let mut arguments = HashSet::new();
 	for arg in convert(event.arguments)? {
@@ -148,7 +138,7 @@ fn convert_event(event: runtime_metadata11::EventMetadata) -> Result<ModuleEvent
 	Ok(ModuleEventMetadata { name, arguments })
 }
 
-fn convert_entry(prefix: String, entry: runtime_metadata11::StorageEntryMetadata) -> Result<StorageMetadata, Error> {
+fn convert_entry(prefix: String, entry: v11::StorageEntryMetadata) -> Result<StorageMetadata, Error> {
 	let default = convert(entry.default)?;
 	let documentation = convert(entry.documentation)?;
 	Ok(StorageMetadata {

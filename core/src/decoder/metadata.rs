@@ -145,25 +145,25 @@ impl<'a> Metadata {
 		match version {
 			0x08 => {
 				log::debug!("Metadata V8");
-				let meta: runtime_metadata08::RuntimeMetadataPrefixed =
+				let meta: frame_metadata::RuntimeMetadataPrefixed =
 					Decode::decode(&mut &*bytes).expect("Decode failed");
 				meta.try_into().expect("Conversion failed")
 			}
 			0x09 => {
 				log::debug!("Metadata V9");
-				let meta: runtime_metadata09::RuntimeMetadataPrefixed =
+				let meta: frame_metadata::RuntimeMetadataPrefixed =
 					Decode::decode(&mut &*bytes).expect("Decode Failed");
 				meta.try_into().expect("Conversion Failed")
 			}
 			0xA => {
 				log::debug!("Metadata V10");
-				let meta: runtime_metadata10::RuntimeMetadataPrefixed =
+				let meta: frame_metadata::RuntimeMetadataPrefixed =
 					Decode::decode(&mut &*bytes).expect("Decode failed");
 				meta.try_into().expect("Conversion failed")
 			}
 			0xB => {
 				log::debug!("Metadata V11");
-				let meta: runtime_metadata11::RuntimeMetadataPrefixed =
+				let meta: frame_metadata::RuntimeMetadataPrefixed =
 					Decode::decode(&mut &*bytes).expect("Decode failed");
 				meta.try_into().expect("Conversion failed")
 			}
