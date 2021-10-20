@@ -15,8 +15,9 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::queries::*;
+use crate::decoder::Decoder;
+use desub::decoder::Chain;
 
-use desub::decoder::{Chain, Decoder};
 use desub_extras::runtimes;
 
 use anyhow::Error;
@@ -37,7 +38,7 @@ use std::{
 	},
 };
 
-type SpecVersion = i32;
+pub type SpecVersion = i32;
 
 #[derive(FromArgs, PartialEq, Debug)]
 /// Decode Extrinsics And Storage from Substrate Archive
@@ -119,22 +120,21 @@ impl<'a> AppState<'a> {
 				error_count += 1;
 			}
 			len += 1;
-			self.pb.map(|p| p.inc(1));
+			if let Some(p) = self.pb { p.inc(1) };
 		}
 		Ok((error_count, len))
 	}
 
 	fn decode(decoder: &Decoder, block: BlockModel, spec: SpecVersion, errors: &mut Vec<String>) -> Result<(), Error> {
-		log::debug!("-<<-<<-<<-<<-<<-<<-<<-<<-<< Decoding block {}, ext length {}", block.block_num, block.ext.len());
-		match decoder.decode_extrinsics(spec.try_into()?, block.ext.as_slice()) {
+		log::debug!("Decoding block {}, spec_version {}, ext length {}", block.block_num, spec, block.ext.len());
+		match decoder.decode_extrinsics(spec, &block.ext) {
 			Err(e) => {
-				let e: Error = e.into();
 				let e = e.context(format!("Failed to decode block {}", block.block_num));
 				errors.push(format!("{}", e));
 				Err(e)
 			}
 			Ok(d) => {
-				log::info!("Block {} Decoded Succesfully. {}", block.block_num, serde_json::to_string_pretty(&d)?);
+				log::info!("Block {} Decoded Succesfully. {}", block.block_num, &d);
 				Ok(())
 			}
 		}
@@ -145,30 +145,30 @@ impl<'a> AppState<'a> {
 	async fn register_metadata(&self, conn: &mut PgConnection, version: SpecVersion) -> Result<Option<u32>, Error> {
 		let (past, present) = past_and_present_version(conn, version).await?;
 		let mut decoder = self.decoder.write();
-		if !decoder.has_version(present) {
+		if !decoder.has_version(present.try_into().unwrap()) {
 			let meta = metadata(conn, present.try_into()?).await?;
-			decoder.register_version(present, meta);
+			decoder.register_version(present.try_into()?, &meta)?;
 		}
 
 		if let Some(p) = past {
-			if !decoder.has_version(p) {
+			if !decoder.has_version(p.try_into()?) {
 				let meta = metadata(conn, p.try_into()?).await?;
-				decoder.register_version(p, meta);
+				decoder.register_version(p.try_into()?, &meta)?;
 			}
 		}
-		Ok(past.try_into()?)
+		Ok(past)
 	}
 
 	fn set_message(&self, msg: impl Into<Cow<'static, str>>) {
-		self.pb.map(|p| p.set_message(msg));
+		if let Some(p) = self.pb { p.set_message(msg) }
 	}
 
 	fn set_length(&self, len: u64) {
-		self.pb.map(|p| p.set_length(len));
+		if let Some(p) = self.pb { p.set_length(len) }
 	}
 
 	fn finish_and_clear(&self) {
-		self.pb.map(|p| p.finish_and_clear());
+		if let Some(p) = self.pb { p.finish_and_clear() }
 	}
 }
 
@@ -222,8 +222,8 @@ pub async fn app(app: App) -> Result<(), Error> {
 		let spec_versions = spec_versions(&mut conn).await?;
 		let now = std::time::Instant::now();
 		let count = total_block_count(&mut conn).await?;
-		pb.as_ref().map(|p| p.set_message("decoding all blocks"));
-		pb.as_ref().map(|p| p.set_length(count as u64));
+		if let Some(p) = &pb { p.set_message("decoding all blocks") };
+		if let Some(p) = &pb { p.set_length(count as u64) };
 		let (error_count, length) = state.print_blocks(spec_versions, &mut errors)?;
 		state.finish_and_clear();
 		println!("Took {:?} to decode {} blocks with {} errors.", now.elapsed(), length, error_count);
