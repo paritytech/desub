@@ -23,6 +23,7 @@ of JSON data).
 mod deserialize;
 
 use bitvec::{order::Lsb0, vec::BitVec};
+use serde::Deserialize;
 use std::convert::From;
 use std::fmt::Debug;
 
@@ -179,3 +180,11 @@ impl From<Primitive> for Value {
 
 /// A sequence of bits.
 pub type BitSequence = BitVec<Lsb0, u8>;
+
+/// An opaque error that is returned if we cannot deserialize the [`Value`] type.
+pub use deserialize::Error as DeserializeError;
+
+/// Attempt to deserialize a [`Value`] into some type that has [`serde::Deserialize`] implemented on it.
+pub fn from_value<'de, T: Deserialize<'de>>(value: Value) -> Result<T, DeserializeError> {
+	T::deserialize(value)
+}
