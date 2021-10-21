@@ -72,7 +72,7 @@ impl Error {
 		Error(Cow::Owned(s.into()))
 	}
 	fn from_str(s: &'static str) -> Error {
-		Error(Cow::Borrowed(s.into()))
+		Error(Cow::Borrowed(s))
 	}
 }
 
