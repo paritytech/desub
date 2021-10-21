@@ -14,11 +14,53 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use serde::{Deserialize, Deserializer, Serialize, Serializer, ser, de::{self, EnumAccess, VariantAccess, IntoDeserializer, MapAccess, SeqAccess}, forward_to_deserialize_any};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, ser, de::{self, EnumAccess, VariantAccess, IntoDeserializer, SeqAccess}, forward_to_deserialize_any};
 use std::fmt::Display;
 use std::borrow::Cow;
 use super::{BitSequence, Composite, Primitive, Value, Variant};
 
+/*
+Deserializing using Serde is a bit weird to wrap your head around at first (at least, it was for me).
+I'd def recommend checking out the serde book, and inparticular https://serde.rs/impl-deserializer.html,
+but here's a very quick explainer on how things work:
+
+We have a `Deserialize` trait (commonly automatically implemnented via `#[derive(Deserialize)]`). This trait
+(and the `Visitor` trait which I'll talk about in a mo) is concerned with getting the right values needed to
+create an instance of the data type (struct, enum, whatever it is) in question.
+
+We also have a `Deserializer` trait (note the R at the end). this guy is responsible for plucking values out of some
+format (could be JSON or TOML or, as we have here, another rust data type!) and handing them to a Deserialize impl.
+That way, the Deserialize impl doesn't have to care about any particular format; only what it wants to be given back).
+
+So, how it works is that the `Deserialize` impl asks this guy for data of a certain type by calling methods like
+`deserializer.deserialize_bool` or `deserializer.deserialize_i32` or whatever. (the actual methods available define
+the "serde data model"; that is; the known types that can be passed between a Deserialize and Deserializer).
+
+But! Calling methods like `deserialize_bool` or `deserialize_i32` is really just the Deserialize impls way of
+hinting to the Deserializer what it wants to be given back. In reality, the Deserializer might want to give
+back something different (maybe it is being asked for a u8 but it knows it only has a u16 to give back, say).
+
+How? Well, the Deserialize impl calls something like `deserializer.deserialize_i32(visitor)`; it says "I want an i32, but
+here's this visitor thing where you can give me back whatever you have, and I'll try and handle it if I can". So maybe
+when the Deserialize impl calls `deserializer.deserialize_i32(visitor)`, the Deserializer impl for `deserilaize_i32`
+actually calls `visitor.visit_i64`. Who knows!
+
+It's basically a negotiation. The Deserialize impl asks for a value of a certain type, and it provides a visitor that will
+try to accept as many types as it can. The Deserializer impl then does it's best to give back what it's asked for. If
+the visitor can't handle the type given back, we are given back an error trying to deserialize; we can't convert a map
+into an i32 for instance, or whatever.
+
+Here, we want to allow people to deserialize a `Value` type into some arbitrary struct or enum. So we implement the
+Deserializer trait, and do our best to hand the visitor we're given back the data it's asking for. Since we know exactly
+what data we actually have, we can often just give it back whatever we have and hgope the visitor will accept it! We have
+various "special cases" though (like newtype wrapper structs) where we try to be more accomodating.
+*/
+
+
+/// An opaque error to describe in human terms what went wrong.
+/// Many internal serialization/deserialization errors are relayed
+/// to this in string form, and so we use basic strings for custom
+/// errors as well for simplicity.
 #[derive(thiserror::Error, Debug, Clone, PartialEq)]
 #[error("{0}")]
 pub struct Error(Cow<'static, str>);
@@ -68,9 +110,9 @@ macro_rules! delegate_except_bitseq {
     }
 }
 
-// Here, we implement any specific methods that may be of interest to the subtypes, and
-// delegate to their implementations. The exception if the BitSequence pattern, which we
-// match and handle here, since it does not have a wrapper type to implement this on.
+// The goal here is simply to forward deserialization methods of interest to
+// the relevant subtype. The exception is our BitSequence type, which doesn't
+// have a sub type to forward to and so is handled here.
 impl <'de> Deserializer<'de> for Value {
     type Error = Error;
 
@@ -167,10 +209,9 @@ impl <'de> Deserializer<'de> for Value {
     fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
             V: de::Visitor<'de> {
-        delegate_except_bitseq!{ deserialize_byte_buf(self, visitor),
+        delegate_except_bitseq!{ deserialize_seq(self, visitor),
             _ => {
-                // Could be called by BitVec; delegate to our impl in deserialize_any to handle:
-                self.deserialize_any(visitor)
+                Err(Error::from_str("Cannot deserialize BitSequence into a sequence"))
             }
         }
     }
@@ -178,10 +219,9 @@ impl <'de> Deserializer<'de> for Value {
     fn deserialize_map<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
             V: de::Visitor<'de> {
-        delegate_except_bitseq!{ deserialize_byte_buf(self, visitor),
+        delegate_except_bitseq!{ deserialize_map(self, visitor),
             _ => {
-                // Could be called by BitVec; delegate to our impl in deserialize_any to handle:
-                self.deserialize_any(visitor)
+                Err(Error::from_str("Cannot deserialize BitSequence into a map"))
             }
         }
     }
@@ -194,6 +234,13 @@ impl <'de> Deserializer<'de> for Value {
     }
 }
 
+impl <'de> IntoDeserializer<'de, Error> for Value {
+    type Deserializer = Value;
+    fn into_deserializer(self) -> Self::Deserializer {
+        self
+    }
+}
+
 impl <'de> Deserializer<'de> for Composite {
     type Error = Error;
 
@@ -201,16 +248,24 @@ impl <'de> Deserializer<'de> for Composite {
     where
         V: serde::de::Visitor<'de> {
         match self {
-            Composite::Named(fields) => {
-                visitor.visit_map(NamedFields {
-                    iter: fields.into_iter(),
-                    value: None
-                })
+            Composite::Named(values) => {
+                visitor.visit_map(de::value::MapDeserializer::new(values.into_iter()))
             },
-            Composite::Unnamed(fields) => {
-                visitor.visit_seq(UnnamedFields {
-                    iter: fields.into_iter()
-                })
+            Composite::Unnamed(values) => {
+                visitor.visit_seq(de::value::SeqDeserializer::new(values.into_iter()))
+            },
+        }
+    }
+
+    fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+            V: de::Visitor<'de> {
+        match self {
+            Composite::Named(values) => {
+                visitor.visit_seq(de::value::SeqDeserializer::new(values.into_iter().map(|(_,v)| v)))
+            },
+            Composite::Unnamed(values) => {
+                visitor.visit_seq(de::value::SeqDeserializer::new(values.into_iter()))
             },
         }
     }
@@ -219,19 +274,19 @@ impl <'de> Deserializer<'de> for Composite {
     where
             V: de::Visitor<'de> {
         match self {
-            // A sequence of named values just ignores the names:
+            // A sequence of named values? just ignores the names:
             Composite::Named(values) => {
                 if values.len() != len {
                     return Err(Error::from_string(format!("Cannot deserialize composite of length {} into tuple of length {}", values.len(), len)));
                 }
-                visitor.visit_seq(NamedFields { iter: values.into_iter(), value: None })
+                visitor.visit_seq(de::value::SeqDeserializer::new(values.into_iter().map(|(_,v)| v)))
             },
             // A sequence of unnamed values is ideal:
             Composite::Unnamed(values) => {
                 if values.len() != len {
                     return Err(Error::from_string(format!("Cannot deserialize composite of length {} into tuple of length {}", values.len(), len)));
                 }
-                visitor.visit_seq(UnnamedFields { iter: values.into_iter() })
+                visitor.visit_seq(de::value::SeqDeserializer::new(values.into_iter()))
             },
         }
     }
@@ -262,7 +317,7 @@ impl <'de> Deserializer<'de> for Composite {
     fn deserialize_newtype_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
     where
             V: de::Visitor<'de> {
-        visitor.visit_seq(SingleValueSeq { val: Some(self) })
+        visitor.visit_seq(de::value::SeqDeserializer::new(Some(self).into_iter()))
     }
 
     fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -300,11 +355,20 @@ impl <'de> Deserializer<'de> for Composite {
 
     forward_to_deserialize_any! {
         bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
-        option struct map seq
+        option struct map
         enum identifier ignored_any
     }
 }
 
+impl <'de> IntoDeserializer<'de, Error> for Composite {
+    type Deserializer = Composite;
+    fn into_deserializer(self) -> Self::Deserializer {
+        self
+    }
+}
+
+// Because composite types are used to represent variant fields, we allow
+// variant accesses to be caleld on it, which just delegate to methods defined above.
 impl <'de> VariantAccess<'de> for Composite {
     type Error = Error;
 
@@ -353,7 +417,7 @@ impl <'de> Deserializer<'de> for Variant {
     fn deserialize_newtype_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
     where
             V: de::Visitor<'de> {
-        visitor.visit_seq(SingleValueSeq { val: Some(self) })
+        visitor.visit_seq(de::value::SeqDeserializer::new(Some(self).into_iter()))
     }
 
     // Delegate to the Composite deserializing with the enum values if anything else specific is asked for:
@@ -407,6 +471,16 @@ impl <'de> Deserializer<'de> for Variant {
     }
 }
 
+impl <'de> IntoDeserializer<'de, Error> for Variant {
+    type Deserializer = Variant;
+    fn into_deserializer(self) -> Self::Deserializer {
+        self
+    }
+}
+
+// Variant types can be treated as serde enums. Here we just hand back
+// the pair of name and values, where values is a composite type that impls
+// VariantAccess to actually allow deserializing of those values.
 impl <'de> EnumAccess<'de> for Variant {
     type Error = Error;
 
@@ -451,7 +525,7 @@ impl <'de> Deserializer<'de> for Primitive {
     fn deserialize_newtype_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
     where
             V: de::Visitor<'de> {
-        visitor.visit_seq(SingleValueSeq { val: Some(self) })
+        visitor.visit_seq(de::value::SeqDeserializer::new(Some(self).into_iter()))
     }
 
     forward_to_deserialize_any! {
@@ -461,83 +535,10 @@ impl <'de> Deserializer<'de> for Primitive {
     }
 }
 
-/// If we want to treat a vector of named values as a sequence or map, we can use this wrapper.
-struct NamedFields {
-    iter: std::vec::IntoIter<(String, Value)>,
-    value: Option<Value>
-}
-
-impl <'de> MapAccess<'de> for NamedFields {
-    type Error = Error;
-
-    fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
-    where
-        K: serde::de::DeserializeSeed<'de> {
-        let (k, v) = match self.iter.next() {
-            Some(kv) => kv,
-            None => return Ok(None)
-        };
-        self.value = Some(v);
-        seed.deserialize(k.into_deserializer()).map(Some)
-    }
-
-    fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value, Self::Error>
-    where
-        V: serde::de::DeserializeSeed<'de> {
-        let v = self.value.take().expect("next_key_seed should have populated the value");
-        seed.deserialize(v)
-    }
-}
-impl <'de> SeqAccess<'de> for NamedFields {
-    type Error = Error;
-
-    fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
-    where
-        T: serde::de::DeserializeSeed<'de> {
-            match self.iter.next() {
-                Some((_k,v)) => seed.deserialize(v).map(Some),
-                None => Ok(None)
-            }
-    }
-}
-
-/// If we want to treat a vector of values as a sequence, we can use this wrapper.
-struct UnnamedFields {
-    iter: std::vec::IntoIter<Value>
-}
-
-impl <'de> SeqAccess<'de> for UnnamedFields {
-    type Error = Error;
-
-    fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
-    where
-        T: serde::de::DeserializeSeed<'de> {
-            match self.iter.next() {
-                Some(v) => seed.deserialize(v).map(Some),
-                None => Ok(None)
-            }
-    }
-}
-
-/// If we want to treat a single value as a sequence, we can use this wrapper.
-struct SingleValueSeq<V> {
-    val: Option<V>
-}
-
-impl <'de, V> SeqAccess<'de> for SingleValueSeq<V>
-where
-    V: Deserializer<'de, Error = Error>,
-{
-    type Error = Error;
-
-    fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
-    where
-        T: serde::de::DeserializeSeed<'de> {
-            let val = match self.val.take() {
-                Some(val) => val,
-                None => return Ok(None)
-            };
-            Ok(Some(seed.deserialize(val)?))
+impl <'de> IntoDeserializer<'de, Error> for Primitive {
+    type Deserializer = Primitive;
+    fn into_deserializer(self) -> Self::Deserializer {
+        self
     }
 }
 
@@ -546,6 +547,9 @@ where
 /// First, we serialize the BitVec, which grabs the relevant data out of it (that isn't
 /// otherwise publically accessible), and then we implement a Deserializer that aligns
 /// with what the Deserialize impl for BitVec expects.
+///
+/// See https://docs.rs/bitvec/0.20.2/src/bitvec/serdes.rs.html for the Serialize/Deserialize
+/// impls we are aligning with.
 struct BitVecPieces {
     head: u8,
     bits: u64,
@@ -557,8 +561,8 @@ struct BitVecPieces {
 #[derive(PartialEq,Copy,Clone)]
 enum Field {
     Head,
+    Bits,
     Data,
-    Bits
 }
 
 impl <'de> Deserializer<'de> for BitVecPieces {
@@ -612,6 +616,9 @@ impl <'de> SeqAccess<'de> for BitVecPieces {
 impl BitVecPieces {
     fn new(bit_vec: BitSequence) -> Result<BitVecPieces, Error> {
 
+        // Step 1. "Serialize" the bitvec into this struct. Essentially,
+        // we are just writing out the values we need for deserializing,
+        // but with a silly amount of boilerplate/indirection..
         struct BitVecSerializer {
             head: Option<u8>,
             bits: Option<u64>,
@@ -806,6 +813,7 @@ impl BitVecPieces {
     }
 }
 
+// We want to make sure that we can transform our various Value types into the sorts of output we'd expect..
 #[cfg(test)]
 mod test {
 
@@ -969,6 +977,89 @@ mod test {
     }
 
     #[test]
+    fn de_into_vec() {
+        let val = Value::Composite(Composite::Unnamed(vec![
+            Value::Primitive(Primitive::U8(1)),
+            Value::Primitive(Primitive::U8(2)),
+            Value::Primitive(Primitive::U8(3)),
+        ]));
+        assert_eq!(
+            <Vec<u8>>::deserialize(val),
+            Ok(vec![1, 2, 3])
+        );
+
+        let val = Value::Composite(Composite::Unnamed(vec![
+            Value::Primitive(Primitive::Str("a".into())),
+            Value::Primitive(Primitive::Str("b".into())),
+            Value::Primitive(Primitive::Str("c".into())),
+        ]));
+        assert_eq!(
+            <Vec<String>>::deserialize(val),
+            Ok(vec!["a".into(), "b".into(), "c".into()])
+        );
+    }
+
+    #[test]
+    fn de_unwrapped_into_vec() {
+        let val = Composite::Unnamed(vec![
+            Value::Primitive(Primitive::U8(1)),
+            Value::Primitive(Primitive::U8(2)),
+            Value::Primitive(Primitive::U8(3)),
+        ]);
+        assert_eq!(
+            <Vec<u8>>::deserialize(val),
+            Ok(vec![1, 2, 3])
+        );
+
+        let val = Composite::Named(vec![
+            ("a".into(), Value::Primitive(Primitive::U8(1))),
+            ("b".into(), Value::Primitive(Primitive::U8(2))),
+            ("c".into(), Value::Primitive(Primitive::U8(3))),
+        ]);
+        assert_eq!(
+            <Vec<u8>>::deserialize(val),
+            Ok(vec![1, 2, 3])
+        );
+
+        let val = Composite::Unnamed(vec![
+            Value::Primitive(Primitive::Str("a".into())),
+            Value::Primitive(Primitive::Str("b".into())),
+            Value::Primitive(Primitive::Str("c".into())),
+        ]);
+        assert_eq!(
+            <Vec<String>>::deserialize(val),
+            Ok(vec!["a".into(), "b".into(), "c".into()])
+        );
+    }
+
+    #[test]
+    fn de_into_map() {
+        use std::collections::HashMap;
+
+        let val = Value::Composite(Composite::Named(vec![
+            ("a".into(), Value::Primitive(Primitive::U8(1))),
+            ("b".into(), Value::Primitive(Primitive::U8(2))),
+            ("c".into(), Value::Primitive(Primitive::U8(3))),
+        ]));
+        assert_eq!(
+            <HashMap<String,u8>>::deserialize(val),
+            Ok(vec![
+                ("a".into(), 1),
+                ("b".into(), 2),
+                ("c".into(), 3)
+            ].into_iter().collect())
+        );
+
+        let val = Value::Composite(Composite::Unnamed(vec![
+            Value::Primitive(Primitive::U8(1)),
+            Value::Primitive(Primitive::U8(2)),
+            Value::Primitive(Primitive::U8(3)),
+        ]));
+        <HashMap<String,u8>>::deserialize(val)
+            .expect_err("no names; can't be map");
+    }
+
+    #[test]
     fn de_into_tuple() {
         let val = Value::Composite(Composite::Unnamed(vec![
             Value::Primitive(Primitive::Str("hello".into())),
@@ -984,6 +1075,32 @@ mod test {
             ("a".into(), Value::Primitive(Primitive::Str("hello".into()))),
             ("b".into(), Value::Primitive(Primitive::Bool(true))),
         ]));
+        assert_eq!(
+            <(String, bool)>::deserialize(val),
+            Ok(("hello".into(), true))
+        );
+
+        // Enum variants are allowed! The variant name will be ignored:
+        let val = Value::Variant(Variant {
+            name: "Foo".into(),
+            values: Composite::Unnamed(vec![
+                Value::Primitive(Primitive::Str("hello".into())),
+                Value::Primitive(Primitive::Bool(true)),
+            ]),
+        });
+        assert_eq!(
+            <(String, bool)>::deserialize(val),
+            Ok(("hello".into(), true))
+        );
+
+        // Enum variants with names values are allowed! The variant name will be ignored:
+        let val = Value::Variant(Variant {
+            name: "Foo".into(),
+            values: Composite::Named(vec![
+                ("a".into(), Value::Primitive(Primitive::Str("hello".into()))),
+                ("b".into(), Value::Primitive(Primitive::Bool(true))),
+            ]),
+        });
         assert_eq!(
             <(String, bool)>::deserialize(val),
             Ok(("hello".into(), true))
@@ -1035,11 +1152,17 @@ mod test {
     #[test]
     fn de_bitvec() {
         use bitvec::{ bitvec, order::Lsb0 };
-        let val = Value::BitSequence(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0]);
 
+        let val = Value::BitSequence(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0]);
         assert_eq!(
             BitSequence::deserialize(val),
             Ok(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0])
+        );
+
+        let val = Value::BitSequence(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0]);
+        assert_eq!(
+            BitSequence::deserialize(val),
+            Ok(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0])
         );
     }
 
