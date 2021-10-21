@@ -71,7 +71,7 @@ impl Composite {
 	fn len(&self) -> usize {
 		match self {
 			Composite::Named(values) => values.len(),
-			Composite::Unnamed(values) => values.len()
+			Composite::Unnamed(values) => values.len(),
 		}
 	}
 }

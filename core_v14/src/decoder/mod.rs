@@ -42,8 +42,8 @@ let extrinsics = decoder.decode_extrinsics(&extrinsics_bytes).unwrap();
 
 assert_eq!(extrinsics.len(), 3);
 for ext in extrinsics {
-    assert_eq!(ext.pallet, "Auctions".to_string());
-    assert_eq!(ext.call, "bid".to_string());
+	assert_eq!(ext.pallet, "Auctions".to_string());
+	assert_eq!(ext.call, "bid".to_string());
 }
 ```
 

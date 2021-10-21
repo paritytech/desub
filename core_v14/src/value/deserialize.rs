@@ -14,10 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use serde::{Deserialize, Deserializer, Serialize, Serializer, ser, de::{self, EnumAccess, VariantAccess, IntoDeserializer, SeqAccess}, forward_to_deserialize_any};
-use std::fmt::Display;
-use std::borrow::Cow;
 use super::{BitSequence, Composite, Primitive, Value, Variant};
+use serde::{
+	de::{self, EnumAccess, IntoDeserializer, SeqAccess, VariantAccess},
+	forward_to_deserialize_any, ser, Deserialize, Deserializer, Serialize, Serializer,
+};
+use std::borrow::Cow;
+use std::fmt::Display;
 
 /*
 Deserializing using Serde is a bit weird to wrap your head around at first (at least, it was for me).
@@ -56,7 +59,6 @@ what data we actually have, we can often just give it back whatever we have and 
 various "special cases" though (like newtype wrapper structs) where we try to be more accomodating.
 */
 
-
 /// An opaque error to describe in human terms what went wrong.
 /// Many internal serialization/deserialization errors are relayed
 /// to this in string form, and so we use basic strings for custom
@@ -66,23 +68,23 @@ various "special cases" though (like newtype wrapper structs) where we try to be
 pub struct Error(Cow<'static, str>);
 
 impl Error {
-    fn from_string<S: Into<String>>(s: S) -> Error {
-        Error(Cow::Owned(s.into()))
-    }
-    fn from_str(s: &'static str) -> Error {
-        Error(Cow::Borrowed(s.into()))
-    }
+	fn from_string<S: Into<String>>(s: S) -> Error {
+		Error(Cow::Owned(s.into()))
+	}
+	fn from_str(s: &'static str) -> Error {
+		Error(Cow::Borrowed(s.into()))
+	}
 }
 
 impl de::Error for Error {
-    fn custom<T: Display>(msg:T) -> Self {
-        Error::from_string(msg.to_string())
-    }
+	fn custom<T: Display>(msg: T) -> Self {
+		Error::from_string(msg.to_string())
+	}
 }
 impl ser::Error for Error {
-    fn custom<T: Display>(msg:T) -> Self {
-        Error::from_string(msg.to_string())
-    }
+	fn custom<T: Display>(msg: T) -> Self {
+		Error::from_string(msg.to_string())
+	}
 }
 
 // Our Value trait needs to handle BitSeq itself, but otherwise delegates to
@@ -113,433 +115,485 @@ macro_rules! delegate_except_bitseq {
 // The goal here is simply to forward deserialization methods of interest to
 // the relevant subtype. The exception is our BitSequence type, which doesn't
 // have a sub type to forward to and so is handled here.
-impl <'de> Deserializer<'de> for Value {
-    type Error = Error;
+impl<'de> Deserializer<'de> for Value {
+	type Error = Error;
 
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: serde::de::Visitor<'de> {
-        delegate_except_bitseq!{ deserialize_any(self, visitor),
-            seq => {
-                BitVecPieces::new(seq)?.deserialize_any(visitor)
-            }
-        }
-    }
+	fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: serde::de::Visitor<'de>,
+	{
+		delegate_except_bitseq! { deserialize_any(self, visitor),
+			seq => {
+				BitVecPieces::new(seq)?.deserialize_any(visitor)
+			}
+		}
+	}
 
-    fn deserialize_newtype_struct<V>(self, name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        delegate_except_bitseq!{ deserialize_newtype_struct(self, name, visitor),
-            _ => {
-                Err(Error::from_str("Cannot deserialize BitSequence into a newtype struct"))
-            }
-        }
-    }
+	fn deserialize_newtype_struct<V>(self, name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		delegate_except_bitseq! { deserialize_newtype_struct(self, name, visitor),
+			_ => {
+				Err(Error::from_str("Cannot deserialize BitSequence into a newtype struct"))
+			}
+		}
+	}
 
-    fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        delegate_except_bitseq!{ deserialize_tuple(self, len, visitor),
-            _ => {
-                Err(Error::from_str("Cannot deserialize BitSequence into a tuple"))
-            }
-        }
-    }
+	fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		delegate_except_bitseq! { deserialize_tuple(self, len, visitor),
+			_ => {
+				Err(Error::from_str("Cannot deserialize BitSequence into a tuple"))
+			}
+		}
+	}
 
-    fn deserialize_tuple_struct<V>(self, name: &'static str, len: usize, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        delegate_except_bitseq!{ deserialize_tuple_struct(self, name, len, visitor),
-            _ => {
-                Err(Error::from_str("Cannot deserialize BitSequence into a tuple struct"))
-            }
-        }
-    }
+	fn deserialize_tuple_struct<V>(self, name: &'static str, len: usize, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		delegate_except_bitseq! { deserialize_tuple_struct(self, name, len, visitor),
+			_ => {
+				Err(Error::from_str("Cannot deserialize BitSequence into a tuple struct"))
+			}
+		}
+	}
 
-    fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        delegate_except_bitseq!{ deserialize_unit(self, visitor),
-            _ => {
-                Err(Error::from_str("Cannot deserialize BitSequence into a ()"))
-            }
-        }
-    }
+	fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		delegate_except_bitseq! { deserialize_unit(self, visitor),
+			_ => {
+				Err(Error::from_str("Cannot deserialize BitSequence into a ()"))
+			}
+		}
+	}
 
-    fn deserialize_unit_struct<V>(self, name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        delegate_except_bitseq!{ deserialize_unit_struct(self, name, visitor),
-            _ => {
-                Err(Error::from_string(format!("Cannot deserialize BitSequence into the unit struct {}", name)))
-            }
-        }
-    }
+	fn deserialize_unit_struct<V>(self, name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		delegate_except_bitseq! { deserialize_unit_struct(self, name, visitor),
+			_ => {
+				Err(Error::from_string(format!("Cannot deserialize BitSequence into the unit struct {}", name)))
+			}
+		}
+	}
 
-    fn deserialize_enum<V>(self, name: &'static str, variants: &'static [&'static str], visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        delegate_except_bitseq!{ deserialize_enum(self, name, variants, visitor),
-            _ => {
-                Err(Error::from_string(format!("Cannot deserialize BitSequence into the enum {}", name)))
-            }
-        }
-    }
+	fn deserialize_enum<V>(
+		self,
+		name: &'static str,
+		variants: &'static [&'static str],
+		visitor: V,
+	) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		delegate_except_bitseq! { deserialize_enum(self, name, variants, visitor),
+			_ => {
+				Err(Error::from_string(format!("Cannot deserialize BitSequence into the enum {}", name)))
+			}
+		}
+	}
 
-    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        delegate_except_bitseq!{ deserialize_bytes(self, visitor),
-            _ => {
-                Err(Error::from_str("Cannot deserialize BitSequence into raw bytes"))
-            }
-        }
-    }
+	fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		delegate_except_bitseq! { deserialize_bytes(self, visitor),
+			_ => {
+				Err(Error::from_str("Cannot deserialize BitSequence into raw bytes"))
+			}
+		}
+	}
 
-    fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        delegate_except_bitseq!{ deserialize_byte_buf(self, visitor),
-            _ => {
-                Err(Error::from_str("Cannot deserialize BitSequence into raw bytes"))
-            }
-        }
-    }
+	fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		delegate_except_bitseq! { deserialize_byte_buf(self, visitor),
+			_ => {
+				Err(Error::from_str("Cannot deserialize BitSequence into raw bytes"))
+			}
+		}
+	}
 
-    fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        delegate_except_bitseq!{ deserialize_seq(self, visitor),
-            _ => {
-                Err(Error::from_str("Cannot deserialize BitSequence into a sequence"))
-            }
-        }
-    }
+	fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		delegate_except_bitseq! { deserialize_seq(self, visitor),
+			_ => {
+				Err(Error::from_str("Cannot deserialize BitSequence into a sequence"))
+			}
+		}
+	}
 
-    fn deserialize_map<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        delegate_except_bitseq!{ deserialize_map(self, visitor),
-            _ => {
-                Err(Error::from_str("Cannot deserialize BitSequence into a map"))
-            }
-        }
-    }
+	fn deserialize_map<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		delegate_except_bitseq! { deserialize_map(self, visitor),
+			_ => {
+				Err(Error::from_str("Cannot deserialize BitSequence into a map"))
+			}
+		}
+	}
 
-    // None of the sub types particularly care about these, so we just allow them to forward to
-    // deserialize_any and go from there.
-    forward_to_deserialize_any! {
-        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
-        option struct identifier ignored_any
-    }
+	// None of the sub types particularly care about these, so we just allow them to forward to
+	// deserialize_any and go from there.
+	forward_to_deserialize_any! {
+		bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
+		option struct identifier ignored_any
+	}
 }
 
-impl <'de> IntoDeserializer<'de, Error> for Value {
-    type Deserializer = Value;
-    fn into_deserializer(self) -> Self::Deserializer {
-        self
-    }
+impl<'de> IntoDeserializer<'de, Error> for Value {
+	type Deserializer = Value;
+	fn into_deserializer(self) -> Self::Deserializer {
+		self
+	}
 }
 
-impl <'de> Deserializer<'de> for Composite {
-    type Error = Error;
+impl<'de> Deserializer<'de> for Composite {
+	type Error = Error;
 
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: serde::de::Visitor<'de> {
-        match self {
-            Composite::Named(values) => {
-                visitor.visit_map(de::value::MapDeserializer::new(values.into_iter()))
-            },
-            Composite::Unnamed(values) => {
-                visitor.visit_seq(de::value::SeqDeserializer::new(values.into_iter()))
-            },
-        }
-    }
+	fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: serde::de::Visitor<'de>,
+	{
+		match self {
+			Composite::Named(values) => visitor.visit_map(de::value::MapDeserializer::new(values.into_iter())),
+			Composite::Unnamed(values) => visitor.visit_seq(de::value::SeqDeserializer::new(values.into_iter())),
+		}
+	}
 
-    fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        match self {
-            Composite::Named(values) => {
-                visitor.visit_seq(de::value::SeqDeserializer::new(values.into_iter().map(|(_,v)| v)))
-            },
-            Composite::Unnamed(values) => {
-                visitor.visit_seq(de::value::SeqDeserializer::new(values.into_iter()))
-            },
-        }
-    }
+	fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		match self {
+			Composite::Named(values) => {
+				visitor.visit_seq(de::value::SeqDeserializer::new(values.into_iter().map(|(_, v)| v)))
+			}
+			Composite::Unnamed(values) => visitor.visit_seq(de::value::SeqDeserializer::new(values.into_iter())),
+		}
+	}
 
-    fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        match self {
-            // A sequence of named values? just ignores the names:
-            Composite::Named(values) => {
-                if values.len() != len {
-                    return Err(Error::from_string(format!("Cannot deserialize composite of length {} into tuple of length {}", values.len(), len)));
-                }
-                visitor.visit_seq(de::value::SeqDeserializer::new(values.into_iter().map(|(_,v)| v)))
-            },
-            // A sequence of unnamed values is ideal:
-            Composite::Unnamed(values) => {
-                if values.len() != len {
-                    return Err(Error::from_string(format!("Cannot deserialize composite of length {} into tuple of length {}", values.len(), len)));
-                }
-                visitor.visit_seq(de::value::SeqDeserializer::new(values.into_iter()))
-            },
-        }
-    }
+	fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		match self {
+			// A sequence of named values? just ignores the names:
+			Composite::Named(values) => {
+				if values.len() != len {
+					return Err(Error::from_string(format!(
+						"Cannot deserialize composite of length {} into tuple of length {}",
+						values.len(),
+						len
+					)));
+				}
+				visitor.visit_seq(de::value::SeqDeserializer::new(values.into_iter().map(|(_, v)| v)))
+			}
+			// A sequence of unnamed values is ideal:
+			Composite::Unnamed(values) => {
+				if values.len() != len {
+					return Err(Error::from_string(format!(
+						"Cannot deserialize composite of length {} into tuple of length {}",
+						values.len(),
+						len
+					)));
+				}
+				visitor.visit_seq(de::value::SeqDeserializer::new(values.into_iter()))
+			}
+		}
+	}
 
-    fn deserialize_tuple_struct<V>(self, _name: &'static str, len: usize, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        self.deserialize_tuple(len, visitor)
-    }
+	fn deserialize_tuple_struct<V>(self, _name: &'static str, len: usize, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		self.deserialize_tuple(len, visitor)
+	}
 
-    fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        // 0 length composite types can be treated as the unit type:
-        if self.len() == 0 {
-            visitor.visit_unit()
-        } else {
-            Err(Error::from_str("Cannot deserialize non-empty Composite into a unit value"))
-        }
-    }
+	fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		// 0 length composite types can be treated as the unit type:
+		if self.len() == 0 {
+			visitor.visit_unit()
+		} else {
+			Err(Error::from_str("Cannot deserialize non-empty Composite into a unit value"))
+		}
+	}
 
-    fn deserialize_unit_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        self.deserialize_unit(visitor)
-    }
+	fn deserialize_unit_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		self.deserialize_unit(visitor)
+	}
 
-    fn deserialize_newtype_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        visitor.visit_seq(de::value::SeqDeserializer::new(Some(self).into_iter()))
-    }
+	fn deserialize_newtype_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		visitor.visit_seq(de::value::SeqDeserializer::new(Some(self).into_iter()))
+	}
 
-    fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        match self {
-            Composite::Named(values) => {
-                let bytes = values.into_iter().map(|(_n, v)| {
-                    if let Value::Primitive(Primitive::U8(byte)) = v {
-                        Ok(byte)
-                    } else {
-                        Err(Error::from_str("Cannot deserialize composite that is not entirely U8's into bytes"))
-                    }
-                }).collect::<Result<_,Error>>()?;
-                visitor.visit_byte_buf(bytes)
-            },
-            Composite::Unnamed(values) => {
-                let bytes = values.into_iter().map(|v| {
-                    if let Value::Primitive(Primitive::U8(byte)) = v {
-                        Ok(byte)
-                    } else {
-                        Err(Error::from_str("Cannot deserialize composite that is not entirely U8's into bytes"))
-                    }
-                }).collect::<Result<_,Error>>()?;
-                visitor.visit_byte_buf(bytes)
-            }
-        }
-    }
+	fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		match self {
+			Composite::Named(values) => {
+				let bytes = values
+					.into_iter()
+					.map(|(_n, v)| {
+						if let Value::Primitive(Primitive::U8(byte)) = v {
+							Ok(byte)
+						} else {
+							Err(Error::from_str("Cannot deserialize composite that is not entirely U8's into bytes"))
+						}
+					})
+					.collect::<Result<_, Error>>()?;
+				visitor.visit_byte_buf(bytes)
+			}
+			Composite::Unnamed(values) => {
+				let bytes = values
+					.into_iter()
+					.map(|v| {
+						if let Value::Primitive(Primitive::U8(byte)) = v {
+							Ok(byte)
+						} else {
+							Err(Error::from_str("Cannot deserialize composite that is not entirely U8's into bytes"))
+						}
+					})
+					.collect::<Result<_, Error>>()?;
+				visitor.visit_byte_buf(bytes)
+			}
+		}
+	}
 
-    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        self.deserialize_byte_buf(visitor)
-    }
+	fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		self.deserialize_byte_buf(visitor)
+	}
 
-    forward_to_deserialize_any! {
-        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
-        option struct map
-        enum identifier ignored_any
-    }
+	forward_to_deserialize_any! {
+		bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
+		option struct map
+		enum identifier ignored_any
+	}
 }
 
-impl <'de> IntoDeserializer<'de, Error> for Composite {
-    type Deserializer = Composite;
-    fn into_deserializer(self) -> Self::Deserializer {
-        self
-    }
+impl<'de> IntoDeserializer<'de, Error> for Composite {
+	type Deserializer = Composite;
+	fn into_deserializer(self) -> Self::Deserializer {
+		self
+	}
 }
 
 // Because composite types are used to represent variant fields, we allow
 // variant accesses to be caleld on it, which just delegate to methods defined above.
-impl <'de> VariantAccess<'de> for Composite {
-    type Error = Error;
+impl<'de> VariantAccess<'de> for Composite {
+	type Error = Error;
 
-    fn unit_variant(self) -> Result<(), Self::Error> {
-        Deserialize::deserialize(self)
-    }
+	fn unit_variant(self) -> Result<(), Self::Error> {
+		Deserialize::deserialize(self)
+	}
 
-    fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value, Self::Error>
-    where
-        T: de::DeserializeSeed<'de> {
-        seed.deserialize(self)
-    }
+	fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value, Self::Error>
+	where
+		T: de::DeserializeSeed<'de>,
+	{
+		seed.deserialize(self)
+	}
 
-    fn tuple_variant<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: de::Visitor<'de> {
-        self.deserialize_tuple(len, visitor)
-    }
+	fn tuple_variant<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		self.deserialize_tuple(len, visitor)
+	}
 
-    fn struct_variant<V>(
-        self,
-        _fields: &'static [&'static str],
-        visitor: V,
-    ) -> Result<V::Value, Self::Error>
-    where
-        V: de::Visitor<'de> {
-        self.deserialize_any(visitor)
-    }
+	fn struct_variant<V>(self, _fields: &'static [&'static str], visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		self.deserialize_any(visitor)
+	}
 }
 
-impl <'de> Deserializer<'de> for Variant {
-    type Error = Error;
+impl<'de> Deserializer<'de> for Variant {
+	type Error = Error;
 
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: serde::de::Visitor<'de> {
-        visitor.visit_enum(self)
-    }
+	fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: serde::de::Visitor<'de>,
+	{
+		visitor.visit_enum(self)
+	}
 
-    fn deserialize_enum<V>(self, _name: &'static str, _variants: &'static [&'static str], visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        visitor.visit_enum(self)
-    }
+	fn deserialize_enum<V>(
+		self,
+		_name: &'static str,
+		_variants: &'static [&'static str],
+		visitor: V,
+	) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		visitor.visit_enum(self)
+	}
 
-    fn deserialize_newtype_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        visitor.visit_seq(de::value::SeqDeserializer::new(Some(self).into_iter()))
-    }
+	fn deserialize_newtype_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		visitor.visit_seq(de::value::SeqDeserializer::new(Some(self).into_iter()))
+	}
 
-    // Delegate to the Composite deserializing with the enum values if anything else specific is asked for:
+	// Delegate to the Composite deserializing with the enum values if anything else specific is asked for:
 
-    fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        self.values.deserialize_tuple(len, visitor)
-    }
+	fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		self.values.deserialize_tuple(len, visitor)
+	}
 
-    fn deserialize_tuple_struct<V>(self, name: &'static str, len: usize, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        self.values.deserialize_tuple_struct(name, len, visitor)
-    }
+	fn deserialize_tuple_struct<V>(self, name: &'static str, len: usize, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		self.values.deserialize_tuple_struct(name, len, visitor)
+	}
 
-    fn deserialize_unit_struct<V>(self, name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        self.values.deserialize_unit_struct(name, visitor)
+	fn deserialize_unit_struct<V>(self, name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		self.values.deserialize_unit_struct(name, visitor)
+	}
 
-    }
+	fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		self.values.deserialize_unit(visitor)
+	}
 
-    fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        self.values.deserialize_unit(visitor)
-    }
+	fn deserialize_struct<V>(
+		self,
+		name: &'static str,
+		fields: &'static [&'static str],
+		visitor: V,
+	) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		self.values.deserialize_struct(name, fields, visitor)
+	}
 
-    fn deserialize_struct<V>(self, name: &'static str, fields: &'static [&'static str], visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        self.values.deserialize_struct(name, fields, visitor)
-    }
+	fn deserialize_map<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		self.values.deserialize_map(visitor)
+	}
 
-    fn deserialize_map<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        self.values.deserialize_map(visitor)
-    }
+	fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		self.values.deserialize_seq(visitor)
+	}
 
-    fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        self.values.deserialize_seq(visitor)
-    }
-
-    forward_to_deserialize_any! {
-        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
-        bytes byte_buf option identifier ignored_any
-    }
+	forward_to_deserialize_any! {
+		bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
+		bytes byte_buf option identifier ignored_any
+	}
 }
 
-impl <'de> IntoDeserializer<'de, Error> for Variant {
-    type Deserializer = Variant;
-    fn into_deserializer(self) -> Self::Deserializer {
-        self
-    }
+impl<'de> IntoDeserializer<'de, Error> for Variant {
+	type Deserializer = Variant;
+	fn into_deserializer(self) -> Self::Deserializer {
+		self
+	}
 }
 
 // Variant types can be treated as serde enums. Here we just hand back
 // the pair of name and values, where values is a composite type that impls
 // VariantAccess to actually allow deserializing of those values.
-impl <'de> EnumAccess<'de> for Variant {
-    type Error = Error;
+impl<'de> EnumAccess<'de> for Variant {
+	type Error = Error;
 
-    type Variant = Composite;
+	type Variant = Composite;
 
-    fn variant_seed<V>(self, seed: V) -> Result<(V::Value, Self::Variant), Self::Error>
-    where
-        V: de::DeserializeSeed<'de> {
-        let name = self.name.into_deserializer();
-        let values = self.values;
-        seed
-            .deserialize(name)
-            .map(|name| (name, values))
-    }
+	fn variant_seed<V>(self, seed: V) -> Result<(V::Value, Self::Variant), Self::Error>
+	where
+		V: de::DeserializeSeed<'de>,
+	{
+		let name = self.name.into_deserializer();
+		let values = self.values;
+		seed.deserialize(name).map(|name| (name, values))
+	}
 }
 
-impl <'de> Deserializer<'de> for Primitive {
-    type Error = Error;
+impl<'de> Deserializer<'de> for Primitive {
+	type Error = Error;
 
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: serde::de::Visitor<'de> {
-            match self {
-                Primitive::Bool(v) => visitor.visit_bool(v),
-                Primitive::Char(v) => visitor.visit_char(v),
-                Primitive::Str(v) => visitor.visit_string(v),
-                Primitive::U8(v) => visitor.visit_u8(v),
-                Primitive::U16(v) => visitor.visit_u16(v),
-                Primitive::U32(v) => visitor.visit_u32(v),
-                Primitive::U64(v) => visitor.visit_u64(v),
-                Primitive::U128(v) => visitor.visit_u128(v),
-                Primitive::U256(v) => visitor.visit_bytes(&v),
-                Primitive::I8(v) => visitor.visit_i8(v),
-                Primitive::I16(v) => visitor.visit_i16(v),
-                Primitive::I32(v) => visitor.visit_i32(v),
-                Primitive::I64(v) => visitor.visit_i64(v),
-                Primitive::I128(v) => visitor.visit_i128(v),
-                Primitive::I256(v) => visitor.visit_bytes(&v),
-            }
-    }
+	fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: serde::de::Visitor<'de>,
+	{
+		match self {
+			Primitive::Bool(v) => visitor.visit_bool(v),
+			Primitive::Char(v) => visitor.visit_char(v),
+			Primitive::Str(v) => visitor.visit_string(v),
+			Primitive::U8(v) => visitor.visit_u8(v),
+			Primitive::U16(v) => visitor.visit_u16(v),
+			Primitive::U32(v) => visitor.visit_u32(v),
+			Primitive::U64(v) => visitor.visit_u64(v),
+			Primitive::U128(v) => visitor.visit_u128(v),
+			Primitive::U256(v) => visitor.visit_bytes(&v),
+			Primitive::I8(v) => visitor.visit_i8(v),
+			Primitive::I16(v) => visitor.visit_i16(v),
+			Primitive::I32(v) => visitor.visit_i32(v),
+			Primitive::I64(v) => visitor.visit_i64(v),
+			Primitive::I128(v) => visitor.visit_i128(v),
+			Primitive::I256(v) => visitor.visit_bytes(&v),
+		}
+	}
 
-    fn deserialize_newtype_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
-    where
-            V: de::Visitor<'de> {
-        visitor.visit_seq(de::value::SeqDeserializer::new(Some(self).into_iter()))
-    }
+	fn deserialize_newtype_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		visitor.visit_seq(de::value::SeqDeserializer::new(Some(self).into_iter()))
+	}
 
-    forward_to_deserialize_any! {
-        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
-        bytes byte_buf option unit unit_struct seq tuple
-        tuple_struct map struct enum identifier ignored_any
-    }
+	forward_to_deserialize_any! {
+		bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
+		bytes byte_buf option unit unit_struct seq tuple
+		tuple_struct map struct enum identifier ignored_any
+	}
 }
 
-impl <'de> IntoDeserializer<'de, Error> for Primitive {
-    type Deserializer = Primitive;
-    fn into_deserializer(self) -> Self::Deserializer {
-        self
-    }
+impl<'de> IntoDeserializer<'de, Error> for Primitive {
+	type Deserializer = Primitive;
+	fn into_deserializer(self) -> Self::Deserializer {
+		self
+	}
 }
 
 /// This is a somewhat insane approach to extracting the data that we need from a
@@ -551,816 +605,732 @@ impl <'de> IntoDeserializer<'de, Error> for Primitive {
 /// See https://docs.rs/bitvec/0.20.2/src/bitvec/serdes.rs.html for the Serialize/Deserialize
 /// impls we are aligning with.
 struct BitVecPieces {
-    head: u8,
-    bits: u64,
-    data: Vec<u8>,
-    // Track which field we're currently deserializing:
-    current_field: Option<Field>
+	head: u8,
+	bits: u64,
+	data: Vec<u8>,
+	// Track which field we're currently deserializing:
+	current_field: Option<Field>,
 }
 
-#[derive(PartialEq,Copy,Clone)]
+#[derive(PartialEq, Copy, Clone)]
 enum Field {
-    Head,
-    Bits,
-    Data,
+	Head,
+	Bits,
+	Data,
 }
 
-impl <'de> Deserializer<'de> for BitVecPieces {
-    type Error = Error;
+impl<'de> Deserializer<'de> for BitVecPieces {
+	type Error = Error;
 
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: de::Visitor<'de> {
-        // We hand back each field in order as part of a sequence, just because
-        // it's the least verbose approach:
-        visitor.visit_seq(self)
-    }
+	fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
+		// We hand back each field in order as part of a sequence, just because
+		// it's the least verbose approach:
+		visitor.visit_seq(self)
+	}
 
-    forward_to_deserialize_any! {
-        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
-        bytes byte_buf option unit unit_struct newtype_struct seq tuple
-        tuple_struct map struct enum identifier ignored_any
-    }
+	forward_to_deserialize_any! {
+		bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
+		bytes byte_buf option unit unit_struct newtype_struct seq tuple
+		tuple_struct map struct enum identifier ignored_any
+	}
 }
 
-impl <'de> SeqAccess<'de> for BitVecPieces {
-    type Error = Error;
+impl<'de> SeqAccess<'de> for BitVecPieces {
+	type Error = Error;
 
-    fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
-    where
-        T: de::DeserializeSeed<'de> {
-        match self.current_field {
-            Some(Field::Head) => {
-                let res = seed.deserialize(self.head.into_deserializer()).map(Some);
-                self.current_field = Some(Field::Bits);
-                res
-            },
-            Some(Field::Bits) => {
-                let res = seed.deserialize(self.bits.into_deserializer()).map(Some);
-                self.current_field = Some(Field::Data);
-                res
-            },
-            Some(Field::Data) => {
-                let bytes = std::mem::take(&mut self.data);
-                let res = seed.deserialize(bytes.into_deserializer()).map(Some);
-                self.current_field = None;
-                res
-            },
-            None => {
-                Ok(None)
-            }
-        }
-    }
+	fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
+	where
+		T: de::DeserializeSeed<'de>,
+	{
+		match self.current_field {
+			Some(Field::Head) => {
+				let res = seed.deserialize(self.head.into_deserializer()).map(Some);
+				self.current_field = Some(Field::Bits);
+				res
+			}
+			Some(Field::Bits) => {
+				let res = seed.deserialize(self.bits.into_deserializer()).map(Some);
+				self.current_field = Some(Field::Data);
+				res
+			}
+			Some(Field::Data) => {
+				let bytes = std::mem::take(&mut self.data);
+				let res = seed.deserialize(bytes.into_deserializer()).map(Some);
+				self.current_field = None;
+				res
+			}
+			None => Ok(None),
+		}
+	}
 }
 
 impl BitVecPieces {
-    fn new(bit_vec: BitSequence) -> Result<BitVecPieces, Error> {
+	fn new(bit_vec: BitSequence) -> Result<BitVecPieces, Error> {
+		// Step 1. "Serialize" the bitvec into this struct. Essentially,
+		// we are just writing out the values we need for deserializing,
+		// but with a silly amount of boilerplate/indirection..
+		struct BitVecSerializer {
+			head: Option<u8>,
+			bits: Option<u64>,
+			data: Vec<u8>,
+			current_field: Option<Field>,
+		}
 
-        // Step 1. "Serialize" the bitvec into this struct. Essentially,
-        // we are just writing out the values we need for deserializing,
-        // but with a silly amount of boilerplate/indirection..
-        struct BitVecSerializer {
-            head: Option<u8>,
-            bits: Option<u64>,
-            data: Vec<u8>,
-            current_field: Option<Field>,
-        }
+		// Make note of what field we're trying to serialize and
+		// delegate back to the main impl to actually do the work.
+		impl ser::SerializeStruct for &mut BitVecSerializer {
+			type Ok = ();
+			type Error = Error;
 
-        // Make note of what field we're trying to serialize and
-        // delegate back to the main impl to actually do the work.
-        impl ser::SerializeStruct for &mut BitVecSerializer {
-            type Ok = ();
-            type Error = Error;
+			fn serialize_field<T: ?Sized + Serialize>(
+				&mut self,
+				key: &'static str,
+				value: &T,
+			) -> Result<(), Self::Error> {
+				match key {
+					"head" => {
+						self.current_field = Some(Field::Head);
+					}
+					"bits" => {
+						self.current_field = Some(Field::Bits);
+					}
+					"data" => {
+						self.current_field = Some(Field::Data);
+					}
+					_ => {
+						return Err(Error::from_string(format!(
+							"BitVec serialization encountered unexpected field '{}'",
+							key
+						)))
+					}
+				}
+				value.serialize(&mut **self)
+			}
+			fn end(self) -> Result<Self::Ok, Self::Error> {
+				self.current_field = None;
+				Ok(())
+			}
+		}
 
-            fn serialize_field<T: ?Sized + Serialize>(
-                &mut self,
-                key: &'static str,
-                value: &T,
-            ) -> Result<(), Self::Error> {
-                match key {
-                    "head" => { self.current_field = Some(Field::Head); },
-                    "bits" => { self.current_field = Some(Field::Bits); },
-                    "data" => { self.current_field = Some(Field::Data); },
-                    _ => {
-                        return Err(Error::from_string(format!("BitVec serialization encountered unexpected field '{}'", key)))
-                    },
-                }
-                value.serialize(&mut **self)
-            }
-            fn end(self) -> Result<Self::Ok, Self::Error> {
-                self.current_field = None;
-                Ok(())
-            }
-        }
+		// This is only expected to be called for serializing the data. We delegate
+		// straight back to our main impl which should know what to do already, since
+		// we know what struct field we're trying to serialize.
+		impl ser::SerializeSeq for &mut BitVecSerializer {
+			type Ok = ();
+			type Error = Error;
 
-        // This is only expected to be called for serializing the data. We delegate
-        // straight back to our main impl which should know what to do already, since
-        // we know what struct field we're trying to serialize.
-        impl ser::SerializeSeq for &mut BitVecSerializer {
-            type Ok = ();
-            type Error = Error;
+			fn serialize_element<T: ?Sized + Serialize>(&mut self, value: &T) -> Result<(), Self::Error> {
+				value.serialize(&mut **self)
+			}
+			fn end(self) -> Result<Self::Ok, Self::Error> {
+				Ok(())
+			}
+		}
 
-            fn serialize_element<T: ?Sized + Serialize>(&mut self, value: &T) -> Result<(), Self::Error> {
-                value.serialize(&mut **self)
-            }
-            fn end(self) -> Result<Self::Ok, Self::Error> {
-                Ok(())
-            }
-        }
+		// A slightly insane serializer impl whose only purpose is to be called by
+		// the BitVec serialize impl, which itself only calls `serialize_struct` and
+		// passes relevant data to that (so we only implement that method..)
+		impl Serializer for &mut BitVecSerializer {
+			type Ok = ();
+			type Error = Error;
 
-        // A slightly insane serializer impl whose only purpose is to be called by
-        // the BitVec serialize impl, which itself only calls `serialize_struct` and
-        // passes relevant data to that (so we only implement that method..)
-        impl Serializer for &mut BitVecSerializer {
-            type Ok = ();
-            type Error = Error;
+			type SerializeStruct = Self;
+			type SerializeSeq = Self;
 
-            type SerializeStruct = Self;
-            type SerializeSeq = Self;
+			type SerializeTuple = serde::ser::Impossible<(), Error>;
+			type SerializeTupleStruct = serde::ser::Impossible<(), Error>;
+			type SerializeTupleVariant = serde::ser::Impossible<(), Error>;
+			type SerializeMap = serde::ser::Impossible<(), Error>;
+			type SerializeStructVariant = serde::ser::Impossible<(), Error>;
 
-            type SerializeTuple = serde::ser::Impossible<(), Error>;
-            type SerializeTupleStruct = serde::ser::Impossible<(), Error>;
-            type SerializeTupleVariant = serde::ser::Impossible<(), Error>;
-            type SerializeMap = serde::ser::Impossible<(), Error>;
-            type SerializeStructVariant = serde::ser::Impossible<(), Error>;
+			fn serialize_struct(self, _: &'static str, _: usize) -> Result<Self::SerializeStruct, Self::Error> {
+				Ok(self)
+			}
+			fn serialize_seq(self, _: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
+				match self.current_field {
+					Some(Field::Data) => Ok(self),
+					_ => Err(Error::from_str(
+						"BitVec serialization only expects serialize_seq to be called for 'data' prop",
+					)),
+				}
+			}
+			fn serialize_u8(self, v: u8) -> Result<Self::Ok, Self::Error> {
+				match self.current_field {
+					Some(Field::Head) => {
+						self.head = Some(v);
+						Ok(())
+					}
+					Some(Field::Data) => {
+						self.data.push(v);
+						Ok(())
+					}
+					_ => Err(Error::from_str(
+						"BitVec serialization only expects serialize_u8 to be called for 'head' prop",
+					)),
+				}
+			}
+			fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
+				match self.current_field {
+					Some(Field::Bits) => {
+						self.bits = Some(v);
+						Ok(())
+					}
+					_ => Err(Error::from_str(
+						"BitVec serialization only expects serialize_u64 to be called for 'len' prop",
+					)),
+				}
+			}
 
-            fn serialize_struct(self, _: &'static str, _: usize) -> Result<Self::SerializeStruct, Self::Error> {
-                Ok(self)
-            }
-            fn serialize_seq(self, _: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-                match self.current_field {
-                    Some(Field::Data) => Ok(self),
-                    _ => Err(Error::from_str("BitVec serialization only expects serialize_seq to be called for 'data' prop"))
-                }
-            }
-            fn serialize_u8(self, v: u8) -> Result<Self::Ok, Self::Error> {
-                match self.current_field {
-                    Some(Field::Head) => {
-                        self.head = Some(v);
-                        Ok(())
-                    },
-                    Some(Field::Data) => {
-                        self.data.push(v);
-                        Ok(())
-                    }
-                    _ => Err(Error::from_str("BitVec serialization only expects serialize_u8 to be called for 'head' prop"))
-                }
-            }
-            fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
-                match self.current_field {
-                    Some(Field::Bits) => {
-                        self.bits = Some(v);
-                        Ok(())
-                    },
-                    _ => Err(Error::from_str("BitVec serialization only expects serialize_u64 to be called for 'len' prop"))
-                }
-            }
+			// All of the below are never expected to be called when serializing a BitVec,
+			// so we just return an error since we'd have no idea what to do!
+			fn serialize_bool(self, _v: bool) -> Result<Self::Ok, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_i8(self, _v: i8) -> Result<Self::Ok, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_i16(self, _v: i16) -> Result<Self::Ok, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_i32(self, _v: i32) -> Result<Self::Ok, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_i64(self, _v: i64) -> Result<Self::Ok, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_u16(self, _v: u16) -> Result<Self::Ok, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_u32(self, _v: u32) -> Result<Self::Ok, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_f32(self, _v: f32) -> Result<Self::Ok, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_f64(self, _v: f64) -> Result<Self::Ok, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_char(self, _v: char) -> Result<Self::Ok, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_str(self, _v: &str) -> Result<Self::Ok, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_some<T: Serialize + ?Sized>(self, _: &T) -> Result<Self::Ok, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_unit_struct(self, _: &'static str) -> Result<Self::Ok, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_unit_variant(self, _: &'static str, _: u32, _: &'static str) -> Result<Self::Ok, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_newtype_struct<T: ?Sized + Serialize>(
+				self,
+				_: &'static str,
+				_: &T,
+			) -> Result<Self::Ok, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_newtype_variant<T: ?Sized + Serialize>(
+				self,
+				_: &'static str,
+				_: u32,
+				_: &'static str,
+				_: &T,
+			) -> Result<Self::Ok, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_tuple(self, _: usize) -> Result<Self::SerializeTuple, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_tuple_struct(
+				self,
+				_: &'static str,
+				_: usize,
+			) -> Result<Self::SerializeTupleStruct, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_tuple_variant(
+				self,
+				_: &'static str,
+				_: u32,
+				_: &'static str,
+				_: usize,
+			) -> Result<Self::SerializeTupleVariant, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_map(self, _: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+			fn serialize_struct_variant(
+				self,
+				_: &'static str,
+				_: u32,
+				_: &'static str,
+				_: usize,
+			) -> Result<Self::SerializeStructVariant, Self::Error> {
+				Err(Error::from_str("Unsupported BitVec serialization method"))
+			}
+		}
 
-            // All of the below are never expected to be called when serializing a BitVec,
-            // so we just return an error since we'd have no idea what to do!
-            fn serialize_bool(self, _v: bool) -> Result<Self::Ok, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_i8(self, _v: i8) -> Result<Self::Ok, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_i16(self, _v: i16) -> Result<Self::Ok, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_i32(self, _v: i32) -> Result<Self::Ok, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_i64(self, _v: i64) -> Result<Self::Ok, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_u16(self, _v: u16) -> Result<Self::Ok, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_u32(self, _v: u32) -> Result<Self::Ok, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_f32(self, _v: f32) -> Result<Self::Ok, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_f64(self, _v: f64) -> Result<Self::Ok, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_char(self, _v: char) -> Result<Self::Ok, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_str(self, _v: &str) -> Result<Self::Ok, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_some<T: Serialize + ?Sized>(self, _: &T) -> Result<Self::Ok, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_unit_struct(self, _: &'static str) -> Result<Self::Ok, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_unit_variant(self, _: &'static str, _: u32, _: &'static str) -> Result<Self::Ok, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_newtype_struct<T: ?Sized + Serialize>(self, _: &'static str, _: &T) -> Result<Self::Ok, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_newtype_variant<T: ?Sized + Serialize>(self, _: &'static str, _: u32, _: &'static str, _: &T) -> Result<Self::Ok, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_tuple(self, _: usize) -> Result<Self::SerializeTuple, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_tuple_struct(self, _: &'static str, _: usize) -> Result<Self::SerializeTupleStruct, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_tuple_variant(self, _: &'static str, _: u32, _: &'static str, _: usize) -> Result<Self::SerializeTupleVariant, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_map(self, _: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-            fn serialize_struct_variant(self, _: &'static str, _: u32, _: &'static str, _: usize) -> Result<Self::SerializeStructVariant, Self::Error> {
-                Err(Error::from_str("Unsupported BitVec serialization method"))
-            }
-        }
+		// Serialize the BitVec based on our above serializer: this basically
+		// exptracts the data out of it that we'll need for deserialization..
+		let mut se = BitVecSerializer { head: None, bits: None, data: Vec::new(), current_field: None };
+		bit_vec.serialize(&mut se)?;
 
-        // Serialize the BitVec based on our above serializer: this basically
-        // exptracts the data out of it that we'll need for deserialization..
-        let mut se = BitVecSerializer {
-            head: None,
-            bits: None,
-            data: Vec::new(),
-            current_field: None,
-        };
-        bit_vec.serialize(&mut se)?;
-
-        match se {
-            BitVecSerializer { data, bits: Some(bits), head: Some(head), .. } => {
-                Ok(BitVecPieces { data, bits, head, current_field: Some(Field::Head) })
-            },
-            _ => {
-                Err(Error::from_str("Could not gather together the BitVec pieces required during serialization"))
-            }
-        }
-    }
+		match se {
+			BitVecSerializer { data, bits: Some(bits), head: Some(head), .. } => {
+				Ok(BitVecPieces { data, bits, head, current_field: Some(Field::Head) })
+			}
+			_ => Err(Error::from_str("Could not gather together the BitVec pieces required during serialization")),
+		}
+	}
 }
 
 // We want to make sure that we can transform our various Value types into the sorts of output we'd expect..
 #[cfg(test)]
 mod test {
 
-    use crate::value::BitSequence;
-    use serde::Deserialize;
+	use crate::value::BitSequence;
+	use serde::Deserialize;
 
-    use super::*;
+	use super::*;
 
-    #[test]
-    fn de_into_struct() {
-        #[derive(Deserialize, Debug, PartialEq)]
-        struct Foo {
-            a: u8,
-            b: bool,
-        }
+	#[test]
+	fn de_into_struct() {
+		#[derive(Deserialize, Debug, PartialEq)]
+		struct Foo {
+			a: u8,
+			b: bool,
+		}
 
-        let val = Value::Composite(Composite::Named(vec![
-            // Order shouldn't matter; match on names:
-            ("b".into(), Value::Primitive(Primitive::Bool(true))),
-            ("a".into(), Value::Primitive(Primitive::U8(123))),
-        ]));
+		let val = Value::Composite(Composite::Named(vec![
+			// Order shouldn't matter; match on names:
+			("b".into(), Value::Primitive(Primitive::Bool(true))),
+			("a".into(), Value::Primitive(Primitive::U8(123))),
+		]));
 
-        assert_eq!(
-            Foo::deserialize(val),
-            Ok(Foo { a: 123, b: true })
-        )
-    }
+		assert_eq!(Foo::deserialize(val), Ok(Foo { a: 123, b: true }))
+	}
 
-    #[test]
-    fn de_unwrapped_into_struct() {
-        #[derive(Deserialize, Debug, PartialEq)]
-        struct Foo {
-            a: u8,
-            b: bool,
-        }
+	#[test]
+	fn de_unwrapped_into_struct() {
+		#[derive(Deserialize, Debug, PartialEq)]
+		struct Foo {
+			a: u8,
+			b: bool,
+		}
 
-        let val = Composite::Named(vec![
-            // Order shouldn't matter; match on names:
-            ("b".into(), Value::Primitive(Primitive::Bool(true))),
-            ("a".into(), Value::Primitive(Primitive::U8(123))),
-        ]);
+		let val = Composite::Named(vec![
+			// Order shouldn't matter; match on names:
+			("b".into(), Value::Primitive(Primitive::Bool(true))),
+			("a".into(), Value::Primitive(Primitive::U8(123))),
+		]);
 
-        assert_eq!(
-            Foo::deserialize(val),
-            Ok(Foo { a: 123, b: true })
-        )
-    }
+		assert_eq!(Foo::deserialize(val), Ok(Foo { a: 123, b: true }))
+	}
 
-    #[test]
-    fn de_into_tuple_struct() {
-        #[derive(Deserialize, Debug, PartialEq)]
-        struct Foo(u8, bool, String);
+	#[test]
+	fn de_into_tuple_struct() {
+		#[derive(Deserialize, Debug, PartialEq)]
+		struct Foo(u8, bool, String);
 
-        let val = Value::Composite(Composite::Unnamed(vec![
-            Value::Primitive(Primitive::U8(123)),
-            Value::Primitive(Primitive::Bool(true)),
-            Value::Primitive(Primitive::Str("hello".into())),
-        ]));
+		let val = Value::Composite(Composite::Unnamed(vec![
+			Value::Primitive(Primitive::U8(123)),
+			Value::Primitive(Primitive::Bool(true)),
+			Value::Primitive(Primitive::Str("hello".into())),
+		]));
 
-        assert_eq!(
-            Foo::deserialize(val),
-            Ok(Foo(123, true, "hello".into()))
-        )
-    }
+		assert_eq!(Foo::deserialize(val), Ok(Foo(123, true, "hello".into())))
+	}
 
-    #[test]
-    fn de_unwrapped_into_tuple_struct() {
-        #[derive(Deserialize, Debug, PartialEq)]
-        struct Foo(u8, bool, String);
+	#[test]
+	fn de_unwrapped_into_tuple_struct() {
+		#[derive(Deserialize, Debug, PartialEq)]
+		struct Foo(u8, bool, String);
 
-        let val = Composite::Unnamed(vec![
-            Value::Primitive(Primitive::U8(123)),
-            Value::Primitive(Primitive::Bool(true)),
-            Value::Primitive(Primitive::Str("hello".into())),
-        ]);
+		let val = Composite::Unnamed(vec![
+			Value::Primitive(Primitive::U8(123)),
+			Value::Primitive(Primitive::Bool(true)),
+			Value::Primitive(Primitive::Str("hello".into())),
+		]);
 
-        assert_eq!(
-            Foo::deserialize(val),
-            Ok(Foo(123, true, "hello".into()))
-        )
-    }
+		assert_eq!(Foo::deserialize(val), Ok(Foo(123, true, "hello".into())))
+	}
 
-    #[test]
-    fn de_into_newtype_struct() {
-        #[derive(Deserialize, Debug, PartialEq)]
-        struct FooStr(String);
-        let val = Value::Primitive(Primitive::Str("hello".into()));
-        assert_eq!(
-            FooStr::deserialize(val),
-            Ok(FooStr("hello".into()))
-        );
+	#[test]
+	fn de_into_newtype_struct() {
+		#[derive(Deserialize, Debug, PartialEq)]
+		struct FooStr(String);
+		let val = Value::Primitive(Primitive::Str("hello".into()));
+		assert_eq!(FooStr::deserialize(val), Ok(FooStr("hello".into())));
 
-        #[derive(Deserialize, Debug, PartialEq)]
-        struct FooVecU8(Vec<u8>);
-        let val = Value::Composite(Composite::Unnamed(vec![
-            Value::Primitive(Primitive::U8(1)),
-            Value::Primitive(Primitive::U8(2)),
-            Value::Primitive(Primitive::U8(3)),
-        ]));
-        assert_eq!(
-            FooVecU8::deserialize(val),
-            Ok(FooVecU8(vec![1,2,3]))
-        );
+		#[derive(Deserialize, Debug, PartialEq)]
+		struct FooVecU8(Vec<u8>);
+		let val = Value::Composite(Composite::Unnamed(vec![
+			Value::Primitive(Primitive::U8(1)),
+			Value::Primitive(Primitive::U8(2)),
+			Value::Primitive(Primitive::U8(3)),
+		]));
+		assert_eq!(FooVecU8::deserialize(val), Ok(FooVecU8(vec![1, 2, 3])));
 
-        #[derive(Deserialize, Debug, PartialEq)]
-        enum MyEnum { Foo(u8, u8, u8) }
-        #[derive(Deserialize, Debug, PartialEq)]
-        struct FooVar(MyEnum);
-        let val = Value::Variant(Variant {
-            name: "Foo".into(),
-            values: Composite::Unnamed(vec![
-                Value::Primitive(Primitive::U8(1)),
-                Value::Primitive(Primitive::U8(2)),
-                Value::Primitive(Primitive::U8(3)),
-            ])
-        });
-        assert_eq!(
-            FooVar::deserialize(val),
-            Ok(FooVar(MyEnum::Foo(1,2,3)))
-        );
-    }
+		#[derive(Deserialize, Debug, PartialEq)]
+		enum MyEnum {
+			Foo(u8, u8, u8),
+		}
+		#[derive(Deserialize, Debug, PartialEq)]
+		struct FooVar(MyEnum);
+		let val = Value::Variant(Variant {
+			name: "Foo".into(),
+			values: Composite::Unnamed(vec![
+				Value::Primitive(Primitive::U8(1)),
+				Value::Primitive(Primitive::U8(2)),
+				Value::Primitive(Primitive::U8(3)),
+			]),
+		});
+		assert_eq!(FooVar::deserialize(val), Ok(FooVar(MyEnum::Foo(1, 2, 3))));
+	}
 
-    #[test]
-    fn de_unwrapped_into_newtype_struct() {
-        #[derive(Deserialize, Debug, PartialEq)]
-        struct FooStr(String);
-        let val = Primitive::Str("hello".into());
-        assert_eq!(
-            FooStr::deserialize(val),
-            Ok(FooStr("hello".into()))
-        );
+	#[test]
+	fn de_unwrapped_into_newtype_struct() {
+		#[derive(Deserialize, Debug, PartialEq)]
+		struct FooStr(String);
+		let val = Primitive::Str("hello".into());
+		assert_eq!(FooStr::deserialize(val), Ok(FooStr("hello".into())));
 
-        #[derive(Deserialize, Debug, PartialEq)]
-        struct FooVecU8(Vec<u8>);
-        let val = Composite::Unnamed(vec![
-            Value::Primitive(Primitive::U8(1)),
-            Value::Primitive(Primitive::U8(2)),
-            Value::Primitive(Primitive::U8(3)),
-        ]);
-        assert_eq!(
-            FooVecU8::deserialize(val),
-            Ok(FooVecU8(vec![1,2,3]))
-        );
+		#[derive(Deserialize, Debug, PartialEq)]
+		struct FooVecU8(Vec<u8>);
+		let val = Composite::Unnamed(vec![
+			Value::Primitive(Primitive::U8(1)),
+			Value::Primitive(Primitive::U8(2)),
+			Value::Primitive(Primitive::U8(3)),
+		]);
+		assert_eq!(FooVecU8::deserialize(val), Ok(FooVecU8(vec![1, 2, 3])));
 
-        #[derive(Deserialize, Debug, PartialEq)]
-        enum MyEnum { Foo(u8, u8, u8) }
-        #[derive(Deserialize, Debug, PartialEq)]
-        struct FooVar(MyEnum);
-        let val = Variant {
-            name: "Foo".into(),
-            values: Composite::Unnamed(vec![
-                Value::Primitive(Primitive::U8(1)),
-                Value::Primitive(Primitive::U8(2)),
-                Value::Primitive(Primitive::U8(3)),
-            ])
-        };
-        assert_eq!(
-            FooVar::deserialize(val),
-            Ok(FooVar(MyEnum::Foo(1,2,3)))
-        );
-    }
+		#[derive(Deserialize, Debug, PartialEq)]
+		enum MyEnum {
+			Foo(u8, u8, u8),
+		}
+		#[derive(Deserialize, Debug, PartialEq)]
+		struct FooVar(MyEnum);
+		let val = Variant {
+			name: "Foo".into(),
+			values: Composite::Unnamed(vec![
+				Value::Primitive(Primitive::U8(1)),
+				Value::Primitive(Primitive::U8(2)),
+				Value::Primitive(Primitive::U8(3)),
+			]),
+		};
+		assert_eq!(FooVar::deserialize(val), Ok(FooVar(MyEnum::Foo(1, 2, 3))));
+	}
 
-    #[test]
-    fn de_into_vec() {
-        let val = Value::Composite(Composite::Unnamed(vec![
-            Value::Primitive(Primitive::U8(1)),
-            Value::Primitive(Primitive::U8(2)),
-            Value::Primitive(Primitive::U8(3)),
-        ]));
-        assert_eq!(
-            <Vec<u8>>::deserialize(val),
-            Ok(vec![1, 2, 3])
-        );
+	#[test]
+	fn de_into_vec() {
+		let val = Value::Composite(Composite::Unnamed(vec![
+			Value::Primitive(Primitive::U8(1)),
+			Value::Primitive(Primitive::U8(2)),
+			Value::Primitive(Primitive::U8(3)),
+		]));
+		assert_eq!(<Vec<u8>>::deserialize(val), Ok(vec![1, 2, 3]));
 
-        let val = Value::Composite(Composite::Unnamed(vec![
-            Value::Primitive(Primitive::Str("a".into())),
-            Value::Primitive(Primitive::Str("b".into())),
-            Value::Primitive(Primitive::Str("c".into())),
-        ]));
-        assert_eq!(
-            <Vec<String>>::deserialize(val),
-            Ok(vec!["a".into(), "b".into(), "c".into()])
-        );
-    }
+		let val = Value::Composite(Composite::Unnamed(vec![
+			Value::Primitive(Primitive::Str("a".into())),
+			Value::Primitive(Primitive::Str("b".into())),
+			Value::Primitive(Primitive::Str("c".into())),
+		]));
+		assert_eq!(<Vec<String>>::deserialize(val), Ok(vec!["a".into(), "b".into(), "c".into()]));
+	}
 
-    #[test]
-    fn de_unwrapped_into_vec() {
-        let val = Composite::Unnamed(vec![
-            Value::Primitive(Primitive::U8(1)),
-            Value::Primitive(Primitive::U8(2)),
-            Value::Primitive(Primitive::U8(3)),
-        ]);
-        assert_eq!(
-            <Vec<u8>>::deserialize(val),
-            Ok(vec![1, 2, 3])
-        );
+	#[test]
+	fn de_unwrapped_into_vec() {
+		let val = Composite::Unnamed(vec![
+			Value::Primitive(Primitive::U8(1)),
+			Value::Primitive(Primitive::U8(2)),
+			Value::Primitive(Primitive::U8(3)),
+		]);
+		assert_eq!(<Vec<u8>>::deserialize(val), Ok(vec![1, 2, 3]));
 
-        let val = Composite::Named(vec![
-            ("a".into(), Value::Primitive(Primitive::U8(1))),
-            ("b".into(), Value::Primitive(Primitive::U8(2))),
-            ("c".into(), Value::Primitive(Primitive::U8(3))),
-        ]);
-        assert_eq!(
-            <Vec<u8>>::deserialize(val),
-            Ok(vec![1, 2, 3])
-        );
+		let val = Composite::Named(vec![
+			("a".into(), Value::Primitive(Primitive::U8(1))),
+			("b".into(), Value::Primitive(Primitive::U8(2))),
+			("c".into(), Value::Primitive(Primitive::U8(3))),
+		]);
+		assert_eq!(<Vec<u8>>::deserialize(val), Ok(vec![1, 2, 3]));
 
-        let val = Composite::Unnamed(vec![
-            Value::Primitive(Primitive::Str("a".into())),
-            Value::Primitive(Primitive::Str("b".into())),
-            Value::Primitive(Primitive::Str("c".into())),
-        ]);
-        assert_eq!(
-            <Vec<String>>::deserialize(val),
-            Ok(vec!["a".into(), "b".into(), "c".into()])
-        );
-    }
+		let val = Composite::Unnamed(vec![
+			Value::Primitive(Primitive::Str("a".into())),
+			Value::Primitive(Primitive::Str("b".into())),
+			Value::Primitive(Primitive::Str("c".into())),
+		]);
+		assert_eq!(<Vec<String>>::deserialize(val), Ok(vec!["a".into(), "b".into(), "c".into()]));
+	}
 
-    #[test]
-    fn de_into_map() {
-        use std::collections::HashMap;
+	#[test]
+	fn de_into_map() {
+		use std::collections::HashMap;
 
-        let val = Value::Composite(Composite::Named(vec![
-            ("a".into(), Value::Primitive(Primitive::U8(1))),
-            ("b".into(), Value::Primitive(Primitive::U8(2))),
-            ("c".into(), Value::Primitive(Primitive::U8(3))),
-        ]));
-        assert_eq!(
-            <HashMap<String,u8>>::deserialize(val),
-            Ok(vec![
-                ("a".into(), 1),
-                ("b".into(), 2),
-                ("c".into(), 3)
-            ].into_iter().collect())
-        );
+		let val = Value::Composite(Composite::Named(vec![
+			("a".into(), Value::Primitive(Primitive::U8(1))),
+			("b".into(), Value::Primitive(Primitive::U8(2))),
+			("c".into(), Value::Primitive(Primitive::U8(3))),
+		]));
+		assert_eq!(
+			<HashMap<String, u8>>::deserialize(val),
+			Ok(vec![("a".into(), 1), ("b".into(), 2), ("c".into(), 3)].into_iter().collect())
+		);
 
-        let val = Value::Composite(Composite::Unnamed(vec![
-            Value::Primitive(Primitive::U8(1)),
-            Value::Primitive(Primitive::U8(2)),
-            Value::Primitive(Primitive::U8(3)),
-        ]));
-        <HashMap<String,u8>>::deserialize(val)
-            .expect_err("no names; can't be map");
-    }
+		let val = Value::Composite(Composite::Unnamed(vec![
+			Value::Primitive(Primitive::U8(1)),
+			Value::Primitive(Primitive::U8(2)),
+			Value::Primitive(Primitive::U8(3)),
+		]));
+		<HashMap<String, u8>>::deserialize(val).expect_err("no names; can't be map");
+	}
 
-    #[test]
-    fn de_into_tuple() {
-        let val = Value::Composite(Composite::Unnamed(vec![
-            Value::Primitive(Primitive::Str("hello".into())),
-            Value::Primitive(Primitive::Bool(true)),
-        ]));
-        assert_eq!(
-            <(String, bool)>::deserialize(val),
-            Ok(("hello".into(), true))
-        );
+	#[test]
+	fn de_into_tuple() {
+		let val = Value::Composite(Composite::Unnamed(vec![
+			Value::Primitive(Primitive::Str("hello".into())),
+			Value::Primitive(Primitive::Bool(true)),
+		]));
+		assert_eq!(<(String, bool)>::deserialize(val), Ok(("hello".into(), true)));
 
-        // names will just be ignored:
-        let val = Value::Composite(Composite::Named(vec![
-            ("a".into(), Value::Primitive(Primitive::Str("hello".into()))),
-            ("b".into(), Value::Primitive(Primitive::Bool(true))),
-        ]));
-        assert_eq!(
-            <(String, bool)>::deserialize(val),
-            Ok(("hello".into(), true))
-        );
+		// names will just be ignored:
+		let val = Value::Composite(Composite::Named(vec![
+			("a".into(), Value::Primitive(Primitive::Str("hello".into()))),
+			("b".into(), Value::Primitive(Primitive::Bool(true))),
+		]));
+		assert_eq!(<(String, bool)>::deserialize(val), Ok(("hello".into(), true)));
 
-        // Enum variants are allowed! The variant name will be ignored:
-        let val = Value::Variant(Variant {
-            name: "Foo".into(),
-            values: Composite::Unnamed(vec![
-                Value::Primitive(Primitive::Str("hello".into())),
-                Value::Primitive(Primitive::Bool(true)),
-            ]),
-        });
-        assert_eq!(
-            <(String, bool)>::deserialize(val),
-            Ok(("hello".into(), true))
-        );
+		// Enum variants are allowed! The variant name will be ignored:
+		let val = Value::Variant(Variant {
+			name: "Foo".into(),
+			values: Composite::Unnamed(vec![
+				Value::Primitive(Primitive::Str("hello".into())),
+				Value::Primitive(Primitive::Bool(true)),
+			]),
+		});
+		assert_eq!(<(String, bool)>::deserialize(val), Ok(("hello".into(), true)));
 
-        // Enum variants with names values are allowed! The variant name will be ignored:
-        let val = Value::Variant(Variant {
-            name: "Foo".into(),
-            values: Composite::Named(vec![
-                ("a".into(), Value::Primitive(Primitive::Str("hello".into()))),
-                ("b".into(), Value::Primitive(Primitive::Bool(true))),
-            ]),
-        });
-        assert_eq!(
-            <(String, bool)>::deserialize(val),
-            Ok(("hello".into(), true))
-        );
+		// Enum variants with names values are allowed! The variant name will be ignored:
+		let val = Value::Variant(Variant {
+			name: "Foo".into(),
+			values: Composite::Named(vec![
+				("a".into(), Value::Primitive(Primitive::Str("hello".into()))),
+				("b".into(), Value::Primitive(Primitive::Bool(true))),
+			]),
+		});
+		assert_eq!(<(String, bool)>::deserialize(val), Ok(("hello".into(), true)));
 
-        // Wrong number of values should fail:
-        let val = Value::Composite(Composite::Unnamed(vec![
-            Value::Primitive(Primitive::Str("hello".into())),
-            Value::Primitive(Primitive::Bool(true)),
-            Value::Primitive(Primitive::U8(123)),
-        ]));
-        <(String, bool)>::deserialize(val)
-            .expect_err("Wrong length, should err");
-    }
+		// Wrong number of values should fail:
+		let val = Value::Composite(Composite::Unnamed(vec![
+			Value::Primitive(Primitive::Str("hello".into())),
+			Value::Primitive(Primitive::Bool(true)),
+			Value::Primitive(Primitive::U8(123)),
+		]));
+		<(String, bool)>::deserialize(val).expect_err("Wrong length, should err");
+	}
 
-    #[test]
-    fn de_unwrapped_into_tuple() {
-        let val = Composite::Unnamed(vec![
-            Value::Primitive(Primitive::Str("hello".into())),
-            Value::Primitive(Primitive::Bool(true)),
-        ]);
-        assert_eq!(
-            <(String, bool)>::deserialize(val),
-            Ok(("hello".into(), true))
-        );
+	#[test]
+	fn de_unwrapped_into_tuple() {
+		let val = Composite::Unnamed(vec![
+			Value::Primitive(Primitive::Str("hello".into())),
+			Value::Primitive(Primitive::Bool(true)),
+		]);
+		assert_eq!(<(String, bool)>::deserialize(val), Ok(("hello".into(), true)));
 
-        // names will just be ignored:
-        let val = Composite::Named(vec![
-            ("a".into(), Value::Primitive(Primitive::Str("hello".into()))),
-            ("b".into(), Value::Primitive(Primitive::Bool(true))),
-        ]);
-        assert_eq!(
-            <(String, bool)>::deserialize(val),
-            Ok(("hello".into(), true))
-        );
+		// names will just be ignored:
+		let val = Composite::Named(vec![
+			("a".into(), Value::Primitive(Primitive::Str("hello".into()))),
+			("b".into(), Value::Primitive(Primitive::Bool(true))),
+		]);
+		assert_eq!(<(String, bool)>::deserialize(val), Ok(("hello".into(), true)));
 
-        // Wrong number of values should fail:
-        let val = Composite::Unnamed(vec![
-            Value::Primitive(Primitive::Str("hello".into())),
-            Value::Primitive(Primitive::Bool(true)),
-            Value::Primitive(Primitive::U8(123)),
-        ]);
-        <(String, bool)>::deserialize(val)
-            .expect_err("Wrong length, should err");
+		// Wrong number of values should fail:
+		let val = Composite::Unnamed(vec![
+			Value::Primitive(Primitive::Str("hello".into())),
+			Value::Primitive(Primitive::Bool(true)),
+			Value::Primitive(Primitive::U8(123)),
+		]);
+		<(String, bool)>::deserialize(val).expect_err("Wrong length, should err");
+	}
 
-    }
+	#[test]
+	fn de_bitvec() {
+		use bitvec::{bitvec, order::Lsb0};
 
+		let val = Value::BitSequence(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0]);
+		assert_eq!(BitSequence::deserialize(val), Ok(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0]));
 
-    #[test]
-    fn de_bitvec() {
-        use bitvec::{ bitvec, order::Lsb0 };
+		let val = Value::BitSequence(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0]);
+		assert_eq!(
+			BitSequence::deserialize(val),
+			Ok(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0])
+		);
+	}
 
-        let val = Value::BitSequence(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0]);
-        assert_eq!(
-            BitSequence::deserialize(val),
-            Ok(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0])
-        );
+	#[test]
+	fn de_into_tuple_variant() {
+		#[derive(Deserialize, Debug, PartialEq)]
+		enum MyEnum {
+			Foo(String, bool, u8),
+		}
 
-        let val = Value::BitSequence(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0]);
-        assert_eq!(
-            BitSequence::deserialize(val),
-            Ok(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0])
-        );
-    }
+		let val = Value::Variant(Variant {
+			name: "Foo".into(),
+			values: Composite::Unnamed(vec![
+				Value::Primitive(Primitive::Str("hello".into())),
+				Value::Primitive(Primitive::Bool(true)),
+				Value::Primitive(Primitive::U8(123)),
+			]),
+		});
+		assert_eq!(MyEnum::deserialize(val), Ok(MyEnum::Foo("hello".into(), true, 123)));
 
-    #[test]
-    fn de_into_tuple_variant() {
-        #[derive(Deserialize, Debug, PartialEq)]
-        enum MyEnum {
-            Foo(String, bool, u8)
-        }
+		// it's fine to name the fields; we'll just ignore the names
+		let val = Value::Variant(Variant {
+			name: "Foo".into(),
+			values: Composite::Named(vec![
+				("a".into(), Value::Primitive(Primitive::Str("hello".into()))),
+				("b".into(), Value::Primitive(Primitive::Bool(true))),
+				("c".into(), Value::Primitive(Primitive::U8(123))),
+			]),
+		});
+		assert_eq!(MyEnum::deserialize(val), Ok(MyEnum::Foo("hello".into(), true, 123)));
+	}
 
-        let val = Value::Variant(Variant {
-            name: "Foo".into(),
-            values: Composite::Unnamed(vec![
-                Value::Primitive(Primitive::Str("hello".into())),
-                Value::Primitive(Primitive::Bool(true)),
-                Value::Primitive(Primitive::U8(123)),
-            ]),
-        });
-        assert_eq!(
-            MyEnum::deserialize(val),
-            Ok(MyEnum::Foo("hello".into(), true, 123))
-        );
+	#[test]
+	fn de_unwrapped_into_tuple_variant() {
+		#[derive(Deserialize, Debug, PartialEq)]
+		enum MyEnum {
+			Foo(String, bool, u8),
+		}
 
-        // it's fine to name the fields; we'll just ignore the names
-        let val = Value::Variant(Variant {
-            name: "Foo".into(),
-            values: Composite::Named(vec![
-                ("a".into(), Value::Primitive(Primitive::Str("hello".into()))),
-                ("b".into(), Value::Primitive(Primitive::Bool(true))),
-                ("c".into(), Value::Primitive(Primitive::U8(123))),
-            ]),
-        });
-        assert_eq!(
-            MyEnum::deserialize(val),
-            Ok(MyEnum::Foo("hello".into(), true, 123))
-        );
-    }
+		let val = Variant {
+			name: "Foo".into(),
+			values: Composite::Unnamed(vec![
+				Value::Primitive(Primitive::Str("hello".into())),
+				Value::Primitive(Primitive::Bool(true)),
+				Value::Primitive(Primitive::U8(123)),
+			]),
+		};
+		assert_eq!(MyEnum::deserialize(val), Ok(MyEnum::Foo("hello".into(), true, 123)));
 
-    #[test]
-    fn de_unwrapped_into_tuple_variant() {
-        #[derive(Deserialize, Debug, PartialEq)]
-        enum MyEnum {
-            Foo(String, bool, u8)
-        }
+		// it's fine to name the fields; we'll just ignore the names
+		let val = Variant {
+			name: "Foo".into(),
+			values: Composite::Named(vec![
+				("a".into(), Value::Primitive(Primitive::Str("hello".into()))),
+				("b".into(), Value::Primitive(Primitive::Bool(true))),
+				("c".into(), Value::Primitive(Primitive::U8(123))),
+			]),
+		};
+		assert_eq!(MyEnum::deserialize(val), Ok(MyEnum::Foo("hello".into(), true, 123)));
+	}
 
-        let val = Variant {
-            name: "Foo".into(),
-            values: Composite::Unnamed(vec![
-                Value::Primitive(Primitive::Str("hello".into())),
-                Value::Primitive(Primitive::Bool(true)),
-                Value::Primitive(Primitive::U8(123)),
-            ]),
-        };
-        assert_eq!(
-            MyEnum::deserialize(val),
-            Ok(MyEnum::Foo("hello".into(), true, 123))
-        );
+	#[test]
+	fn de_into_struct_variant() {
+		#[derive(Deserialize, Debug, PartialEq)]
+		enum MyEnum {
+			Foo { hi: String, a: bool, b: u8 },
+		}
 
-        // it's fine to name the fields; we'll just ignore the names
-        let val = Variant {
-            name: "Foo".into(),
-            values: Composite::Named(vec![
-                ("a".into(), Value::Primitive(Primitive::Str("hello".into()))),
-                ("b".into(), Value::Primitive(Primitive::Bool(true))),
-                ("c".into(), Value::Primitive(Primitive::U8(123))),
-            ]),
-        };
-        assert_eq!(
-            MyEnum::deserialize(val),
-            Ok(MyEnum::Foo("hello".into(), true, 123))
-        );
-    }
+		// If names given, order doesn't matter:
+		let val = Value::Variant(Variant {
+			name: "Foo".into(),
+			values: Composite::Named(vec![
+				// Deliberately out of order: names should ensure alignment:
+				("b".into(), Value::Primitive(Primitive::U8(123))),
+				("a".into(), Value::Primitive(Primitive::Bool(true))),
+				("hi".into(), Value::Primitive(Primitive::Str("hello".into()))),
+			]),
+		});
+		assert_eq!(MyEnum::deserialize(val), Ok(MyEnum::Foo { hi: "hello".into(), a: true, b: 123 }));
 
-    #[test]
-    fn de_into_struct_variant() {
-        #[derive(Deserialize, Debug, PartialEq)]
-        enum MyEnum {
-            Foo { hi: String, a: bool, b: u8 }
-        }
+		// No names needed if order is OK:
+		let val = Value::Variant(Variant {
+			name: "Foo".into(),
+			values: Composite::Unnamed(vec![
+				Value::Primitive(Primitive::Str("hello".into())),
+				Value::Primitive(Primitive::Bool(true)),
+				Value::Primitive(Primitive::U8(123)),
+			]),
+		});
+		assert_eq!(MyEnum::deserialize(val), Ok(MyEnum::Foo { hi: "hello".into(), a: true, b: 123 }));
 
-        // If names given, order doesn't matter:
-        let val = Value::Variant(Variant {
-            name: "Foo".into(),
-            values: Composite::Named(vec![
-                // Deliberately out of order: names should ensure alignment:
-                ("b".into(), Value::Primitive(Primitive::U8(123))),
-                ("a".into(), Value::Primitive(Primitive::Bool(true))),
-                ("hi".into(), Value::Primitive(Primitive::Str("hello".into()))),
-            ]),
-        });
-        assert_eq!(
-            MyEnum::deserialize(val),
-            Ok(MyEnum::Foo { hi: "hello".into(), a: true, b: 123 })
-        );
+		// Wrong order won't work if no names:
+		let val = Value::Variant(Variant {
+			name: "Foo".into(),
+			values: Composite::Unnamed(vec![
+				Value::Primitive(Primitive::Bool(true)),
+				Value::Primitive(Primitive::U8(123)),
+				Value::Primitive(Primitive::Str("hello".into())),
+			]),
+		});
+		MyEnum::deserialize(val).expect_err("Wrong order shouldn't work");
 
-        // No names needed if order is OK:
-        let val = Value::Variant(Variant {
-            name: "Foo".into(),
-            values: Composite::Unnamed(vec![
-                Value::Primitive(Primitive::Str("hello".into())),
-                Value::Primitive(Primitive::Bool(true)),
-                Value::Primitive(Primitive::U8(123)),
-            ]),
-        });
-        assert_eq!(
-            MyEnum::deserialize(val),
-            Ok(MyEnum::Foo { hi: "hello".into(), a: true, b: 123 })
-        );
+		// Wrong names won't work:
+		let val = Value::Variant(Variant {
+			name: "Foo".into(),
+			values: Composite::Named(vec![
+				("b".into(), Value::Primitive(Primitive::U8(123))),
+				// Whoops; wrong name:
+				("c".into(), Value::Primitive(Primitive::Bool(true))),
+				("hi".into(), Value::Primitive(Primitive::Str("hello".into()))),
+			]),
+		});
+		MyEnum::deserialize(val).expect_err("Wrong names shouldn't work");
 
-        // Wrong order won't work if no names:
-        let val = Value::Variant(Variant {
-            name: "Foo".into(),
-            values: Composite::Unnamed(vec![
-                Value::Primitive(Primitive::Bool(true)),
-                Value::Primitive(Primitive::U8(123)),
-                Value::Primitive(Primitive::Str("hello".into())),
-            ]),
-        });
-        MyEnum::deserialize(val).expect_err("Wrong order shouldn't work");
+		// Too many names is OK; we can ignore fields we don't care about:
+		let val = Value::Variant(Variant {
+			name: "Foo".into(),
+			values: Composite::Named(vec![
+				("foo".into(), Value::Primitive(Primitive::U8(40))),
+				("b".into(), Value::Primitive(Primitive::U8(123))),
+				("a".into(), Value::Primitive(Primitive::Bool(true))),
+				("bar".into(), Value::Primitive(Primitive::Bool(false))),
+				("hi".into(), Value::Primitive(Primitive::Str("hello".into()))),
+			]),
+		});
+		assert_eq!(MyEnum::deserialize(val), Ok(MyEnum::Foo { hi: "hello".into(), a: true, b: 123 }));
+	}
 
-        // Wrong names won't work:
-        let val = Value::Variant(Variant {
-            name: "Foo".into(),
-            values: Composite::Named(vec![
-                ("b".into(), Value::Primitive(Primitive::U8(123))),
-                // Whoops; wrong name:
-                ("c".into(), Value::Primitive(Primitive::Bool(true))),
-                ("hi".into(), Value::Primitive(Primitive::Str("hello".into()))),
-            ]),
-        });
-        MyEnum::deserialize(val).expect_err("Wrong names shouldn't work");
+	#[test]
+	fn de_into_unit_variants() {
+		let val = Value::Variant(Variant { name: "Foo".into(), values: Composite::Named(vec![]) });
+		let unwrapped_val = Variant { name: "Foo".into(), values: Composite::Named(vec![]) };
 
-        // Too many names is OK; we can ignore fields we don't care about:
-        let val = Value::Variant(Variant {
-            name: "Foo".into(),
-            values: Composite::Named(vec![
-                ("foo".into(), Value::Primitive(Primitive::U8(40))),
-                ("b".into(), Value::Primitive(Primitive::U8(123))),
-                ("a".into(), Value::Primitive(Primitive::Bool(true))),
-                ("bar".into(), Value::Primitive(Primitive::Bool(false))),
-                ("hi".into(), Value::Primitive(Primitive::Str("hello".into()))),
-            ]),
-        });
-        assert_eq!(
-            MyEnum::deserialize(val),
-            Ok(MyEnum::Foo { hi: "hello".into(), a: true, b: 123 })
-        );
-    }
+		#[derive(Deserialize, Debug, PartialEq)]
+		enum MyEnum {
+			Foo,
+		}
+		assert_eq!(MyEnum::deserialize(val.clone()), Ok(MyEnum::Foo));
+		assert_eq!(MyEnum::deserialize(unwrapped_val.clone()), Ok(MyEnum::Foo));
 
-    #[test]
-    fn de_into_unit_variants() {
-        let val = Value::Variant(Variant {
-            name: "Foo".into(),
-            values: Composite::Named(vec![]),
-        });
-        let unwrapped_val = Variant {
-            name: "Foo".into(),
-            values: Composite::Named(vec![]),
-        };
+		#[derive(Deserialize, Debug, PartialEq)]
+		enum MyEnum2 {
+			Foo(),
+		}
+		assert_eq!(MyEnum2::deserialize(val.clone()), Ok(MyEnum2::Foo()));
+		assert_eq!(MyEnum2::deserialize(unwrapped_val.clone()), Ok(MyEnum2::Foo()));
 
-        #[derive(Deserialize, Debug, PartialEq)]
-        enum MyEnum {
-            Foo
-        }
-        assert_eq!(
-            MyEnum::deserialize(val.clone()),
-            Ok(MyEnum::Foo)
-        );
-        assert_eq!(
-            MyEnum::deserialize(unwrapped_val.clone()),
-            Ok(MyEnum::Foo)
-        );
-
-        #[derive(Deserialize, Debug, PartialEq)]
-        enum MyEnum2 {
-            Foo()
-        }
-        assert_eq!(
-            MyEnum2::deserialize(val.clone()),
-            Ok(MyEnum2::Foo())
-        );
-        assert_eq!(
-            MyEnum2::deserialize(unwrapped_val.clone()),
-            Ok(MyEnum2::Foo())
-        );
-
-        #[derive(Deserialize, Debug, PartialEq)]
-        enum MyEnum3 {
-            Foo{}
-        }
-        assert_eq!(
-            MyEnum3::deserialize(val),
-            Ok(MyEnum3::Foo{})
-        );
-        assert_eq!(
-            MyEnum3::deserialize(unwrapped_val),
-            Ok(MyEnum3::Foo{})
-        );
-    }
-
+		#[derive(Deserialize, Debug, PartialEq)]
+		enum MyEnum3 {
+			Foo {},
+		}
+		assert_eq!(MyEnum3::deserialize(val), Ok(MyEnum3::Foo {}));
+		assert_eq!(MyEnum3::deserialize(unwrapped_val), Ok(MyEnum3::Foo {}));
+	}
 }
