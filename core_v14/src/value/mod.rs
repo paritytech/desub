@@ -20,7 +20,7 @@ representations of SCALE encoded data (much like `serde_json::Value` is a runtim
 of JSON data).
 */
 
-mod deserialize;
+mod deserializer;
 
 use bitvec::{order::Lsb0, vec::BitVec};
 use serde::Deserialize;
@@ -182,7 +182,7 @@ impl From<Primitive> for Value {
 pub type BitSequence = BitVec<Lsb0, u8>;
 
 /// An opaque error that is returned if we cannot deserialize the [`Value`] type.
-pub use deserialize::Error as DeserializeError;
+pub use deserializer::Error as DeserializeError;
 
 /// Attempt to deserialize a [`Value`] into some type that has [`serde::Deserialize`] implemented on it.
 pub fn from_value<'de, T: Deserialize<'de>>(value: Value) -> Result<T, DeserializeError> {

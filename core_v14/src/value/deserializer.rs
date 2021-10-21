@@ -23,6 +23,9 @@ use std::borrow::Cow;
 use std::fmt::Display;
 
 /*
+This module implements the Deserializer trait on our Value enum
+===============================================================
+
 Deserializing using Serde is a bit weird to wrap your head around at first (at least, it was for me).
 I'd def recommend checking out the serde book, and inparticular https://serde.rs/impl-deserializer.html,
 but here's a very quick explainer on how things work:
