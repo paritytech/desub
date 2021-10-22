@@ -25,7 +25,7 @@ This module implements the Deserialize (no R!) trait on our Value enum
 See deserializer.rs for more of a description.
 
 The Deserialize trait is responsible for describing how some other value (or at least,
-the repreentastion of it in terms of the derde data model) can be turned into our `Value`
+the repreentastion of it in terms of the serde data model) can be turned into our `Value`
 enum.
 
 One thing we want to aim for is to be able to losslessly deserialize a `Value` into a
@@ -267,8 +267,15 @@ impl <'de> Visitor<'de> for VariantVisitor {
     where
         A: serde::de::EnumAccess<'de>,
     {
-        let _ = data;
-        Err(serde::de::Error::invalid_type(serde::de::Unexpected::Enum, &self))
+        data.variant().and_then(|(name, variant_access)| {
+            use serde::de::VariantAccess;
+            // We have to ask for a particular enum type, but we don't know what type
+            // of enum to expect (we support anything!). So, we just call the visitor method
+            // that doesn't require any extra fields, and we know that this will just give back
+            // whatever it can based on our impl (who knows about other impls though).
+            let values = variant_access.newtype_variant()?;
+            Ok(Variant { name, values })
+        })
     }
 }
 
@@ -436,6 +443,7 @@ impl <'de> Visitor<'de> for ValueVisitor {
 #[cfg(test)]
 mod test {
 
+    use crate::value::DeserializeError;
     use super::*;
 
     /// Does a value deserialize to itself?
@@ -444,10 +452,10 @@ mod test {
     }
 
     /// Does a value `a` deserialize to the expected value `b`?
-    fn assert_value_to_value<'de, V1: , V2>(a: V1, b: V2)
+    fn assert_value_to_value<'de, V1, V2>(a: V1, b: V2)
     where
         V1: Deserializer<'de>,
-        V2: Deserialize<'de> + PartialEq + std::fmt::Debug + Clone
+        V2: Deserialize<'de> + PartialEq + std::fmt::Debug + Clone,
     {
         let new_val = V2::deserialize(a).expect("Can deserialize");
         assert_eq!(b, new_val);
@@ -471,7 +479,8 @@ mod test {
         assert_value_isomorphic(Value::Primitive(Primitive::Str("Hello!".into())));
 
         // Alas, I256 and U256 appear identical in terms of their serde representation
-        // (u8 bytes), so both get deserialized to U256.
+        // (u8 bytes), so both get deserialized to U256. This is the one case (that I'm aware of)
+        // where we don't get an identical Value back out :(
         assert_value_to_value(
             Value::Primitive(Primitive::I256([1; 32])),
             Value::Primitive(Primitive::U256([1; 32]))
@@ -514,6 +523,45 @@ mod test {
     }
 
     #[test]
+    fn de_composites_isomorphic() {
+        assert_value_isomorphic(Value::Composite(Composite::Unnamed(vec![
+            Value::Primitive(Primitive::U64(123)),
+            Value::Primitive(Primitive::Bool(true))
+        ])));
+        assert_value_isomorphic(Value::Composite(Composite::Unnamed(vec![])));
+        assert_value_isomorphic(Value::Composite(Composite::Named(vec![
+            ("a".into(), Value::Primitive(Primitive::U64(123))),
+            ("b".into(), Value::Primitive(Primitive::Bool(true)))
+        ])));
+        assert_value_isomorphic(Value::Composite(Composite::Named(vec![
+            ("a".into(), Value::Primitive(Primitive::U64(123))),
+            ("b".into(), Value::Composite(Composite::Named(vec![
+                ("c".into(), Value::Primitive(Primitive::U128(123))),
+                ("d".into(), Value::Primitive(Primitive::Str("hell".into())))
+            ])))
+        ])));
+
+        // unwrapped:
+
+        assert_value_isomorphic(Composite::Unnamed(vec![
+            Value::Primitive(Primitive::U64(123)),
+            Value::Primitive(Primitive::Bool(true))
+        ]));
+        assert_value_isomorphic(Composite::Unnamed(vec![]));
+        assert_value_isomorphic(Composite::Named(vec![
+            ("a".into(), Value::Primitive(Primitive::U64(123))),
+            ("b".into(), Value::Primitive(Primitive::Bool(true)))
+        ]));
+        assert_value_isomorphic(Composite::Named(vec![
+            ("a".into(), Value::Primitive(Primitive::U64(123))),
+            ("b".into(), Value::Composite(Composite::Named(vec![
+                ("c".into(), Value::Primitive(Primitive::U128(123))),
+                ("d".into(), Value::Primitive(Primitive::Str("hell".into())))
+            ])))
+        ]));
+    }
+
+    #[test]
     fn de_variants_isomorphic() {
         assert_value_isomorphic(Value::Variant(Variant {
             name: "Foo".into(),
@@ -521,7 +569,91 @@ mod test {
                 Value::Primitive(Primitive::U64(123)),
                 Value::Primitive(Primitive::Bool(true))
             ])
-        }))
+        }));
+        assert_value_isomorphic(Value::Variant(Variant {
+            name: "Foo".into(),
+            values: Composite::Unnamed(vec![])
+        }));
+        assert_value_isomorphic(Value::Variant(Variant {
+            name: "Foo".into(),
+            values: Composite::Named(vec![
+                ("a".into(), Value::Primitive(Primitive::U64(123))),
+                ("b".into(), Value::Primitive(Primitive::Bool(true)))
+            ])
+        }));
+
+        // unwrapped work as well:
+
+        assert_value_isomorphic(Variant {
+            name: "Foo".into(),
+            values: Composite::Unnamed(vec![
+                Value::Primitive(Primitive::U64(123)),
+                Value::Primitive(Primitive::Bool(true))
+            ])
+        });
+        assert_value_isomorphic(Variant {
+            name: "Foo".into(),
+            values: Composite::Unnamed(vec![])
+        });
+        assert_value_isomorphic(Variant {
+            name: "Foo".into(),
+            values: Composite::Named(vec![
+                ("a".into(), Value::Primitive(Primitive::U64(123))),
+                ("b".into(), Value::Primitive(Primitive::Bool(true)))
+            ])
+        });
+    }
+
+    #[test]
+    fn sequence_to_value() {
+        use serde::de::{IntoDeserializer, value::SeqDeserializer};
+
+        let de: SeqDeserializer<_,DeserializeError> = vec![1u8,2,3,4].into_deserializer();
+
+        assert_value_to_value(
+            de.clone(),
+            Value::Composite(Composite::Unnamed(vec![
+                Value::Primitive(Primitive::U8(1)),
+                Value::Primitive(Primitive::U8(2)),
+                Value::Primitive(Primitive::U8(3)),
+                Value::Primitive(Primitive::U8(4)),
+            ]))
+        );
+        assert_value_to_value(
+            de,
+            Composite::Unnamed(vec![
+                Value::Primitive(Primitive::U8(1)),
+                Value::Primitive(Primitive::U8(2)),
+                Value::Primitive(Primitive::U8(3)),
+                Value::Primitive(Primitive::U8(4)),
+            ])
+        );
+    }
+
+    #[test]
+    fn map_to_value() {
+        use serde::de::{IntoDeserializer, value::MapDeserializer};
+        use std::collections::HashMap;
+
+        let map = {
+            let mut map = HashMap::<&'static str, i32>::new();
+            map.insert("a", 1i32);
+            map.insert("b", 2i32);
+            map.insert("c", 3i32);
+            map
+        };
+
+        let de: MapDeserializer<_,DeserializeError> = map.into_deserializer();
+
+        let value = Value::deserialize(de).expect("should deserialize OK");
+        if let Value::Composite(Composite::Named(vals)) = value {
+            // These could come back in any order so we need to search for them:
+            assert!(vals.contains(&("a".into(), Value::Primitive(Primitive::I32(1)))));
+            assert!(vals.contains(&("b".into(), Value::Primitive(Primitive::I32(2)))));
+            assert!(vals.contains(&("c".into(), Value::Primitive(Primitive::I32(3)))));
+        } else {
+            panic!("Map should deserialize into Composite::Named value but we have {:?}", value);
+        }
     }
 
 }
