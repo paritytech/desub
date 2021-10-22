@@ -185,6 +185,18 @@ impl<'de> Visitor<'de> for PrimitiveVisitor {
 		Ok(Primitive::U256(val))
 	}
 
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: serde::de::SeqAccess<'de>, {
+        let mut vals = Vec::new();
+        while let Some(el) = seq.next_element()? {
+            vals.push(el)
+        }
+        let len = vals.len();
+        let arr = vals.try_into().map_err(|_| serde::de::Error::invalid_length(len, &"exactly 32 bytes"))?;
+        Ok(Primitive::U256(arr))
+    }
+
 	fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
 	where
 		D: serde::Deserializer<'de>,
@@ -327,13 +339,13 @@ impl<'de> Visitor<'de> for ValueVisitor {
 		visit_char(char)
 		visit_str(&str)
 		visit_string(String)
-		visit_bytes(&[u8])
 	);
 
 	delegate_visitor_fn!(
 		CompositeVisitor Value::Composite,
 		visit_none()
 		visit_unit()
+        visit_bytes(&[u8])
 	);
 
 	fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -402,7 +414,6 @@ mod test {
 		assert_value_isomorphic(Value::Primitive(Primitive::U32(123)));
 		assert_value_isomorphic(Value::Primitive(Primitive::U64(123)));
 		assert_value_isomorphic(Value::Primitive(Primitive::U128(123)));
-		assert_value_isomorphic(Value::Primitive(Primitive::U256([1; 32])));
 		assert_value_isomorphic(Value::Primitive(Primitive::I8(123)));
 		assert_value_isomorphic(Value::Primitive(Primitive::I16(123)));
 		assert_value_isomorphic(Value::Primitive(Primitive::I32(123)));
@@ -412,10 +423,34 @@ mod test {
 		assert_value_isomorphic(Value::Primitive(Primitive::Char('a')));
 		assert_value_isomorphic(Value::Primitive(Primitive::Str("Hello!".into())));
 
-		// Alas, I256 and U256 appear identical in terms of their serde representation
-		// (u8 bytes), so both get deserialized to U256. This is the one case (that I'm aware of)
-		// where we don't get an identical Value back out :(
-		assert_value_to_value(Value::Primitive(Primitive::I256([1; 32])), Value::Primitive(Primitive::U256([1; 32])));
+		// Alas, I256 and U256 are both a sequence of bytes, which could equally be represented
+        // by a composite sequence (as other sequences-of-things are). We could have a special case where
+        // precisely 32 u8's is deserialized to one of U256 or I256, but for now we use our more general
+        // composite type as the sequence catch-all:
+		assert_value_to_value(
+            Value::Primitive(Primitive::I256([1; 32])),
+            Value::Composite(Composite::Unnamed(
+                vec![1;32].into_iter().map(|b| Value::Primitive(Primitive::U8(b))).collect()
+            ))
+        );
+        assert_value_to_value(
+            Value::Primitive(Primitive::U256([1; 32])),
+            Value::Composite(Composite::Unnamed(
+                vec![1;32].into_iter().map(|b| Value::Primitive(Primitive::U8(b))).collect()
+            ))
+        );
+
+        // .. that said; if you want a primitive value back, you can use that type directly to get it
+        // (as long as we are given exactly 32 bytes):
+
+		assert_value_to_value(
+            Value::Primitive(Primitive::I256([1; 32])),
+            Primitive::U256([1; 32])
+        );
+        assert_value_to_value(
+            Value::Primitive(Primitive::U256([1; 32])),
+            Primitive::U256([1; 32])
+        );
 
 		// Unwrapped versions also work:
 
@@ -555,6 +590,18 @@ mod test {
 				Value::Primitive(Primitive::U8(3)),
 				Value::Primitive(Primitive::U8(4)),
 			]),
+		);
+	}
+
+    #[test]
+	fn sequence_to_primitive() {
+		use serde::de::{value::SeqDeserializer, IntoDeserializer};
+
+		let de: SeqDeserializer<_, DeserializeError> = vec![1u8; 32].into_deserializer();
+
+		assert_value_to_value(
+			de.clone(),
+			Primitive::U256([1; 32]),
 		);
 	}
 
