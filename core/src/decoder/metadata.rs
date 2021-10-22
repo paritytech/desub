@@ -153,7 +153,7 @@ impl<'a> Metadata {
 			RuntimeMetadata::V11(meta) => Ok(meta.try_into()?),
 			RuntimeMetadata::V12(meta) => Ok(meta.try_into()?),
 			RuntimeMetadata::V13(meta) => Ok(meta.try_into()?),
-			_ => Err(Error::NotSupported(1)),
+			_ => Err(Error::NotSupported(runtime_metadata_version(&metadata.1))),
 		}
 	}
 
@@ -280,6 +280,28 @@ impl<'a> Metadata {
 			}
 		}
 		string
+	}
+}
+
+// FIXME: https://github.com/paritytech/desub/issues/51
+fn runtime_metadata_version(meta: &RuntimeMetadata) -> u32 {
+	match meta {
+		RuntimeMetadata::V0(_)  => 0,
+		RuntimeMetadata::V1(_)  => 1,
+		RuntimeMetadata::V2(_)  => 2,
+		RuntimeMetadata::V3(_)  => 3,
+		RuntimeMetadata::V4(_)  => 4,
+		RuntimeMetadata::V5(_)  => 5,
+		RuntimeMetadata::V6(_)  => 6,
+		RuntimeMetadata::V7(_)  => 7,
+		RuntimeMetadata::V8(_)  => 8,
+		RuntimeMetadata::V9(_)  => 9,
+		RuntimeMetadata::V10(_) => 10,
+		RuntimeMetadata::V11(_) => 11,
+		RuntimeMetadata::V12(_) => 12,
+		RuntimeMetadata::V13(_) => 13,
+		RuntimeMetadata::V14(_) => 14,
+
 	}
 }
 
