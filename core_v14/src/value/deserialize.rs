@@ -396,7 +396,7 @@ mod test {
 	}
 
 	#[test]
-	fn de_primitives_isomorphic() {
+	fn deserialize_primitives_isomorphic() {
 		assert_value_isomorphic(Value::Primitive(Primitive::U8(123)));
 		assert_value_isomorphic(Value::Primitive(Primitive::U16(123)));
 		assert_value_isomorphic(Value::Primitive(Primitive::U32(123)));
@@ -451,7 +451,7 @@ mod test {
 	}
 
 	#[test]
-	fn de_composites_isomorphic() {
+	fn deserialize_composites_isomorphic() {
 		assert_value_isomorphic(Value::Composite(Composite::Unnamed(vec![
 			Value::Primitive(Primitive::U64(123)),
 			Value::Primitive(Primitive::Bool(true)),
@@ -496,7 +496,7 @@ mod test {
 	}
 
 	#[test]
-	fn de_variants_isomorphic() {
+	fn deserialize_variants_isomorphic() {
 		assert_value_isomorphic(Value::Variant(Variant {
 			name: "Foo".into(),
 			values: Composite::Unnamed(vec![
