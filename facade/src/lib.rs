@@ -16,16 +16,25 @@
 
 //! Facade crate for decoding data that uses any version of metadata (V8+)
 
-
 #![forbid(unsafe_code)]
 // #[deny(unused)]
 
+mod error;
 
-use desub::Decoder as TypeInfoDecoder;
-use desub_legacy::{decoder::{Decoder as LegacyDecoder, Chain}, RustTypeMarker, TypeDetective};
+use core_v14::{
+	Decoder as TypeInfoDecoder,
+	metadata::runtime_metadata_version,
+};
+use desub_legacy::{
+	decoder::{Chain, Decoder as LegacyDecoder},
+	RustTypeMarker, TypeDetective,
+};
+use std::{collections::HashMap, marker::PhantomData};
+
 #[cfg(feature = "polkadot-js")]
 use extras::TypeResolver as PolkadotJsResolver;
-use std::{marker::PhantomData, collections::HashMap};
+
+pub use self::error::Error;
 
 /// Struct That implements TypeDetective but refuses to resolve anything
 /// that is not of metadata v14+.
@@ -51,11 +60,8 @@ type SpecVersion = u32;
 pub struct Decoder<T: TypeDetective> {
 	legacy_decoder: LegacyDecoder,
 	decoder: HashMap<SpecVersion, TypeInfoDecoder>,
-	_marker: PhantomData<T>
+	_marker: PhantomData<T>,
 }
-
-// pub type TypeInfoDecoder = Decoder<NoLegacyTypes>;
-// pub type PolkadotJsDecoder = Decoder<PolkadotJsResolver>;
 
 impl<T: TypeDetective> Decoder<T> {
 	pub fn new(types: impl TypeDetective + 'static, chain: Chain) -> Self {
@@ -63,31 +69,31 @@ impl<T: TypeDetective> Decoder<T> {
 		let decoder = HashMap::new();
 		Self { legacy_decoder, decoder, _marker: PhantomData }
 	}
-}
 
-struct InfoDecoder(Decoder<NoLegacyTypes>);
+	pub fn register_version(version: SpecVersion, metadata: &[u8]) -> Result<(), Error> {
 
-impl InfoDecoder {
-	pub fn new() -> Self {
-		todo!()
 	}
 }
 
+pub struct InfoDecoder(Decoder<NoLegacyTypes>);
+impl Default for InfoDecoder {
+	fn default() -> Self {
+		let decoder = Decoder::new(NoLegacyTypes, Chain::Custom("none".to_string()));
+		Self(decoder)
+	}
+}
+
+/// Decoder that includes all Polkadot JS type definitions in addition to
+/// V14 Metadata decoding.
+/// This is useful if historical type network data that existed pre-v14 is required.
 #[cfg(feature = "polkadot-js")]
-struct PolkadotJsDecoder(Decoder<PolkadotJsResolver>);
+pub struct PolkadotJsDecoder(Decoder<PolkadotJsResolver>);
 
 #[cfg(feature = "polkadot-js")]
 impl PolkadotJsDecoder {
-	pub fn new() -> Self {
-		todo!();
-	}
-}
-
-#[cfg(test)]
-mod tests {
-	#[test]
-	fn it_works() {
-		let result = 2 + 2;
-		assert_eq!(result, 4);
+	pub fn new(chain: Chain) -> Self {
+		let types = PolkadotJsResolver::default();
+		let decoder = Decoder::new(types, chain);
+		Self(decoder)
 	}
 }

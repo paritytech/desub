@@ -51,6 +51,7 @@ pub enum MetadataError {
 /// node. While not very useful on its own, It can be passed to [`crate::Decoder`]
 /// to allow that to decode extrinsics compatible with the substrate node that
 /// this was obtained from.
+#[derive(Debug)]
 pub struct Metadata {
 	extrinsic: MetadataExtrinsic,
 	pallets: HashMap<u8, MetadataPallet>,
@@ -109,7 +110,7 @@ impl Metadata {
 
 /// Get the decoded metadata version. At some point `RuntimeMetadataPrefixed` will end up
 /// with a `.version()` method to return the version, and then this can be removed.
-fn runtime_metadata_version(meta: &RuntimeMetadata) -> usize {
+pub fn runtime_metadata_version(meta: &RuntimeMetadata) -> usize {
 	match meta {
 		RuntimeMetadata::V0(_) => 0,
 		RuntimeMetadata::V1(_) => 1,

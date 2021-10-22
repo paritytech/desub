@@ -111,6 +111,7 @@ use decode_type::{decode_type, decode_type_by_id, DecodeTypeError};
 use extrinsic_bytes::{AllExtrinsicBytes, ExtrinsicBytesError};
 use sp_runtime::{AccountId32, MultiAddress, MultiSignature};
 
+#[derive(Debug)]
 pub struct Decoder {
 	metadata: Metadata,
 }
