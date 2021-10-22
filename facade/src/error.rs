@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use thiserror::Error;
 use core_v14::decoder::DecodeError;
 use desub_legacy::Error as LegacyError;
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {

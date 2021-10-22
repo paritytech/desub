@@ -21,10 +21,7 @@
 
 mod error;
 
-use core_v14::{
-	Decoder as TypeInfoDecoder,
-	metadata::runtime_metadata_version,
-};
+use core_v14::{metadata::runtime_metadata_version, Decoder as TypeInfoDecoder};
 use desub_legacy::{
 	decoder::{Chain, Decoder as LegacyDecoder},
 	RustTypeMarker, TypeDetective,
@@ -70,9 +67,7 @@ impl<T: TypeDetective> Decoder<T> {
 		Self { legacy_decoder, decoder, _marker: PhantomData }
 	}
 
-	pub fn register_version(version: SpecVersion, metadata: &[u8]) -> Result<(), Error> {
-
-	}
+	pub fn register_version(version: SpecVersion, metadata: &[u8]) -> Result<(), Error> {}
 }
 
 pub struct InfoDecoder(Decoder<NoLegacyTypes>);
