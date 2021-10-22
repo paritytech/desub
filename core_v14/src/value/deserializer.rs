@@ -30,8 +30,8 @@ Deserializing using Serde is a bit weird to wrap your head around at first (at l
 I'd def recommend checking out the serde book, and inparticular https://serde.rs/impl-deserializer.html,
 but here's a very quick explainer on how things work:
 
-We have a `Deserialize` trait (commonly automatically implemnented via `#[derive(Deserialize)]`). This trait
-(and the `Visitor` trait which I'll talk about in a mo) is concerned with getting the right values needed to
+We have a `Deserialize` trait (commonly automatically implemented via `#[derive(Deserialize)]`). This trait
+(and the `Visitor` trait which I'll talk about in a moment) is concerned with getting the right values needed to
 create an instance of the data type (struct, enum, whatever it is) in question.
 
 We also have a `Deserializer` trait (note the R at the end). this guy is responsible for plucking values out of some
@@ -48,7 +48,7 @@ back something different (maybe it is being asked for a u8 but it knows it only 
 
 How? Well, the Deserialize impl calls something like `deserializer.deserialize_i32(visitor)`; it says "I want an i32, but
 here's this visitor thing where you can give me back whatever you have, and I'll try and handle it if I can". So maybe
-when the Deserialize impl calls `deserializer.deserialize_i32(visitor)`, the Deserializer impl for `deserilaize_i32`
+when the Deserialize impl calls `deserializer.deserialize_i32(visitor)`, the Deserializer impl for `deserialize_i32`
 actually calls `visitor.visit_i64`. Who knows!
 
 It's basically a negotiation. The Deserialize impl asks for a value of a certain type, and it provides a visitor that will
@@ -406,7 +406,7 @@ impl<'de> IntoDeserializer<'de, Error> for Composite {
 }
 
 // Because composite types are used to represent variant fields, we allow
-// variant accesses to be caleld on it, which just delegate to methods defined above.
+// variant accesses to be called on it, which just delegate to methods defined above.
 impl<'de> VariantAccess<'de> for Composite {
 	type Error = Error;
 
@@ -890,7 +890,7 @@ impl BitVecPieces {
 		}
 
 		// Serialize the BitVec based on our above serializer: this basically
-		// exptracts the data out of it that we'll need for deserialization..
+		// extracts the data out of it that we'll need for deserialization.
 		let mut se = BitVecSerializer { head: None, bits: None, data: Vec::new(), current_field: None };
 		bit_vec.serialize(&mut se)?;
 
@@ -903,7 +903,7 @@ impl BitVecPieces {
 	}
 }
 
-// We want to make sure that we can transform our various Value types into the sorts of output we'd expect..
+// We want to make sure that we can transform our various Value types into the sorts of output we'd expect.
 #[cfg(test)]
 mod test {
 
