@@ -20,7 +20,10 @@ representations of SCALE encoded data (much like `serde_json::Value` is a runtim
 of JSON data).
 */
 
+mod deserializer;
+
 use bitvec::{order::Lsb0, vec::BitVec};
+use serde::Deserialize;
 use std::convert::From;
 use std::fmt::Debug;
 
@@ -62,6 +65,15 @@ pub enum Composite {
 	Named(Vec<(String, Value)>),
 	/// Eg `(2, false)`
 	Unnamed(Vec<Value>),
+}
+
+impl Composite {
+	fn len(&self) -> usize {
+		match self {
+			Composite::Named(values) => values.len(),
+			Composite::Unnamed(values) => values.len(),
+		}
+	}
 }
 
 impl Debug for Composite {
@@ -168,3 +180,11 @@ impl From<Primitive> for Value {
 
 /// A sequence of bits.
 pub type BitSequence = BitVec<Lsb0, u8>;
+
+/// An opaque error that is returned if we cannot deserialize the [`Value`] type.
+pub use deserializer::Error as DeserializeError;
+
+/// Attempt to deserialize a [`Value`] into some type that has [`serde::Deserialize`] implemented on it.
+pub fn from_value<'de, T: Deserialize<'de>>(value: Value) -> Result<T, DeserializeError> {
+	T::deserialize(value)
+}

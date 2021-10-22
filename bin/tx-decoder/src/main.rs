@@ -16,6 +16,7 @@
 
 mod app;
 mod queries;
+mod decoder;
 
 use anyhow::Error;
 use colored::Colorize;
@@ -34,6 +35,7 @@ async fn main() -> Result<(), Error> {
 		.level_for("desub_core", level)
 		.level_for("desub_extras", level)
 		.level_for("tx_decoder", level)
+		.level_for("core_v14", level)
 		.format(move |out, message, record| {
 			out.finish(format_args!(
 				" {} {}::{}		>{} ",
