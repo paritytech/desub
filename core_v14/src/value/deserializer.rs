@@ -19,7 +19,7 @@ use serde::{
 	de::{self, EnumAccess, IntoDeserializer, SeqAccess, VariantAccess},
 	forward_to_deserialize_any, ser, Deserialize, Deserializer, Serialize, Serializer,
 };
-use std::{borrow::Cow, str::FromStr};
+use std::borrow::Cow;
 use std::fmt::Display;
 
 /*
