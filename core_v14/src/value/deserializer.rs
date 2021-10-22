@@ -19,7 +19,7 @@ use serde::{
 	de::{self, EnumAccess, IntoDeserializer, SeqAccess, VariantAccess},
 	forward_to_deserialize_any, ser, Deserialize, Deserializer, Serialize, Serializer,
 };
-use std::borrow::Cow;
+use std::{borrow::Cow, str::FromStr};
 use std::fmt::Display;
 
 /*
@@ -465,7 +465,7 @@ impl<'de> Deserializer<'de> for Variant {
 		visitor.visit_seq(de::value::SeqDeserializer::new(Some(self).into_iter()))
 	}
 
-	// Delegate to the Composite deserializing with the enum values if anything else specific is asked for:
+	// All of the below functions delegate to the Composite deserializing methods using the enum values.
 
 	fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
 	where
