@@ -37,8 +37,8 @@ impl Decoder {
 		log::debug!("Registering version {}", version);
 		let new = MetadataNew::from_bytes(meta);
 		if let Err(e) = new {
-			log::error!("{}", e);
-			self.old.register_version(version.try_into()?, meta);
+			log::debug!("{}", e);
+			self.old.register_version(version.try_into()?, meta.try_into()?)?;
 		} else {
 			self.new.insert(version.try_into()?, DecoderNew::with_metadata(new?));
 		};

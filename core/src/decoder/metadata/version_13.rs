@@ -30,19 +30,16 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-	CallArgMetadata, CallMetadata, Error, EventArg, ExtrinsicMetadata, Metadata, ModuleEventMetadata, ModuleMetadata,
-	StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as DesubStorageHasher, StorageMetadata,
-	StorageType,
+	convert, CallArgMetadata, CallMetadata, Error, EventArg, ExtrinsicMetadata, Metadata, ModuleEventMetadata,
+	ModuleMetadata, StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as DesubStorageHasher,
+	StorageMetadata, StorageType,
 };
 use crate::{regex, RustTypeMarker};
 
-use frame_metadata::{
-	decode_different::DecodeDifferent,
-	v13::{
-		EventMetadata as EventMetadataV13, ModuleMetadata as ModuleMetadataV13, RuntimeMetadataV13,
-		StorageEntryMetadata as StorageEntryMetadataV13, StorageEntryModifier as StorageEntryModifierV13,
-		StorageEntryType, StorageHasher as StorageHasherV13,
-	},
+use frame_metadata::v13::{
+	EventMetadata as EventMetadataV13, ModuleMetadata as ModuleMetadataV13, RuntimeMetadataV13,
+	StorageEntryMetadata as StorageEntryMetadataV13, StorageEntryModifier as StorageEntryModifierV13, StorageEntryType,
+	StorageHasher as StorageHasherV13,
 };
 
 use std::{
@@ -80,13 +77,6 @@ impl TryFrom<RuntimeMetadataV13> for Metadata {
 		let extrinsics = ExtrinsicMetadata::new(metadata.extrinsic.version, extensions);
 
 		Ok(Metadata { modules, modules_by_event_index, modules_by_call_index, extrinsics: Some(extrinsics) })
-	}
-}
-
-fn convert<B: 'static, O: 'static>(dd: DecodeDifferent<B, O>) -> Result<O, Error> {
-	match dd {
-		DecodeDifferent::Decoded(value) => Ok(value),
-		_ => Err(Error::ExpectedDecoded),
 	}
 }
 

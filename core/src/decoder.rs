@@ -34,7 +34,7 @@ pub use self::storage::{GenericStorage, StorageInfo, StorageKey, StorageKeyData,
 pub use self::metadata::test_suite;
 
 pub use self::metadata::{
-	CallMetadata, Metadata, MetadataError, ModuleIndex, ModuleMetadata, StorageEntryModifier, StorageHasher,
+	CallMetadata, Metadata, Error as MetadataError, ModuleIndex, ModuleMetadata, StorageEntryModifier, StorageHasher,
 	StorageType,
 };
 pub use frame_metadata::v14::StorageEntryType;
@@ -319,7 +319,7 @@ impl<'a> Iterator for ChunkedExtrinsic<'a> {
 }
 
 impl Decoder {
-	/// Create new Decoder with specified types
+	/// Create new Decoder with specified types.
 	pub fn new(types: impl TypeDetective + 'static, chain: Chain) -> Self {
 		Self { versions: HashMap::default(), types: Box::new(types), chain: chain.to_string() }
 	}
@@ -331,15 +331,12 @@ impl Decoder {
 
 	/// Insert a Metadata with Version attached
 	/// If version exists, it's corresponding metadata will be updated
-	pub fn register_version<M: Into<Metadata>>(&mut self, version: SpecVersion, metadata: M) {
-		let meta: Metadata = metadata.into();
-		self.versions.insert(version, meta);
+	pub fn register_version(&mut self, version: SpecVersion, metadata: Metadata) -> Result<(), Error> {
+		self.versions.insert(version, metadata);
+		Ok(())
 	}
 
-	/// internal api to get runtime version
-	/// panics if a version is not found
-	///
-	/// get runtime version in less than linear time with binary search
+	/// internal api to get metadata from runtime version.
 	///
 	/// # Note
 	/// Returns None if version is nonexistant
@@ -1022,9 +1019,9 @@ mod tests {
 	#[test]
 	fn should_insert_metadata() {
 		let mut decoder = Decoder::new(GenericTypes, Chain::Kusama);
-		decoder.register_version(test_suite::mock_runtime(0).spec_version, &meta_test_suite::test_metadata());
-		decoder.register_version(test_suite::mock_runtime(1).spec_version, &meta_test_suite::test_metadata());
-		decoder.register_version(test_suite::mock_runtime(2).spec_version, &meta_test_suite::test_metadata());
+		decoder.register_version(test_suite::mock_runtime(0).spec_version, meta_test_suite::test_metadata()).unwrap();
+		decoder.register_version(test_suite::mock_runtime(1).spec_version, meta_test_suite::test_metadata()).unwrap();
+		decoder.register_version(test_suite::mock_runtime(2).spec_version, meta_test_suite::test_metadata()).unwrap();
 		assert!(decoder.versions.contains_key(&test_suite::mock_runtime(0).spec_version));
 		assert!(decoder.versions.contains_key(&test_suite::mock_runtime(1).spec_version));
 		assert!(decoder.versions.contains_key(&test_suite::mock_runtime(2).spec_version))
@@ -1032,11 +1029,10 @@ mod tests {
 
 	#[test]
 	fn should_get_version_metadata() {
-		// let types = PolkadotTypes::new().unwrap();
 		let mut decoder = Decoder::new(GenericTypes, Chain::Kusama);
 		let rt_version = test_suite::mock_runtime(0);
 		let meta = meta_test_suite::test_metadata();
-		decoder.register_version(rt_version.spec_version, &meta);
+		decoder.register_version(rt_version.spec_version, meta.clone()).unwrap();
 		let _other_meta = decoder.get_version_metadata(rt_version.spec_version);
 		assert_eq!(Some(&meta), _other_meta.clone())
 	}
