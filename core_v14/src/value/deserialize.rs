@@ -288,6 +288,22 @@ impl<'de> Visitor<'de> for VariantVisitor {
 
 struct ValueVisitor;
 
+// It gets repetitive writing out the visitor impls to delegate to the Value subtypes;
+// this helper makes that a little easier:
+macro_rules! delegate_visitor_fn {
+    (
+        $visitor:ident $mapping:path,
+        $( $name:ident($($ty:ty)?) )+
+    ) => {
+        $(
+            fn $name<E>(self, $(v: $ty)?) -> Result<Self::Value, E>
+            where E: serde::de::Error {
+                $visitor.$name($(v as $ty)?).map($mapping)
+            }
+        )+
+    }
+}
+
 impl<'de> Visitor<'de> for ValueVisitor {
 	type Value = Value;
 
@@ -295,131 +311,36 @@ impl<'de> Visitor<'de> for ValueVisitor {
 		formatter.write_str("a type that can be decoded into a Value")
 	}
 
-	fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		PrimitiveVisitor.visit_bool(v).map(Value::Primitive)
-	}
+	delegate_visitor_fn!(
+		PrimitiveVisitor Value::Primitive,
+		visit_bool(bool)
+		visit_i8(i8)
+		visit_i16(i16)
+		visit_i32(i32)
+		visit_i64(i64)
+		visit_i128(i128)
+		visit_u8(u8)
+		visit_u16(u16)
+		visit_u32(u32)
+		visit_u64(u64)
+		visit_u128(u128)
+		visit_char(char)
+		visit_str(&str)
+		visit_string(String)
+		visit_bytes(&[u8])
+	);
 
-	fn visit_i8<E>(self, v: i8) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		PrimitiveVisitor.visit_i8(v).map(Value::Primitive)
-	}
-
-	fn visit_i16<E>(self, v: i16) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		PrimitiveVisitor.visit_i16(v).map(Value::Primitive)
-	}
-
-	fn visit_i32<E>(self, v: i32) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		PrimitiveVisitor.visit_i32(v).map(Value::Primitive)
-	}
-
-	fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		PrimitiveVisitor.visit_i64(v).map(Value::Primitive)
-	}
-
-	fn visit_i128<E>(self, v: i128) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		PrimitiveVisitor.visit_i128(v).map(Value::Primitive)
-	}
-
-	fn visit_u8<E>(self, v: u8) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		PrimitiveVisitor.visit_u8(v).map(Value::Primitive)
-	}
-
-	fn visit_u16<E>(self, v: u16) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		PrimitiveVisitor.visit_u16(v).map(Value::Primitive)
-	}
-
-	fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		PrimitiveVisitor.visit_u32(v).map(Value::Primitive)
-	}
-
-	fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		PrimitiveVisitor.visit_u64(v).map(Value::Primitive)
-	}
-
-	fn visit_u128<E>(self, v: u128) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		PrimitiveVisitor.visit_u128(v).map(Value::Primitive)
-	}
-
-	fn visit_char<E>(self, v: char) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		PrimitiveVisitor.visit_char(v).map(Value::Primitive)
-	}
-
-	fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		PrimitiveVisitor.visit_str(v).map(Value::Primitive)
-	}
-
-	fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		PrimitiveVisitor.visit_string(v).map(Value::Primitive)
-	}
-
-	fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		let _ = v;
-		PrimitiveVisitor.visit_bytes(v).map(Value::Primitive)
-	}
-
-	fn visit_none<E>(self) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		CompositeVisitor.visit_none().map(Value::Composite)
-	}
+	delegate_visitor_fn!(
+		CompositeVisitor Value::Composite,
+		visit_none()
+		visit_unit()
+	);
 
 	fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
 	where
 		D: serde::Deserializer<'de>,
 	{
 		Value::deserialize(deserializer)
-	}
-
-	fn visit_unit<E>(self) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		CompositeVisitor.visit_unit().map(Value::Composite)
 	}
 
 	fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
