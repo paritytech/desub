@@ -19,7 +19,7 @@ use serde::{self, de::Visitor, Deserialize, Deserializer};
 use std::convert::TryInto;
 
 /*
-This module implements the Deserialize (no R!) trait on our Value enum
+This module implements the [`Deserialize`] (no R!) trait on our [`Value`] enum.
 ======================================================================
 
 See deserializer.rs for more of a description.
@@ -28,10 +28,10 @@ The Deserialize trait is responsible for describing how some other value (or at 
 the repreentastion of it in terms of the serde data model) can be turned into our `Value`
 enum.
 
-One thing we want to aim for is to be able to losslessly deserialize a `Value` into a
-`Value`. This would allow for partial deserialization type things (we might want to turn
-part of our value into a struct, say, and leave the rest as value types until we know what
-to do with them, for instance).
+One thing we aim for is to be able to losslessly deserialize a [`Value`] into a
+[`Value`]. This would allow for partial type deserialization, for instance we might want to turn
+only part of our input into a struct, say, and leave the rest as [`Value`] types until we know what
+to do with them.
 */
 
 impl<'de> Deserialize<'de> for Value {
