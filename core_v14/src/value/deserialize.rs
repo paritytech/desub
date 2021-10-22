@@ -656,4 +656,44 @@ mod test {
         }
     }
 
+    #[test]
+    fn partially_deserialize_value() {
+
+        let value = Value::Composite(Composite::Named(vec![
+            ("a".into(), Value::Primitive(Primitive::U64(123))),
+            ("b".into(), Value::Composite(Composite::Named(vec![
+                ("c".into(), Value::Primitive(Primitive::U128(123))),
+                ("d".into(), Value::Primitive(Primitive::Str("hell".into()))),
+                ("e".into(), Value::Composite(Composite::Unnamed(vec![]))),
+            ])))
+        ]));
+
+        #[derive(Deserialize, Debug, PartialEq)]
+        struct Partial {
+            a: Value,
+            b: PartialB
+        }
+
+        #[derive(Deserialize, Debug, PartialEq)]
+        struct PartialB {
+            c: u128,
+            d: String,
+            e: Value
+        }
+
+        let partial: Partial = crate::value::from_value(value).expect("should work");
+
+        assert_eq!(
+            partial,
+            Partial {
+                a: Value::Primitive(Primitive::U64(123)),
+                b: PartialB {
+                    c: 123,
+                    d: "hell".into(),
+                    e: Value::Composite(Composite::Unnamed(vec![]))
+                }
+            }
+        )
+    }
+
 }
