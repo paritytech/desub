@@ -14,7 +14,7 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{Error, SubstrateType};
-use primitives::crypto::{Ss58AddressFormat, Ss58Codec};
+use primitives::crypto::Ss58Codec;
 use serde::{
 	ser::{self, SerializeSeq},
 	Serializer,
@@ -58,13 +58,12 @@ pub fn as_substrate_address<S: Serializer>(ty: &SubstrateType, serializer: S) ->
 			for (i, b) in bytes.into_iter().enumerate() {
 				addr[i] = b;
 			}
-			let addr = primitives::crypto::AccountId32::from(addr)
-				.to_ss58check_with_version(Ss58AddressFormat::SubstrateAccount);
+			let addr = primitives::crypto::AccountId32::from(addr).to_ss58check();
 			serializer.serialize_str(&addr)
 		}
 		SubstrateType::Address(v) => match v {
 			runtime_primitives::MultiAddress::Id(ref i) => {
-				let addr = i.to_ss58check_with_version(Ss58AddressFormat::SubstrateAccount);
+				let addr = i.to_ss58check();
 				serializer.serialize_str(&addr)
 			}
 			runtime_primitives::MultiAddress::Index(i) => serializer.serialize_str(&format!("{}", i)),

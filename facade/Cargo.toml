@@ -1,0 +1,15 @@
+[package]
+name = "facade"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+desub_legacy = { path = "../core/", package = "desub-core" }
+desub = { path = "../core_v14/", package = "core_v14" }
+extras = { path = "../extras/", optional = true, package = "desub-extras" }
+
+[features]
+polkadot-js = ["extras", "extras/polkadot"]

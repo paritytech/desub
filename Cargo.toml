@@ -4,6 +4,7 @@ members = [
 	"bin/v14-test",
 	"core",
 	"core_v14",
+	"facade",
 	"extras",
 	"integration_tests",
 	"substrate-metadata-versions/metadatav8",

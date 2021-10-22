@@ -8,8 +8,8 @@ edition = "2018"
 [dependencies]
 log = "0.4"
 thiserror = "1.0.22"
-sp_core = { package = "sp-core",  git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
-sp_runtime = { package = "sp-runtime", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp_core = { package = "sp-core",  git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
+sp_runtime = { package = "sp-runtime", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
 frame-metadata = { version = "14.0.0", features = ["v14", "std", "scale-info"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
