@@ -74,7 +74,7 @@ impl Metadata {
 	/// This file can then be read and passed directly to this method.
 	pub fn from_bytes(bytes: &[u8]) -> Result<Self, MetadataError> {
 		log::trace!("Decoding metadata");
-		let meta = frame_metadata::RuntimeMetadataPrefixed::decode(&mut &*bytes)?;
+		let meta = RuntimeMetadataPrefixed::decode(&mut &*bytes)?;
 		Self::from_runtime_metadata(meta.1)
 	}
 

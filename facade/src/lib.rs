@@ -27,8 +27,8 @@ use desub_legacy::{
 	decoder::{Chain, Decoder as LegacyDecoder, Metadata as LegacyDesubMetadata},
 	RustTypeMarker, TypeDetective,
 };
-use std::{collections::HashMap, marker::PhantomData, convert::TryInto};
-use codec::{Encode, Decode};
+use std::{collections::HashMap, marker::PhantomData};
+use codec::Decode;
 
 #[cfg(feature = "polkadot-js")]
 use extras::TypeResolver as PolkadotJsResolver;
@@ -69,10 +69,12 @@ impl<T: TypeDetective> Decoder<T> {
 		Self { legacy_decoder, decoder, _marker: PhantomData }
 	}
 
-	pub fn register_version(&mut self, version: SpecVersion, metadata: &[u8]) -> Result<(), Error> {
-		let metadata: RuntimeMetadataPrefixed = Decode::decode(&metadata)?;
+	pub fn register_version(&mut self, version: SpecVersion, mut metadata: &[u8]) -> Result<(), Error> {
+		let metadata: RuntimeMetadataPrefixed = Decode::decode(&mut metadata)?;
 		if runtime_metadata_version(&metadata.1) >= 14 {
-				self.decoder.insert(version, DesubMetadata::from_runtime_metadata(metadata.1));
+			let meta = DesubMetadata::from_runtime_metadata(metadata.1)?;
+			let decoder = TypeInfoDecoder::with_metadata(meta);
+			self.decoder.insert(version, decoder);
 		} else {
 			self.legacy_decoder.register_version(version, LegacyDesubMetadata::from_runtime_metadata(metadata.1)?)?;
 		}

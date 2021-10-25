@@ -12,6 +12,7 @@ core_v14 = { path = "../core_v14/", package = "core_v14" }
 extras = { path = "../extras/", optional = true, package = "desub-extras" }
 thiserror = "1.0.30"
 frame-metadata = { git = "https://github.com/paritytech/frame-metadata", branch = "main" }
+codec = { version = "2.3.1", package = "parity-scale-codec" }
 
 [features]
 polkadot-js = ["extras", "extras/polkadot", "frame-metadata/legacy" ]
