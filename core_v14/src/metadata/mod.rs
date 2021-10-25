@@ -75,13 +75,17 @@ impl Metadata {
 	pub fn from_bytes(bytes: &[u8]) -> Result<Self, MetadataError> {
 		log::trace!("Decoding metadata");
 		let meta = frame_metadata::RuntimeMetadataPrefixed::decode(&mut &*bytes)?;
+		Self::from_runtime_metadata(meta.1)
+	}
 
-		match meta {
-			RuntimeMetadataPrefixed(_, RuntimeMetadata::V14(meta_v14)) => {
+	/// Convert the substrate runtime metadata into our Metadata.
+	pub fn from_runtime_metadata(metadata: RuntimeMetadata) -> Result<Self, MetadataError> {
+		match metadata {
+			RuntimeMetadata::V14(meta_v14) => {
 				log::trace!("V14 metadata found.");
 				version_14::decode(meta_v14)
 			}
-			RuntimeMetadataPrefixed(_, unsupported_meta) => {
+			unsupported_meta => {
 				let version = runtime_metadata_version(&unsupported_meta);
 				Err(MetadataError::UnsupportedVersion(version))
 			}

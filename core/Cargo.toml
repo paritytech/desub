@@ -7,7 +7,7 @@ repository = "https://github.com/paritytech/desub"
 
 [dependencies]
 log = "0.4"
-thiserror = "1.0.22"
+thiserror = "1.0.30"
 codec = { version = "2", package = "parity-scale-codec", features = ["bit-vec"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
@@ -17,20 +17,13 @@ dyn-clone = "1.0"
 hex = "0.4"
 bitvec = { version = "0.20.2", features = ["serde", "alloc"] }
 
-runtime-version = { package = "sp-version", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
 pallet-democracy = { package = "pallet-democracy", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
-frame-support = { package = "frame-support", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
 primitives = { package = "sp-core",  git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
 runtime-primitives = { package = "sp-runtime", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
-
-frame-metadata = { package = "frame-metadata", version = "14.0.0", features = ["v12", "v13", "v14"] }
-
-runtime-metadata11 = { path = "../substrate-metadata-versions/metadatav11", package = "frame-metadatav11" }
-runtime-metadata10 = { path = "../substrate-metadata-versions/metadatav10", package = "frame-metadatav10" }
-runtime-metadata09 = { path = "../substrate-metadata-versions/metadatav9", package = "frame-metadatav9"  }
-runtime-metadata08 = { path = "../substrate-metadata-versions/metadatav8", package = "frame-metadatav8"  }
+frame-metadata = { package = "frame-metadata", git = "https://github.com/paritytech/frame-metadata", branch = "main", features = ["legacy"] }
 
 [dev-dependencies]
+runtime-version = { package = "sp-version", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 pretty_env_logger = "0.4"
 extras = { path = "../extras/", features = ["polkadot"], package = "desub-extras" }
 hex = "0.4"

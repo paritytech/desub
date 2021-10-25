@@ -661,7 +661,7 @@ version = "0.1.0"
 dependencies = [
  "bitvec",
  "derive_more",
- "frame-metadata 14.0.0",
+ "frame-metadata 14.0.0 (git+https://github.com/paritytech/frame-metadata?branch=main)",
  "hex",
  "log",
  "parity-scale-codec",
@@ -844,12 +844,7 @@ dependencies = [
  "derive_more",
  "desub-extras",
  "dyn-clone",
- "frame-metadata 14.0.0",
- "frame-metadatav10",
- "frame-metadatav11",
- "frame-metadatav8",
- "frame-metadatav9",
- "frame-support 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.12)",
+ "frame-metadata 14.0.0 (git+https://github.com/paritytech/frame-metadata?branch=main)",
  "hex",
  "log",
  "onig",
@@ -860,7 +855,7 @@ dependencies = [
  "serde_json",
  "sp-core 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.12)",
  "sp-runtime 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.12)",
- "sp-version 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.12)",
+ "sp-version 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.9)",
  "thiserror",
 ]
 
@@ -1047,6 +1042,7 @@ dependencies = [
  "core_v14",
  "desub-core",
  "desub-extras",
+ "frame-metadata 14.0.0 (git+https://github.com/paritytech/frame-metadata?branch=main)",
  "thiserror",
 ]
 
@@ -1160,43 +1156,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "frame-metadatav10"
-version = "10.0.0"
+name = "frame-metadata"
+version = "14.0.0"
+source = "git+https://github.com/paritytech/frame-metadata?branch=main#b5aceed422b7a361ce0bab00e18427d6c35c7607"
 dependencies = [
- "frame-metadata 14.0.0",
+ "cfg-if 1.0.0",
  "parity-scale-codec",
+ "scale-info",
  "serde",
- "sp-std 2.0.0",
-]
-
-[[package]]
-name = "frame-metadatav11"
-version = "11.0.0-rc6"
-dependencies = [
- "frame-metadata 14.0.0",
- "parity-scale-codec",
- "serde",
- "sp-std 2.0.0",
-]
-
-[[package]]
-name = "frame-metadatav8"
-version = "2.0.0"
-dependencies = [
- "frame-metadata 14.0.0",
- "parity-scale-codec",
- "serde",
- "sp-std 2.0.0",
-]
-
-[[package]]
-name = "frame-metadatav9"
-version = "2.0.0"
-dependencies = [
- "frame-metadata 14.0.0",
- "parity-scale-codec",
- "serde",
- "sp-std 2.0.0",
 ]
 
 [[package]]
@@ -1205,7 +1172,7 @@ version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.12#ce1c7c2c0c9bab718e6b04c9c65141e253e71861"
 dependencies = [
  "bitflags",
- "frame-metadata 14.0.0",
+ "frame-metadata 14.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "frame-support-procedural 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.12)",
  "impl-trait-for-tuples",
  "log",
@@ -3679,11 +3646,6 @@ dependencies = [
  "trie-db",
  "trie-root",
 ]
-
-[[package]]
-name = "sp-std"
-version = "2.0.0"
-source = "git+https://github.com/paritytech/substrate?rev=7314a78d49d0dc3862c6ef7c8115cb1b3d0c0fd2#7314a78d49d0dc3862c6ef7c8115cb1b3d0c0fd2"
 
 [[package]]
 name = "sp-std"

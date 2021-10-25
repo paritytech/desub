@@ -11,7 +11,7 @@ desub_legacy = { path = "../core/", package = "desub-core" }
 core_v14 = { path = "../core_v14/", package = "core_v14" }
 extras = { path = "../extras/", optional = true, package = "desub-extras" }
 thiserror = "1.0.30"
-frame-metadata = { git = "https://github.com/paritytech/frame-metadata", branch = "master" }
+frame-metadata = { git = "https://github.com/paritytech/frame-metadata", branch = "main" }
 
 [features]
 polkadot-js = ["extras", "extras/polkadot", "frame-metadata/legacy" ]

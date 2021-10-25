@@ -21,12 +21,14 @@
 
 mod error;
 
-use core_v14::{metadata::runtime_metadata_version, Decoder as TypeInfoDecoder};
+use core_v14::{metadata::runtime_metadata_version, Decoder as TypeInfoDecoder, Metadata as DesubMetadata};
+use frame_metadata::RuntimeMetadataPrefixed;
 use desub_legacy::{
-	decoder::{Chain, Decoder as LegacyDecoder},
+	decoder::{Chain, Decoder as LegacyDecoder, Metadata as LegacyDesubMetadata},
 	RustTypeMarker, TypeDetective,
 };
-use std::{collections::HashMap, marker::PhantomData};
+use std::{collections::HashMap, marker::PhantomData, convert::TryInto};
+use codec::{Encode, Decode};
 
 #[cfg(feature = "polkadot-js")]
 use extras::TypeResolver as PolkadotJsResolver;
@@ -67,7 +69,15 @@ impl<T: TypeDetective> Decoder<T> {
 		Self { legacy_decoder, decoder, _marker: PhantomData }
 	}
 
-	pub fn register_version(version: SpecVersion, metadata: &[u8]) -> Result<(), Error> {}
+	pub fn register_version(&mut self, version: SpecVersion, metadata: &[u8]) -> Result<(), Error> {
+		let metadata: RuntimeMetadataPrefixed = Decode::decode(&metadata)?;
+		if runtime_metadata_version(&metadata.1) >= 14 {
+				self.decoder.insert(version, DesubMetadata::from_runtime_metadata(metadata.1));
+		} else {
+			self.legacy_decoder.register_version(version, LegacyDesubMetadata::from_runtime_metadata(metadata.1)?)?;
+		}
+		Ok(())
+	}
 }
 
 pub struct InfoDecoder(Decoder<NoLegacyTypes>);
