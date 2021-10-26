@@ -261,7 +261,7 @@ impl Decoder {
 
 		// Decode each of the argument values in the extrinsic:
 		let mut arguments = vec![];
-		for arg in call.args() {
+		for (arg, _) in call.args() {
 			let ty = self.metadata.types().resolve(arg.id()).ok_or_else(|| DecodeError::CannotFindType(arg.id()))?;
 			let val = match decode_type(data, ty, self.metadata.types()) {
 				Ok(val) => val,

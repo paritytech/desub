@@ -48,7 +48,7 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, MetadataError> {
 			for variant in call_variant.variants() {
 				// Allow case insensitive matching; lowercase the name:
 				let name = variant.name().to_ascii_lowercase();
-				let args = variant.fields().iter().map(|field| *field.ty()).collect();
+				let args = variant.fields().iter().map(|field| (*field.ty(), field.name().map(|x| x.clone()))).collect();
 
 				calls.insert(variant.index(), MetadataCall { name, args });
 			}

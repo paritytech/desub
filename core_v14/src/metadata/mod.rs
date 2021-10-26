@@ -139,7 +139,7 @@ struct MetadataPallet {
 #[derive(Debug)]
 pub struct MetadataCall {
 	name: String,
-	args: Vec<TypeId>,
+	args: Vec<(TypeId, Option<String>)>,
 }
 
 impl MetadataCall {
@@ -151,7 +151,7 @@ impl MetadataCall {
 	/// The types expected to be provided as arguments to this call.
 	/// [`TypeId`]'s can be resolved into [`Type`]'s using
 	/// [`Metadata::resolve_type`]
-	pub fn args(&self) -> &[TypeId] {
+	pub fn args(&self) -> &[(TypeId, Option<String>)] {
 		&self.args
 	}
 }
