@@ -644,24 +644,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
 
 [[package]]
-name = "core_v14"
-version = "0.1.0"
-dependencies = [
- "bitvec",
- "derive_more",
- "frame-metadata 14.0.0",
- "hex",
- "log",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "serde_json",
- "sp-core",
- "sp-runtime",
- "thiserror",
-]
-
-[[package]]
 name = "cpufeatures"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -826,11 +808,43 @@ dependencies = [
 
 [[package]]
 name = "desub-core"
+version = "0.1.0"
+dependencies = [
+ "bitvec",
+ "derive_more",
+ "frame-metadata 14.0.0",
+ "hex",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "serde_json",
+ "sp-core",
+ "sp-runtime",
+ "thiserror",
+]
+
+[[package]]
+name = "desub-json-resolver"
+version = "0.0.1"
+dependencies = [
+ "desub-legacy",
+ "log",
+ "parity-scale-codec",
+ "phf",
+ "serde",
+ "serde_json",
+ "syn",
+ "thiserror",
+]
+
+[[package]]
+name = "desub-legacy"
 version = "0.0.1"
 dependencies = [
  "bitvec",
  "derive_more",
- "desub-extras",
+ "desub-json-resolver",
  "dyn-clone",
  "frame-metadata 14.0.0",
  "frame-metadatav10",
@@ -849,20 +863,6 @@ dependencies = [
  "sp-core",
  "sp-runtime",
  "sp-version",
- "thiserror",
-]
-
-[[package]]
-name = "desub-extras"
-version = "0.0.1"
-dependencies = [
- "desub-core",
- "log",
- "parity-scale-codec",
- "phf",
- "serde",
- "serde_json",
- "syn",
  "thiserror",
 ]
 
@@ -1629,7 +1629,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "desub-core",
- "desub-extras",
+ "desub-json-resolver",
  "frame-system",
  "hex",
  "log",
@@ -3761,8 +3761,8 @@ dependencies = [
  "async-std",
  "async-stream",
  "colored 2.0.0",
- "desub-core",
- "desub-extras",
+ "desub-json-resolver",
+ "desub-legacy",
  "fern",
  "futures",
  "indicatif",
@@ -3861,7 +3861,7 @@ name = "v14-test"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "core_v14",
+ "desub-core",
  "hex",
  "pretty_env_logger",
  "structopt",

@@ -7,7 +7,7 @@ edition = "2018"
 
 [dependencies]
 structopt = "0.3.23"
-core = { path = "../../core_v14", package = "core_v14" }
+core = { path = "../../core", package = "desub-core" }
 anyhow = "1.0.44"
 hex = "0.4.3"
 pretty_env_logger = "0.4.0"

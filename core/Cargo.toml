@@ -1,38 +1,21 @@
 [package]
 name = "desub-core"
-version = "0.0.1"
-authors = [ "Andrew Plaza <andrew.plaza@parity.io>" ]
+version = "0.1.0"
 edition = "2018"
-repository = "https://github.com/paritytech/desub"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 log = "0.4"
 thiserror = "1.0.22"
-codec = { version = "2", package = "parity-scale-codec", features = ["bit-vec"] }
+sp_core = { package = "sp-core",  git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp_runtime = { package = "sp-runtime", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+frame-metadata = { version = "14.0.0", features = ["v14", "std", "scale-info"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
-onig = { version = "5.0", default-features = false }
-derive_more = "0.99.3"
-dyn-clone = "1.0"
-hex = "0.4"
+codec = { version = "2", package = "parity-scale-codec", features = ["bit-vec"] }
+hex = "0.4.3"
+derive_more = "0.99.16"
+scale-info = { version = "1.0.0", features = ["bit-vec", "derive"] }
 bitvec = { version = "0.20.2", features = ["serde", "alloc"] }
-
-runtime-version = { package = "sp-version", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
-pallet-democracy = { package = "pallet-democracy", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
-frame-support = { package = "frame-support", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
-
-primitives = { package = "sp-core",  git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
-runtime-primitives = { package = "sp-runtime", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
-
-frame-metadata = { package = "frame-metadata", version = "14.0.0", features = ["v12", "v13", "v14"] }
-
-runtime-metadata11 = { path = "../substrate-metadata-versions/metadatav11", package = "frame-metadatav11" }
-runtime-metadata10 = { path = "../substrate-metadata-versions/metadatav10", package = "frame-metadatav10" }
-runtime-metadata09 = { path = "../substrate-metadata-versions/metadatav9", package = "frame-metadatav9"  }
-runtime-metadata08 = { path = "../substrate-metadata-versions/metadatav8", package = "frame-metadatav8"  }
-
-[dev-dependencies]
-pretty_env_logger = "0.4"
-extras = { path = "../extras/", features = ["polkadot"], package = "desub-extras" }
-hex = "0.4"
 

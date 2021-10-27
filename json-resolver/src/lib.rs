@@ -1,4 +1,4 @@
-#[cfg(feature = "default")]
+#[cfg(feature = "polkadot-js")]
 mod definitions;
 
 mod error;

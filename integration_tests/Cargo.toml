@@ -9,7 +9,7 @@ repository = "https://github.com/paritytech/desub"
 
 [dev-dependencies]
 desub-core = { path = "../core", package = "desub-core" }
-extras = { path = "../extras", package = "desub-extras" }
+json-resolver = { path = "../json-resolver", package = "desub-json-resolver" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 codec = { version = "2", package = "parity-scale-codec" }
