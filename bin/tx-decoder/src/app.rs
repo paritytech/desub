@@ -16,8 +16,8 @@
 
 use crate::queries::*;
 
-use desub::decoder::{Chain, Decoder};
-use desub_extras::runtimes;
+use desub_legacy::decoder::{Chain, Decoder};
+use json_resolver::runtimes;
 
 use anyhow::Error;
 use argh::FromArgs;
@@ -177,7 +177,7 @@ pub async fn app(app: App) -> Result<(), Error> {
 
 	let mut conn = pool.acquire().await?;
 
-	let types = desub_extras::TypeResolver::default();
+	let types = json_resolver::TypeResolver::default();
 	let decoder = Arc::new(RwLock::new(Decoder::new(types, app.network.clone())));
 	let mut errors = Vec::new();
 

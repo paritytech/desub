@@ -10,7 +10,7 @@ async-std = { version = "1.10.0", features = [ "attributes" ] }
 async-stream = "0.3.2"
 sqlx = { version = "0.5", features = [ "runtime-async-std-rustls", "postgres", "offline" ]}
 desub-legacy = { path = "../../legacy/", package = "desub-legacy" }
-desub-json-resolver = { path = "../../json-resolver", features = [ "polkadot-js" ], package = "desub-json-resolver" }
+json-resolver = { path = "../../json-resolver", features = [ "polkadot-js" ], package = "desub-json-resolver" }
 anyhow = "1.0.43"
 futures = "0.3.17"
 serde = { version = "1.0", features = ["derive"] }
