@@ -1628,8 +1628,8 @@ name = "integration_tests"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "desub-core",
  "desub-json-resolver",
+ "desub-legacy",
  "frame-system",
  "hex",
  "log",

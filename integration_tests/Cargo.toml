@@ -8,7 +8,7 @@ repository = "https://github.com/paritytech/desub"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dev-dependencies]
-desub-core = { path = "../core", package = "desub-core" }
+desub-legacy = { path = "../legacy", package = "desub-legacy" }
 json-resolver = { path = "../json-resolver", package = "desub-json-resolver" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }

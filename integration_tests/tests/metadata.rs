@@ -1,5 +1,5 @@
 use crate::runtime_metadata::*;
-use desub_core::decoder::Metadata;
+use desub_legacy::decoder::Metadata;
 use primitives::twox_128;
 
 #[test]
@@ -14,14 +14,6 @@ fn should_create_metadata_v9() {
 #[test]
 fn should_create_metadata_v10() {
 	let meta = runtime_v10();
-	let meta: Metadata = Metadata::new(meta.as_slice());
-	println!("{}", meta.pretty());
-}
-
-#[test]
-fn should_create_metadata_v9_block500000() {
-	let _ = pretty_env_logger::try_init();
-	let meta = runtime_v9_block500k();
 	let meta: Metadata = Metadata::new(meta.as_slice());
 	println!("{}", meta.pretty());
 }
