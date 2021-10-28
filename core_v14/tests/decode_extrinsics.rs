@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
+use core_v14::decoder::{decode_signed_payload, SignedExtensionWithAdditional};
 use core_v14::{value, Decoder, Metadata, Value};
 
 static V14_METADATA_POLKADOT_SCALE: &[u8] = include_bytes!("data/v14_metadata_polkadot.scale");
@@ -194,5 +195,77 @@ fn vesting_force_vested_transfer_unsigned() {
 			("per_block".into(), Value::Primitive(value::Primitive::U128(2))),
 			("starting_block".into(), Value::Primitive(value::Primitive::U32(3))),
 		]))
+	);
+}
+
+#[test]
+fn test_signer_payload() {
+	let metadata = Metadata::from_bytes(V14_METADATA_POLKADOT_SCALE).expect("valid metadata");
+	let data = to_bytes("0x0706b9340000962300000800000091b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c31c81d421f68281950ad2901291603b5e49fc5c872f129e75433f4b55f07ca072");
+	let data_cursor = &mut &data[..];
+	let r = decode_signed_payload(data_cursor, &metadata).expect("can decode signed payload");
+	assert_eq!(data_cursor.len(), 0);
+	assert_eq!(r.call_data.pallet_name, "Staking".to_string());
+	assert_eq!(r.call_data.call.name(), "chill".to_string());
+	assert_eq!(r.call_data.arguments, vec![]);
+
+	fn unnamed(x: Vec<Value>) -> Value {
+		Value::Composite(value::Composite::Unnamed(x))
+	}
+	fn empty() -> Value {
+		unnamed(vec![])
+	}
+	fn singleton(x: Value) -> Value {
+		unnamed(vec![x])
+	}
+	fn prim_u8(x: u8) -> Value {
+		Value::Primitive(value::Primitive::U8(x))
+	}
+	fn prim_u32(x: u32) -> Value {
+		Value::Primitive(value::Primitive::U32(x))
+	}
+	fn prim_u128(x: u128) -> Value {
+		Value::Primitive(value::Primitive::U128(x))
+	}
+	fn hash(xs: Vec<u8>) -> Value {
+		singleton(Value::Composite(value::Composite::Unnamed(xs.iter().map(|x| prim_u8(*x)).collect())))
+	}
+	fn variant(name: &str, c: value::Composite) -> Value {
+		Value::Variant(value::Variant { name: name.to_string(), values: c })
+	}
+
+	assert_eq!(
+		r.extensions,
+		vec![
+			(
+				"CheckSpecVersion".into(),
+				SignedExtensionWithAdditional { extension: empty(), additional: prim_u32(9110) }
+			),
+			("CheckTxVersion".into(), SignedExtensionWithAdditional { extension: empty(), additional: prim_u32(8) }),
+			(
+				"CheckGenesis".into(),
+				SignedExtensionWithAdditional {
+					extension: empty(),
+					additional: hash(to_bytes("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"))
+				}
+			),
+			(
+				"CheckMortality".into(),
+				SignedExtensionWithAdditional {
+					extension: singleton(variant("Mortal185", value::Composite::Unnamed(vec![prim_u8(52)]))),
+					additional: hash(to_bytes("0x1c81d421f68281950ad2901291603b5e49fc5c872f129e75433f4b55f07ca072"))
+				}
+			),
+			(
+				"CheckNonce".into(),
+				SignedExtensionWithAdditional { extension: singleton(prim_u32(0)), additional: empty() }
+			),
+			("CheckWeight".into(), SignedExtensionWithAdditional { extension: empty(), additional: empty() }),
+			(
+				"ChargeTransactionPayment".into(),
+				SignedExtensionWithAdditional { extension: singleton(prim_u128(0)), additional: empty() }
+			),
+			("PrevalidateAttests".into(), SignedExtensionWithAdditional { extension: empty(), additional: empty() }),
+		],
 	);
 }

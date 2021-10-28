@@ -104,7 +104,7 @@ assert_eq!(extrinsic.call, "bid".to_string());
 mod decode_type;
 mod extrinsic_bytes;
 
-use crate::metadata::Metadata;
+use crate::metadata::{Metadata, MetadataCall};
 use crate::value::Value;
 use codec::{Compact, Decode};
 use decode_type::{decode_type, decode_type_by_id, DecodeTypeError};
@@ -138,6 +138,8 @@ pub enum DecodeError {
 	/// expected to entirely consume, but did not).
 	#[error("Decoding an extrinsic should consume all bytes, but {0} bytes remain")]
 	LateEof(usize, Extrinsic),
+	#[error("Signed payload did not have the expected shape: expected {0} but got additional signed data from {0}")]
+	UnexpectedSignedPayloadShape(String, String),
 }
 
 impl Decoder {
@@ -245,32 +247,14 @@ impl Decoder {
 			false => None,
 		};
 
-		// Pluck out the u8's representing the pallet and call enum next.
-		if data.len() < 2 {
-			return Err(DecodeError::EarlyEof("expected at least 2 more bytes for the pallet/call index"));
-		}
-		let pallet_index = u8::decode(data)?;
-		let call_index = u8::decode(data)?;
-		log::trace!("pallet index: {}, call index: {}", pallet_index, call_index);
+		let call_data = decode_call_data(data, &self.metadata)?;
 
-		// Work out which call the extrinsic data represents and get type info for it:
-		let (pallet_name, call) = match self.metadata.call_by_variant_index(pallet_index, call_index) {
-			Some(call) => call,
-			None => return Err(DecodeError::CannotFindCall(pallet_index, call_index)),
+		let ext = Extrinsic {
+			pallet: call_data.pallet_name.to_owned(),
+			call: call_data.call.name().to_owned(),
+			signature,
+			arguments: call_data.arguments,
 		};
-
-		// Decode each of the argument values in the extrinsic:
-		let mut arguments = vec![];
-		for arg in call.args() {
-			let ty = self.metadata.types().resolve(arg.id()).ok_or_else(|| DecodeError::CannotFindType(arg.id()))?;
-			let val = match decode_type(data, ty, self.metadata.types()) {
-				Ok(val) => val,
-				Err(err) => return Err(err.into()),
-			};
-			arguments.push(val);
-		}
-
-		let ext = Extrinsic { pallet: pallet_name.to_owned(), call: call.name().to_owned(), signature, arguments };
 
 		// If there's data left to consume, it likely means we screwed up decoding:
 		if !data.is_empty() {
@@ -295,7 +279,29 @@ pub struct Extrinsic {
 	pub arguments: Vec<Value>,
 }
 
-/// The signature information embedded in an extrinsic.
+/// The result of parsing the call data part of an extrinsic.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CallData<'a> {
+	pub pallet_name: String,
+	pub call: &'a MetadataCall,
+	pub arguments: Vec<Value>,
+}
+
+/// The result of parsing both signed extension and additional signed for a given extension of a signed payload.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SignedExtensionWithAdditional {
+	pub extension: Value,
+	pub additional: Value,
+}
+
+/// The result of parsing a signed payload (i.e. the input to a signing function).
+#[derive(Debug, Clone, PartialEq)]
+pub struct SignedPayload<'a> {
+	pub call_data: CallData<'a>,
+	pub extensions: Vec<(String, SignedExtensionWithAdditional)>,
+}
+
+/// The signature information embedded in an signed extrinsic.
 #[derive(Debug, Clone)]
 pub struct ExtrinsicSignature {
 	/// Address the extrinsic is being sent from
@@ -307,10 +313,45 @@ pub struct ExtrinsicSignature {
 	pub extensions: Vec<(String, Value)>,
 }
 
-fn decode_v4_signature<'a>(data: &mut &'a [u8], metadata: &Metadata) -> Result<ExtrinsicSignature, DecodeError> {
-	let address = <MultiAddress<AccountId32, u32>>::decode(data)?;
-	let signature = MultiSignature::decode(data)?;
-	let extensions = metadata
+fn decode_call_data<'data, 'meta>(
+	data: &mut &'data [u8],
+	metadata: &'meta Metadata,
+) -> Result<CallData<'meta>, DecodeError> {
+	// Pluck out the u8's representing the pallet and call enum next.
+	if data.len() < 2 {
+		return Err(DecodeError::EarlyEof("expected at least 2 more bytes for the pallet/call index"));
+	}
+	let pallet_index = u8::decode(data)?;
+	let call_index = u8::decode(data)?;
+	log::trace!("pallet index: {}, call index: {}", pallet_index, call_index);
+
+	// Work out which call the extrinsic data represents and get type info for it:
+	let (pallet_name, call) = match metadata.call_by_variant_index(pallet_index, call_index) {
+		Some(call) => Ok(call),
+		None => Err(DecodeError::CannotFindCall(pallet_index, call_index)),
+	}?;
+
+	// Decode each of the argument values in the extrinsic:
+	let arguments = call
+		.args()
+		.iter()
+		.map(|arg| {
+			let ty = metadata.types().resolve(arg.id()).ok_or_else(|| DecodeError::CannotFindType(arg.id()))?;
+			match decode_type(data, ty, metadata.types()) {
+				Ok(val) => Ok(val),
+				Err(err) => Err(err.into()),
+			}
+		})
+		.collect::<Result<_, DecodeError>>()?;
+
+	Ok(CallData { pallet_name: pallet_name.to_owned(), call, arguments })
+}
+
+fn decode_v4_signed_extensions<'a>(
+	data: &mut &'a [u8],
+	metadata: &Metadata,
+) -> Result<Vec<(String, Value)>, DecodeError> {
+	metadata
 		.extrinsic()
 		.signed_extensions()
 		.iter()
@@ -319,7 +360,57 @@ fn decode_v4_signature<'a>(data: &mut &'a [u8], metadata: &Metadata) -> Result<E
 			let name = ext.identifier.to_string();
 			Ok((name, val))
 		})
-		.collect::<Result<_, DecodeError>>()?;
+		.collect::<Result<_, DecodeError>>()
+}
+
+fn decode_v4_additional_signed<'a>(
+	data: &mut &'a [u8],
+	metadata: &Metadata,
+) -> Result<Vec<(String, Value)>, DecodeError> {
+	metadata
+		.extrinsic()
+		.signed_extensions()
+		.iter()
+		.map(|ext| {
+			let val = decode_type_by_id(data, &ext.additional_signed, metadata.types())?;
+			let name = ext.identifier.to_string();
+			Ok((name, val))
+		})
+		.collect::<Result<_, DecodeError>>()
+}
+
+fn decode_v4_signature<'a>(data: &mut &'a [u8], metadata: &Metadata) -> Result<ExtrinsicSignature, DecodeError> {
+	let address = <MultiAddress<AccountId32, u32>>::decode(data)?;
+	let signature = MultiSignature::decode(data)?;
+	let extensions = decode_v4_signed_extensions(data, metadata)?;
 
 	Ok(ExtrinsicSignature { address, signature, extensions })
+}
+
+fn decode_v4_signed_extensions_with_additional_signed<'a>(
+	data: &mut &'a [u8],
+	metadata: &Metadata,
+) -> Result<Vec<(String, SignedExtensionWithAdditional)>, DecodeError> {
+	let extensions = decode_v4_signed_extensions(data, metadata)?;
+	let additional_signed = decode_v4_additional_signed(data, metadata)?;
+	extensions
+		.into_iter()
+		.zip(additional_signed.into_iter())
+		.map(|((ext_name, extension), (add_name, additional))| {
+			if ext_name == add_name {
+				Ok((ext_name, SignedExtensionWithAdditional { extension, additional }))
+			} else {
+				Err(DecodeError::UnexpectedSignedPayloadShape(ext_name, add_name))
+			}
+		})
+		.collect::<Result<_, DecodeError>>()
+}
+
+pub fn decode_signed_payload<'data, 'meta>(
+	data: &mut &'data [u8],
+	metadata: &'meta Metadata,
+) -> Result<SignedPayload<'meta>, DecodeError> {
+	let call_data = decode_call_data(data, metadata)?;
+	let extensions = decode_v4_signed_extensions_with_additional_signed(data, metadata)?;
+	Ok(SignedPayload { call_data, extensions })
 }

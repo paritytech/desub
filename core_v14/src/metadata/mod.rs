@@ -136,7 +136,7 @@ struct MetadataPallet {
 }
 
 /// This represents a single call (extrinsic) that exists in the system.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct MetadataCall {
 	name: String,
 	args: Vec<TypeId>,
