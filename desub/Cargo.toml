@@ -1,5 +1,5 @@
 [package]
-name = "facade"
+name = "desub"
 version = "0.1.0"
 edition = "2021"
 
