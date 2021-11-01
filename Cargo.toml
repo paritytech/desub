@@ -4,7 +4,7 @@ members = [
 	"bin/v14-test",
 	"core",
 	"core_v14",
-	"facade",
+	"desub",
 	"extras",
 	"integration_tests",
 ]

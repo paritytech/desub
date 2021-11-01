@@ -21,14 +21,14 @@
 
 mod error;
 
+use codec::Decode;
 use core_v14::{metadata::runtime_metadata_version, Decoder as TypeInfoDecoder, Metadata as DesubMetadata};
-use frame_metadata::RuntimeMetadataPrefixed;
 use desub_legacy::{
 	decoder::{Chain, Decoder as LegacyDecoder, Metadata as LegacyDesubMetadata},
 	RustTypeMarker, TypeDetective,
 };
+use frame_metadata::RuntimeMetadataPrefixed;
 use std::{collections::HashMap, marker::PhantomData};
-use codec::Decode;
 
 #[cfg(feature = "polkadot-js")]
 use extras::TypeResolver as PolkadotJsResolver;
@@ -37,6 +37,7 @@ pub use self::error::Error;
 
 /// Struct That implements TypeDetective but refuses to resolve anything
 /// that is not of metadata v14+.
+/// Useful for use with a new chain that does not require historical metadata.
 #[derive(Copy, Clone, Debug)]
 struct NoLegacyTypes;
 
@@ -82,9 +83,13 @@ impl<T: TypeDetective> Decoder<T> {
 	}
 }
 
+/// Decoder which does not resolve any types of metadata v13 and below.
+/// To be used with newer chains where legacy types are not required.
 pub struct InfoDecoder(Decoder<NoLegacyTypes>);
-impl Default for InfoDecoder {
-	fn default() -> Self {
+impl InfoDecoder {
+    // No sensible default b/c of Chain::Custom("none")
+	#[allow(clippy::new_without_default)]
+	pub fn new() -> Self {
 		let decoder = Decoder::new(NoLegacyTypes, Chain::Custom("none".to_string()));
 		Self(decoder)
 	}
