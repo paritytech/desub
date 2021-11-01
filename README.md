@@ -1,5 +1,4 @@
 ![tests](https://github.com/insipx/desub/workflows/Rust/badge.svg)
-[![Coverage Status](https://coveralls.io/repos/github/paritytech/desub/badge.svg?branch=master&service=github)](https://coveralls.io/github/paritytech/desub?branch=master&service=github)
 # De[code] Sub[strate]
 
 <sub><sup>† This software is experimental, and not intended for production use yet. Use at your own risk.
