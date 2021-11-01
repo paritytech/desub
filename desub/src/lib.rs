@@ -87,7 +87,7 @@ impl<T: TypeDetective> Decoder<T> {
 /// To be used with newer chains where legacy types are not required.
 pub struct InfoDecoder(Decoder<NoLegacyTypes>);
 impl InfoDecoder {
-    // No sensible default b/c of Chain::Custom("none")
+	// No sensible default b/c of Chain::Custom("none")
 	#[allow(clippy::new_without_default)]
 	pub fn new() -> Self {
 		let decoder = Decoder::new(NoLegacyTypes, Chain::Custom("none".to_string()));
