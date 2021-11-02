@@ -104,7 +104,7 @@ assert_eq!(extrinsic.call, "bid".to_string());
 mod decode_type;
 mod extrinsic_bytes;
 
-use crate::metadata::Metadata;
+use crate::metadata::{ self, Metadata };
 use crate::value::Value;
 use codec::{Compact, Decode};
 use decode_type::{decode_type, decode_type_by_id, DecodeTypeError};
@@ -127,17 +127,14 @@ pub enum DecodeError {
 	DecodeTypeError(#[from] DecodeTypeError),
 	#[error("Failed to decode: expected more data")]
 	EarlyEof(&'static str),
+	#[error("Failed to decode extrinsics: expected {0} more bytes to be consumed from the input")]
+	DidntConsumeBytes(usize),
 	#[error("Failed to decode unsupported extrinsic version '{0}'")]
 	CannotDecodeExtrinsicVersion(u8),
 	#[error("Cannot find call corresponding to extrinsic with pallet index {0} and call index {1}")]
 	CannotFindCall(u8, u8),
 	#[error("Failed to decode extrinsic: cannot find type ID {0}")]
 	CannotFindType(u32),
-	/// Returned from either [`Decoder::decode_extrinsic`] or [`Decoder::decode_extrinsics`], this consists
-	/// of the extrinsic we think we decoded, and the number of bytes left in the slice provided (which we
-	/// expected to entirely consume, but did not).
-	#[error("Decoding an extrinsic should consume all bytes, but {0} bytes remain")]
-	LateEof(usize, Extrinsic),
 }
 
 impl Decoder {
@@ -155,32 +152,40 @@ impl Decoder {
 	/// expected to be provided in a SCALE-encoded form equivalent to `Vec<(Compact<u32>,Extrinsic)>`; in other words, we
 	/// start with a compact encoded count of how many extrinsics exist, and then each extrinsic is prefixed by
 	/// a compact encoding of its byte length.
-	pub fn decode_extrinsics(&self, data: &[u8]) -> Result<Vec<Extrinsic>, (Vec<Extrinsic>, DecodeError)> {
-		let extrinsic_bytes = AllExtrinsicBytes::new(data).map_err(|e| (Vec::new(), e.into()))?;
+	pub fn decode_extrinsics(&self, data: &mut &[u8]) -> Result<Vec<Extrinsic>, (Vec<Extrinsic>, DecodeError)> {
+		let extrinsic_bytes = AllExtrinsicBytes::new(*data).map_err(|e| (Vec::new(), e.into()))?;
 
 		log::trace!("Decoding {} Total Extrinsics.", extrinsic_bytes.len());
 
 		let mut out = Vec::with_capacity(extrinsic_bytes.len());
-		for (idx, res) in extrinsic_bytes.iter().enumerate() {
+		let mut extrinsics_iter = extrinsic_bytes.iter();
+		while let Some(res) = extrinsics_iter.next() {
 			let single_extrinsic = match res {
 				Ok(bytes) => bytes,
 				Err(e) => return Err((out, e.into())),
 			};
 
-			log::trace!("Extrinsic {}:{:?}", idx, single_extrinsic.bytes());
+			log::trace!("Extrinsic:{:?}", single_extrinsic.bytes());
 
-			let ext = match self.decode_unwrapped_extrinsic(single_extrinsic.bytes()) {
+			let bytes = &mut single_extrinsic.bytes();
+			let ext = match self.decode_unwrapped_extrinsic(bytes) {
 				Ok(ext) => ext,
-				Err(DecodeError::LateEof(remaining, ext)) => {
-					// Returned from `decode_extrinsics`, we want the remaining bytes to be relative
-					// to the data slice passed in, and not the single extrinsic slice.
-					return Err((out, DecodeError::LateEof(single_extrinsic.remaining() + remaining, ext)));
-				}
 				Err(e) => return Err((out, e)),
 			};
 
+			// If decoding didn't consume all extrinsic bytes, something went wrong.
+			// Hand back whatever we have but note the error.
+			if !bytes.is_empty() {
+				return Err((out, DecodeError::DidntConsumeBytes(bytes.len())));
+			}
+
 			out.push(ext);
 		}
+
+		// Shift our externally provided data cursor forwards to the right spot,
+		// so that one can continue to decode more bytes if there are any:
+		*data = extrinsics_iter.remaining_bytes();
+
 		Ok(out)
 	}
 
@@ -190,24 +195,19 @@ impl Decoder {
 	///
 	/// If your extrinsic is not prefixed by its byte length, use [`Decoder::decode_unwrapped_extrinsic`] to
 	/// decode it instead.
-	pub fn decode_extrinsic(&self, mut data: &[u8]) -> Result<Extrinsic, DecodeError> {
-		let data = &mut data;
+	pub fn decode_extrinsic(&self, data: &mut &[u8]) -> Result<Extrinsic, DecodeError> {
 
 		// Ignore the expected extrinsic length here at the moment, since `decode_unwrapped_extrinsic` will
 		// error accordingly if the wrong number of bytes are consumed.
 		let _len = <Compact<u32>>::decode(data)?;
 
-		self.decode_unwrapped_extrinsic(*data)
+		self.decode_unwrapped_extrinsic(data)
 	}
 
 	/// Decode a SCALE encoded extrinsic against the metadata provided. Unlike [`Decoder::decode_extrinsic`], this
 	/// assumes that the bytes provided do *not* start with a compact encoded count of the extrinsic byte length
 	/// (ie, the extrinsic has been "unwrapped" already, and here we deal directly with the signature and call data).
-	pub fn decode_unwrapped_extrinsic(&self, mut data: &[u8]) -> Result<Extrinsic, DecodeError> {
-		// If we use a mutable reference to the data, `decode` functions will autoamtically
-		// update the bytes pointed to as they decode, to "move the cursor along".
-		let data = &mut data;
-
+	pub fn decode_unwrapped_extrinsic(&self, data: &mut &[u8]) -> Result<Extrinsic, DecodeError> {
 		if data.is_empty() {
 			return Err(DecodeError::EarlyEof("unwrapped extrinsic byte length should be > 0"));
 		}
@@ -241,10 +241,23 @@ impl Decoder {
 
 		// If the extrinsic is signed, decode the signature next.
 		let signature = match is_signed {
-			true => Some(decode_v4_signature(data, &self.metadata)?),
+			true => Some(self.decode_signature(data)?),
 			false => None,
 		};
 
+		// Finally, decode the call data.
+		let call_data = self.decode_call_data(data)?;
+
+		Ok(Extrinsic {
+			call_data,
+			signature,
+		})
+	}
+
+	/// Decode SCALE encoded call data. Conceptually, this is expected to take the form of
+	/// `(u8, u8, arguments)`, where the specific pallet call variant indexes are determined by
+	/// the `u8`s, and then arguments according to the specific variant are expected to follow.
+	pub fn decode_call_data(&self, data: &mut &[u8]) -> Result<CallData<'_>, DecodeError> {
 		// Pluck out the u8's representing the pallet and call enum next.
 		if data.len() < 2 {
 			return Err(DecodeError::EarlyEof("expected at least 2 more bytes for the pallet/call index"));
@@ -254,15 +267,16 @@ impl Decoder {
 		log::trace!("pallet index: {}, call index: {}", pallet_index, call_index);
 
 		// Work out which call the extrinsic data represents and get type info for it:
-		let (pallet_name, call) = match self.metadata.call_by_variant_index(pallet_index, call_index) {
+		let (pallet_name, variant) = match self.metadata.call_variant_by_enum_index(pallet_index, call_index) {
 			Some(call) => call,
 			None => return Err(DecodeError::CannotFindCall(pallet_index, call_index)),
 		};
 
 		// Decode each of the argument values in the extrinsic:
 		let mut arguments = vec![];
-		for arg in call.args() {
-			let ty = self.metadata.types().resolve(arg.id()).ok_or_else(|| DecodeError::CannotFindType(arg.id()))?;
+		for field in variant.fields() {
+			let type_id = field.ty().id();
+			let ty = self.metadata.types().resolve(type_id).ok_or_else(|| DecodeError::CannotFindType(type_id))?;
 			let val = match decode_type(data, ty, self.metadata.types()) {
 				Ok(val) => val,
 				Err(err) => return Err(err.into()),
@@ -270,56 +284,118 @@ impl Decoder {
 			arguments.push(val);
 		}
 
-		let ext = Extrinsic { pallet: pallet_name.to_owned(), call: call.name().to_owned(), signature, arguments };
-
-		// If there's data left to consume, it likely means we screwed up decoding:
-		if !data.is_empty() {
-			return Err(DecodeError::LateEof(data.len(), ext));
-		}
-
-		// Return a composite type representing the extrinsic arguments:
-		Ok(ext)
+		Ok(CallData {
+			pallet_name,
+			call_type: variant,
+			arguments
+		})
 	}
+
+	/// Decode the SCALE encoded data that you would get signed, which conceptually takes the form
+	/// `(call_data, signed_extensions, additional_signed)`.
+	pub fn decode_signer_payload<'a>(&'a self, data: &mut &[u8]) -> Result<SignerPayload<'a>, DecodeError> {
+		let call_data = self.decode_call_data(data)?;
+		let signed_extensions = self.decode_signed_extensions(data)?;
+		let additional_signed = self.decode_additional_signed(data)?;
+		let extensions = signed_extensions
+			.into_iter()
+			.zip(additional_signed)
+			.map(|((name, extension), (_, additional))| {
+				(name, SignedExtensionWithAdditional { additional, extension })
+			})
+			.collect();
+
+		Ok(SignerPayload {
+			call_data,
+			extensions
+		})
+	}
+
+	/// Decode a SCALE encoded extrinsic signature.
+	fn decode_signature(&self, data: &mut &[u8]) -> Result<ExtrinsicSignature, DecodeError> {
+		let address = <MultiAddress<AccountId32, u32>>::decode(data)?;
+		let signature = MultiSignature::decode(data)?;
+		let extensions = self.decode_signed_extensions(data)?;
+
+		Ok(ExtrinsicSignature { address, signature, extensions })
+	}
+
+	/// Decode the signed extensions.
+	fn decode_signed_extensions<'a>(&'a self, data: &mut &[u8]) -> Result<Vec<(&'a str,Value)>, DecodeError> {
+		self.metadata
+			.extrinsic()
+			.signed_extensions()
+			.iter()
+			.map(|ext| {
+				let val = decode_type_by_id(data, &ext.ty, self.metadata.types())?;
+				let name = &*ext.identifier;
+				Ok((name, val))
+			})
+			.collect()
+	}
+
+	/// Decode the additional signed data. This isn't used for decoding extrinsics, but instead for
+	/// decoding the data that you'd sign.
+	fn decode_additional_signed<'a>(&'a self, data: &mut &[u8]) -> Result<Vec<(&'a str,Value)>, DecodeError> {
+		self.metadata
+			.extrinsic()
+			.signed_extensions()
+			.iter()
+			.map(|ext| {
+				let val = decode_type_by_id(data, &ext.additional_signed, self.metadata.types())?;
+				let name = &*ext.identifier;
+				Ok((name, val))
+			})
+			.collect()
+	}
+}
+
+/// Decoded call data and associated type information.
+#[derive(Debug, Clone)]
+pub struct CallData<'a> {
+	/// The name of the pallet
+	pallet_name: &'a str,
+	/// The type information for this call (including the name
+	/// of the call and information about each argument)
+	call_type: &'a metadata::Variant,
+	/// The decoded argument data
+	arguments: Vec<Value>
 }
 
 /// The result of successfully decoding an extrinsic.
 #[derive(Debug, Clone)]
-pub struct Extrinsic {
-	/// The name of the pallet that the extrinsic called into
-	pub pallet: String,
-	/// The name of the call made
-	pub call: String,
+pub struct Extrinsic<'a> {
+	/// Decoded call data and associated type information about the call.
+	pub call_data: CallData<'a>,
 	/// The signature and signed extensions (if any) associated with the extrinsic
-	pub signature: Option<ExtrinsicSignature>,
-	/// The arguments to pass to the call
-	pub arguments: Vec<Value>,
+	pub signature: Option<ExtrinsicSignature<'a>>,
 }
 
 /// The signature information embedded in an extrinsic.
 #[derive(Debug, Clone)]
-pub struct ExtrinsicSignature {
+pub struct ExtrinsicSignature<'a> {
 	/// Address the extrinsic is being sent from
 	pub address: MultiAddress<AccountId32, u32>,
 	/// Signature to prove validity
 	pub signature: MultiSignature,
 	/// Signed extensions, which can vary by node. Here, we
 	/// return the name and value of each.
-	pub extensions: Vec<(String, Value)>,
+	pub extensions: Vec<(&'a str, Value)>,
 }
 
-fn decode_v4_signature<'a>(data: &mut &'a [u8], metadata: &Metadata) -> Result<ExtrinsicSignature, DecodeError> {
-	let address = <MultiAddress<AccountId32, u32>>::decode(data)?;
-	let signature = MultiSignature::decode(data)?;
-	let extensions = metadata
-		.extrinsic()
-		.signed_extensions()
-		.iter()
-		.map(|ext| {
-			let val = decode_type_by_id(data, &ext.ty, metadata.types())?;
-			let name = ext.identifier.to_string();
-			Ok((name, val))
-		})
-		.collect::<Result<_, DecodeError>>()?;
+/// The decoded signer payload.
+#[derive(Debug, Clone)]
+pub struct SignerPayload<'a> {
+	/// Decoded call data and associated type information about the call.
+	pub call_data: CallData<'a>,
+	/// Signed extensions as well as additional data to be signed. These
+	/// are packaged together in the metadata.
+	pub extensions: Vec<(&'a str, SignedExtensionWithAdditional)>,
+}
 
-	Ok(ExtrinsicSignature { address, signature, extensions })
+/// The decoded signed extensions and additional data.
+#[derive(Debug, Clone)]
+pub struct SignedExtensionWithAdditional {
+	pub extension: Value,
+	pub additional: Value,
 }

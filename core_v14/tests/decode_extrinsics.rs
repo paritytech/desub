@@ -61,9 +61,10 @@ fn balance_transfer_signed() {
 	let d = decoder();
 
 	// Balances.transfer (amount: 12345)
-	let ext_bytes = to_bytes("0x31028400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d016ada9b477ef454972200e098f1186d4a2aeee776f1f6a68609797f5ba052906ad2427bdca865442158d118e2dfc82226077e4dfdff975d005685bab66eefa38a150200000500001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07ce5c0");
-	let ext = d.decode_extrinsic(&ext_bytes).expect("can decode extrinsic");
+	let ext_bytes = &mut &*to_bytes("0x31028400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d016ada9b477ef454972200e098f1186d4a2aeee776f1f6a68609797f5ba052906ad2427bdca865442158d118e2dfc82226077e4dfdff975d005685bab66eefa38a150200000500001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07ce5c0");
+	let ext = d.decode_extrinsic(ext_bytes).expect("can decode extrinsic");
 
+	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.pallet, "Balances".to_string());
 	assert_eq!(ext.call, "transfer".to_string());
 	assert_eq!(ext.arguments.len(), 2);
@@ -75,9 +76,10 @@ fn balance_transfer_all_signed() {
 	let d = decoder();
 
 	// Balances.transfer_all (keepalive: false)
-	let ext_bytes = to_bytes("0x2d028400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f0431ffe387134b4f84d92d3c3f1ac18c0f42237ad7dbd455bb0cf8a18efb1760528f052b2219ad1601d9a4719e1a446cf307bf6d7e9c56175bfe6e7bf8cbe81450304000504001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c00");
-	let ext = d.decode_extrinsic(&ext_bytes).expect("can decode extrinsic");
+	let ext_bytes = &mut &*to_bytes("0x2d028400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f0431ffe387134b4f84d92d3c3f1ac18c0f42237ad7dbd455bb0cf8a18efb1760528f052b2219ad1601d9a4719e1a446cf307bf6d7e9c56175bfe6e7bf8cbe81450304000504001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c00");
+	let ext = d.decode_extrinsic(ext_bytes).expect("can decode extrinsic");
 
+	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.pallet, "Balances".to_string());
 	assert_eq!(ext.call, "transfer_all".to_string());
 	assert_eq!(ext.arguments.len(), 2);
@@ -92,9 +94,10 @@ fn auctions_bid_unsigned() {
 	let d = decoder();
 
 	// Auctions.bid (Args: (1,), 2, 3, 4, 5, all compact encoded).
-	let ext_bytes = to_bytes("0x04480104080c1014");
-	let ext = d.decode_unwrapped_extrinsic(&ext_bytes).expect("can decode extrinsic");
+	let ext_bytes = &mut &*to_bytes("0x04480104080c1014");
+	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
 
+	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.pallet, "Auctions".to_string());
 	assert_eq!(ext.call, "bid".to_string());
 	assert_eq!(ext.arguments.len(), 5);
@@ -116,9 +119,10 @@ fn system_fill_block_unsigned() {
 	let d = decoder();
 
 	// System.fill_block (Args: Perblock(1234)).
-	let ext_bytes = to_bytes("0x040000d2040000");
-	let ext = d.decode_unwrapped_extrinsic(&ext_bytes).expect("can decode extrinsic");
+	let ext_bytes = &mut &*to_bytes("0x040000d2040000");
+	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
 
+	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.pallet, "System".to_string());
 	assert_eq!(ext.call, "fill_block".to_string());
 	assert_eq!(ext.arguments.len(), 1);
@@ -136,9 +140,10 @@ fn technical_committee_execute_unsigned() {
 	let d = decoder();
 
 	// TechnicalCommittee.execute (Args: Balances.transfer(Alice -> Bob, 12345), 500).
-	let ext_bytes = to_bytes("0x0410010500001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07ce5c0d107");
-	let ext = d.decode_unwrapped_extrinsic(&ext_bytes).expect("can decode extrinsic");
+	let ext_bytes = &mut &*to_bytes("0x0410010500001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07ce5c0d107");
+	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
 
+	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.pallet, "TechnicalCommittee".to_string());
 	assert_eq!(ext.call, "execute".to_string());
 	assert_eq!(ext.arguments.len(), 2);
@@ -161,9 +166,10 @@ fn tips_report_awesome_unsigned() {
 	let d = decoder();
 
 	// Tips.report_awesome (Args: b"This person rocks!", AccountId).
-	let ext_bytes = to_bytes("0x042300485468697320706572736f6e20726f636b73211cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c");
-	let ext = d.decode_unwrapped_extrinsic(&ext_bytes).expect("can decode extrinsic");
+	let ext_bytes = &mut &*to_bytes("0x042300485468697320706572736f6e20726f636b73211cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c");
+	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
 
+	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.pallet, "Tips".to_string());
 	assert_eq!(ext.call, "report_awesome".to_string());
 	assert_eq!(ext.arguments.len(), 2);
@@ -181,9 +187,10 @@ fn vesting_force_vested_transfer_unsigned() {
 	let d = decoder();
 
 	// Vesting.force_vested_transfer (Args: AccountId, AccountId, { locked: 1u128, perBlock: 2u128, startingBlock: 3u32 }).
-	let ext_bytes = to_bytes("0x04190300d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48010000000000000000000000000000000200000000000000000000000000000003000000");
-	let ext = d.decode_unwrapped_extrinsic(&ext_bytes).expect("can decode extrinsic");
+	let ext_bytes = &mut &*to_bytes("0x04190300d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48010000000000000000000000000000000200000000000000000000000000000003000000");
+	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
 
+	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.pallet, "Vesting".to_string());
 	assert_eq!(ext.call, "force_vested_transfer".to_string());
 	assert_eq!(ext.arguments.len(), 3);
