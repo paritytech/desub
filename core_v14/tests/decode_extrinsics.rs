@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use core_v14::{value, Decoder, Metadata, Value};
+use core_v14::{value, Decoder, Metadata, Value, decoder::SignedExtensionWithAdditional};
 
 static V14_METADATA_POLKADOT_SCALE: &[u8] = include_bytes!("data/v14_metadata_polkadot.scale");
 
@@ -26,6 +26,38 @@ fn decoder() -> Decoder {
 fn to_bytes(hex_str: &str) -> Vec<u8> {
 	let hex_str = hex_str.strip_prefix("0x").expect("0x should prefix hex encoded bytes");
 	hex::decode(hex_str).expect("valid bytes from hex")
+}
+
+fn unnamed_value(x: Vec<Value>) -> Value {
+	Value::Composite(value::Composite::Unnamed(x))
+}
+
+fn empty_value() -> Value {
+	unnamed_value(vec![])
+}
+
+fn singleton_value(x: Value) -> Value {
+	unnamed_value(vec![x])
+}
+
+fn prim_u8_value(x: u8) -> Value {
+	Value::Primitive(value::Primitive::U8(x))
+}
+
+fn prim_u32_value(x: u32) -> Value {
+	Value::Primitive(value::Primitive::U32(x))
+}
+
+fn prim_u128_value(x: u128) -> Value {
+	Value::Primitive(value::Primitive::U128(x))
+}
+
+fn hash_value(xs: Vec<u8>) -> Value {
+	singleton_value(Value::Composite(value::Composite::Unnamed(xs.iter().map(|x| prim_u8_value(*x)).collect())))
+}
+
+fn variant_value(name: &str, c: value::Composite) -> Value {
+	Value::Variant(value::Variant { name: name.to_string(), values: c })
 }
 
 // These tests are intended to roughly check that we can decode a range of "real" extrinsics into something
@@ -65,10 +97,10 @@ fn balance_transfer_signed() {
 	let ext = d.decode_extrinsic(ext_bytes).expect("can decode extrinsic");
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
-	assert_eq!(ext.pallet, "Balances".to_string());
-	assert_eq!(ext.call, "transfer".to_string());
-	assert_eq!(ext.arguments.len(), 2);
-	assert_eq!(ext.arguments[1], Value::Primitive(value::Primitive::U128(12345)));
+	assert_eq!(ext.call_data.pallet_name, "Balances");
+	assert_eq!(&*ext.call_data.ty.name(), "transfer");
+	assert_eq!(ext.call_data.arguments.len(), 2);
+	assert_eq!(ext.call_data.arguments[1], prim_u128_value(12345));
 }
 
 #[test]
@@ -80,10 +112,10 @@ fn balance_transfer_all_signed() {
 	let ext = d.decode_extrinsic(ext_bytes).expect("can decode extrinsic");
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
-	assert_eq!(ext.pallet, "Balances".to_string());
-	assert_eq!(ext.call, "transfer_all".to_string());
-	assert_eq!(ext.arguments.len(), 2);
-	assert_eq!(ext.arguments[1], Value::Primitive(value::Primitive::Bool(false)));
+	assert_eq!(ext.call_data.pallet_name, "Balances");
+	assert_eq!(&*ext.call_data.ty.name(), "transfer_all");
+	assert_eq!(ext.call_data.arguments.len(), 2);
+	assert_eq!(ext.call_data.arguments[1], Value::Primitive(value::Primitive::Bool(false)));
 }
 
 /// This test is interesting because:
@@ -98,18 +130,18 @@ fn auctions_bid_unsigned() {
 	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
-	assert_eq!(ext.pallet, "Auctions".to_string());
-	assert_eq!(ext.call, "bid".to_string());
-	assert_eq!(ext.arguments.len(), 5);
+	assert_eq!(ext.call_data.pallet_name, "Auctions");
+	assert_eq!(&*ext.call_data.ty.name(), "bid");
+	assert_eq!(ext.call_data.arguments.len(), 5);
 
 	assert_eq!(
-		ext.arguments,
+		ext.call_data.arguments,
 		vec![
-			Value::Composite(value::Composite::Unnamed(vec![Value::Primitive(value::Primitive::U32(1))])),
-			Value::Primitive(value::Primitive::U32(2)),
-			Value::Primitive(value::Primitive::U32(3)),
-			Value::Primitive(value::Primitive::U32(4)),
-			Value::Primitive(value::Primitive::U128(5)),
+			singleton_value(prim_u32_value(1)),
+			prim_u32_value(2),
+			prim_u32_value(3),
+			prim_u32_value(4),
+			prim_u128_value(5),
 		]
 	);
 }
@@ -123,13 +155,13 @@ fn system_fill_block_unsigned() {
 	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
-	assert_eq!(ext.pallet, "System".to_string());
-	assert_eq!(ext.call, "fill_block".to_string());
-	assert_eq!(ext.arguments.len(), 1);
+	assert_eq!(ext.call_data.pallet_name, "System");
+	assert_eq!(&*ext.call_data.ty.name(), "fill_block");
+	assert_eq!(ext.call_data.arguments.len(), 1);
 
 	assert_eq!(
-		ext.arguments,
-		vec![Value::Composite(value::Composite::Unnamed(vec![Value::Primitive(value::Primitive::U32(1234))])),]
+		ext.call_data.arguments,
+		vec![singleton_value(prim_u32_value(1234))]
 	);
 }
 
@@ -144,13 +176,13 @@ fn technical_committee_execute_unsigned() {
 	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
-	assert_eq!(ext.pallet, "TechnicalCommittee".to_string());
-	assert_eq!(ext.call, "execute".to_string());
-	assert_eq!(ext.arguments.len(), 2);
+	assert_eq!(ext.call_data.pallet_name, "TechnicalCommittee");
+	assert_eq!(&*ext.call_data.ty.name(), "execute");
+	assert_eq!(ext.call_data.arguments.len(), 2);
 
 	// It's a bit hard matching the entire thing, so we just verify that the first arg looks like
 	// a variant representing a call to "Balances.transfer".
-	assert!(matches!(&ext.arguments[0],
+	assert!(matches!(&ext.call_data.arguments[0],
 		Value::Variant(value::Variant {
 			name,
 			values: value::Composite::Unnamed(args)
@@ -158,7 +190,7 @@ fn technical_committee_execute_unsigned() {
 		if &*name == "Balances"
 		&& matches!(&args[0], Value::Variant(value::Variant { name, ..}) if &*name == "transfer")
 	));
-	assert_eq!(&ext.arguments[1], &Value::Primitive(value::Primitive::U32(500)));
+	assert_eq!(&ext.call_data.arguments[1], &prim_u32_value(500));
 }
 
 #[test]
@@ -170,13 +202,14 @@ fn tips_report_awesome_unsigned() {
 	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
-	assert_eq!(ext.pallet, "Tips".to_string());
-	assert_eq!(ext.call, "report_awesome".to_string());
-	assert_eq!(ext.arguments.len(), 2);
+	assert_eq!(ext.call_data.pallet_name, "Tips");
+	assert_eq!(&*ext.call_data.ty.name(), "report_awesome");
+	assert_eq!(ext.call_data.arguments.len(), 2);
+
 	assert_eq!(
-		&ext.arguments[0],
+		&ext.call_data.arguments[0],
 		&Value::Composite(value::Composite::Unnamed(
-			"This person rocks!".bytes().map(|b| Value::Primitive(value::Primitive::U8(b))).collect()
+			"This person rocks!".bytes().map(prim_u8_value).collect()
 		))
 	);
 }
@@ -191,15 +224,64 @@ fn vesting_force_vested_transfer_unsigned() {
 	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
-	assert_eq!(ext.pallet, "Vesting".to_string());
-	assert_eq!(ext.call, "force_vested_transfer".to_string());
-	assert_eq!(ext.arguments.len(), 3);
+	assert_eq!(ext.call_data.pallet_name, "Vesting");
+	assert_eq!(&*ext.call_data.ty.name(), "force_vested_transfer");
+	assert_eq!(ext.call_data.arguments.len(), 3);
+
 	assert_eq!(
-		&ext.arguments[2],
+		&ext.call_data.arguments[2],
 		&Value::Composite(value::Composite::Named(vec![
-			("locked".into(), Value::Primitive(value::Primitive::U128(1))),
-			("per_block".into(), Value::Primitive(value::Primitive::U128(2))),
-			("starting_block".into(), Value::Primitive(value::Primitive::U32(3))),
+			("locked".into(), prim_u128_value(1)),
+			("per_block".into(), prim_u128_value(2)),
+			("starting_block".into(), prim_u32_value(3)),
 		]))
+	);
+}
+
+#[test]
+fn test_signer_payload() {
+	let d = decoder();
+	let signer_payload = &mut &*to_bytes("0x0706b9340000962300000800000091b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c31c81d421f68281950ad2901291603b5e49fc5c872f129e75433f4b55f07ca072");
+
+	let r = d.decode_signer_payload(signer_payload).expect("can decode signer payload");
+
+	assert_eq!(signer_payload.len(), 0);
+	assert_eq!(r.call_data.pallet_name, "Staking");
+	assert_eq!(&*r.call_data.ty.name(), "chill");
+	assert_eq!(r.call_data.arguments, vec![]);
+
+	assert_eq!(
+		r.extensions,
+		vec![
+			(
+				"CheckSpecVersion".into(),
+				SignedExtensionWithAdditional { extension: empty_value(), additional: prim_u32_value(9110) }
+			),
+			("CheckTxVersion".into(), SignedExtensionWithAdditional { extension: empty_value(), additional: prim_u32_value(8) }),
+			(
+				"CheckGenesis".into(),
+				SignedExtensionWithAdditional {
+					extension: empty_value(),
+					additional: hash_value(to_bytes("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"))
+				}
+			),
+			(
+				"CheckMortality".into(),
+				SignedExtensionWithAdditional {
+					extension: singleton_value(variant_value("Mortal185", value::Composite::Unnamed(vec![prim_u8_value(52)]))),
+					additional: hash_value(to_bytes("0x1c81d421f68281950ad2901291603b5e49fc5c872f129e75433f4b55f07ca072"))
+				}
+			),
+			(
+				"CheckNonce".into(),
+				SignedExtensionWithAdditional { extension: singleton_value(prim_u32_value(0)), additional: empty_value() }
+			),
+			("CheckWeight".into(), SignedExtensionWithAdditional { extension: empty_value(), additional: empty_value() }),
+			(
+				"ChargeTransactionPayment".into(),
+				SignedExtensionWithAdditional { extension: singleton_value(prim_u128_value(0)), additional: empty_value() }
+			),
+			("PrevalidateAttests".into(), SignedExtensionWithAdditional { extension: empty_value(), additional: empty_value() }),
+		],
 	);
 }
