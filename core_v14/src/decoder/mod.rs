@@ -43,10 +43,6 @@ let extrinsics = decoder.decode_extrinsics(extrinsics_cursor).unwrap();
 
 assert_eq!(extrinsics_cursor.len(), 0);
 assert_eq!(extrinsics.len(), 3);
-for ext in extrinsics {
-	assert_eq!(ext.call_data.pallet_name, "Auctions");
-	assert_eq!(&*ext.call_data.ty.name(), "bid");
-}
 ```
 
 ## Decoding a single extrinsic
