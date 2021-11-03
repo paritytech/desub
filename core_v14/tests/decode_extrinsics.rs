@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use core_v14::{value, Decoder, Metadata, Value, decoder::SignedExtensionWithAdditional};
+use core_v14::{decoder::SignedExtensionWithAdditional, value, Decoder, Metadata, Value};
 
 static V14_METADATA_POLKADOT_SCALE: &[u8] = include_bytes!("data/v14_metadata_polkadot.scale");
 
@@ -159,10 +159,7 @@ fn system_fill_block_unsigned() {
 	assert_eq!(&*ext.call_data.ty.name(), "fill_block");
 	assert_eq!(ext.call_data.arguments.len(), 1);
 
-	assert_eq!(
-		ext.call_data.arguments,
-		vec![singleton_value(prim_u32_value(1234))]
-	);
+	assert_eq!(ext.call_data.arguments, vec![singleton_value(prim_u32_value(1234))]);
 }
 
 /// This test is interesting because you provide a nested enum representing a call
@@ -172,7 +169,8 @@ fn technical_committee_execute_unsigned() {
 	let d = decoder();
 
 	// TechnicalCommittee.execute (Args: Balances.transfer(Alice -> Bob, 12345), 500).
-	let ext_bytes = &mut &*to_bytes("0x0410010500001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07ce5c0d107");
+	let ext_bytes =
+		&mut &*to_bytes("0x0410010500001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07ce5c0d107");
 	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
@@ -208,9 +206,7 @@ fn tips_report_awesome_unsigned() {
 
 	assert_eq!(
 		&ext.call_data.arguments[0],
-		&Value::Composite(value::Composite::Unnamed(
-			"This person rocks!".bytes().map(prim_u8_value).collect()
-		))
+		&Value::Composite(value::Composite::Unnamed("This person rocks!".bytes().map(prim_u8_value).collect()))
 	);
 }
 
@@ -257,31 +253,53 @@ fn test_signer_payload() {
 				"CheckSpecVersion".into(),
 				SignedExtensionWithAdditional { extension: empty_value(), additional: prim_u32_value(9110) }
 			),
-			("CheckTxVersion".into(), SignedExtensionWithAdditional { extension: empty_value(), additional: prim_u32_value(8) }),
+			(
+				"CheckTxVersion".into(),
+				SignedExtensionWithAdditional { extension: empty_value(), additional: prim_u32_value(8) }
+			),
 			(
 				"CheckGenesis".into(),
 				SignedExtensionWithAdditional {
 					extension: empty_value(),
-					additional: hash_value(to_bytes("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"))
+					additional: hash_value(to_bytes(
+						"0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"
+					))
 				}
 			),
 			(
 				"CheckMortality".into(),
 				SignedExtensionWithAdditional {
-					extension: singleton_value(variant_value("Mortal185", value::Composite::Unnamed(vec![prim_u8_value(52)]))),
-					additional: hash_value(to_bytes("0x1c81d421f68281950ad2901291603b5e49fc5c872f129e75433f4b55f07ca072"))
+					extension: singleton_value(variant_value(
+						"Mortal185",
+						value::Composite::Unnamed(vec![prim_u8_value(52)])
+					)),
+					additional: hash_value(to_bytes(
+						"0x1c81d421f68281950ad2901291603b5e49fc5c872f129e75433f4b55f07ca072"
+					))
 				}
 			),
 			(
 				"CheckNonce".into(),
-				SignedExtensionWithAdditional { extension: singleton_value(prim_u32_value(0)), additional: empty_value() }
+				SignedExtensionWithAdditional {
+					extension: singleton_value(prim_u32_value(0)),
+					additional: empty_value()
+				}
 			),
-			("CheckWeight".into(), SignedExtensionWithAdditional { extension: empty_value(), additional: empty_value() }),
+			(
+				"CheckWeight".into(),
+				SignedExtensionWithAdditional { extension: empty_value(), additional: empty_value() }
+			),
 			(
 				"ChargeTransactionPayment".into(),
-				SignedExtensionWithAdditional { extension: singleton_value(prim_u128_value(0)), additional: empty_value() }
+				SignedExtensionWithAdditional {
+					extension: singleton_value(prim_u128_value(0)),
+					additional: empty_value()
+				}
 			),
-			("PrevalidateAttests".into(), SignedExtensionWithAdditional { extension: empty_value(), additional: empty_value() }),
+			(
+				"PrevalidateAttests".into(),
+				SignedExtensionWithAdditional { extension: empty_value(), additional: empty_value() }
+			),
 		],
 	);
 }

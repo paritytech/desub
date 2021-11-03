@@ -29,37 +29,35 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, MetadataError> {
 
 	// Gather information about the pallets in use:
 	for pallet in meta.pallets {
-		let calls = pallet.calls.map(|call_md| {
-			let mut call_variant_indexes = HashMap::new();
+		let calls = pallet
+			.calls
+			.map(|call_md| {
+				let mut call_variant_indexes = HashMap::new();
 
-			// Get the type representing the variant of available calls:
-			let calls_type_id = call_md.ty;
-			let calls_type = registry.resolve(calls_type_id.id()).ok_or(MetadataError::TypeNotFound(calls_type_id.id()))?;
+				// Get the type representing the variant of available calls:
+				let calls_type_id = call_md.ty;
+				let calls_type =
+					registry.resolve(calls_type_id.id()).ok_or(MetadataError::TypeNotFound(calls_type_id.id()))?;
 
-			// Expect that type to be a variant:
-			let calls_type_def = calls_type.type_def();
-			let calls_variant = match calls_type_def {
-				scale_info::TypeDef::Variant(variant) => variant,
-				_ => {
-					return Err(MetadataError::ExpectedVariantType { got: format!("{:?}", calls_type_def) });
+				// Expect that type to be a variant:
+				let calls_type_def = calls_type.type_def();
+				let calls_variant = match calls_type_def {
+					scale_info::TypeDef::Variant(variant) => variant,
+					_ => {
+						return Err(MetadataError::ExpectedVariantType { got: format!("{:?}", calls_type_def) });
+					}
+				};
+
+				// Store the mapping from u8 index to variant slice index or quicker decode lookup:
+				for (idx, variant) in calls_variant.variants().iter().enumerate() {
+					call_variant_indexes.insert(variant.index(), idx);
 				}
-			};
 
-			// Store the mapping from u8 index to variant slice index or quicker decode lookup:
-			for (idx, variant) in calls_variant.variants().iter().enumerate() {
-				call_variant_indexes.insert(variant.index(), idx);
-			}
-
-			Ok(MetadataCalls {
-				calls_type_id,
-				call_variant_indexes
+				Ok(MetadataCalls { calls_type_id, call_variant_indexes })
 			})
-		}).transpose()?;
+			.transpose()?;
 
-		pallets.insert(pallet.index, MetadataPallet {
-			name: pallet.name,
-			calls
-		});
+		pallets.insert(pallet.index, MetadataPallet { name: pallet.name, calls });
 	}
 
 	Ok(Metadata { pallets, extrinsic, types: registry })

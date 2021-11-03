@@ -115,14 +115,11 @@ impl Metadata {
 
 	/// A helper function to get hold of a Variant given a type ID, or None if it's not found.
 	fn get_variant(&self, ty: TypeId) -> Option<&TypeDefVariant> {
-		self.types.resolve(ty.id()).and_then(|ty| {
-			match ty.type_def() {
-				scale_info::TypeDef::Variant(variant) => Some(variant),
-				_ => None
-			}
+		self.types.resolve(ty.id()).and_then(|ty| match ty.type_def() {
+			scale_info::TypeDef::Variant(variant) => Some(variant),
+			_ => None,
 		})
 	}
-
 }
 
 /// Get the decoded metadata version. At some point `RuntimeMetadataPrefixed` will end up

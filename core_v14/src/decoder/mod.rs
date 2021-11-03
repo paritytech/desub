@@ -44,8 +44,8 @@ let extrinsics = decoder.decode_extrinsics(extrinsics_cursor).unwrap();
 assert_eq!(extrinsics_cursor.len(), 0);
 assert_eq!(extrinsics.len(), 3);
 for ext in extrinsics {
-    assert_eq!(ext.call_data.pallet_name, "Auctions");
-    assert_eq!(&*ext.call_data.ty.name(), "bid");
+	assert_eq!(ext.call_data.pallet_name, "Auctions");
+	assert_eq!(&*ext.call_data.ty.name(), "bid");
 }
 ```
 
@@ -110,7 +110,7 @@ assert_eq!(&*extrinsic.call_data.ty.name(), "bid");
 mod decode_type;
 mod extrinsic_bytes;
 
-use crate::metadata::{ self, Metadata };
+use crate::metadata::{self, Metadata};
 use crate::value::Value;
 use codec::{Compact, Decode};
 use decode_type::{decode_type, decode_type_by_id, DecodeTypeError};
@@ -158,7 +158,10 @@ impl Decoder {
 	/// expected to be provided in a SCALE-encoded form equivalent to `Vec<(Compact<u32>,Extrinsic)>`; in other words, we
 	/// start with a compact encoded count of how many extrinsics exist, and then each extrinsic is prefixed by
 	/// a compact encoding of its byte length.
-	pub fn decode_extrinsics<'a>(&'a self, data: &mut &[u8]) -> Result<Vec<Extrinsic<'a>>, (Vec<Extrinsic<'a>>, DecodeError)> {
+	pub fn decode_extrinsics<'a>(
+		&'a self,
+		data: &mut &[u8],
+	) -> Result<Vec<Extrinsic<'a>>, (Vec<Extrinsic<'a>>, DecodeError)> {
 		let extrinsic_bytes = AllExtrinsicBytes::new(*data).map_err(|e| (Vec::new(), e.into()))?;
 
 		log::trace!("Decoding {} Total Extrinsics.", extrinsic_bytes.len());
@@ -202,7 +205,6 @@ impl Decoder {
 	/// If your extrinsic is not prefixed by its byte length, use [`Decoder::decode_unwrapped_extrinsic`] to
 	/// decode it instead.
 	pub fn decode_extrinsic<'a>(&'a self, data: &mut &[u8]) -> Result<Extrinsic<'a>, DecodeError> {
-
 		// Ignore the expected extrinsic length here at the moment, since `decode_unwrapped_extrinsic` will
 		// error accordingly if the wrong number of bytes are consumed.
 		let _len = <Compact<u32>>::decode(data)?;
@@ -254,10 +256,7 @@ impl Decoder {
 		// Finally, decode the call data.
 		let call_data = self.decode_call_data(data)?;
 
-		Ok(Extrinsic {
-			call_data,
-			signature,
-		})
+		Ok(Extrinsic { call_data, signature })
 	}
 
 	/// Decode SCALE encoded call data. Conceptually, this is expected to take the form of
@@ -290,11 +289,7 @@ impl Decoder {
 			arguments.push(val);
 		}
 
-		Ok(CallData {
-			pallet_name,
-			ty: variant,
-			arguments
-		})
+		Ok(CallData { pallet_name, ty: variant, arguments })
 	}
 
 	/// Decode the SCALE encoded data that you would get signed, which conceptually takes the form
@@ -306,15 +301,10 @@ impl Decoder {
 		let extensions = signed_extensions
 			.into_iter()
 			.zip(additional_signed)
-			.map(|((name, extension), (_, additional))| {
-				(name, SignedExtensionWithAdditional { additional, extension })
-			})
+			.map(|((name, extension), (_, additional))| (name, SignedExtensionWithAdditional { additional, extension }))
 			.collect();
 
-		Ok(SignerPayload {
-			call_data,
-			extensions
-		})
+		Ok(SignerPayload { call_data, extensions })
 	}
 
 	/// Decode a SCALE encoded extrinsic signature.
@@ -327,7 +317,7 @@ impl Decoder {
 	}
 
 	/// Decode the signed extensions.
-	fn decode_signed_extensions<'a>(&'a self, data: &mut &[u8]) -> Result<Vec<(&'a str,Value)>, DecodeError> {
+	fn decode_signed_extensions<'a>(&'a self, data: &mut &[u8]) -> Result<Vec<(&'a str, Value)>, DecodeError> {
 		self.metadata
 			.extrinsic()
 			.signed_extensions()
@@ -342,7 +332,7 @@ impl Decoder {
 
 	/// Decode the additional signed data. This isn't used for decoding extrinsics, but instead for
 	/// decoding the data that you'd sign.
-	fn decode_additional_signed<'a>(&'a self, data: &mut &[u8]) -> Result<Vec<(&'a str,Value)>, DecodeError> {
+	fn decode_additional_signed<'a>(&'a self, data: &mut &[u8]) -> Result<Vec<(&'a str, Value)>, DecodeError> {
 		self.metadata
 			.extrinsic()
 			.signed_extensions()
@@ -365,7 +355,7 @@ pub struct CallData<'a> {
 	/// of the call and information about each argument)
 	pub ty: &'a metadata::Variant,
 	/// The decoded argument data
-	pub arguments: Vec<Value>
+	pub arguments: Vec<Value>,
 }
 
 /// Decoded call data and associated type information.
@@ -377,16 +367,12 @@ pub struct CallDataOwned {
 	/// of the call and information about each argument)
 	pub ty: metadata::Variant,
 	/// The decoded argument data
-	pub arguments: Vec<Value>
+	pub arguments: Vec<Value>,
 }
 
-impl <'a> CallData<'a> {
+impl<'a> CallData<'a> {
 	pub fn into_owned(self) -> CallDataOwned {
-		CallDataOwned {
-			pallet_name: self.pallet_name.to_owned(),
-			ty: self.ty.clone(),
-			arguments: self.arguments
-		}
+		CallDataOwned { pallet_name: self.pallet_name.to_owned(), ty: self.ty.clone(), arguments: self.arguments }
 	}
 }
 
@@ -408,12 +394,9 @@ pub struct ExtrinsicOwned {
 	pub signature: Option<ExtrinsicSignatureOwned>,
 }
 
-impl <'a> Extrinsic<'a> {
+impl<'a> Extrinsic<'a> {
 	pub fn into_owned(self) -> ExtrinsicOwned {
-		ExtrinsicOwned {
-			call_data: self.call_data.into_owned(),
-			signature: self.signature.map(|s| s.into_owned())
-		}
+		ExtrinsicOwned { call_data: self.call_data.into_owned(), signature: self.signature.map(|s| s.into_owned()) }
 	}
 }
 
@@ -441,15 +424,12 @@ pub struct ExtrinsicSignatureOwned {
 	pub extensions: Vec<(String, Value)>,
 }
 
-impl <'a> ExtrinsicSignature<'a> {
+impl<'a> ExtrinsicSignature<'a> {
 	pub fn into_owned(self) -> ExtrinsicSignatureOwned {
 		ExtrinsicSignatureOwned {
 			address: self.address,
 			signature: self.signature,
-			extensions: self.extensions
-				.into_iter()
-				.map(|(k,v)| (k.to_owned(), v))
-				.collect()
+			extensions: self.extensions.into_iter().map(|(k, v)| (k.to_owned(), v)).collect(),
 		}
 	}
 }
@@ -474,14 +454,11 @@ pub struct SignerPayloadOwned {
 	pub extensions: Vec<(String, SignedExtensionWithAdditional)>,
 }
 
-impl <'a> SignerPayload<'a> {
+impl<'a> SignerPayload<'a> {
 	pub fn into_owned(self) -> SignerPayloadOwned {
 		SignerPayloadOwned {
 			call_data: self.call_data.into_owned(),
-			extensions: self.extensions
-				.into_iter()
-				.map(|(k,v)| (k.to_owned(), v))
-				.collect()
+			extensions: self.extensions.into_iter().map(|(k, v)| (k.to_owned(), v)).collect(),
 		}
 	}
 }

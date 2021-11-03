@@ -60,7 +60,7 @@ pub struct ExtrinsicBytesIter<'a> {
 	cursor: usize,
 }
 
-impl <'a> ExtrinsicBytesIter<'a> {
+impl<'a> ExtrinsicBytesIter<'a> {
 	/// Return the number of bytes remaining. If an iteration resulted in an error,
 	/// we'll return the bytes that we failed to decode, too.
 	pub fn remaining_bytes(&self) -> &'a [u8] {
