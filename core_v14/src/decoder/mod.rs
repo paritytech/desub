@@ -44,8 +44,8 @@ let extrinsics = decoder.decode_extrinsics(extrinsics_cursor).unwrap();
 assert_eq!(extrinsics_cursor.len(), 0);
 assert_eq!(extrinsics.len(), 3);
 for ext in extrinsics {
-    assert_eq!(ext.call_data.pallet_name, "Auctions");
-    assert_eq!(&*ext.call_data.ty.name(), "bid");
+	assert_eq!(ext.call_data.pallet_name, "Auctions");
+	assert_eq!(&*ext.call_data.ty.name(), "bid");
 }
 ```
 
@@ -110,7 +110,7 @@ assert_eq!(&*extrinsic.call_data.ty.name(), "bid");
 mod decode_type;
 mod extrinsic_bytes;
 
-use crate::metadata::{self, Metadata};
+use crate::metadata::Metadata;
 use crate::value::Value;
 use codec::{Compact, Decode};
 use decode_type::{decode_type, decode_type_by_id, DecodeTypeError};
@@ -353,7 +353,7 @@ pub struct CallData<'a> {
 	pub pallet_name: &'a str,
 	/// The type information for this call (including the name
 	/// of the call and information about each argument)
-	pub ty: &'a metadata::Variant,
+	pub ty: &'a scale_info::Variant<scale_info::form::PortableForm>,
 	/// The decoded argument data
 	pub arguments: Vec<Value>,
 }
@@ -365,7 +365,7 @@ pub struct CallDataOwned {
 	pub pallet_name: String,
 	/// The type information for this call (including the name
 	/// of the call and information about each argument)
-	pub ty: metadata::Variant,
+	pub ty: scale_info::Variant<scale_info::form::PortableForm>,
 	/// The decoded argument data
 	pub arguments: Vec<Value>,
 }

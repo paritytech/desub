@@ -26,15 +26,12 @@ use frame_metadata::{RuntimeMetadata, RuntimeMetadataPrefixed};
 use scale_info::{form::PortableForm, PortableRegistry};
 use std::collections::HashMap;
 
-// We don't expose anything scale-info or parity-scale-codec related outside of
-// this crate currently, so no need to expose these either:
-pub(crate) type Type = scale_info::Type<PortableForm>;
-pub(crate) type TypeDef = scale_info::TypeDef<PortableForm>;
-pub(crate) type TypeDefVariant = scale_info::TypeDefVariant<PortableForm>;
-pub(crate) type TypeId = <scale_info::form::PortableForm as scale_info::form::Form>::Type;
-pub(crate) type SignedExtensionMetadata = frame_metadata::SignedExtensionMetadata<PortableForm>;
-
-pub type Variant = scale_info::Variant<PortableForm>;
+// Some type aliases used below. `scale-info` is re-exported at the root,
+// so to avoid confusion we only publically export all scale-info types from that
+// one place.
+type TypeId = <scale_info::form::PortableForm as scale_info::form::Form>::Type;
+type TypeDefVariant = scale_info::TypeDefVariant<PortableForm>;
+type SignedExtensionMetadata = frame_metadata::SignedExtensionMetadata<PortableForm>;
 
 /// An enum of the possible errors that can be returned from attempting to construct
 /// a [`Metadata`] struct.
@@ -95,9 +92,18 @@ impl Metadata {
 		&self.extrinsic
 	}
 
+	/// Return a reference to the [`scale_info`] type registry.
+	pub fn types(&self) -> &PortableRegistry {
+		&self.types
+	}
+
 	/// Given the `u8` variant index of a pallet and call, this returns the pallet name and the call Variant
 	/// if found, or `None` if it no such call exists at those indexes, or we don't have suitable call data.
-	pub(crate) fn call_variant_by_enum_index(&self, pallet: u8, call: u8) -> Option<(&str, &Variant)> {
+	pub(crate) fn call_variant_by_enum_index(
+		&self,
+		pallet: u8,
+		call: u8,
+	) -> Option<(&str, &scale_info::Variant<PortableForm>)> {
 		self.pallets.get(&pallet).and_then(|p| {
 			p.calls.as_ref().and_then(|calls| {
 				let type_def_variant = self.get_variant(calls.calls_type_id)?;
@@ -106,11 +112,6 @@ impl Metadata {
 				Some((&*p.name, variant))
 			})
 		})
-	}
-
-	/// Return a reference to the type registry. This is used for helping to decode things.
-	pub(crate) fn types(&self) -> &PortableRegistry {
-		&self.types
 	}
 
 	/// A helper function to get hold of a Variant given a type ID, or None if it's not found.
