@@ -37,7 +37,7 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, MetadataError> {
 				// Get the type representing the variant of available calls:
 				let calls_type_id = call_md.ty;
 				let calls_type =
-					registry.resolve(calls_type_id.id()).ok_or(MetadataError::TypeNotFound(calls_type_id.id()))?;
+					registry.resolve(calls_type_id.id()).ok_or_else(|| MetadataError::TypeNotFound(calls_type_id.id()))?;
 
 				// Expect that type to be a variant:
 				let calls_type_def = calls_type.type_def();

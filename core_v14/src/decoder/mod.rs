@@ -44,8 +44,8 @@ let extrinsics = decoder.decode_extrinsics(extrinsics_cursor).unwrap();
 assert_eq!(extrinsics_cursor.len(), 0);
 assert_eq!(extrinsics.len(), 3);
 for ext in extrinsics {
-	assert_eq!(ext.call_data.pallet_name, "Auctions");
-	assert_eq!(&*ext.call_data.ty.name(), "bid");
+    assert_eq!(ext.call_data.pallet_name, "Auctions");
+    assert_eq!(&*ext.call_data.ty.name(), "bid");
 }
 ```
 
@@ -168,7 +168,7 @@ impl Decoder {
 
 		let mut out = Vec::with_capacity(extrinsic_bytes.len());
 		let mut extrinsics_iter = extrinsic_bytes.iter();
-		while let Some(res) = extrinsics_iter.next() {
+		for res in &mut extrinsics_iter {
 			let single_extrinsic = match res {
 				Ok(bytes) => bytes,
 				Err(e) => return Err((out, e.into())),
@@ -281,7 +281,7 @@ impl Decoder {
 		let mut arguments = vec![];
 		for field in variant.fields() {
 			let type_id = field.ty().id();
-			let ty = self.metadata.types().resolve(type_id).ok_or_else(|| DecodeError::CannotFindType(type_id))?;
+			let ty = self.metadata.types().resolve(type_id).ok_or(DecodeError::CannotFindType(type_id))?;
 			let val = match decode_type(data, ty, self.metadata.types()) {
 				Ok(val) => val,
 				Err(err) => return Err(err.into()),
