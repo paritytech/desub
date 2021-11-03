@@ -274,16 +274,15 @@ impl Decoder {
 		};
 
 		// Decode each of the argument values in the extrinsic:
-		let mut arguments = vec![];
-		for field in variant.fields() {
-			let type_id = field.ty().id();
-			let ty = self.metadata.types().resolve(type_id).ok_or(DecodeError::CannotFindType(type_id))?;
-			let val = match decode_type(data, ty, self.metadata.types()) {
-				Ok(val) => val,
-				Err(err) => return Err(err.into()),
-			};
-			arguments.push(val);
-		}
+		let arguments: Vec<_> = variant
+			.fields()
+			.iter()
+			.map(|field| {
+				let type_id = field.ty().id();
+				let ty = self.metadata.types().resolve(type_id).ok_or(DecodeError::CannotFindType(type_id))?;
+				decode_type(data, ty, self.metadata.types()).map_err(DecodeError::DecodeTypeError)
+			})
+			.collect::<Result<_, _>>()?;
 
 		Ok(CallData { pallet_name, ty: variant, arguments })
 	}
