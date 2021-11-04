@@ -14,14 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use core_v14::{decoder::DecodeError, metadata::MetadataError};
+use core_v14::{decoder::{DecodeError, Extrinsic}, metadata::MetadataError};
 use desub_legacy::{decoder::metadata::Error as LegacyMetadataError, Error as LegacyError};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
-	#[error(transparent)]
-	V14(#[from] DecodeError),
+	#[error("Decoding v14 failed {0}")]
+	V14(DecodeError, Vec<Extrinsic<'static>>),
 	#[error(transparent)]
 	Legacy(#[from] LegacyError),
 	#[error(transparent)]
@@ -30,4 +30,8 @@ pub enum Error {
 	MetadataError(#[from] MetadataError),
 	#[error(transparent)]
 	LegacyMetadataError(#[from] LegacyMetadataError),
+	#[error("Spec Version {0} not registered with decoder")]
+	SpecVersionNotFound(u32),
+	#[error(transparent)]
+	Serialization(#[from] serde_json::Error)
 }

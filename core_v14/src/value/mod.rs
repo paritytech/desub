@@ -24,7 +24,7 @@ mod deserialize;
 mod deserializer;
 
 use bitvec::{order::Lsb0, vec::BitVec};
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 use std::convert::From;
 use std::fmt::Debug;
 
@@ -34,7 +34,7 @@ use std::fmt::Debug;
 /// sequence, array and composite types can all be represented with [`Composite`]. Only enough information
 /// is preserved here to construct a valid value for any type that we know about, and be able to verify
 /// that a given value is compatible with some type (see the [`scale_info`] crate), if we have both.
-#[derive(Clone, PartialEq)]
+#[derive(Serialize, Clone, PartialEq)]
 pub enum Value {
 	/// A named or unnamed struct-like, array-like or tuple-like set of values.
 	Composite(Composite),
@@ -60,7 +60,7 @@ impl Debug for Value {
 /// A named or unnamed struct-like, array-like or tuple-like set of values.
 /// This is used to represent a range of composite values on their own, or
 /// as values for a specific [`Variant`].
-#[derive(Clone, PartialEq)]
+#[derive(Serialize, Clone, PartialEq)]
 pub enum Composite {
 	/// Eg `{ foo: 2, bar: false }`
 	Named(Vec<(String, Value)>),
@@ -106,7 +106,7 @@ impl From<Composite> for Value {
 
 /// This represents the value of a specific variant from an enum, and contains
 /// the name of the variant, and the named/unnamed values associated with it.
-#[derive(Clone, PartialEq)]
+#[derive(Serialize, Clone, PartialEq)]
 pub struct Variant {
 	/// The name of the variant.
 	pub name: String,
@@ -129,7 +129,7 @@ impl From<Variant> for Value {
 }
 
 /// A "primitive" value (this includes strings).
-#[derive(Clone, PartialEq)]
+#[derive(Serialize, Clone, PartialEq)]
 pub enum Primitive {
 	Bool(bool),
 	Char(char),

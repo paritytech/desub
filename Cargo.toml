@@ -6,5 +6,6 @@ members = [
 	"core_v14",
 	"desub",
 	"extras",
+	"desub-common",
 	"integration_tests",
 ]

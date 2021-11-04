@@ -15,7 +15,7 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::queries::*;
-use crate::decoder::Decoder;
+use crate::decoder::{Decoder, SpecVersion};
 use desub::decoder::Chain;
 
 use desub_extras::runtimes;
@@ -38,7 +38,6 @@ use std::{
 	},
 };
 
-pub type SpecVersion = i32;
 
 #[derive(FromArgs, PartialEq, Debug)]
 /// Decode Extrinsics And Storage from Substrate Archive
@@ -116,7 +115,7 @@ impl<'a> AppState<'a> {
 			} else {
 				version
 			};
-			if Self::decode(&decoder, block, version, errors).is_err() {
+			if Self::decode(&decoder, block, version.try_into()?, errors).is_err() {
 				error_count += 1;
 			}
 			len += 1;
@@ -143,7 +142,7 @@ impl<'a> AppState<'a> {
 	/// Register the metadata with Decoder
 	/// returns the previous spec version.
 	async fn register_metadata(&self, conn: &mut PgConnection, version: SpecVersion) -> Result<Option<u32>, Error> {
-		let (past, present) = past_and_present_version(conn, version).await?;
+		let (past, present) = past_and_present_version(conn, version.try_into()?).await?;
 		let mut decoder = self.decoder.write();
 		if !decoder.has_version(present.try_into().unwrap()) {
 			let meta = metadata(conn, present.try_into()?).await?;
@@ -187,7 +186,7 @@ pub async fn app(app: App) -> Result<(), Error> {
 
 	if let Some(block) = &app.block {
 		let version = version_by_block(&mut conn, *block).await?;
-		let previous = state.register_metadata(&mut conn, version).await?;
+		let previous = state.register_metadata(&mut conn, version.try_into()?).await?;
 		let block = single_block(&mut conn, *block as i32).await?;
 		let version = if get_upgrade_block(&app.network, version.try_into()?) == Some(block.block_num.try_into()?) {
 			previous.expect("Upgrade block must have previous version; qed")

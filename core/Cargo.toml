@@ -17,6 +17,8 @@ dyn-clone = "1.0"
 hex = "0.4"
 bitvec = { version = "0.20.2", features = ["serde", "alloc"] }
 
+desub-common = { path = "../desub-common/", package = "desub-common" }
+
 pallet-democracy = { package = "pallet-democracy", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
 primitives = { package = "sp-core",  git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
 runtime-primitives = { package = "sp-runtime", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }

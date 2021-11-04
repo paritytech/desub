@@ -21,7 +21,7 @@ use desub::decoder::Chain;
 use std::{collections::HashMap, convert::TryInto};
 use anyhow::{Error, anyhow};
 
-use crate::app::SpecVersion;
+pub use desub::decoder::SpecVersion;
 
 pub struct Decoder {
 	old: DecoderOld,
@@ -38,9 +38,9 @@ impl Decoder {
 		let new = MetadataNew::from_bytes(meta);
 		if let Err(e) = new {
 			log::debug!("{}", e);
-			self.old.register_version(version.try_into()?, meta.try_into()?)?;
+			self.old.register_version(version, meta.try_into()?)?;
 		} else {
-			self.new.insert(version.try_into()?, DecoderNew::with_metadata(new?));
+			self.new.insert(version, DecoderNew::with_metadata(new?));
 		};
 		Ok(())
 	}
@@ -49,23 +49,23 @@ impl Decoder {
 	pub fn decode_extrinsics(&self, version: SpecVersion, mut data: &[u8]) -> Result<String, Error> {
 		if self.is_version_new(version) {
 			log::debug!("DECODING NEW");
-			let decoder = self.new.get(&version.try_into()?).ok_or_else(|| anyhow!("version {} not found for new decoder", version))?;
+			let decoder = self.new.get(&version).ok_or_else(|| anyhow!("version {} not found for new decoder", version))?;
 			match decoder.decode_extrinsics(&mut data) {
 				Ok(v) => Ok(format!("{:#?}", v)),
 				Err(e) => Err(e.1.into())
 			}
 		} else {
 			log::debug!("DECODING OLD");
-			let ext = self.old.decode_extrinsics(version.try_into()?, data)?;
+			let ext = self.old.decode_extrinsics(version, data)?;
 			Ok(serde_json::to_string_pretty(&ext)?)
 		}
 	}
 
 	fn is_version_new(&self, version: SpecVersion) -> bool {
-		self.new.contains_key(&(version as u32))
+		self.new.contains_key(&version)
 	}
 
 	pub fn has_version(&self, version: SpecVersion) -> bool {
-		self.new.contains_key(&(version as u32)) || self.old.has_version(version as u32)
+		self.new.contains_key(&version) || self.old.has_version(&version)
 	}
 }

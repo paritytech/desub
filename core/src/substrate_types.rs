@@ -28,10 +28,11 @@ use bitvec::order::Lsb0 as BitOrderLsb0;
 use primitives::crypto::{AccountId32, Ss58Codec};
 use serde::Serialize;
 use std::{convert::TryFrom, fmt};
+use runtime_primitives::MultiAddress;
 
 pub use self::data::Data;
 
-pub type Address = runtime_primitives::MultiAddress<AccountId32, u32>;
+pub type Address = MultiAddress<AccountId32, u32>;
 pub type Vote = pallet_democracy::Vote;
 pub type Conviction = pallet_democracy::Conviction;
 /// A 'stateful' version of [RustTypeMarker](enum.RustTypeMarker.html).
@@ -58,7 +59,7 @@ pub enum SubstrateType {
 	GenericVote(pallet_democracy::Vote),
 
 	/// Substrate Indices Address Type
-	#[serde(with = "RemoteAddress")]
+	#[serde(with = "desub_common::RemoteAddress")]
 	Address(Address),
 	/// Data Identity Type
 	Data(Data),

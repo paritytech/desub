@@ -661,6 +661,7 @@ version = "0.1.0"
 dependencies = [
  "bitvec",
  "derive_more",
+ "desub-common",
  "frame-metadata 14.1.0",
  "hex",
  "log",
@@ -845,7 +846,17 @@ dependencies = [
  "desub-extras",
  "frame-metadata 14.1.0",
  "parity-scale-codec",
+ "serde_json",
  "thiserror",
+]
+
+[[package]]
+name = "desub-common"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "sp-core 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.12)",
+ "sp-runtime 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.12)",
 ]
 
 [[package]]
@@ -854,6 +865,7 @@ version = "0.0.1"
 dependencies = [
  "bitvec",
  "derive_more",
+ "desub-common",
  "desub-extras",
  "dyn-clone",
  "frame-metadata 14.1.0",
