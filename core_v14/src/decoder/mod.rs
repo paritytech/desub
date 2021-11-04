@@ -131,7 +131,7 @@ pub enum DecodeError {
 	#[error("Failed to decode: expected more data")]
 	EarlyEof(&'static str),
 	#[error("Failed to decode extrinsics: {0} bytes of the input were not consumed")]
-	DidntConsumeBytes(usize),
+	ExcessBytes(usize),
 	#[error("Failed to decode unsupported extrinsic version '{0}'")]
 	CannotDecodeExtrinsicVersion(u8),
 	#[error("Cannot find call corresponding to extrinsic with pallet index {0} and call index {1}")]
@@ -182,7 +182,7 @@ impl Decoder {
 			// If decoding didn't consume all extrinsic bytes, something went wrong.
 			// Hand back whatever we have but note the error.
 			if !bytes.is_empty() {
-				return Err((out, DecodeError::DidntConsumeBytes(bytes.len())));
+				return Err((out, DecodeError::ExcessBytes(bytes.len())));
 			}
 
 			out.push(ext);
