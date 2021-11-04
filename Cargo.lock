@@ -661,7 +661,7 @@ version = "0.1.0"
 dependencies = [
  "bitvec",
  "derive_more",
- "frame-metadata 14.0.0 (git+https://github.com/paritytech/frame-metadata?branch=main)",
+ "frame-metadata 14.1.0",
  "hex",
  "log",
  "parity-scale-codec",
@@ -843,7 +843,7 @@ dependencies = [
  "core_v14",
  "desub-core",
  "desub-extras",
- "frame-metadata 14.0.0 (git+https://github.com/paritytech/frame-metadata?branch=main)",
+ "frame-metadata 14.1.0",
  "parity-scale-codec",
  "thiserror",
 ]
@@ -856,7 +856,7 @@ dependencies = [
  "derive_more",
  "desub-extras",
  "dyn-clone",
- "frame-metadata 14.0.0 (git+https://github.com/paritytech/frame-metadata?branch=main)",
+ "frame-metadata 14.1.0",
  "hex",
  "log",
  "onig",
@@ -1146,20 +1146,9 @@ dependencies = [
 
 [[package]]
 name = "frame-metadata"
-version = "14.0.0"
+version = "14.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96616f82e069102b95a72c87de4c84d2f87ef7f0f20630e78ce3824436483110"
-dependencies = [
- "cfg-if 1.0.0",
- "parity-scale-codec",
- "scale-info",
- "serde",
-]
-
-[[package]]
-name = "frame-metadata"
-version = "14.0.0"
-source = "git+https://github.com/paritytech/frame-metadata?branch=main#b5aceed422b7a361ce0bab00e18427d6c35c7607"
+checksum = "78f421f69f9a69bbcfacf3172e41c004fd5942f62784ef35148a031fd3c065e3"
 dependencies = [
  "cfg-if 1.0.0",
  "parity-scale-codec",
@@ -1173,7 +1162,7 @@ version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.12#ce1c7c2c0c9bab718e6b04c9c65141e253e71861"
 dependencies = [
  "bitflags",
- "frame-metadata 14.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "frame-metadata 14.1.0",
  "frame-support-procedural 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.12)",
  "impl-trait-for-tuples",
  "log",
