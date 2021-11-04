@@ -19,7 +19,7 @@ fn get_plain_value() -> (Vec<u8>, Option<Vec<u8>>) {
 fn should_decode_plain() {
 	let _ = pretty_env_logger::try_init();
 
-	let types = extras::TypeResolver::default();
+	let types = json_resolver::TypeResolver::default();
 	let mut decoder = Decoder::new(types, Chain::Kusama);
 
 	let meta = runtime_v11();
@@ -34,7 +34,7 @@ fn should_decode_plain() {
 fn should_decode_map() -> Result<()> {
 	let _ = pretty_env_logger::try_init();
 
-	let types = extras::TypeResolver::default();
+	let types = json_resolver::TypeResolver::default();
 	let mut decoder = Decoder::new(types, Chain::Kusama);
 
 	let meta = runtime_v11();
@@ -53,7 +53,7 @@ fn should_decode_map() -> Result<()> {
 fn should_decode_map_ksm_3944195() -> Result<()> {
 	let _ = pretty_env_logger::try_init();
 
-	let types = extras::TypeResolver::default();
+	let types = json_resolver::TypeResolver::default();
 	let mut decoder = Decoder::new(types, Chain::Kusama);
 
 	let meta = runtime_v11();
@@ -73,7 +73,7 @@ fn should_decode_map_ksm_3944195() -> Result<()> {
 #[test]
 fn should_decode_double_map() {
 	let _ = pretty_env_logger::try_init();
-	let types = extras::TypeResolver::default();
+	let types = json_resolver::TypeResolver::default();
 	let mut decoder = Decoder::new(types, Chain::Kusama);
 
 	let meta = runtime_v11();

@@ -32,7 +32,7 @@ async fn main() -> Result<(), Error> {
 	fern::Dispatch::new()
 		.level(log::LevelFilter::Error)
 		.level_for("desub_legacy", level)
-		.level_for("desub_current", leve)
+		.level_for("desub_current", level)
 		.level_for("desub_json_resolver", level)
 		.level_for("tx_decoder", level)
 		.format(move |out, message, record| {
