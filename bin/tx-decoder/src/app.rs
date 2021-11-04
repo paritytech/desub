@@ -16,7 +16,7 @@
 
 use crate::queries::*;
 
-use desub::{runtimes, PolkadotJsDecoder, SpecVersion, Chain};
+use desub::{runtimes, Decoder, SpecVersion, Chain};
 
 
 use anyhow::{Error, Context};
@@ -69,13 +69,13 @@ pub struct App {
 
 struct AppState<'a> {
 	app: &'a App,
-	decoder: &'a RwLock<PolkadotJsDecoder>,
+	decoder: &'a RwLock<Decoder>,
 	pool: &'a PgPool,
 	pb: Option<&'a ProgressBar>,
 }
 
 impl<'a> AppState<'a> {
-	fn new(app: &'a App, decoder: &'a RwLock<PolkadotJsDecoder>, pool: &'a PgPool, pb: Option<&'a ProgressBar>) -> Self {
+	fn new(app: &'a App, decoder: &'a RwLock<Decoder>, pool: &'a PgPool, pb: Option<&'a ProgressBar>) -> Self {
 		Self { app, decoder, pool, pb }
 	}
 
@@ -123,7 +123,7 @@ impl<'a> AppState<'a> {
 		Ok((error_count, len))
 	}
 
-	fn decode(decoder: &PolkadotJsDecoder, block: BlockModel, spec: SpecVersion, errors: &mut Vec<String>) -> Result<(), Error> {
+	fn decode(decoder: &Decoder, block: BlockModel, spec: SpecVersion, errors: &mut Vec<String>) -> Result<(), Error> {
 		log::debug!("Decoding block {}, spec_version {}, ext length {}", block.block_num, spec, block.ext.len());
 		match decoder.decode_extrinsics(spec, &block.ext) {
 			e @ Err(_) => {
@@ -174,7 +174,7 @@ pub async fn app(app: App) -> Result<(), Error> {
 	let pool = PgPoolOptions::new().max_connections(num_cpus::get() as u32).connect(&app.database_url).await?;
 
 	let mut conn = pool.acquire().await?;
-	let decoder = Arc::new(RwLock::new(PolkadotJsDecoder::new(app.network.clone())));
+	let decoder = Arc::new(RwLock::new(Decoder::new(app.network.clone())));
 	let mut errors = Vec::new();
 
 	let pb = if app.progress { Some(construct_progress_bar(1000)) } else { None };

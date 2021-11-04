@@ -4,6 +4,8 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
+
+	Current(),
 	#[error("Codec {0}")]
 	Codec(#[from] CodecError),
 	#[error("{0}")]
