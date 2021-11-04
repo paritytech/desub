@@ -22,7 +22,7 @@ desub-common = { path = "../desub-common/", package = "desub-common" }
 pallet-democracy = { package = "pallet-democracy", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
 primitives = { package = "sp-core",  git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
 runtime-primitives = { package = "sp-runtime", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
-frame-metadata = { version = "14.1", features = ["legacy"] }
+frame-metadata = { version = "14.2", features = ["legacy"] }
 
 [dev-dependencies]
 runtime-version = { package = "sp-version", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }

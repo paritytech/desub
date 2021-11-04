@@ -38,7 +38,7 @@ type SignedExtensionMetadata = frame_metadata::SignedExtensionMetadata<PortableF
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum MetadataError {
 	#[error("metadata version {0} is not supported")]
-	UnsupportedVersion(usize),
+	UnsupportedVersion(u32),
 	#[error("{0}")]
 	CodecError(#[from] codec::Error),
 	#[error("unexpected type; expecting a Variant type, but got {got}")]
@@ -85,10 +85,7 @@ impl Metadata {
 				log::trace!("V14 metadata found.");
 				version_14::decode(meta_v14)
 			}
-			unsupported_meta => {
-				let version = runtime_metadata_version(&unsupported_meta);
-				Err(MetadataError::UnsupportedVersion(version))
-			}
+			unsupported_meta => Err(MetadataError::UnsupportedVersion(unsupported_meta.version())),
 		}
 	}
 
@@ -125,28 +122,6 @@ impl Metadata {
 			scale_info::TypeDef::Variant(variant) => Some(variant),
 			_ => None,
 		})
-	}
-}
-
-/// Get the decoded metadata version. At some point `RuntimeMetadataPrefixed` will end up
-/// with a `.version()` method to return the version, and then this can be removed.
-pub fn runtime_metadata_version(meta: &RuntimeMetadata) -> usize {
-	match meta {
-		RuntimeMetadata::V0(_) => 0,
-		RuntimeMetadata::V1(_) => 1,
-		RuntimeMetadata::V2(_) => 2,
-		RuntimeMetadata::V3(_) => 3,
-		RuntimeMetadata::V4(_) => 4,
-		RuntimeMetadata::V5(_) => 5,
-		RuntimeMetadata::V6(_) => 6,
-		RuntimeMetadata::V7(_) => 7,
-		RuntimeMetadata::V8(_) => 8,
-		RuntimeMetadata::V9(_) => 9,
-		RuntimeMetadata::V10(_) => 10,
-		RuntimeMetadata::V11(_) => 11,
-		RuntimeMetadata::V12(_) => 12,
-		RuntimeMetadata::V13(_) => 13,
-		RuntimeMetadata::V14(_) => 14,
 	}
 }
 

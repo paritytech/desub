@@ -22,7 +22,7 @@
 mod error;
 
 use codec::Decode;
-use core_v14::{decoder::Extrinsic, metadata::runtime_metadata_version, Decoder as TypeInfoDecoder, Metadata as DesubMetadata};
+use core_v14::{decoder::Extrinsic, Decoder as TypeInfoDecoder, Metadata as DesubMetadata};
 use desub_legacy::{
 	decoder::{Decoder as LegacyDecoder, Metadata as LegacyDesubMetadata},
 	RustTypeMarker, TypeDetective,
@@ -78,7 +78,7 @@ impl<T: TypeDetective> Decoder<T> {
 	/// Register a runtime version with the decoder.
 	pub fn register_version(&mut self, version: SpecVersion, mut metadata: &[u8]) -> Result<(), Error> {
 		let metadata: RuntimeMetadataPrefixed = Decode::decode(&mut metadata)?;
-		if runtime_metadata_version(&metadata.1) >= 14 {
+		if &metadata.1.version() >= 14 {
 			let meta = DesubMetadata::from_runtime_metadata(metadata.1)?;
 			let decoder = TypeInfoDecoder::with_metadata(meta);
 			self.current_decoder.insert(version, decoder);
