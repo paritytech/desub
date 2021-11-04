@@ -32,8 +32,6 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, MetadataError> {
 		let calls = pallet
 			.calls
 			.map(|call_md| {
-				let mut call_variant_indexes = HashMap::new();
-
 				// Get the type representing the variant of available calls:
 				let calls_type_id = call_md.ty;
 				let calls_type = registry
@@ -50,9 +48,12 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, MetadataError> {
 				};
 
 				// Store the mapping from u8 index to variant slice index or quicker decode lookup:
-				for (idx, variant) in calls_variant.variants().iter().enumerate() {
-					call_variant_indexes.insert(variant.index(), idx);
-				}
+				let call_variant_indexes = calls_variant
+					.variants()
+					.iter()
+					.enumerate()
+					.map(|(idx, v)| (v.index(), idx))
+					.collect();
 
 				Ok(MetadataCalls { calls_type_id, call_variant_indexes })
 			})
