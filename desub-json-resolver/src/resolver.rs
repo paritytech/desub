@@ -15,9 +15,9 @@
 //! Resolves types based on the JSON
 
 use crate::{Extrinsics, Modules, Overrides, Result};
-use core::{regex, RustTypeMarker, TypeDetective};
+use desub_legacy::{regex, RustTypeMarker, TypeDetective};
 
-#[cfg(feature = "default_definitions")]
+#[cfg(feature = "polkadot-js")]
 mod default {
 	pub const DEFINITIONS: &str = include_str!("./definitions/definitions.json");
 	pub const OVERRIDES: &str = include_str!("./definitions/overrides.json");
@@ -68,14 +68,14 @@ impl Builder {
 
 // we need a way to construct the builder when
 // not using default features
-#[cfg(not(feature = "default_definitions"))]
+#[cfg(not(feature = "polkadot-js"))]
 impl Builder {
 	fn new(modules: Modules, extrinsics: Extrinsics, overrides: Overrides) -> Self {
 		Self { mods, overrides, extrinsics }
 	}
 }
 
-#[cfg(feature = "default_definitions")]
+#[cfg(feature = "polkadot-js")]
 impl Default for Builder {
 	fn default() -> Self {
 		Self {
@@ -85,7 +85,7 @@ impl Default for Builder {
 		}
 	}
 }
-#[cfg(feature = "default_definitions")]
+#[cfg(feature = "polkadot-js")]
 impl Default for TypeResolver {
 	fn default() -> Self {
 		Builder::default().build()
@@ -216,7 +216,7 @@ impl TypeDetective for TypeResolver {
 mod tests {
 	use super::default::*;
 	use super::*;
-	use core::{EnumField, StructField};
+	use desub_legacy::{EnumField, StructField};
 
 	#[test]
 	fn should_get_type_from_module() -> Result<()> {

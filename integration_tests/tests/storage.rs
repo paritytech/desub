@@ -1,7 +1,7 @@
 use crate::runtime_metadata::*;
 use anyhow::Result;
 use codec::Encode;
-use desub_core::{
+use desub_legacy::{
 	decoder::{Chain, Decoder, Metadata},
 	SubstrateType,
 };

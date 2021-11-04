@@ -20,7 +20,7 @@
 mod error;
 
 use codec::Decode;
-use core_v14::{decoder::Extrinsic, Decoder as TypeInfoDecoder, Metadata as DesubMetadata};
+use desub_current::{decoder::Extrinsic, Decoder as TypeInfoDecoder, Metadata as DesubMetadata};
 use desub_legacy::{
 	decoder::{Decoder as LegacyDecoder, Metadata as LegacyDesubMetadata},
 	RustTypeMarker, TypeDetective,
@@ -30,13 +30,13 @@ use serde_json::Value;
 use std::collections::HashMap;
 
 #[cfg(feature = "polkadot-js")]
-use extras::TypeResolver as PolkadotJsResolver;
+use json_resolver::TypeResolver as PolkadotJsResolver;
 
 pub use self::error::Error;
 pub use desub_common::SpecVersion;
 pub use desub_legacy::decoder::Chain;
 #[cfg(feature = "polkadot-js")]
-pub use extras::runtimes;
+pub use json_resolver::runtimes;
 
 /// Struct That implements TypeDetective but refuses to resolve anything
 /// that is not of metadata v14+.

@@ -1,5 +1,5 @@
 [package]
-name = "desub-core"
+name = "desub-legacy"
 version = "0.0.1"
 authors = [ "Andrew Plaza <andrew.plaza@parity.io>" ]
 edition = "2018"
@@ -25,8 +25,8 @@ runtime-primitives = { package = "sp-runtime", git = "https://github.com/parityt
 frame-metadata = { version = "14.2", features = ["legacy"] }
 
 [dev-dependencies]
-runtime-version = { package = "sp-version", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+runtime-version = { package = "sp-version", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
 pretty_env_logger = "0.4"
-extras = { path = "../extras/", features = ["polkadot"], package = "desub-extras" }
+json-resolver = { path = "../desub-json-resolver/", features = ["polkadot-js"], package = "desub-json-resolver" }
 hex = "0.4"
 

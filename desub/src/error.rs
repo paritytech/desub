@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use core_v14::{
+use desub_current::{
 	decoder::{DecodeError, Extrinsic},
 	metadata::MetadataError,
 };
