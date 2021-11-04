@@ -112,6 +112,7 @@ use codec::{Compact, Decode};
 use decode_type::{decode_type, decode_type_by_id, DecodeTypeError};
 use extrinsic_bytes::{AllExtrinsicBytes, ExtrinsicBytesError};
 use sp_runtime::{AccountId32, MultiAddress, MultiSignature};
+use std::borrow::Cow;
 
 pub struct Decoder {
 	metadata: Metadata,
@@ -284,7 +285,7 @@ impl Decoder {
 			})
 			.collect::<Result<_, _>>()?;
 
-		Ok(CallData { pallet_name, ty: variant, arguments })
+		Ok(CallData { pallet_name: Cow::Borrowed(pallet_name), ty: Cow::Borrowed(variant), arguments })
 	}
 
 	/// Decode the SCALE encoded data that you would get signed, which conceptually takes the form
@@ -312,14 +313,14 @@ impl Decoder {
 	}
 
 	/// Decode the signed extensions.
-	fn decode_signed_extensions<'a>(&'a self, data: &mut &[u8]) -> Result<Vec<(&'a str, Value)>, DecodeError> {
+	fn decode_signed_extensions<'a>(&'a self, data: &mut &[u8]) -> Result<Vec<(Cow<'a, str>, Value)>, DecodeError> {
 		self.metadata
 			.extrinsic()
 			.signed_extensions()
 			.iter()
 			.map(|ext| {
 				let val = decode_type_by_id(data, &ext.ty, self.metadata.types())?;
-				let name = &*ext.identifier;
+				let name = Cow::Borrowed(&*ext.identifier);
 				Ok((name, val))
 			})
 			.collect()
@@ -327,14 +328,14 @@ impl Decoder {
 
 	/// Decode the additional signed data. This isn't used for decoding extrinsics, but instead for
 	/// decoding the data that you'd sign.
-	fn decode_additional_signed<'a>(&'a self, data: &mut &[u8]) -> Result<Vec<(&'a str, Value)>, DecodeError> {
+	fn decode_additional_signed<'a>(&'a self, data: &mut &[u8]) -> Result<Vec<(Cow<'a, str>, Value)>, DecodeError> {
 		self.metadata
 			.extrinsic()
 			.signed_extensions()
 			.iter()
 			.map(|ext| {
 				let val = decode_type_by_id(data, &ext.additional_signed, self.metadata.types())?;
-				let name = &*ext.identifier;
+				let name = Cow::Borrowed(&*ext.identifier);
 				Ok((name, val))
 			})
 			.collect()
@@ -345,29 +346,21 @@ impl Decoder {
 #[derive(Debug, Clone, PartialEq)]
 pub struct CallData<'a> {
 	/// The name of the pallet
-	pub pallet_name: &'a str,
+	pub pallet_name: Cow<'a, str>,
 	/// The type information for this call (including the name
 	/// of the call and information about each argument)
-	pub ty: &'a scale_info::Variant<scale_info::form::PortableForm>,
-	/// The decoded argument data
-	pub arguments: Vec<Value>,
-}
-
-/// Decoded call data and associated type information.
-#[derive(Debug, Clone, PartialEq)]
-pub struct CallDataOwned {
-	/// The name of the pallet
-	pub pallet_name: String,
-	/// The type information for this call (including the name
-	/// of the call and information about each argument)
-	pub ty: scale_info::Variant<scale_info::form::PortableForm>,
+	pub ty: Cow<'a, scale_info::Variant<scale_info::form::PortableForm>>,
 	/// The decoded argument data
 	pub arguments: Vec<Value>,
 }
 
 impl<'a> CallData<'a> {
-	pub fn into_owned(self) -> CallDataOwned {
-		CallDataOwned { pallet_name: self.pallet_name.to_owned(), ty: self.ty.clone(), arguments: self.arguments }
+	pub fn into_owned(self) -> CallData<'static> {
+		CallData {
+			pallet_name: Cow::Owned(self.pallet_name.into_owned()),
+			ty: Cow::Owned(self.ty.into_owned()),
+			arguments: self.arguments,
+		}
 	}
 }
 
@@ -380,18 +373,9 @@ pub struct Extrinsic<'a> {
 	pub signature: Option<ExtrinsicSignature<'a>>,
 }
 
-/// The result of successfully decoding an extrinsic, in an owned form.
-#[derive(Debug, Clone, PartialEq)]
-pub struct ExtrinsicOwned {
-	/// Decoded call data and associated type information about the call.
-	pub call_data: CallDataOwned,
-	/// The signature and signed extensions (if any) associated with the extrinsic
-	pub signature: Option<ExtrinsicSignatureOwned>,
-}
-
 impl<'a> Extrinsic<'a> {
-	pub fn into_owned(self) -> ExtrinsicOwned {
-		ExtrinsicOwned { call_data: self.call_data.into_owned(), signature: self.signature.map(|s| s.into_owned()) }
+	pub fn into_owned(self) -> Extrinsic<'static> {
+		Extrinsic { call_data: self.call_data.into_owned(), signature: self.signature.map(|s| s.into_owned()) }
 	}
 }
 
@@ -404,27 +388,15 @@ pub struct ExtrinsicSignature<'a> {
 	pub signature: MultiSignature,
 	/// Signed extensions, which can vary by node. Here, we
 	/// return the name and value of each.
-	pub extensions: Vec<(&'a str, Value)>,
-}
-
-/// The signature information embedded in an extrinsic, in an owned form.
-#[derive(Debug, Clone, PartialEq)]
-pub struct ExtrinsicSignatureOwned {
-	/// Address the extrinsic is being sent from
-	pub address: MultiAddress<AccountId32, u32>,
-	/// Signature to prove validity
-	pub signature: MultiSignature,
-	/// Signed extensions, which can vary by node. Here, we
-	/// return the name and value of each.
-	pub extensions: Vec<(String, Value)>,
+	pub extensions: Vec<(Cow<'a, str>, Value)>,
 }
 
 impl<'a> ExtrinsicSignature<'a> {
-	pub fn into_owned(self) -> ExtrinsicSignatureOwned {
-		ExtrinsicSignatureOwned {
+	pub fn into_owned(self) -> ExtrinsicSignature<'static> {
+		ExtrinsicSignature {
 			address: self.address,
 			signature: self.signature,
-			extensions: self.extensions.into_iter().map(|(k, v)| (k.to_owned(), v)).collect(),
+			extensions: self.extensions.into_iter().map(|(k, v)| (Cow::Owned(k.into_owned()), v)).collect(),
 		}
 	}
 }
@@ -436,24 +408,14 @@ pub struct SignerPayload<'a> {
 	pub call_data: CallData<'a>,
 	/// Signed extensions as well as additional data to be signed. These
 	/// are packaged together in the metadata.
-	pub extensions: Vec<(&'a str, SignedExtensionWithAdditional)>,
-}
-
-/// The decoded signer payload, in an owned form.
-#[derive(Debug, Clone, PartialEq)]
-pub struct SignerPayloadOwned {
-	/// Decoded call data and associated type information about the call.
-	pub call_data: CallDataOwned,
-	/// Signed extensions as well as additional data to be signed. These
-	/// are packaged together in the metadata.
-	pub extensions: Vec<(String, SignedExtensionWithAdditional)>,
+	pub extensions: Vec<(Cow<'a, str>, SignedExtensionWithAdditional)>,
 }
 
 impl<'a> SignerPayload<'a> {
-	pub fn into_owned(self) -> SignerPayloadOwned {
-		SignerPayloadOwned {
+	pub fn into_owned(self) -> SignerPayload<'static> {
+		SignerPayload {
 			call_data: self.call_data.into_owned(),
-			extensions: self.extensions.into_iter().map(|(k, v)| (k.to_owned(), v)).collect(),
+			extensions: self.extensions.into_iter().map(|(k, v)| (Cow::Owned(k.into_owned()), v)).collect(),
 		}
 	}
 }
