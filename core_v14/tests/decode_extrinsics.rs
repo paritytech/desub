@@ -147,6 +147,21 @@ fn auctions_bid_unsigned() {
 }
 
 #[test]
+fn auctions_bid_unsigned_excess_bytes_allowed() {
+	let d = decoder();
+
+	// Auctions.bid (Args: (1,), 2, 3, 4, 5, all compact encoded).
+	let mut ext_bytes = to_bytes("0x04480104080c1014");
+	// Push some extra bytes to the end that we expect not to be consumed:
+	ext_bytes.extend(b"extra bytes!");
+
+	let ext_bytes_cursor = &mut &*ext_bytes;
+	d.decode_unwrapped_extrinsic(ext_bytes_cursor).expect("can decode extrinsic");
+
+	assert_eq!(ext_bytes_cursor, b"extra bytes!");
+}
+
+#[test]
 fn system_fill_block_unsigned() {
 	let d = decoder();
 
@@ -235,7 +250,26 @@ fn vesting_force_vested_transfer_unsigned() {
 }
 
 #[test]
-fn test_signer_payload() {
+fn can_decode_multiple_extrinsics_with_extra_bytes() {
+	let d = decoder();
+
+	// the same extrinsic repeated 3 times:
+	let extrinsics_hex = "0x0C2004480104080c10142004480104080c10142004480104080c1014";
+	let mut extrinsics_bytes = hex::decode(extrinsics_hex.strip_prefix("0x").unwrap()).unwrap();
+
+	// add some extra bytes, which shouldn't be consumed:
+	extrinsics_bytes.extend(b"extra bytes!");
+
+	let extrinsics_cursor = &mut &*extrinsics_bytes;
+	let extrinsics = d.decode_extrinsics(extrinsics_cursor).unwrap();
+
+	assert_eq!(extrinsics_cursor, b"extra bytes!");
+	assert_eq!(extrinsics.len(), 3);
+}
+
+// We can decode the payload that we'd be getting signed, too.
+#[test]
+fn can_decode_signer_payload() {
 	let d = decoder();
 	let signer_payload = &mut &*to_bytes("0x0706b9340000962300000800000091b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c31c81d421f68281950ad2901291603b5e49fc5c872f129e75433f4b55f07ca072");
 
