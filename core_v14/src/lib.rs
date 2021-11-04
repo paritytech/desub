@@ -21,3 +21,6 @@ pub mod value;
 pub use decoder::Decoder;
 pub use metadata::Metadata;
 pub use value::Value;
+
+/// A re-export of the [`scale_info`] crate, since we delegate much of the type inspection to it.
+pub use scale_info;

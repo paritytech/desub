@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use core_v14::{value, Decoder, Metadata, Value};
+use core_v14::{decoder::SignedExtensionWithAdditional, value, Decoder, Metadata, Value};
 
 static V14_METADATA_POLKADOT_SCALE: &[u8] = include_bytes!("data/v14_metadata_polkadot.scale");
 
@@ -26,6 +26,38 @@ fn decoder() -> Decoder {
 fn to_bytes(hex_str: &str) -> Vec<u8> {
 	let hex_str = hex_str.strip_prefix("0x").expect("0x should prefix hex encoded bytes");
 	hex::decode(hex_str).expect("valid bytes from hex")
+}
+
+fn unnamed_value(x: Vec<Value>) -> Value {
+	Value::Composite(value::Composite::Unnamed(x))
+}
+
+fn empty_value() -> Value {
+	unnamed_value(vec![])
+}
+
+fn singleton_value(x: Value) -> Value {
+	unnamed_value(vec![x])
+}
+
+fn prim_u8_value(x: u8) -> Value {
+	Value::Primitive(value::Primitive::U8(x))
+}
+
+fn prim_u32_value(x: u32) -> Value {
+	Value::Primitive(value::Primitive::U32(x))
+}
+
+fn prim_u128_value(x: u128) -> Value {
+	Value::Primitive(value::Primitive::U128(x))
+}
+
+fn hash_value(xs: Vec<u8>) -> Value {
+	singleton_value(Value::Composite(value::Composite::Unnamed(xs.iter().map(|x| prim_u8_value(*x)).collect())))
+}
+
+fn variant_value(name: &str, c: value::Composite) -> Value {
+	Value::Variant(value::Variant { name: name.to_string(), values: c })
 }
 
 // These tests are intended to roughly check that we can decode a range of "real" extrinsics into something
@@ -61,13 +93,14 @@ fn balance_transfer_signed() {
 	let d = decoder();
 
 	// Balances.transfer (amount: 12345)
-	let ext_bytes = to_bytes("0x31028400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d016ada9b477ef454972200e098f1186d4a2aeee776f1f6a68609797f5ba052906ad2427bdca865442158d118e2dfc82226077e4dfdff975d005685bab66eefa38a150200000500001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07ce5c0");
-	let ext = d.decode_extrinsic(&ext_bytes).expect("can decode extrinsic");
+	let ext_bytes = &mut &*to_bytes("0x31028400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d016ada9b477ef454972200e098f1186d4a2aeee776f1f6a68609797f5ba052906ad2427bdca865442158d118e2dfc82226077e4dfdff975d005685bab66eefa38a150200000500001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07ce5c0");
+	let ext = d.decode_extrinsic(ext_bytes).expect("can decode extrinsic");
 
-	assert_eq!(ext.pallet, "Balances".to_string());
-	assert_eq!(ext.call, "transfer".to_string());
-	assert_eq!(ext.arguments.len(), 2);
-	assert_eq!(ext.arguments[1], Value::Primitive(value::Primitive::U128(12345)));
+	assert!(ext_bytes.is_empty(), "No more bytes expected");
+	assert_eq!(ext.call_data.pallet_name, "Balances");
+	assert_eq!(&*ext.call_data.ty.name(), "transfer");
+	assert_eq!(ext.call_data.arguments.len(), 2);
+	assert_eq!(ext.call_data.arguments[1], prim_u128_value(12345));
 }
 
 #[test]
@@ -75,13 +108,14 @@ fn balance_transfer_all_signed() {
 	let d = decoder();
 
 	// Balances.transfer_all (keepalive: false)
-	let ext_bytes = to_bytes("0x2d028400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f0431ffe387134b4f84d92d3c3f1ac18c0f42237ad7dbd455bb0cf8a18efb1760528f052b2219ad1601d9a4719e1a446cf307bf6d7e9c56175bfe6e7bf8cbe81450304000504001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c00");
-	let ext = d.decode_extrinsic(&ext_bytes).expect("can decode extrinsic");
+	let ext_bytes = &mut &*to_bytes("0x2d028400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f0431ffe387134b4f84d92d3c3f1ac18c0f42237ad7dbd455bb0cf8a18efb1760528f052b2219ad1601d9a4719e1a446cf307bf6d7e9c56175bfe6e7bf8cbe81450304000504001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c00");
+	let ext = d.decode_extrinsic(ext_bytes).expect("can decode extrinsic");
 
-	assert_eq!(ext.pallet, "Balances".to_string());
-	assert_eq!(ext.call, "transfer_all".to_string());
-	assert_eq!(ext.arguments.len(), 2);
-	assert_eq!(ext.arguments[1], Value::Primitive(value::Primitive::Bool(false)));
+	assert!(ext_bytes.is_empty(), "No more bytes expected");
+	assert_eq!(ext.call_data.pallet_name, "Balances");
+	assert_eq!(&*ext.call_data.ty.name(), "transfer_all");
+	assert_eq!(ext.call_data.arguments.len(), 2);
+	assert_eq!(ext.call_data.arguments[1], Value::Primitive(value::Primitive::Bool(false)));
 }
 
 /// This test is interesting because:
@@ -92,23 +126,39 @@ fn auctions_bid_unsigned() {
 	let d = decoder();
 
 	// Auctions.bid (Args: (1,), 2, 3, 4, 5, all compact encoded).
-	let ext_bytes = to_bytes("0x04480104080c1014");
-	let ext = d.decode_unwrapped_extrinsic(&ext_bytes).expect("can decode extrinsic");
+	let ext_bytes = &mut &*to_bytes("0x04480104080c1014");
+	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
 
-	assert_eq!(ext.pallet, "Auctions".to_string());
-	assert_eq!(ext.call, "bid".to_string());
-	assert_eq!(ext.arguments.len(), 5);
+	assert!(ext_bytes.is_empty(), "No more bytes expected");
+	assert_eq!(ext.call_data.pallet_name, "Auctions");
+	assert_eq!(&*ext.call_data.ty.name(), "bid");
+	assert_eq!(ext.call_data.arguments.len(), 5);
 
 	assert_eq!(
-		ext.arguments,
+		ext.call_data.arguments,
 		vec![
-			Value::Composite(value::Composite::Unnamed(vec![Value::Primitive(value::Primitive::U32(1))])),
-			Value::Primitive(value::Primitive::U32(2)),
-			Value::Primitive(value::Primitive::U32(3)),
-			Value::Primitive(value::Primitive::U32(4)),
-			Value::Primitive(value::Primitive::U128(5)),
+			singleton_value(prim_u32_value(1)),
+			prim_u32_value(2),
+			prim_u32_value(3),
+			prim_u32_value(4),
+			prim_u128_value(5),
 		]
 	);
+}
+
+#[test]
+fn auctions_bid_unsigned_excess_bytes_allowed() {
+	let d = decoder();
+
+	// Auctions.bid (Args: (1,), 2, 3, 4, 5, all compact encoded).
+	let mut ext_bytes = to_bytes("0x04480104080c1014");
+	// Push some extra bytes to the end that we expect not to be consumed:
+	ext_bytes.extend(b"extra bytes!");
+
+	let ext_bytes_cursor = &mut &*ext_bytes;
+	d.decode_unwrapped_extrinsic(ext_bytes_cursor).expect("can decode extrinsic");
+
+	assert_eq!(ext_bytes_cursor, b"extra bytes!");
 }
 
 #[test]
@@ -116,17 +166,15 @@ fn system_fill_block_unsigned() {
 	let d = decoder();
 
 	// System.fill_block (Args: Perblock(1234)).
-	let ext_bytes = to_bytes("0x040000d2040000");
-	let ext = d.decode_unwrapped_extrinsic(&ext_bytes).expect("can decode extrinsic");
+	let ext_bytes = &mut &*to_bytes("0x040000d2040000");
+	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
 
-	assert_eq!(ext.pallet, "System".to_string());
-	assert_eq!(ext.call, "fill_block".to_string());
-	assert_eq!(ext.arguments.len(), 1);
+	assert!(ext_bytes.is_empty(), "No more bytes expected");
+	assert_eq!(ext.call_data.pallet_name, "System");
+	assert_eq!(&*ext.call_data.ty.name(), "fill_block");
+	assert_eq!(ext.call_data.arguments.len(), 1);
 
-	assert_eq!(
-		ext.arguments,
-		vec![Value::Composite(value::Composite::Unnamed(vec![Value::Primitive(value::Primitive::U32(1234))])),]
-	);
+	assert_eq!(ext.call_data.arguments, vec![singleton_value(prim_u32_value(1234))]);
 }
 
 /// This test is interesting because you provide a nested enum representing a call
@@ -136,16 +184,18 @@ fn technical_committee_execute_unsigned() {
 	let d = decoder();
 
 	// TechnicalCommittee.execute (Args: Balances.transfer(Alice -> Bob, 12345), 500).
-	let ext_bytes = to_bytes("0x0410010500001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07ce5c0d107");
-	let ext = d.decode_unwrapped_extrinsic(&ext_bytes).expect("can decode extrinsic");
+	let ext_bytes =
+		&mut &*to_bytes("0x0410010500001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07ce5c0d107");
+	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
 
-	assert_eq!(ext.pallet, "TechnicalCommittee".to_string());
-	assert_eq!(ext.call, "execute".to_string());
-	assert_eq!(ext.arguments.len(), 2);
+	assert!(ext_bytes.is_empty(), "No more bytes expected");
+	assert_eq!(ext.call_data.pallet_name, "TechnicalCommittee");
+	assert_eq!(&*ext.call_data.ty.name(), "execute");
+	assert_eq!(ext.call_data.arguments.len(), 2);
 
 	// It's a bit hard matching the entire thing, so we just verify that the first arg looks like
 	// a variant representing a call to "Balances.transfer".
-	assert!(matches!(&ext.arguments[0],
+	assert!(matches!(&ext.call_data.arguments[0],
 		Value::Variant(value::Variant {
 			name,
 			values: value::Composite::Unnamed(args)
@@ -153,7 +203,7 @@ fn technical_committee_execute_unsigned() {
 		if &*name == "Balances"
 		&& matches!(&args[0], Value::Variant(value::Variant { name, ..}) if &*name == "transfer")
 	));
-	assert_eq!(&ext.arguments[1], &Value::Primitive(value::Primitive::U32(500)));
+	assert_eq!(&ext.call_data.arguments[1], &prim_u32_value(500));
 }
 
 #[test]
@@ -161,17 +211,17 @@ fn tips_report_awesome_unsigned() {
 	let d = decoder();
 
 	// Tips.report_awesome (Args: b"This person rocks!", AccountId).
-	let ext_bytes = to_bytes("0x042300485468697320706572736f6e20726f636b73211cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c");
-	let ext = d.decode_unwrapped_extrinsic(&ext_bytes).expect("can decode extrinsic");
+	let ext_bytes = &mut &*to_bytes("0x042300485468697320706572736f6e20726f636b73211cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c");
+	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
 
-	assert_eq!(ext.pallet, "Tips".to_string());
-	assert_eq!(ext.call, "report_awesome".to_string());
-	assert_eq!(ext.arguments.len(), 2);
+	assert!(ext_bytes.is_empty(), "No more bytes expected");
+	assert_eq!(ext.call_data.pallet_name, "Tips");
+	assert_eq!(&*ext.call_data.ty.name(), "report_awesome");
+	assert_eq!(ext.call_data.arguments.len(), 2);
+
 	assert_eq!(
-		&ext.arguments[0],
-		&Value::Composite(value::Composite::Unnamed(
-			"This person rocks!".bytes().map(|b| Value::Primitive(value::Primitive::U8(b))).collect()
-		))
+		&ext.call_data.arguments[0],
+		&Value::Composite(value::Composite::Unnamed("This person rocks!".bytes().map(prim_u8_value).collect()))
 	);
 }
 
@@ -181,18 +231,109 @@ fn vesting_force_vested_transfer_unsigned() {
 	let d = decoder();
 
 	// Vesting.force_vested_transfer (Args: AccountId, AccountId, { locked: 1u128, perBlock: 2u128, startingBlock: 3u32 }).
-	let ext_bytes = to_bytes("0x04190300d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48010000000000000000000000000000000200000000000000000000000000000003000000");
-	let ext = d.decode_unwrapped_extrinsic(&ext_bytes).expect("can decode extrinsic");
+	let ext_bytes = &mut &*to_bytes("0x04190300d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48010000000000000000000000000000000200000000000000000000000000000003000000");
+	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
 
-	assert_eq!(ext.pallet, "Vesting".to_string());
-	assert_eq!(ext.call, "force_vested_transfer".to_string());
-	assert_eq!(ext.arguments.len(), 3);
+	assert!(ext_bytes.is_empty(), "No more bytes expected");
+	assert_eq!(ext.call_data.pallet_name, "Vesting");
+	assert_eq!(&*ext.call_data.ty.name(), "force_vested_transfer");
+	assert_eq!(ext.call_data.arguments.len(), 3);
+
 	assert_eq!(
-		&ext.arguments[2],
+		&ext.call_data.arguments[2],
 		&Value::Composite(value::Composite::Named(vec![
-			("locked".into(), Value::Primitive(value::Primitive::U128(1))),
-			("per_block".into(), Value::Primitive(value::Primitive::U128(2))),
-			("starting_block".into(), Value::Primitive(value::Primitive::U32(3))),
+			("locked".into(), prim_u128_value(1)),
+			("per_block".into(), prim_u128_value(2)),
+			("starting_block".into(), prim_u32_value(3)),
 		]))
+	);
+}
+
+#[test]
+fn can_decode_multiple_extrinsics_with_extra_bytes() {
+	let d = decoder();
+
+	// the same extrinsic repeated 3 times:
+	let extrinsics_hex = "0x0C2004480104080c10142004480104080c10142004480104080c1014";
+	let mut extrinsics_bytes = hex::decode(extrinsics_hex.strip_prefix("0x").unwrap()).unwrap();
+
+	// add some extra bytes, which shouldn't be consumed:
+	extrinsics_bytes.extend(b"extra bytes!");
+
+	let extrinsics_cursor = &mut &*extrinsics_bytes;
+	let extrinsics = d.decode_extrinsics(extrinsics_cursor).unwrap();
+
+	assert_eq!(extrinsics_cursor, b"extra bytes!");
+	assert_eq!(extrinsics.len(), 3);
+}
+
+// We can decode the payload that we'd be getting signed, too.
+#[test]
+fn can_decode_signer_payload() {
+	let d = decoder();
+	let signer_payload = &mut &*to_bytes("0x0706b9340000962300000800000091b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c31c81d421f68281950ad2901291603b5e49fc5c872f129e75433f4b55f07ca072");
+
+	let r = d.decode_signer_payload(signer_payload).expect("can decode signer payload");
+
+	assert_eq!(signer_payload.len(), 0);
+	assert_eq!(r.call_data.pallet_name, "Staking");
+	assert_eq!(&*r.call_data.ty.name(), "chill");
+	assert_eq!(r.call_data.arguments, vec![]);
+
+	assert_eq!(
+		r.extensions,
+		vec![
+			(
+				"CheckSpecVersion".into(),
+				SignedExtensionWithAdditional { extension: empty_value(), additional: prim_u32_value(9110) }
+			),
+			(
+				"CheckTxVersion".into(),
+				SignedExtensionWithAdditional { extension: empty_value(), additional: prim_u32_value(8) }
+			),
+			(
+				"CheckGenesis".into(),
+				SignedExtensionWithAdditional {
+					extension: empty_value(),
+					additional: hash_value(to_bytes(
+						"0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"
+					))
+				}
+			),
+			(
+				"CheckMortality".into(),
+				SignedExtensionWithAdditional {
+					extension: singleton_value(variant_value(
+						"Mortal185",
+						value::Composite::Unnamed(vec![prim_u8_value(52)])
+					)),
+					additional: hash_value(to_bytes(
+						"0x1c81d421f68281950ad2901291603b5e49fc5c872f129e75433f4b55f07ca072"
+					))
+				}
+			),
+			(
+				"CheckNonce".into(),
+				SignedExtensionWithAdditional {
+					extension: singleton_value(prim_u32_value(0)),
+					additional: empty_value()
+				}
+			),
+			(
+				"CheckWeight".into(),
+				SignedExtensionWithAdditional { extension: empty_value(), additional: empty_value() }
+			),
+			(
+				"ChargeTransactionPayment".into(),
+				SignedExtensionWithAdditional {
+					extension: singleton_value(prim_u128_value(0)),
+					additional: empty_value()
+				}
+			),
+			(
+				"PrevalidateAttests".into(),
+				SignedExtensionWithAdditional { extension: empty_value(), additional: empty_value() }
+			),
+		],
 	);
 }

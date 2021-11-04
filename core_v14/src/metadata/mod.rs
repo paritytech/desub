@@ -26,12 +26,12 @@ use frame_metadata::{RuntimeMetadata, RuntimeMetadataPrefixed};
 use scale_info::{form::PortableForm, PortableRegistry};
 use std::collections::HashMap;
 
-// We don't expose anything scale-info or parity-scale-codec related outside of
-// this crate currently, so no need to expose these either:
-pub(crate) type Type = scale_info::Type<PortableForm>;
-pub(crate) type TypeDef = scale_info::TypeDef<PortableForm>;
-pub(crate) type TypeId = <scale_info::form::PortableForm as scale_info::form::Form>::Type;
-pub(crate) type SignedExtensionMetadata = frame_metadata::SignedExtensionMetadata<PortableForm>;
+// Some type aliases used below. `scale-info` is re-exported at the root,
+// so to avoid confusion we only publicly export all scale-info types from that
+// one place.
+type TypeId = <scale_info::form::PortableForm as scale_info::form::Form>::Type;
+type TypeDefVariant = scale_info::TypeDefVariant<PortableForm>;
+type SignedExtensionMetadata = frame_metadata::SignedExtensionMetadata<PortableForm>;
 
 /// An enum of the possible errors that can be returned from attempting to construct
 /// a [`Metadata`] struct.
@@ -97,18 +97,34 @@ impl Metadata {
 		&self.extrinsic
 	}
 
-	/// Given the `u8` variant index of a pallet and call, this returns information about
-	/// the call if it's fgound, or `None` if it no such call exists at those indexes.
-	pub(crate) fn call_by_variant_index(&self, pallet: u8, call: u8) -> Option<(&str, &MetadataCall)> {
+	/// Return a reference to the [`scale_info`] type registry.
+	pub fn types(&self) -> &PortableRegistry {
+		&self.types
+	}
+
+	/// Given the `u8` variant index of a pallet and call, this returns the pallet name and the call Variant
+	/// if found, or `None` if no such call exists at those indexes, or we don't have suitable call data.
+	pub(crate) fn call_variant_by_enum_index(
+		&self,
+		pallet: u8,
+		call: u8,
+	) -> Option<(&str, &scale_info::Variant<PortableForm>)> {
 		self.pallets.get(&pallet).and_then(|p| {
-			let call = p.calls.get(&call)?;
-			Some((&*p.name, call))
+			p.calls.as_ref().and_then(|calls| {
+				let type_def_variant = self.get_variant(calls.calls_type_id)?;
+				let index = *calls.call_variant_indexes.get(&call)?;
+				let variant = type_def_variant.variants().get(index)?;
+				Some((&*p.name, variant))
+			})
 		})
 	}
 
-	/// Return a reference to the type registry. This is used for helping to decode things.
-	pub(crate) fn types(&self) -> &PortableRegistry {
-		&self.types
+	/// A helper function to get hold of a Variant given a type ID, or None if it's not found.
+	fn get_variant(&self, ty: TypeId) -> Option<&TypeDefVariant> {
+		self.types.resolve(ty.id()).and_then(|ty| match ty.type_def() {
+			scale_info::TypeDef::Variant(variant) => Some(variant),
+			_ => None,
+		})
 	}
 }
 
@@ -137,28 +153,20 @@ pub fn runtime_metadata_version(meta: &RuntimeMetadata) -> usize {
 #[derive(Debug)]
 struct MetadataPallet {
 	name: String,
-	calls: HashMap<u8, MetadataCall>,
+	/// Metadata may not contain call information. If it does,
+	/// it'll be here.
+	calls: Option<MetadataCalls>,
 }
 
-/// This represents a single call (extrinsic) that exists in the system.
 #[derive(Debug)]
-pub struct MetadataCall {
-	name: String,
-	args: Vec<TypeId>,
-}
-
-impl MetadataCall {
-	/// The name of the function call.
-	pub fn name(&self) -> &str {
-		&self.name
-	}
-
-	/// The types expected to be provided as arguments to this call.
-	/// [`TypeId`]'s can be resolved into [`Type`]'s using
-	/// [`Metadata::resolve_type`]
-	pub fn args(&self) -> &[TypeId] {
-		&self.args
-	}
+struct MetadataCalls {
+	/// This allows us to find the type information corresponding to
+	/// the call in the [`PortableRegistry`]/
+	calls_type_id: TypeId,
+	/// This allows us to map a u8 enum index to the correct call variant
+	/// from the calls type, above. The variant contains information on the
+	/// fields and such that the call has.
+	call_variant_indexes: HashMap<u8, usize>,
 }
 
 /// Information about the extrinsic format supported on the substrate node
