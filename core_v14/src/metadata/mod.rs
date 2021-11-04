@@ -27,7 +27,7 @@ use scale_info::{form::PortableForm, PortableRegistry};
 use std::collections::HashMap;
 
 // Some type aliases used below. `scale-info` is re-exported at the root,
-// so to avoid confusion we only publically export all scale-info types from that
+// so to avoid confusion we only publicly export all scale-info types from that
 // one place.
 type TypeId = <scale_info::form::PortableForm as scale_info::form::Form>::Type;
 type TypeDefVariant = scale_info::TypeDefVariant<PortableForm>;
@@ -98,7 +98,7 @@ impl Metadata {
 	}
 
 	/// Given the `u8` variant index of a pallet and call, this returns the pallet name and the call Variant
-	/// if found, or `None` if it no such call exists at those indexes, or we don't have suitable call data.
+	/// if found, or `None` if no such call exists at those indexes, or we don't have suitable call data.
 	pub(crate) fn call_variant_by_enum_index(
 		&self,
 		pallet: u8,

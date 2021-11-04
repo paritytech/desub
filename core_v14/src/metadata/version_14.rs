@@ -47,7 +47,7 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, MetadataError> {
 					}
 				};
 
-				// Store the mapping from u8 index to variant slice index or quicker decode lookup:
+				// Store the mapping from u8 index to variant slice index for quicker decode lookup:
 				let call_variant_indexes = calls_variant
 					.variants()
 					.iter()

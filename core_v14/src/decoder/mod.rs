@@ -130,7 +130,7 @@ pub enum DecodeError {
 	DecodeTypeError(#[from] DecodeTypeError),
 	#[error("Failed to decode: expected more data")]
 	EarlyEof(&'static str),
-	#[error("Failed to decode extrinsics: expected {0} more bytes to be consumed from the input")]
+	#[error("Failed to decode extrinsics: {0} bytes of the input were not consumed")]
 	DidntConsumeBytes(usize),
 	#[error("Failed to decode unsupported extrinsic version '{0}'")]
 	CannotDecodeExtrinsicVersion(u8),
@@ -288,7 +288,7 @@ impl Decoder {
 		Ok(CallData { pallet_name: Cow::Borrowed(pallet_name), ty: Cow::Borrowed(variant), arguments })
 	}
 
-	/// Decode the SCALE encoded data that you would get signed, which conceptually takes the form
+	/// Decode the SCALE encoded data that, once signed, is used to construct a signed extrinsic. The encoded payload has the following shape:
 	/// `(call_data, signed_extensions, additional_signed)`.
 	pub fn decode_signer_payload<'a>(&'a self, data: &mut &[u8]) -> Result<SignerPayload<'a>, DecodeError> {
 		let call_data = self.decode_call_data(data)?;
@@ -327,7 +327,7 @@ impl Decoder {
 	}
 
 	/// Decode the additional signed data. This isn't used for decoding extrinsics, but instead for
-	/// decoding the data that you'd sign.
+	/// decoding the data that a user signs.
 	fn decode_additional_signed<'a>(&'a self, data: &mut &[u8]) -> Result<Vec<(Cow<'a, str>, Value)>, DecodeError> {
 		self.metadata
 			.extrinsic()
