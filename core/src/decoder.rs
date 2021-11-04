@@ -44,6 +44,7 @@ use crate::{
 	substrate_types::{self, StructField, SubstrateType},
 	CommonTypes, RustTypeMarker, TypeDetective,
 };
+use desub_common::SpecVersion;
 use bitvec::order::Lsb0 as BitOrderLsb0;
 use codec::{Compact, CompactLen, Decode, Input};
 use std::{
@@ -54,9 +55,6 @@ use std::{
 	str::FromStr,
 	sync::atomic::{AtomicUsize, Ordering},
 };
-
-/// Spec Version defined in the runtime.
-pub type SpecVersion = u32;
 
 /// Decoder for substrate types
 ///

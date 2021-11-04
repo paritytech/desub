@@ -16,7 +16,6 @@
 
 mod app;
 mod queries;
-mod decoder;
 
 use anyhow::Error;
 use colored::Colorize;

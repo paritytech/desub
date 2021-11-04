@@ -23,6 +23,8 @@ use sp_runtime::{MultiAddress as SubstrateMultiAddress};
 use sp_core::crypto::AccountId32;
 use serde::{Serialize, Deserialize};
 
+/// Spec Version type defined in the runtime of a chain.
+pub type SpecVersion = u32;
 
 pub type MultiAddress = SubstrateMultiAddress<AccountId32, u32>;
 

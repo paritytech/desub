@@ -7,7 +7,9 @@ edition = "2021"
 
 [dependencies]
 
-desub_legacy = { path = "../core/", package = "desub-core" }
+desub-legacy = { path = "../core/", package = "desub-core" }
+desub-common = { path = "../desub-common/", package = "desub-common" }
+
 core_v14 = { path = "../core_v14/", package = "core_v14" }
 extras = { path = "../extras/", optional = true, package = "desub-extras" }
 thiserror = "1.0.30"

@@ -15,14 +15,6 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 
-use desub::{decoder::Decoder as DecoderOld, TypeDetective};
-use desub_v14::{Decoder as DecoderNew, Metadata as MetadataNew};
-use desub::decoder::Chain;
-use std::{collections::HashMap, convert::TryInto};
-use anyhow::{Error, anyhow};
-
-pub use desub::decoder::SpecVersion;
-
 pub struct Decoder {
 	old: DecoderOld,
 	new: HashMap<u32, DecoderNew>,

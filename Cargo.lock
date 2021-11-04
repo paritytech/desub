@@ -842,6 +842,7 @@ name = "desub"
 version = "0.1.0"
 dependencies = [
  "core_v14",
+ "desub-common",
  "desub-core",
  "desub-extras",
  "frame-metadata 14.1.0",
@@ -4283,9 +4284,7 @@ dependencies = [
  "async-std",
  "async-stream",
  "colored 2.0.0",
- "core_v14",
- "desub-core",
- "desub-extras",
+ "desub",
  "fern",
  "futures",
  "indicatif",

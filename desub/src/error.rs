@@ -20,8 +20,12 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
-	#[error("Decoding v14 failed {0}")]
-	V14(DecodeError, Vec<Extrinsic<'static>>),
+	#[error("Decoding v14 failed {source}")]
+	V14{
+		#[source]
+		source: DecodeError,
+		ext: Vec<Extrinsic<'static>>
+	},
 	#[error(transparent)]
 	Legacy(#[from] LegacyError),
 	#[error(transparent)]

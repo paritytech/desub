@@ -24,7 +24,7 @@ mod error;
 use codec::Decode;
 use core_v14::{decoder::Extrinsic, metadata::runtime_metadata_version, Decoder as TypeInfoDecoder, Metadata as DesubMetadata};
 use desub_legacy::{
-	decoder::{Chain, Decoder as LegacyDecoder, Metadata as LegacyDesubMetadata},
+	decoder::{Decoder as LegacyDecoder, Metadata as LegacyDesubMetadata},
 	RustTypeMarker, TypeDetective,
 };
 use serde_json::Value;
@@ -32,8 +32,12 @@ use frame_metadata::RuntimeMetadataPrefixed;
 use std::{collections::HashMap, marker::PhantomData};
 
 #[cfg(feature = "polkadot-js")]
-use extras::TypeResolver as PolkadotJsResolver;
+use extras::{TypeResolver as PolkadotJsResolver};
 
+#[cfg(feature = "polkadot-js")]
+pub use extras::runtimes;
+pub use desub_legacy::decoder::Chain;
+pub use desub_common::SpecVersion;
 pub use self::error::Error;
 
 /// Struct That implements TypeDetective but refuses to resolve anything
@@ -55,8 +59,6 @@ impl TypeDetective for NoLegacyTypes {
 		None
 	}
 }
-
-type SpecVersion = u32;
 
 pub struct Decoder<T: TypeDetective> {
 	legacy_decoder: LegacyDecoder,
@@ -91,7 +93,7 @@ impl<T: TypeDetective> Decoder<T> {
 			let decoder = self.current_decoder.get(&version).expect("Checked if key is contained; qed");
 			match decoder.decode_extrinsics(&mut data) {
 				Ok(v) => Ok(serde_json::to_value(&v)?),
-				Err((ext, e)) => Err(Error::V14(e, ext.into_iter().map(Extrinsic::into_owned).collect())),
+				Err((ext, e)) => Err(Error::V14{ source: e, ext: ext.into_iter().map(Extrinsic::into_owned).collect() }),
 			}
 		} else {
 			if !self.legacy_decoder.has_version(&version) {
@@ -100,6 +102,10 @@ impl<T: TypeDetective> Decoder<T> {
 			let ext = self.legacy_decoder.decode_extrinsics(version, data)?;
 			Ok(serde_json::to_value(&ext)?)
 		}
+	}
+
+	pub fn has_version(&self, version: &SpecVersion) -> bool {
+		self.current_decoder.contains_key(version) || self.legacy_decoder.has_version(version)
 	}
 }
 
@@ -116,6 +122,14 @@ impl InfoDecoder {
 
 	pub fn decode_extrinsics(&self, version: SpecVersion, data: &[u8]) -> Result<Value, Error> {
 		self.0.decode_extrinsics(version, data)
+	}
+
+	pub fn has_version(&self, version: &SpecVersion) -> bool {
+		self.0.has_version(version)
+	}
+
+	pub fn register_version(&mut self, version: SpecVersion, metadata: &[u8]) -> Result<(), Error> {
+		self.0.register_version(version, metadata)
 	}
 }
 
@@ -135,5 +149,13 @@ impl PolkadotJsDecoder {
 
 	pub fn decode_extrinsics(&self, version: SpecVersion, data: &[u8]) -> Result<Value, Error> {
 		self.0.decode_extrinsics(version, data)
+	}
+
+	pub fn has_version(&self, version: &SpecVersion) -> bool {
+		self.0.has_version(version)
+	}
+
+	pub fn register_version(&mut self, version: SpecVersion, metadata: &[u8]) -> Result<(), Error> {
+		self.0.register_version(version, metadata)
 	}
 }

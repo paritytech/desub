@@ -15,12 +15,11 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::queries::*;
-use crate::decoder::{Decoder, SpecVersion};
-use desub::decoder::Chain;
 
-use desub_extras::runtimes;
+use desub::{runtimes, PolkadotJsDecoder, SpecVersion, Chain};
 
-use anyhow::Error;
+
+use anyhow::{Error, Context};
 use argh::FromArgs;
 use async_std::task;
 use futures::StreamExt;
@@ -70,13 +69,13 @@ pub struct App {
 
 struct AppState<'a> {
 	app: &'a App,
-	decoder: &'a RwLock<Decoder>,
+	decoder: &'a RwLock<PolkadotJsDecoder>,
 	pool: &'a PgPool,
 	pb: Option<&'a ProgressBar>,
 }
 
 impl<'a> AppState<'a> {
-	fn new(app: &'a App, decoder: &'a RwLock<Decoder>, pool: &'a PgPool, pb: Option<&'a ProgressBar>) -> Self {
+	fn new(app: &'a App, decoder: &'a RwLock<PolkadotJsDecoder>, pool: &'a PgPool, pb: Option<&'a ProgressBar>) -> Self {
 		Self { app, decoder, pool, pb }
 	}
 
@@ -124,11 +123,11 @@ impl<'a> AppState<'a> {
 		Ok((error_count, len))
 	}
 
-	fn decode(decoder: &Decoder, block: BlockModel, spec: SpecVersion, errors: &mut Vec<String>) -> Result<(), Error> {
+	fn decode(decoder: &PolkadotJsDecoder, block: BlockModel, spec: SpecVersion, errors: &mut Vec<String>) -> Result<(), Error> {
 		log::debug!("Decoding block {}, spec_version {}, ext length {}", block.block_num, spec, block.ext.len());
 		match decoder.decode_extrinsics(spec, &block.ext) {
-			Err(e) => {
-				let e = e.context(format!("Failed to decode block {}", block.block_num));
+			e @ Err(_) => {
+				let e = e.context(format!("Failed to decode block {}", block.block_num)).unwrap_err();
 				errors.push(format!("{}", e));
 				Err(e)
 			}
@@ -144,15 +143,15 @@ impl<'a> AppState<'a> {
 	async fn register_metadata(&self, conn: &mut PgConnection, version: SpecVersion) -> Result<Option<u32>, Error> {
 		let (past, present) = past_and_present_version(conn, version.try_into()?).await?;
 		let mut decoder = self.decoder.write();
-		if !decoder.has_version(present.try_into().unwrap()) {
+		if !decoder.has_version(&present) {
 			let meta = metadata(conn, present.try_into()?).await?;
-			decoder.register_version(present.try_into()?, &meta)?;
+			decoder.register_version(present, &meta)?;
 		}
 
 		if let Some(p) = past {
-			if !decoder.has_version(p.try_into()?) {
+			if !decoder.has_version(&p) {
 				let meta = metadata(conn, p.try_into()?).await?;
-				decoder.register_version(p.try_into()?, &meta)?;
+				decoder.register_version(p, &meta)?;
 			}
 		}
 		Ok(past)
@@ -175,9 +174,7 @@ pub async fn app(app: App) -> Result<(), Error> {
 	let pool = PgPoolOptions::new().max_connections(num_cpus::get() as u32).connect(&app.database_url).await?;
 
 	let mut conn = pool.acquire().await?;
-
-	let types = desub_extras::TypeResolver::default();
-	let decoder = Arc::new(RwLock::new(Decoder::new(types, app.network.clone())));
+	let decoder = Arc::new(RwLock::new(PolkadotJsDecoder::new(app.network.clone())));
 	let mut errors = Vec::new();
 
 	let pb = if app.progress { Some(construct_progress_bar(1000)) } else { None };
