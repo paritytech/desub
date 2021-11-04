@@ -85,7 +85,7 @@ impl<'a> AppState<'a> {
 		let errors = Arc::new(Mutex::new(errors));
 		versions.into_par_iter().try_for_each(|version| {
 			let mut conn = task::block_on(self.pool.acquire())?;
-			let previous = task::block_on(self.register_metadata(&mut conn, version.try_into()?))?.map(|v| v as i32);
+			let previous = task::block_on(self.register_metadata(&mut conn, version))?.map(|v| v as i32);
 			let mut errors = (*errors).lock();
 			let (err, len) =
 				task::block_on(self.print_blocks_by_spec(&mut conn, version as i32, previous, &mut errors))?;
@@ -190,7 +190,7 @@ pub async fn app(app: App) -> Result<(), Error> {
 		} else {
 			version as u32
 		};
-		AppState::decode(&decoder.read(), block, version.try_into()?, &mut errors)?;
+		AppState::decode(&decoder.read(), block, version, &mut errors)?;
 	}
 
 	if let Some(spec) = app.spec {

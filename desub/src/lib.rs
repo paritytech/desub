@@ -27,7 +27,7 @@ use desub_legacy::{
 };
 use frame_metadata::RuntimeMetadataPrefixed;
 use serde_json::Value;
-use std::{collections::HashMap, marker::PhantomData};
+use std::collections::HashMap;
 
 #[cfg(feature = "polkadot-js")]
 use extras::TypeResolver as PolkadotJsResolver;

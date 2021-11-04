@@ -41,7 +41,7 @@ async fn main() -> Result<(), Error> {
 				colors.color(record.level()),
 				record.target().bold(),
 				record.line().map(|l| l.to_string()).unwrap_or_default(),
-				message.to_string(),
+				message,
 			))
 		})
 		// Output to stdout, files, and other Dispatch configurations
