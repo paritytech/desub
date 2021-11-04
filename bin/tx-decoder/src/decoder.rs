@@ -46,11 +46,11 @@ impl Decoder {
 	}
 
 	// Decodes extrinsics and serializes to String
-	pub fn decode_extrinsics(&self, version: SpecVersion, data: &[u8]) -> Result<String, Error> {
+	pub fn decode_extrinsics(&self, version: SpecVersion, mut data: &[u8]) -> Result<String, Error> {
 		if self.is_version_new(version) {
 			log::debug!("DECODING NEW");
 			let decoder = self.new.get(&version.try_into()?).ok_or_else(|| anyhow!("version {} not found for new decoder", version))?;
-			match decoder.decode_extrinsics(data) {
+			match decoder.decode_extrinsics(&mut data) {
 				Ok(v) => Ok(format!("{:#?}", v)),
 				Err(e) => Err(e.1.into())
 			}

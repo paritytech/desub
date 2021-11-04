@@ -37,14 +37,12 @@ let decoder = Decoder::with_metadata(metadata);
 // the same extrinsic repeated 3 times:
 let extrinsics_hex = "0x0C2004480104080c10142004480104080c10142004480104080c1014";
 let extrinsics_bytes = hex::decode(extrinsics_hex.strip_prefix("0x").unwrap()).unwrap();
+let extrinsics_cursor = &mut &*extrinsics_bytes;
 
-let extrinsics = decoder.decode_extrinsics(&extrinsics_bytes).unwrap();
+let extrinsics = decoder.decode_extrinsics(extrinsics_cursor).unwrap();
 
+assert_eq!(extrinsics_cursor.len(), 0);
 assert_eq!(extrinsics.len(), 3);
-for ext in extrinsics {
-    assert_eq!(ext.pallet, "Auctions".to_string());
-    assert_eq!(ext.call, "bid".to_string());
-}
 ```
 
 ## Decoding a single extrinsic
@@ -62,11 +60,13 @@ let decoder = Decoder::with_metadata(metadata);
 
 let extrinsic_hex = "0x2004480104080c1014";
 let extrinsic_bytes = hex::decode(extrinsic_hex.strip_prefix("0x").unwrap()).unwrap();
+let extrinsic_cursor = &mut &*extrinsic_bytes;
 
-let extrinsic = decoder.decode_extrinsic(&extrinsic_bytes).unwrap();
+let extrinsic = decoder.decode_extrinsic(extrinsic_cursor).unwrap();
 
-assert_eq!(extrinsic.pallet, "Auctions".to_string());
-assert_eq!(extrinsic.call, "bid".to_string());
+assert_eq!(extrinsic_cursor.len(), 0);
+assert_eq!(extrinsic.call_data.pallet_name, "Auctions");
+assert_eq!(&*extrinsic.call_data.ty.name(), "bid");
 ```
 
 ## Decoding call data
@@ -93,12 +93,14 @@ let call_data_hex = "0x480104080c1014";
 let extrinsic_hex = "0x04480104080c1014";
 
 let extrinsic_bytes = hex::decode(extrinsic_hex.strip_prefix("0x").unwrap()).unwrap();
+let extrinsic_cursor = &mut &*extrinsic_bytes;
 
 // Decode the "unwrapped" (no length prefix) extrinsic like so:
-let extrinsic = decoder.decode_unwrapped_extrinsic(&extrinsic_bytes).unwrap();
+let extrinsic = decoder.decode_unwrapped_extrinsic(extrinsic_cursor).unwrap();
 
-assert_eq!(extrinsic.pallet, "Auctions".to_string());
-assert_eq!(extrinsic.call, "bid".to_string());
+assert_eq!(extrinsic_cursor.len(), 0);
+assert_eq!(extrinsic.call_data.pallet_name, "Auctions");
+assert_eq!(&*extrinsic.call_data.ty.name(), "bid");
 ```
 */
 mod decode_type;
@@ -110,6 +112,7 @@ use codec::{Compact, Decode};
 use decode_type::{decode_type, decode_type_by_id, DecodeTypeError};
 use extrinsic_bytes::{AllExtrinsicBytes, ExtrinsicBytesError};
 use sp_runtime::{AccountId32, MultiAddress, MultiSignature};
+use std::borrow::Cow;
 
 pub struct Decoder {
 	metadata: Metadata,
@@ -127,17 +130,14 @@ pub enum DecodeError {
 	DecodeTypeError(#[from] DecodeTypeError),
 	#[error("Failed to decode: expected more data")]
 	EarlyEof(&'static str),
+	#[error("Failed to decode extrinsics: {0} bytes of the input were not consumed")]
+	ExcessBytes(usize),
 	#[error("Failed to decode unsupported extrinsic version '{0}'")]
 	CannotDecodeExtrinsicVersion(u8),
 	#[error("Cannot find call corresponding to extrinsic with pallet index {0} and call index {1}")]
 	CannotFindCall(u8, u8),
 	#[error("Failed to decode extrinsic: cannot find type ID {0}")]
 	CannotFindType(u32),
-	/// Returned from either [`Decoder::decode_extrinsic`] or [`Decoder::decode_extrinsics`], this consists
-	/// of the extrinsic we think we decoded, and the number of bytes left in the slice provided (which we
-	/// expected to entirely consume, but did not).
-	#[error("Decoding an extrinsic should consume all bytes, but {0} bytes remain")]
-	LateEof(usize, Extrinsic),
 }
 
 impl Decoder {
@@ -155,32 +155,43 @@ impl Decoder {
 	/// expected to be provided in a SCALE-encoded form equivalent to `Vec<(Compact<u32>,Extrinsic)>`; in other words, we
 	/// start with a compact encoded count of how many extrinsics exist, and then each extrinsic is prefixed by
 	/// a compact encoding of its byte length.
-	pub fn decode_extrinsics(&self, data: &[u8]) -> Result<Vec<Extrinsic>, (Vec<Extrinsic>, DecodeError)> {
-		let extrinsic_bytes = AllExtrinsicBytes::new(data).map_err(|e| (Vec::new(), e.into()))?;
+	pub fn decode_extrinsics<'a>(
+		&'a self,
+		data: &mut &[u8],
+	) -> Result<Vec<Extrinsic<'a>>, (Vec<Extrinsic<'a>>, DecodeError)> {
+		let extrinsic_bytes = AllExtrinsicBytes::new(*data).map_err(|e| (Vec::new(), e.into()))?;
 
 		log::trace!("Decoding {} Total Extrinsics.", extrinsic_bytes.len());
 
 		let mut out = Vec::with_capacity(extrinsic_bytes.len());
-		for (idx, res) in extrinsic_bytes.iter().enumerate() {
+		let mut extrinsics_iter = extrinsic_bytes.iter();
+		for res in &mut extrinsics_iter {
 			let single_extrinsic = match res {
 				Ok(bytes) => bytes,
 				Err(e) => return Err((out, e.into())),
 			};
 
-			log::trace!("Extrinsic {}:{:?}", idx, single_extrinsic.bytes());
+			log::trace!("Extrinsic:{:?}", single_extrinsic.bytes());
 
-			let ext = match self.decode_unwrapped_extrinsic(single_extrinsic.bytes()) {
+			let bytes = &mut single_extrinsic.bytes();
+			let ext = match self.decode_unwrapped_extrinsic(bytes) {
 				Ok(ext) => ext,
-				Err(DecodeError::LateEof(remaining, ext)) => {
-					// Returned from `decode_extrinsics`, we want the remaining bytes to be relative
-					// to the data slice passed in, and not the single extrinsic slice.
-					return Err((out, DecodeError::LateEof(single_extrinsic.remaining() + remaining, ext)));
-				}
 				Err(e) => return Err((out, e)),
 			};
 
+			// If decoding didn't consume all extrinsic bytes, something went wrong.
+			// Hand back whatever we have but note the error.
+			if !bytes.is_empty() {
+				return Err((out, DecodeError::ExcessBytes(bytes.len())));
+			}
+
 			out.push(ext);
 		}
+
+		// Shift our externally provided data cursor forwards to the right spot,
+		// so that one can continue to decode more bytes if there are any:
+		*data = extrinsics_iter.remaining_bytes();
+
 		Ok(out)
 	}
 
@@ -190,24 +201,18 @@ impl Decoder {
 	///
 	/// If your extrinsic is not prefixed by its byte length, use [`Decoder::decode_unwrapped_extrinsic`] to
 	/// decode it instead.
-	pub fn decode_extrinsic(&self, mut data: &[u8]) -> Result<Extrinsic, DecodeError> {
-		let data = &mut data;
-
+	pub fn decode_extrinsic<'a>(&'a self, data: &mut &[u8]) -> Result<Extrinsic<'a>, DecodeError> {
 		// Ignore the expected extrinsic length here at the moment, since `decode_unwrapped_extrinsic` will
 		// error accordingly if the wrong number of bytes are consumed.
 		let _len = <Compact<u32>>::decode(data)?;
 
-		self.decode_unwrapped_extrinsic(*data)
+		self.decode_unwrapped_extrinsic(data)
 	}
 
 	/// Decode a SCALE encoded extrinsic against the metadata provided. Unlike [`Decoder::decode_extrinsic`], this
 	/// assumes that the bytes provided do *not* start with a compact encoded count of the extrinsic byte length
 	/// (ie, the extrinsic has been "unwrapped" already, and here we deal directly with the signature and call data).
-	pub fn decode_unwrapped_extrinsic(&self, mut data: &[u8]) -> Result<Extrinsic, DecodeError> {
-		// If we use a mutable reference to the data, `decode` functions will autoamtically
-		// update the bytes pointed to as they decode, to "move the cursor along".
-		let data = &mut data;
-
+	pub fn decode_unwrapped_extrinsic<'a>(&'a self, data: &mut &[u8]) -> Result<Extrinsic<'a>, DecodeError> {
 		if data.is_empty() {
 			return Err(DecodeError::EarlyEof("unwrapped extrinsic byte length should be > 0"));
 		}
@@ -241,10 +246,20 @@ impl Decoder {
 
 		// If the extrinsic is signed, decode the signature next.
 		let signature = match is_signed {
-			true => Some(decode_v4_signature(data, &self.metadata)?),
+			true => Some(self.decode_signature(data)?),
 			false => None,
 		};
 
+		// Finally, decode the call data.
+		let call_data = self.decode_call_data(data)?;
+
+		Ok(Extrinsic { call_data, signature })
+	}
+
+	/// Decode SCALE encoded call data. Conceptually, this is expected to take the form of
+	/// `(u8, u8, arguments)`, where the specific pallet call variant indexes are determined by
+	/// the `u8`s, and then arguments according to the specific variant are expected to follow.
+	pub fn decode_call_data<'a>(&'a self, data: &mut &[u8]) -> Result<CallData<'a>, DecodeError> {
 		// Pluck out the u8's representing the pallet and call enum next.
 		if data.len() < 2 {
 			return Err(DecodeError::EarlyEof("expected at least 2 more bytes for the pallet/call index"));
@@ -254,72 +269,162 @@ impl Decoder {
 		log::trace!("pallet index: {}, call index: {}", pallet_index, call_index);
 
 		// Work out which call the extrinsic data represents and get type info for it:
-		let (pallet_name, call) = match self.metadata.call_by_variant_index(pallet_index, call_index) {
+		let (pallet_name, variant) = match self.metadata.call_variant_by_enum_index(pallet_index, call_index) {
 			Some(call) => call,
 			None => return Err(DecodeError::CannotFindCall(pallet_index, call_index)),
 		};
 
 		// Decode each of the argument values in the extrinsic:
-		let mut arguments = vec![];
-		for arg in call.args() {
-			let ty = self.metadata.types().resolve(arg.id()).ok_or_else(|| DecodeError::CannotFindType(arg.id()))?;
-			let val = match decode_type(data, ty, self.metadata.types()) {
-				Ok(val) => val,
-				Err(err) => return Err(err.into()),
-			};
-			arguments.push(val);
+		let arguments: Vec<_> = variant
+			.fields()
+			.iter()
+			.map(|field| {
+				let type_id = field.ty().id();
+				let ty = self.metadata.types().resolve(type_id).ok_or(DecodeError::CannotFindType(type_id))?;
+				decode_type(data, ty, self.metadata.types()).map_err(DecodeError::DecodeTypeError)
+			})
+			.collect::<Result<_, _>>()?;
+
+		Ok(CallData { pallet_name: Cow::Borrowed(pallet_name), ty: Cow::Borrowed(variant), arguments })
+	}
+
+	/// Decode the SCALE encoded data that, once signed, is used to construct a signed extrinsic. The encoded payload has the following shape:
+	/// `(call_data, signed_extensions, additional_signed)`.
+	pub fn decode_signer_payload<'a>(&'a self, data: &mut &[u8]) -> Result<SignerPayload<'a>, DecodeError> {
+		let call_data = self.decode_call_data(data)?;
+		let signed_extensions = self.decode_signed_extensions(data)?;
+		let additional_signed = self.decode_additional_signed(data)?;
+		let extensions = signed_extensions
+			.into_iter()
+			.zip(additional_signed)
+			.map(|((name, extension), (_, additional))| (name, SignedExtensionWithAdditional { additional, extension }))
+			.collect();
+
+		Ok(SignerPayload { call_data, extensions })
+	}
+
+	/// Decode a SCALE encoded extrinsic signature.
+	fn decode_signature<'a>(&'a self, data: &mut &[u8]) -> Result<ExtrinsicSignature<'a>, DecodeError> {
+		let address = <MultiAddress<AccountId32, u32>>::decode(data)?;
+		let signature = MultiSignature::decode(data)?;
+		let extensions = self.decode_signed_extensions(data)?;
+
+		Ok(ExtrinsicSignature { address, signature, extensions })
+	}
+
+	/// Decode the signed extensions.
+	fn decode_signed_extensions<'a>(&'a self, data: &mut &[u8]) -> Result<Vec<(Cow<'a, str>, Value)>, DecodeError> {
+		self.metadata
+			.extrinsic()
+			.signed_extensions()
+			.iter()
+			.map(|ext| {
+				let val = decode_type_by_id(data, &ext.ty, self.metadata.types())?;
+				let name = Cow::Borrowed(&*ext.identifier);
+				Ok((name, val))
+			})
+			.collect()
+	}
+
+	/// Decode the additional signed data. This isn't used for decoding extrinsics, but instead for
+	/// decoding the data that a user signs.
+	fn decode_additional_signed<'a>(&'a self, data: &mut &[u8]) -> Result<Vec<(Cow<'a, str>, Value)>, DecodeError> {
+		self.metadata
+			.extrinsic()
+			.signed_extensions()
+			.iter()
+			.map(|ext| {
+				let val = decode_type_by_id(data, &ext.additional_signed, self.metadata.types())?;
+				let name = Cow::Borrowed(&*ext.identifier);
+				Ok((name, val))
+			})
+			.collect()
+	}
+}
+
+/// Decoded call data and associated type information.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CallData<'a> {
+	/// The name of the pallet
+	pub pallet_name: Cow<'a, str>,
+	/// The type information for this call (including the name
+	/// of the call and information about each argument)
+	pub ty: Cow<'a, scale_info::Variant<scale_info::form::PortableForm>>,
+	/// The decoded argument data
+	pub arguments: Vec<Value>,
+}
+
+impl<'a> CallData<'a> {
+	pub fn into_owned(self) -> CallData<'static> {
+		CallData {
+			pallet_name: Cow::Owned(self.pallet_name.into_owned()),
+			ty: Cow::Owned(self.ty.into_owned()),
+			arguments: self.arguments,
 		}
-
-		let ext = Extrinsic { pallet: pallet_name.to_owned(), call: call.name().to_owned(), signature, arguments };
-
-		// If there's data left to consume, it likely means we screwed up decoding:
-		if !data.is_empty() {
-			return Err(DecodeError::LateEof(data.len(), ext));
-		}
-
-		// Return a composite type representing the extrinsic arguments:
-		Ok(ext)
 	}
 }
 
 /// The result of successfully decoding an extrinsic.
-#[derive(Debug, Clone)]
-pub struct Extrinsic {
-	/// The name of the pallet that the extrinsic called into
-	pub pallet: String,
-	/// The name of the call made
-	pub call: String,
+#[derive(Debug, Clone, PartialEq)]
+pub struct Extrinsic<'a> {
+	/// Decoded call data and associated type information about the call.
+	pub call_data: CallData<'a>,
 	/// The signature and signed extensions (if any) associated with the extrinsic
-	pub signature: Option<ExtrinsicSignature>,
-	/// The arguments to pass to the call
-	pub arguments: Vec<Value>,
+	pub signature: Option<ExtrinsicSignature<'a>>,
+}
+
+impl<'a> Extrinsic<'a> {
+	pub fn into_owned(self) -> Extrinsic<'static> {
+		Extrinsic { call_data: self.call_data.into_owned(), signature: self.signature.map(|s| s.into_owned()) }
+	}
 }
 
 /// The signature information embedded in an extrinsic.
-#[derive(Debug, Clone)]
-pub struct ExtrinsicSignature {
+#[derive(Debug, Clone, PartialEq)]
+pub struct ExtrinsicSignature<'a> {
 	/// Address the extrinsic is being sent from
 	pub address: MultiAddress<AccountId32, u32>,
 	/// Signature to prove validity
 	pub signature: MultiSignature,
 	/// Signed extensions, which can vary by node. Here, we
 	/// return the name and value of each.
-	pub extensions: Vec<(String, Value)>,
+	pub extensions: Vec<(Cow<'a, str>, Value)>,
 }
 
-fn decode_v4_signature<'a>(data: &mut &'a [u8], metadata: &Metadata) -> Result<ExtrinsicSignature, DecodeError> {
-	let address = <MultiAddress<AccountId32, u32>>::decode(data)?;
-	let signature = MultiSignature::decode(data)?;
-	let extensions = metadata
-		.extrinsic()
-		.signed_extensions()
-		.iter()
-		.map(|ext| {
-			let val = decode_type_by_id(data, &ext.ty, metadata.types())?;
-			let name = ext.identifier.to_string();
-			Ok((name, val))
-		})
-		.collect::<Result<_, DecodeError>>()?;
+impl<'a> ExtrinsicSignature<'a> {
+	pub fn into_owned(self) -> ExtrinsicSignature<'static> {
+		ExtrinsicSignature {
+			address: self.address,
+			signature: self.signature,
+			extensions: self.extensions.into_iter().map(|(k, v)| (Cow::Owned(k.into_owned()), v)).collect(),
+		}
+	}
+}
 
-	Ok(ExtrinsicSignature { address, signature, extensions })
+/// The decoded signer payload.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SignerPayload<'a> {
+	/// Decoded call data and associated type information about the call.
+	pub call_data: CallData<'a>,
+	/// Signed extensions as well as additional data to be signed. These
+	/// are packaged together in the metadata.
+	pub extensions: Vec<(Cow<'a, str>, SignedExtensionWithAdditional)>,
+}
+
+impl<'a> SignerPayload<'a> {
+	pub fn into_owned(self) -> SignerPayload<'static> {
+		SignerPayload {
+			call_data: self.call_data.into_owned(),
+			extensions: self.extensions.into_iter().map(|(k, v)| (Cow::Owned(k.into_owned()), v)).collect(),
+		}
+	}
+}
+
+/// The decoded signed extensions and additional data.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SignedExtensionWithAdditional {
+	/// The signed extension value at this position
+	pub extension: Value,
+	/// The additional signed value at this position
+	pub additional: Value,
 }

@@ -47,7 +47,7 @@ impl<'a> AllExtrinsicBytes<'a> {
 	/// with each one (not including the length prefix), or an error containing the position
 	/// at which decoding failed.
 	pub fn iter(&self) -> ExtrinsicBytesIter<'a> {
-		ExtrinsicBytesIter { data: self.data, cursor: 0 }
+		ExtrinsicBytesIter { remaining_len: self.len, data: self.data, cursor: 0 }
 	}
 }
 
@@ -55,22 +55,36 @@ impl<'a> AllExtrinsicBytes<'a> {
 /// On each iteration, we return either the extrinsic bytes, or an error containing
 /// the position at which decoding failed.
 pub struct ExtrinsicBytesIter<'a> {
+	/// The number of extrinsics we expect to be able to decode from the bytes.
+	/// this is decremented on each iteration.
+	remaining_len: usize,
 	data: &'a [u8],
 	cursor: usize,
+}
+
+impl<'a> ExtrinsicBytesIter<'a> {
+	/// Return the bytes remaining. If an iteration resulted in an error,
+	/// we'll return the bytes that we failed to decode, too.
+	pub fn remaining_bytes(&self) -> &'a [u8] {
+		&self.data[self.cursor..]
+	}
 }
 
 impl<'a> Iterator for ExtrinsicBytesIter<'a> {
 	type Item = Result<ExtrinsicBytes<'a>, ExtrinsicBytesError>;
 	fn next(&mut self) -> Option<Self::Item> {
-		if self.cursor >= self.data.len() {
+		// Stop when we hit the number of item's we're supposed to have,
+		// or have exhausted the data.
+		if self.remaining_len == 0 || self.cursor >= self.data.len() {
 			return None;
 		}
+		self.remaining_len -= 1;
 
 		let (vec_len, vec_len_bytes) = match decode_compact_u32(&self.data[self.cursor..]) {
 			Some(res) => res,
 			None => {
 				// Ensure that if we try iterating again we get back `None`:
-				self.cursor = self.data.len();
+				self.remaining_len = 0;
 				return Some(Err(ExtrinsicBytesError { index: self.cursor }));
 			}
 		};
@@ -83,30 +97,25 @@ impl<'a> Iterator for ExtrinsicBytesIter<'a> {
 		// aren't as many bytes as we expect, we bail with an error.
 		if end > self.data.len() {
 			// Ensure that if we try iterating again we get back `None`:
-			self.cursor = self.data.len();
+			self.remaining_len = 0;
 			return Some(Err(ExtrinsicBytesError { index: self.data.len() }));
 		}
 
 		let res = &self.data[start..end];
 		self.cursor += vec_len + vec_len_bytes;
 
-		Some(Ok(ExtrinsicBytes { data: res, remaining: self.data.len() - self.cursor }))
+		Some(Ok(ExtrinsicBytes { data: res }))
 	}
 }
 
 pub struct ExtrinsicBytes<'a> {
 	data: &'a [u8],
-	remaining: usize,
 }
 
 impl<'a> ExtrinsicBytes<'a> {
 	/// The bytes representing a single extrinsic
 	pub fn bytes(&self) -> &'a [u8] {
 		self.data
-	}
-	/// How many bytes remain to be decoded after this extrinsic?
-	pub fn remaining(&self) -> usize {
-		self.remaining
 	}
 }
 
@@ -238,5 +247,36 @@ mod test {
 		assert_eq!(iter_result_to_bytes(exts.next()), Some(Ok(&[1, 2, 3, 4][..])));
 		assert_eq!(iter_result_to_bytes(exts.next()), Some(Err(ExtrinsicBytesError { index: 8 })));
 		assert_eq!(iter_result_to_bytes(exts.next()), None);
+	}
+
+	#[test]
+	fn wont_iterate_past_advertised_length() {
+		let mut bytes: Vec<u8> = vec![];
+
+		// 2 entries in block (but we have enough bytes for 3):
+		bytes.extend_from_slice(&Compact(2u32).encode());
+
+		// 3 correct entries:
+		bytes.extend_from_slice(&Compact(4u32).encode());
+		bytes.extend_from_slice(&[1, 2, 3, 4]);
+		bytes.extend_from_slice(&Compact(3u32).encode());
+		bytes.extend_from_slice(&[1, 2, 3]);
+		bytes.extend_from_slice(&Compact(5u32).encode());
+		bytes.extend_from_slice(&[1, 2, 3, 4, 5]);
+
+		let exts = AllExtrinsicBytes::new(&bytes).unwrap();
+		assert_eq!(exts.len(), 2);
+
+		let mut exts = exts.iter();
+		assert_eq!(iter_result_to_bytes(exts.next()), Some(Ok(&[1, 2, 3, 4][..])));
+		assert_eq!(iter_result_to_bytes(exts.next()), Some(Ok(&[1, 2, 3][..])));
+		assert_eq!(iter_result_to_bytes(exts.next()), None);
+
+		// The bytes we should have left (the third entry):
+		let mut remaining_bytes: Vec<u8> = vec![];
+		remaining_bytes.extend_from_slice(&Compact(5u32).encode());
+		remaining_bytes.extend_from_slice(&[1, 2, 3, 4, 5]);
+
+		assert_eq!(exts.remaining_bytes(), &remaining_bytes);
 	}
 }

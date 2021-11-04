@@ -33,7 +33,7 @@ fn main() -> Result<(), anyhow::Error> {
 		Err(e) => anyhow::bail!("Cannot decode hex string into bytes: {}", e),
 	};
 
-	let decoded = match decoder.decode_extrinsic(&bytes) {
+	let decoded = match decoder.decode_extrinsic(&mut &*bytes) {
 		Ok(decoded) => decoded,
 		Err(e) => anyhow::bail!("Cannot decode extrinsic: {}", e),
 	};

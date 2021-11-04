@@ -14,15 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
-	metadata::{Type, TypeDef, TypeId},
-	value::{BitSequence, Composite, Primitive, Value, Variant},
-};
+use crate::value::{BitSequence, Composite, Primitive, Value, Variant};
 use codec::{Compact, Decode};
 use scale_info::{
 	form::PortableForm, Field, PortableRegistry, TypeDefArray, TypeDefBitSequence, TypeDefCompact, TypeDefComposite,
 	TypeDefPrimitive, TypeDefSequence, TypeDefTuple, TypeDefVariant,
 };
+
+// Some type aliases used below. `scale-info` is re-exported at the root,
+// so to avoid confusion we only publically export all scale-info types from that
+// one place.
+type TypeDef = scale_info::TypeDef<PortableForm>;
+type Type = scale_info::Type<PortableForm>;
+type TypeId = <scale_info::form::PortableForm as scale_info::form::Form>::Type;
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum DecodeTypeError {
