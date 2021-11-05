@@ -15,7 +15,7 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{Composite, Primitive, Value, Variant};
-use serde::{self, de::Visitor, Deserialize, Deserializer};
+use serde::{self, de::{ Visitor, Error }, Deserialize, Deserializer};
 use std::convert::TryInto;
 
 /*
@@ -296,6 +296,40 @@ impl<'de> Visitor<'de> for VariantVisitor {
 			let values = variant_access.newtype_variant()?;
 			Ok(Variant { name, values })
 		})
+	}
+
+	fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+	where
+		A: serde::de::MapAccess<'de>, {
+		// We support deserializing from a map that looks like
+		// { name: "VariantName", values: [1,2,3] } into Variant + Composite::Unnamed, or
+		// { name: "VariantName", values: { "a": 1, "b": 2 }} into Variant + Composite::Named
+		// to line up with our Serialize impl for the Value types.
+		let mut name = None;
+		let mut values = None;
+
+		while let Some(k) = map.next_key::<String>()? {
+			match &*k {
+				"name" => {
+					name = Some(map.next_value()?);
+				},
+				"values" => {
+					values = Some(map.next_value()?);
+				},
+				other => {
+					return Err(A::Error::unknown_field(other, &["name", "values"]))
+				}
+			}
+		}
+
+		if let (Some(name), Some(values)) = (name, values) {
+			Ok(Variant {
+				name,
+				values
+			})
+		} else {
+			Err(A::Error::custom("map must contain 'name' and 'values' to deserialize to a Variant"))
+		}
 	}
 }
 
@@ -659,5 +693,45 @@ mod test {
 				b: PartialB { c: 123, d: "hell".into(), e: Value::Composite(Composite::Unnamed(vec![])) }
 			}
 		)
+	}
+
+	#[test]
+	fn deserialize_well_formed_map_to_unnamed_variant() {
+		let v: Variant = Variant::deserialize(serde_json::json!({
+			"name": "Hello",
+			"values": [1, 2, true]
+		})).unwrap();
+
+		assert_eq!(v.name, "Hello".to_string());
+		assert_eq!(v.values, Composite::Unnamed(vec![
+			// All JSON numbers deserialize to U64 or I64 or F64 as necessary:
+			Value::Primitive(Primitive::U64(1)),
+			Value::Primitive(Primitive::U64(2)),
+			Value::Primitive(Primitive::Bool(true)),
+		]))
+	}
+
+	#[test]
+	fn deserialize_well_formed_map_to_named_variant() {
+		let v: Variant = Variant::deserialize(serde_json::json!({
+			"name": "Hello",
+			"values": { "a": 1, "b": 2, "c": true }
+		})).unwrap();
+
+		assert_eq!(v.name, "Hello".to_string());
+		assert_eq!(v.values, Composite::Named(vec![
+			// All JSON numbers deserialize to U64 or I64 or F64 as necessary:
+			("a".into(), Value::Primitive(Primitive::U64(1))),
+			("b".into(), Value::Primitive(Primitive::U64(2))),
+			("c".into(), Value::Primitive(Primitive::Bool(true))),
+		]))
+	}
+
+	#[test]
+	fn cannot_deserialize_malformed_map_to_variant() {
+		Variant::deserialize(serde_json::json!({
+			"names": "Hello", // "names", not "name".
+			"values": [1, 2, true]
+		})).unwrap_err();
 	}
 }

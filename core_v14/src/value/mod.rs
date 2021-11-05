@@ -22,6 +22,7 @@ of JSON data).
 
 mod deserialize;
 mod deserializer;
+mod serialize;
 
 use bitvec::{order::Lsb0, vec::BitVec};
 use serde::Deserialize;
