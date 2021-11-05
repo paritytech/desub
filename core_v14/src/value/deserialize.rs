@@ -15,7 +15,11 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{Composite, Primitive, Value, Variant};
-use serde::{self, de::{ Visitor, Error }, Deserialize, Deserializer};
+use serde::{
+	self,
+	de::{Error, Visitor},
+	Deserialize, Deserializer,
+};
 use std::convert::TryInto;
 
 /*
@@ -300,7 +304,8 @@ impl<'de> Visitor<'de> for VariantVisitor {
 
 	fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
 	where
-		A: serde::de::MapAccess<'de>, {
+		A: serde::de::MapAccess<'de>,
+	{
 		// We support deserializing from a map that looks like
 		// { name: "VariantName", values: [1,2,3] } into Variant + Composite::Unnamed, or
 		// { name: "VariantName", values: { "a": 1, "b": 2 }} into Variant + Composite::Named
@@ -312,21 +317,16 @@ impl<'de> Visitor<'de> for VariantVisitor {
 			match &*k {
 				"name" => {
 					name = Some(map.next_value()?);
-				},
+				}
 				"values" => {
 					values = Some(map.next_value()?);
-				},
-				other => {
-					return Err(A::Error::unknown_field(other, &["name", "values"]))
 				}
+				other => return Err(A::Error::unknown_field(other, &["name", "values"])),
 			}
 		}
 
 		if let (Some(name), Some(values)) = (name, values) {
-			Ok(Variant {
-				name,
-				values
-			})
+			Ok(Variant { name, values })
 		} else {
 			Err(A::Error::custom("map must contain 'name' and 'values' to deserialize to a Variant"))
 		}
@@ -700,15 +700,19 @@ mod test {
 		let v: Variant = Variant::deserialize(serde_json::json!({
 			"name": "Hello",
 			"values": [1, 2, true]
-		})).unwrap();
+		}))
+		.unwrap();
 
 		assert_eq!(v.name, "Hello".to_string());
-		assert_eq!(v.values, Composite::Unnamed(vec![
-			// All JSON numbers deserialize to U64 or I64 or F64 as necessary:
-			Value::Primitive(Primitive::U64(1)),
-			Value::Primitive(Primitive::U64(2)),
-			Value::Primitive(Primitive::Bool(true)),
-		]))
+		assert_eq!(
+			v.values,
+			Composite::Unnamed(vec![
+				// All JSON numbers deserialize to U64 or I64 or F64 as necessary:
+				Value::Primitive(Primitive::U64(1)),
+				Value::Primitive(Primitive::U64(2)),
+				Value::Primitive(Primitive::Bool(true)),
+			])
+		)
 	}
 
 	#[test]
@@ -716,15 +720,19 @@ mod test {
 		let v: Variant = Variant::deserialize(serde_json::json!({
 			"name": "Hello",
 			"values": { "a": 1, "b": 2, "c": true }
-		})).unwrap();
+		}))
+		.unwrap();
 
 		assert_eq!(v.name, "Hello".to_string());
-		assert_eq!(v.values, Composite::Named(vec![
-			// All JSON numbers deserialize to U64 or I64 or F64 as necessary:
-			("a".into(), Value::Primitive(Primitive::U64(1))),
-			("b".into(), Value::Primitive(Primitive::U64(2))),
-			("c".into(), Value::Primitive(Primitive::Bool(true))),
-		]))
+		assert_eq!(
+			v.values,
+			Composite::Named(vec![
+				// All JSON numbers deserialize to U64 or I64 or F64 as necessary:
+				("a".into(), Value::Primitive(Primitive::U64(1))),
+				("b".into(), Value::Primitive(Primitive::U64(2))),
+				("c".into(), Value::Primitive(Primitive::Bool(true))),
+			])
+		)
 	}
 
 	#[test]
@@ -732,6 +740,7 @@ mod test {
 		Variant::deserialize(serde_json::json!({
 			"names": "Hello", // "names", not "name".
 			"values": [1, 2, true]
-		})).unwrap_err();
+		}))
+		.unwrap_err();
 	}
 }
