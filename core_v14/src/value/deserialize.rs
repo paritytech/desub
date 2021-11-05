@@ -737,10 +737,27 @@ mod test {
 
 	#[test]
 	fn cannot_deserialize_malformed_map_to_variant() {
-		Variant::deserialize(serde_json::json!({
-			"names": "Hello", // "names", not "name".
-			"values": [1, 2, true]
-		}))
-		.unwrap_err();
+		assert!(matches!(
+			Variant::deserialize(serde_json::json!({
+				"names": "Hello", // "names", not "name".
+				"values": [1, 2, true]
+			})),
+			Err(..)
+		));
+		assert!(matches!(
+			Variant::deserialize(serde_json::json!({
+				"name": "Hello",
+				"values": [1, 2, true],
+				"other": true // unexpected third prop.
+			})),
+			Err(..)
+		));
+		assert!(matches!(
+			Variant::deserialize(serde_json::json!({
+				"names": "Hello",
+				"values": 1 // incorrect type of values
+			})),
+			Err(..)
+		));
 	}
 }

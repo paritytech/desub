@@ -89,7 +89,7 @@ impl Serialize for Variant {
 	where
 		S: serde::Serializer,
 	{
-		// W can't use the enum serializing in the serde data model because that requires static
+		// We can't use the enum serializing in the serde data model because that requires static
 		// strs and enum indexes, which we don't have (since this is a runtime value), so we serialize
 		// as a map with a type and a value, and make sure that we allow this format when attempting to
 		// deserialize into a `Variant` type for a bit of symmetry (although note that if you try to deserialize
