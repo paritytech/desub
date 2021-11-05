@@ -19,3 +19,6 @@ derive_more = "0.99.16"
 scale-info = { version = "1.0.0", features = ["bit-vec", "derive"] }
 bitvec = { version = "0.20.2", features = ["serde", "alloc"] }
 desub-common = { path = "../desub-common" }
+
+[dev-dependencies]
+serde_json = "1"

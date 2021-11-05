@@ -48,12 +48,8 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, MetadataError> {
 				};
 
 				// Store the mapping from u8 index to variant slice index for quicker decode lookup:
-				let call_variant_indexes = calls_variant
-					.variants()
-					.iter()
-					.enumerate()
-					.map(|(idx, v)| (v.index(), idx))
-					.collect();
+				let call_variant_indexes =
+					calls_variant.variants().iter().enumerate().map(|(idx, v)| (v.index(), idx)).collect();
 
 				Ok(MetadataCalls { calls_type_id, call_variant_indexes })
 			})
