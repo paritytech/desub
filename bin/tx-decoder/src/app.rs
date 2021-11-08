@@ -15,12 +15,11 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::queries::*;
-use crate::decoder::Decoder;
-use desub::decoder::Chain;
 
-use desub_extras::runtimes;
+use desub::{runtimes, Decoder, SpecVersion, Chain};
 
-use anyhow::Error;
+
+use anyhow::{Error, Context};
 use argh::FromArgs;
 use async_std::task;
 use futures::StreamExt;
@@ -38,7 +37,6 @@ use std::{
 	},
 };
 
-pub type SpecVersion = i32;
 
 #[derive(FromArgs, PartialEq, Debug)]
 /// Decode Extrinsics And Storage from Substrate Archive
@@ -87,7 +85,7 @@ impl<'a> AppState<'a> {
 		let errors = Arc::new(Mutex::new(errors));
 		versions.into_par_iter().try_for_each(|version| {
 			let mut conn = task::block_on(self.pool.acquire())?;
-			let previous = task::block_on(self.register_metadata(&mut conn, version.try_into()?))?.map(|v| v as i32);
+			let previous = task::block_on(self.register_metadata(&mut conn, version))?.map(|v| v as i32);
 			let mut errors = (*errors).lock();
 			let (err, len) =
 				task::block_on(self.print_blocks_by_spec(&mut conn, version as i32, previous, &mut errors))?;
@@ -116,7 +114,7 @@ impl<'a> AppState<'a> {
 			} else {
 				version
 			};
-			if Self::decode(&decoder, block, version, errors).is_err() {
+			if Self::decode(&decoder, block, version.try_into()?, errors).is_err() {
 				error_count += 1;
 			}
 			len += 1;
@@ -128,8 +126,8 @@ impl<'a> AppState<'a> {
 	fn decode(decoder: &Decoder, block: BlockModel, spec: SpecVersion, errors: &mut Vec<String>) -> Result<(), Error> {
 		log::debug!("Decoding block {}, spec_version {}, ext length {}", block.block_num, spec, block.ext.len());
 		match decoder.decode_extrinsics(spec, &block.ext) {
-			Err(e) => {
-				let e = e.context(format!("Failed to decode block {}", block.block_num));
+			e @ Err(_) => {
+				let e = e.context(format!("Failed to decode block {}", block.block_num)).unwrap_err();
 				errors.push(format!("{}", e));
 				Err(e)
 			}
@@ -143,17 +141,17 @@ impl<'a> AppState<'a> {
 	/// Register the metadata with Decoder
 	/// returns the previous spec version.
 	async fn register_metadata(&self, conn: &mut PgConnection, version: SpecVersion) -> Result<Option<u32>, Error> {
-		let (past, present) = past_and_present_version(conn, version).await?;
+		let (past, present) = past_and_present_version(conn, version.try_into()?).await?;
 		let mut decoder = self.decoder.write();
-		if !decoder.has_version(present.try_into().unwrap()) {
+		if !decoder.has_version(&present) {
 			let meta = metadata(conn, present.try_into()?).await?;
-			decoder.register_version(present.try_into()?, &meta)?;
+			decoder.register_version(present, &meta)?;
 		}
 
 		if let Some(p) = past {
-			if !decoder.has_version(p.try_into()?) {
+			if !decoder.has_version(&p) {
 				let meta = metadata(conn, p.try_into()?).await?;
-				decoder.register_version(p.try_into()?, &meta)?;
+				decoder.register_version(p, &meta)?;
 			}
 		}
 		Ok(past)
@@ -176,9 +174,7 @@ pub async fn app(app: App) -> Result<(), Error> {
 	let pool = PgPoolOptions::new().max_connections(num_cpus::get() as u32).connect(&app.database_url).await?;
 
 	let mut conn = pool.acquire().await?;
-
-	let types = desub_extras::TypeResolver::default();
-	let decoder = Arc::new(RwLock::new(Decoder::new(types, app.network.clone())));
+	let decoder = Arc::new(RwLock::new(Decoder::new(app.network.clone())));
 	let mut errors = Vec::new();
 
 	let pb = if app.progress { Some(construct_progress_bar(1000)) } else { None };
@@ -187,14 +183,14 @@ pub async fn app(app: App) -> Result<(), Error> {
 
 	if let Some(block) = &app.block {
 		let version = version_by_block(&mut conn, *block).await?;
-		let previous = state.register_metadata(&mut conn, version).await?;
+		let previous = state.register_metadata(&mut conn, version.try_into()?).await?;
 		let block = single_block(&mut conn, *block as i32).await?;
 		let version = if get_upgrade_block(&app.network, version.try_into()?) == Some(block.block_num.try_into()?) {
 			previous.expect("Upgrade block must have previous version; qed")
 		} else {
 			version as u32
 		};
-		AppState::decode(&decoder.read(), block, version.try_into()?, &mut errors)?;
+		AppState::decode(&decoder.read(), block, version, &mut errors)?;
 	}
 
 	if let Some(spec) = app.spec {

@@ -25,7 +25,7 @@ mod deserializer;
 mod serialize;
 
 use bitvec::{order::Lsb0, vec::BitVec};
-use serde::Deserialize;
+use serde::{Deserialize};
 use std::convert::From;
 use std::fmt::Debug;
 

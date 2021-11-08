@@ -1,0 +1,21 @@
+[package]
+name = "desub"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+desub-legacy = { path = "../core/", package = "desub-core" }
+desub-common = { path = "../desub-common/", package = "desub-common" }
+
+core_v14 = { path = "../core_v14/", package = "core_v14" }
+extras = { path = "../extras/", optional = true, package = "desub-extras" }
+thiserror = "1.0.30"
+frame-metadata = "14.2"
+codec = { version = "2.3.1", package = "parity-scale-codec" }
+serde_json = "1.0.68"
+
+[features]
+polkadot-js = ["extras", "extras/polkadot", "frame-metadata/legacy" ]

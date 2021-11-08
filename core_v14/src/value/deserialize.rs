@@ -628,7 +628,7 @@ mod test {
 
 		let de: SeqDeserializer<_, DeserializeError> = vec![1u8; 32].into_deserializer();
 
-		assert_value_to_value(de.clone(), Primitive::U256([1; 32]));
+		assert_value_to_value(de, Primitive::U256([1; 32]));
 	}
 
 	#[test]

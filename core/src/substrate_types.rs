@@ -25,14 +25,14 @@ mod remote;
 use self::remote::*;
 use crate::{Error, SetField};
 use bitvec::order::Lsb0 as BitOrderLsb0;
-use primitives::crypto::AccountId32;
-use primitives::crypto::{Ss58AddressFormat, Ss58Codec};
+use primitives::crypto::{AccountId32, Ss58Codec};
 use serde::Serialize;
 use std::{convert::TryFrom, fmt};
+use runtime_primitives::MultiAddress;
 
 pub use self::data::Data;
 
-pub type Address = runtime_primitives::MultiAddress<AccountId32, u32>;
+pub type Address = MultiAddress<AccountId32, u32>;
 pub type Vote = pallet_democracy::Vote;
 pub type Conviction = pallet_democracy::Conviction;
 /// A 'stateful' version of [RustTypeMarker](enum.RustTypeMarker.html).
@@ -59,7 +59,7 @@ pub enum SubstrateType {
 	GenericVote(pallet_democracy::Vote),
 
 	/// Substrate Indices Address Type
-	#[serde(with = "RemoteAddress")]
+	#[serde(with = "desub_common::RemoteAddress")]
 	Address(Address),
 	/// Data Identity Type
 	Data(Data),
@@ -144,9 +144,7 @@ impl fmt::Display for SubstrateType {
 			},
 			SubstrateType::GenericVote(v) => write!(f, "Aye={}, Conviction={}", v.aye, v.conviction.lock_periods()),
 			SubstrateType::Address(v) => match v {
-				runtime_primitives::MultiAddress::Id(ref i) => {
-					write!(f, "Account::Id({})", i.to_ss58check_with_version(Ss58AddressFormat::SubstrateAccount))
-				}
+				runtime_primitives::MultiAddress::Id(ref i) => { write!(f, "Account::Id({})", i.to_ss58check()) }
 				runtime_primitives::MultiAddress::Index(i) => write!(f, "Index: {:?}", i),
 				runtime_primitives::MultiAddress::Raw(bytes) => write!(f, "Raw: {:?}", bytes),
 				runtime_primitives::MultiAddress::Address32(ary) => write!(f, "Address32: {:?}", ary),

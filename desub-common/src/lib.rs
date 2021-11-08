@@ -14,33 +14,32 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use serde::{Deserialize, Serialize};
+//! Common types between legacy and current desub versions.
 
-use super::{Conviction, Vote};
+#![forbid(unsafe_code)]
+#[deny(unused)]
+
+use sp_runtime::{MultiAddress as SubstrateMultiAddress};
+use sp_core::crypto::AccountId32;
+use serde::{Serialize, Deserialize};
+
+/// Spec Version type defined in the runtime of a chain.
+pub type SpecVersion = u32;
+
+pub type MultiAddress = SubstrateMultiAddress<AccountId32, u32>;
 
 #[derive(Serialize, Deserialize)]
-#[serde(remote = "Vote")]
-pub struct RemoteVote {
-	pub aye: bool,
-	#[serde(with = "RemoteConviction")]
-	pub conviction: Conviction,
+#[serde(remote = "MultiAddress")]
+pub enum RemoteAddress {
+	/// It's an account ID (pubkey).
+	Id(AccountId32),
+	/// It's an account index.
+	Index(u32),
+	/// It's some arbitrary raw bytes.
+	Raw(Vec<u8>),
+	/// It's a 32 byte representation.
+	Address32([u8; 32]),
+	/// It's a 20 byte representation.
+	Address20([u8; 20]),
 }
 
-#[derive(Serialize, Deserialize)]
-#[serde(remote = "Conviction")]
-pub enum RemoteConviction {
-	/// 0.1x votes, unlocked.
-	None,
-	/// 1x votes, locked for an enactment period following a successful vote.
-	Locked1x,
-	/// 2x votes, locked for 2x enactment periods following a successful vote.
-	Locked2x,
-	/// 3x votes, locked for 4x...
-	Locked3x,
-	/// 4x votes, locked for 8x...
-	Locked4x,
-	/// 5x votes, locked for 16x...
-	Locked5x,
-	/// 6x votes, locked for 32x...
-	Locked6x,
-}

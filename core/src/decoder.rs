@@ -44,6 +44,7 @@ use crate::{
 	substrate_types::{self, StructField, SubstrateType},
 	CommonTypes, RustTypeMarker, TypeDetective,
 };
+use desub_common::SpecVersion;
 use bitvec::order::Lsb0 as BitOrderLsb0;
 use codec::{Compact, CompactLen, Decode, Input};
 use std::{
@@ -55,7 +56,6 @@ use std::{
 	sync::atomic::{AtomicUsize, Ordering},
 };
 
-type SpecVersion = u32;
 /// Decoder for substrate types
 ///
 /// hold information about the Runtime Metadata
@@ -325,8 +325,8 @@ impl Decoder {
 	}
 
 	/// Check if a metadata version has already been registered
-	pub fn has_version(&self, version: SpecVersion) -> bool {
-		self.versions.contains_key(&version)
+	pub fn has_version(&self, version: &SpecVersion) -> bool {
+		self.versions.contains_key(version)
 	}
 
 	/// Insert a Metadata with Version attached

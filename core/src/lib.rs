@@ -16,9 +16,10 @@
 
 #[forbid(unsafe_code)]
 #[deny(unused)]
+
 pub mod decoder;
-mod error;
 pub mod regex;
+mod error;
 mod substrate_types;
 mod util;
 

@@ -113,7 +113,9 @@ use decode_type::{decode_type, decode_type_by_id, DecodeTypeError};
 use extrinsic_bytes::{AllExtrinsicBytes, ExtrinsicBytesError};
 use sp_runtime::{AccountId32, MultiAddress, MultiSignature};
 use std::borrow::Cow;
+use serde::{Serialize, Deserialize};
 
+#[derive(Debug)]
 pub struct Decoder {
 	metadata: Metadata,
 }
@@ -343,9 +345,10 @@ impl Decoder {
 }
 
 /// Decoded call data and associated type information.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct CallData<'a> {
 	/// The name of the pallet
+	#[serde(borrow)]
 	pub pallet_name: Cow<'a, str>,
 	/// The type information for this call (including the name
 	/// of the call and information about each argument)
@@ -365,11 +368,13 @@ impl<'a> CallData<'a> {
 }
 
 /// The result of successfully decoding an extrinsic.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Extrinsic<'a> {
 	/// Decoded call data and associated type information about the call.
+	#[serde(borrow)]
 	pub call_data: CallData<'a>,
 	/// The signature and signed extensions (if any) associated with the extrinsic
+	#[serde(borrow)]
 	pub signature: Option<ExtrinsicSignature<'a>>,
 }
 
@@ -380,14 +385,16 @@ impl<'a> Extrinsic<'a> {
 }
 
 /// The signature information embedded in an extrinsic.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ExtrinsicSignature<'a> {
 	/// Address the extrinsic is being sent from
+	#[serde(with = "desub_common::RemoteAddress")]
 	pub address: MultiAddress<AccountId32, u32>,
 	/// Signature to prove validity
 	pub signature: MultiSignature,
 	/// Signed extensions, which can vary by node. Here, we
 	/// return the name and value of each.
+	#[serde(borrow)]
 	pub extensions: Vec<(Cow<'a, str>, Value)>,
 }
 
@@ -402,9 +409,10 @@ impl<'a> ExtrinsicSignature<'a> {
 }
 
 /// The decoded signer payload.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct SignerPayload<'a> {
 	/// Decoded call data and associated type information about the call.
+	#[serde(borrow)]
 	pub call_data: CallData<'a>,
 	/// Signed extensions as well as additional data to be signed. These
 	/// are packaged together in the metadata.
@@ -421,7 +429,7 @@ impl<'a> SignerPayload<'a> {
 }
 
 /// The decoded signed extensions and additional data.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct SignedExtensionWithAdditional {
 	/// The signed extension value at this position
 	pub extension: Value,

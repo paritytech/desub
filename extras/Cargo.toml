@@ -7,7 +7,7 @@ repository = "https://github.com/paritytech/desub"
 
 
 [dependencies]
-thiserror = "1.0"
+thiserror = "1.0.30"
 core = { path = "../core", package = "desub-core" }
 codec = { version = "2", features = ["derive"], package = "parity-scale-codec" }
 log = { version = "0.4" }
