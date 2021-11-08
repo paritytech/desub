@@ -28,7 +28,7 @@ Use [`Decoder::decode_extrinsics`] to decode:
 
 ```rust
 use hex;
-use core_v14::{ Metadata, Decoder };
+use desub_current::{ Metadata, Decoder };
 
 let metadata_scale_encoded = include_bytes!("../../tests/data/v14_metadata_polkadot.scale");
 let metadata = Metadata::from_bytes(metadata_scale_encoded).unwrap();
@@ -52,7 +52,7 @@ prefixed with the length of this extrinsic data. Use [`Decoder::decode_extrinsic
 
 ```rust
 use hex;
-use core_v14::{ Metadata, Decoder };
+use desub_current::{ Metadata, Decoder };
 
 let metadata_scale_encoded = include_bytes!("../../tests/data/v14_metadata_polkadot.scale");
 let metadata = Metadata::from_bytes(metadata_scale_encoded).unwrap();
@@ -81,7 +81,7 @@ So, to convert any call data into something that can be decoded as an unwrapped 
 
 ```rust
 use hex;
-use core_v14::{ Metadata, Decoder };
+use desub_current::{ Metadata, Decoder };
 
 let metadata_scale_encoded = include_bytes!("../../tests/data/v14_metadata_polkadot.scale");
 let metadata = Metadata::from_bytes(metadata_scale_encoded).unwrap();
