@@ -1,4 +1,4 @@
-use core::{Decoder, Metadata};
+use desub_current::{Decoder, Metadata};
 use std::path::PathBuf;
 use structopt::StructOpt;
 

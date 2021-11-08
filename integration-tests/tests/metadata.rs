@@ -1,5 +1,5 @@
 use crate::runtime_metadata::*;
-use desub_core::decoder::Metadata;
+use desub_legacy::decoder::Metadata;
 use primitives::twox_128;
 
 #[test]

@@ -33,7 +33,7 @@ impl Extrinsics {
 		self.overrides.get(chain)?.iter().find(|f| crate::is_in_range(spec, f)).map(|o| &o.types)
 	}
 
-	pub fn get(&self, ty: &str, spec: u32, chain: &str) -> Option<&core::RustTypeMarker> {
+	pub fn get(&self, ty: &str, spec: u32, chain: &str) -> Option<&desub_legacy::RustTypeMarker> {
 		if let Some(ty) = self.get_chain_types(chain, spec).map(|c| c.get(ty)).flatten() {
 			Some(ty)
 		} else {

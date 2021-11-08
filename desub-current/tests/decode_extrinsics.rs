@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use core_v14::{decoder::SignedExtensionWithAdditional, value, Decoder, Metadata, Value};
+use desub_current::{decoder::SignedExtensionWithAdditional, value, Decoder, Metadata, Value};
 
 static V14_METADATA_POLKADOT_SCALE: &[u8] = include_bytes!("data/v14_metadata_polkadot.scale");
 
