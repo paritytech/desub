@@ -15,7 +15,7 @@
 //! Resolves types based on the JSON
 
 use crate::{Extrinsics, Modules, Overrides, Result};
-use core::{regex, RustTypeMarker, TypeDetective};
+use desub_legacy::{regex, RustTypeMarker, TypeDetective};
 
 #[cfg(feature = "default_definitions")]
 mod default {
@@ -216,7 +216,7 @@ impl TypeDetective for TypeResolver {
 mod tests {
 	use super::default::*;
 	use super::*;
-	use core::{EnumField, StructField};
+	use desub_legacy::{EnumField, StructField};
 
 	#[test]
 	fn should_get_type_from_module() -> Result<()> {

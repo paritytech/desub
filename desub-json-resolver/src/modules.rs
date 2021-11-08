@@ -13,7 +13,7 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::error::Error;
-use core::{regex, EnumField, RustTypeMarker, SetField, StructField};
+use desub_legacy::{regex, EnumField, RustTypeMarker, SetField, StructField};
 use serde::{
 	de::{self, Deserializer, MapAccess, Visitor},
 	Deserialize, Serialize,
@@ -335,7 +335,7 @@ mod tests {
 
 	use crate::error::Error;
 	use crate::ModuleTypes;
-	use core::{EnumField, RustTypeMarker, SetField, StructField};
+	use desub_legacy::{EnumField, RustTypeMarker, SetField, StructField};
 	use std::collections::HashMap;
 	const RAW_JSON: &str = r#"
 {

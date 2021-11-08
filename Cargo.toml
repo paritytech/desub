@@ -2,10 +2,10 @@
 members = [
 	"bin/tx-decoder",
 	"bin/v14-test",
-	"core",
-	"core_v14",
 	"desub",
-	"extras",
+	"desub-current",
+	"desub-legacy",
+	"desub-json-resolver",
 	"desub-common",
-	"integration_tests",
+	"integration-tests",
 ]

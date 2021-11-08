@@ -656,25 +656,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
 
 [[package]]
-name = "core_v14"
-version = "0.1.0"
-dependencies = [
- "bitvec",
- "derive_more",
- "desub-common",
- "frame-metadata 14.2.0",
- "hex",
- "log",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "serde_json",
- "sp-core 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.12)",
- "sp-runtime 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.12)",
- "thiserror",
-]
-
-[[package]]
 name = "cpufeatures"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -841,10 +822,10 @@ dependencies = [
 name = "desub"
 version = "0.1.0"
 dependencies = [
- "core_v14",
  "desub-common",
- "desub-core",
- "desub-extras",
+ "desub-current",
+ "desub-json-resolver",
+ "desub-legacy",
  "frame-metadata 14.2.0",
  "parity-scale-codec",
  "serde_json",
@@ -861,13 +842,45 @@ dependencies = [
 ]
 
 [[package]]
-name = "desub-core"
+name = "desub-current"
+version = "0.1.0"
+dependencies = [
+ "bitvec",
+ "derive_more",
+ "desub-common",
+ "frame-metadata 14.2.0",
+ "hex",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "serde_json",
+ "sp-core 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.12)",
+ "sp-runtime 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.12)",
+ "thiserror",
+]
+
+[[package]]
+name = "desub-json-resolver"
+version = "0.0.1"
+dependencies = [
+ "desub-legacy",
+ "log",
+ "parity-scale-codec",
+ "phf",
+ "serde",
+ "serde_json",
+ "syn",
+ "thiserror",
+]
+
+[[package]]
+name = "desub-legacy"
 version = "0.0.1"
 dependencies = [
  "bitvec",
  "derive_more",
  "desub-common",
- "desub-extras",
  "dyn-clone",
  "frame-metadata 14.2.0",
  "hex",
@@ -881,20 +894,6 @@ dependencies = [
  "sp-core 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.12)",
  "sp-runtime 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.12)",
  "sp-version 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.9)",
- "thiserror",
-]
-
-[[package]]
-name = "desub-extras"
-version = "0.0.1"
-dependencies = [
- "desub-core",
- "log",
- "parity-scale-codec",
- "phf",
- "serde",
- "serde_json",
- "syn",
  "thiserror",
 ]
 
@@ -1725,12 +1724,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "integration_tests"
+name = "integration-tests"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "desub-core",
- "desub-extras",
+ "desub-json-resolver",
+ "desub-legacy",
  "frame-system 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.9)",
  "hex",
  "log",
@@ -4383,7 +4382,7 @@ name = "v14-test"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "core_v14",
+ "desub-current",
  "hex",
  "pretty_env_logger",
  "structopt",
