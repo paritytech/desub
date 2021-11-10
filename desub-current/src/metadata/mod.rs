@@ -227,8 +227,8 @@ impl MetadataExtrinsic {
 /// our storage decoder.
 #[derive(Debug,Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash)]
 pub (crate) struct StorageLocation {
-    prefix_index: usize,
-    entry_index: usize
+    pub prefix_index: usize,
+    pub entry_index: usize
 }
 
 pub (crate) struct StorageEntry<'a> {
