@@ -18,9 +18,14 @@ pub mod decoder;
 pub mod metadata;
 pub mod value;
 
-pub use decoder::Decoder;
 pub use metadata::Metadata;
 pub use value::Value;
 
 /// A re-export of the [`scale_info`] crate, since we delegate much of the type inspection to it.
 pub use scale_info;
+
+/// A re-export of [`scale_info::Type`] as used throughout this library.
+pub type Type = scale_info::Type<scale_info::form::PortableForm>;
+
+/// A re-export of the [`scale_info`] type ID as used throughout this library.
+pub type TypeId = <scale_info::form::PortableForm as scale_info::form::Form>::Type;

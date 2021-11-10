@@ -20,11 +20,14 @@ we can pass to a [`crate::Decoder`].
 */
 
 mod version_14;
+mod readonly_array;
 
 use codec::Decode;
 use frame_metadata::{RuntimeMetadata, RuntimeMetadataPrefixed};
 use scale_info::{form::PortableForm, PortableRegistry};
 use std::collections::HashMap;
+use readonly_array::ReadonlyArray;
+use std::borrow::Cow;
 
 // Some type aliases used below. `scale-info` is re-exported at the root,
 // so to avoid confusion we only publicly export all scale-info types from that
@@ -32,6 +35,7 @@ use std::collections::HashMap;
 type TypeId = <scale_info::form::PortableForm as scale_info::form::Form>::Type;
 type TypeDefVariant = scale_info::TypeDefVariant<PortableForm>;
 type SignedExtensionMetadata = frame_metadata::SignedExtensionMetadata<PortableForm>;
+type StorageEntryMetadata = frame_metadata::v14::StorageEntryMetadata<scale_info::form::PortableForm>;
 
 /// An enum of the possible errors that can be returned from attempting to construct
 /// a [`Metadata`] struct.
@@ -53,8 +57,17 @@ pub enum MetadataError {
 /// this was obtained from.
 #[derive(Debug)]
 pub struct Metadata {
+	/// Details about the extrinsic format.
 	extrinsic: MetadataExtrinsic,
-	pallets: HashMap<u8, MetadataPallet>,
+	/// Hash pallet calls by index, since when decoding, we'll have the pallet/call
+	/// `u8`'s available to us to look them up by.
+	pallet_calls_by_index: HashMap<u8, MetadataPalletCalls>,
+	/// Store storage entry information as a readonly array, allowing us to look up a
+	/// specific storage entry using a key like `(usize,usize)`. Since the order of
+	/// entries in this array is not guaranteed between metadata versions, it should
+	/// not be exposed.
+	pallet_storage: ReadonlyArray<MetadataPalletStorage>,
+	/// Type information lives inside this.
 	types: PortableRegistry,
 }
 
@@ -99,6 +112,29 @@ impl Metadata {
 		&self.types
 	}
 
+	/// Retrieve the storage entry at the location provided. Locations are generated from
+	/// [`crate::decoder::StorageDecoder`] calls, and should always exist. It is a user error
+	/// to use a different [`Metadata`] instance for obtaining these locations from the instance
+	/// used to retrieve storage entry details from them.
+	pub (crate) fn storage_entry<'a>(&'a self, loc: StorageLocation) -> StorageEntry<'a> {
+		let pallet = self.pallet_storage
+			.get(loc.prefix_index)
+			.expect("Storage entry with the prefix index given should exist");
+
+		let entry = pallet
+			.storage_entries
+			.get(loc.entry_index)
+			.expect("Storage entry with the entry index given should exist");
+
+		StorageEntry { prefix: &pallet.prefix, metadata: &entry }
+	}
+
+	/// In order to generate a lookup table to decode storage entries, we need to be able to
+	/// iterate over them.
+	pub (crate) fn storage_entries(&self) -> impl Iterator<Item=&MetadataPalletStorage> {
+		self.pallet_storage.iter()
+	}
+
 	/// Given the `u8` variant index of a pallet and call, this returns the pallet name and the call Variant
 	/// if found, or `None` if no such call exists at those indexes, or we don't have suitable call data.
 	pub(crate) fn call_variant_by_enum_index(
@@ -106,7 +142,7 @@ impl Metadata {
 		pallet: u8,
 		call: u8,
 	) -> Option<(&str, &scale_info::Variant<PortableForm>)> {
-		self.pallets.get(&pallet).and_then(|p| {
+		self.pallet_calls_by_index.get(&pallet).and_then(|p| {
 			p.calls.as_ref().and_then(|calls| {
 				let type_def_variant = self.get_variant(calls.calls_type_id)?;
 				let index = *calls.call_variant_indexes.get(&call)?;
@@ -126,7 +162,27 @@ impl Metadata {
 }
 
 #[derive(Debug)]
-struct MetadataPallet {
+pub (crate) struct MetadataPalletStorage {
+	/// The storage prefix (normally identical to the pallet name,
+	/// although they are distinct values in the metadata).
+	prefix: String,
+	/// Details for each storage entry, in a readonly array so
+	/// that we can rely on the indexes not changing.
+	storage_entries: ReadonlyArray<StorageEntryMetadata>
+}
+
+impl MetadataPalletStorage {
+	pub fn prefix(&self) -> &str {
+		&self.prefix
+	}
+	pub fn entries(&self) -> impl Iterator<Item=&StorageEntryMetadata> {
+		self.storage_entries.iter()
+	}
+}
+
+#[derive(Debug)]
+struct MetadataPalletCalls {
+	/// The pallet name.
 	name: String,
 	/// Metadata may not contain call information. If it does,
 	/// it'll be here.
@@ -164,4 +220,18 @@ impl MetadataExtrinsic {
 	pub(crate) fn signed_extensions(&self) -> &[SignedExtensionMetadata] {
 		&self.signed_extensions
 	}
+}
+
+/// An opaque struct that can be used to obtain details for a specific
+/// storage entry via [`Metadata::storage_entry`]. Used internally by
+/// our storage decoder.
+#[derive(Debug,Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash)]
+pub (crate) struct StorageLocation {
+    prefix_index: usize,
+    entry_index: usize
+}
+
+pub (crate) struct StorageEntry<'a> {
+	pub prefix: &'a str,
+	pub metadata: &'a StorageEntryMetadata
 }

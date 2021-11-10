@@ -14,21 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{Metadata, MetadataCalls, MetadataError, MetadataExtrinsic, MetadataPallet};
+use super::{Metadata, MetadataCalls, MetadataError, MetadataExtrinsic, MetadataPalletCalls, MetadataPalletStorage};
 use frame_metadata::RuntimeMetadataV14;
 use std::collections::HashMap;
 
 /// Decode V14 metadata into our general Metadata struct
 pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, MetadataError> {
 	let registry = meta.types;
-	let mut pallets = HashMap::new();
+	let mut pallet_calls_by_index = HashMap::new();
+	let mut pallet_storage = Vec::new();
 
 	// Gather some details about the extrinsic itself:
 	let extrinsic =
 		MetadataExtrinsic { version: meta.extrinsic.version, signed_extensions: meta.extrinsic.signed_extensions };
 
-	// Gather information about the pallets in use:
+	// Gather information about the calls/storage in use:
 	for pallet in meta.pallets {
+		// capture the call information in this pallet:
 		let calls = pallet
 			.calls
 			.map(|call_md| {
@@ -54,9 +56,21 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, MetadataError> {
 				Ok(MetadataCalls { calls_type_id, call_variant_indexes })
 			})
 			.transpose()?;
+		pallet_calls_by_index.insert(pallet.index, MetadataPalletCalls { name: pallet.name, calls });
 
-		pallets.insert(pallet.index, MetadataPallet { name: pallet.name, calls });
+		// Capture the storage information in this pallet:
+		if let Some(storage_metadata) = pallet.storage {
+			pallet_storage.push(MetadataPalletStorage {
+				prefix: storage_metadata.prefix,
+				storage_entries: storage_metadata.entries.into()
+			});
+		}
 	}
 
-	Ok(Metadata { pallets, extrinsic, types: registry })
+	Ok(Metadata {
+		pallet_calls_by_index,
+		pallet_storage: pallet_storage.into(),
+		extrinsic,
+		types: registry
+	})
 }
