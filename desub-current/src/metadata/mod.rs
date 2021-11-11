@@ -27,7 +27,6 @@ use frame_metadata::{RuntimeMetadata, RuntimeMetadataPrefixed};
 use scale_info::{form::PortableForm, PortableRegistry};
 use std::collections::HashMap;
 use readonly_array::ReadonlyArray;
-use std::borrow::Cow;
 
 // Some type aliases used below. `scale-info` is re-exported at the root,
 // so to avoid confusion we only publicly export all scale-info types from that

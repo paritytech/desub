@@ -25,7 +25,7 @@ use crate::{ Type, TypeId };
 // This is used in several places below.
 type TypeDef = scale_info::TypeDef<PortableForm>;
 
-#[derive(Debug, Clone, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error, PartialEq)]
 pub enum DecodeValueError {
 	#[error("{0}")]
 	CodecError(#[from] codec::Error),
