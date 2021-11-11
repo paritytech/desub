@@ -2,6 +2,7 @@ use super::Value;
 use crate::metadata::{Metadata, StorageLocation};
 use crate::{Type, TypeId};
 use frame_metadata::v14::StorageEntryType;
+use serde::Serialize;
 use sp_core::twox_128;
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -88,7 +89,8 @@ impl StorageDecoder {
 			StorageEntryType::Map { hashers, key, value } => {
 				// We'll consume some more data based on the hashers.
 				// First, get the type information that we need ready.
-				let key = metadata.types().resolve(key.id()).ok_or_else(|| StorageDecodeError::TypeNotFound(key.id()))?;
+				let key =
+					metadata.types().resolve(key.id()).ok_or_else(|| StorageDecodeError::TypeNotFound(key.id()))?;
 				let keys = storage_map_key_to_type_id_vec(metadata, key)?;
 				if keys.len() != hashers.len() {
 					return Err(StorageDecodeError::KeysAndHashersDontLineUp {
@@ -128,7 +130,7 @@ impl StorageDecoder {
 						// in one place below.
 						let value_bytes = &mut &bytes[initial_hash_bytes..];
 						let start_len = value_bytes.len();
-						let value = super::decode_value(metadata, ty, bytes)
+						let value = super::decode_value(metadata, ty, value_bytes)
 							.map_err(|e| StorageDecodeError::CouldNotDecodeHasherValue(hasher.clone(), e))?;
 						let value_len = start_len - value_bytes.len();
 						(StorageHasher::expect_from_with_value(hasher, value), initial_hash_bytes + value_len)
@@ -139,11 +141,7 @@ impl StorageDecoder {
 					// Move the byte cursor forwards and push an entry to our storage keys:
 					let hash_bytes = &bytes[..bytes_consumed];
 					*bytes = &bytes[bytes_consumed..];
-					storage_keys.push(StorageKey {
-						bytes: Cow::Borrowed(hash_bytes),
-						hasher,
-						ty: Cow::Borrowed(ty),
-					});
+					storage_keys.push(StorageKey { bytes: Cow::Borrowed(hash_bytes), hasher, ty: Cow::Borrowed(ty) });
 				}
 
 				Ok(StorageEntry {
@@ -206,6 +204,7 @@ fn storage_map_key_to_type_id_vec<'a>(
 	}
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct StorageEntry<'m, 'b> {
 	pub prefix: Cow<'m, str>,
 	pub name: Cow<'m, str>,
@@ -224,6 +223,7 @@ impl<'m, 'b> StorageEntry<'m, 'b> {
 	}
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum StorageEntryDetails<'m, 'b> {
 	Plain,
 	Map(Vec<StorageKey<'m, 'b>>),
@@ -238,6 +238,7 @@ impl<'m, 'b> StorageEntryDetails<'m, 'b> {
 	}
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct StorageKey<'m, 'b> {
 	pub bytes: Cow<'b, [u8]>,
 	pub ty: Cow<'m, Type>,
@@ -257,6 +258,7 @@ impl<'m, 'b> StorageKey<'m, 'b> {
 /// This is almost identical to [`frame_metadata::v14::StorageHasher`],
 /// except it also carries the decoded [`Value`] for those hasher types
 /// it can be decoded from.
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum StorageHasher {
 	Blake2_128,
 	Blake2_256,
