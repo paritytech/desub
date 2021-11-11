@@ -115,14 +115,14 @@ impl Metadata {
 	/// [`crate::decoder::StorageDecoder`] calls, and should always exist. It is a user error
 	/// to use a different [`Metadata`] instance for obtaining these locations from the instance
 	/// used to retrieve storage entry details from them.
-	pub(crate) fn storage_entry<'a>(&'a self, loc: StorageLocation) -> StorageEntry<'a> {
+	pub(crate) fn storage_entry(&self, loc: StorageLocation) -> StorageEntry<'_> {
 		let pallet =
 			self.pallet_storage.get(loc.prefix_index).expect("Storage entry with the prefix index given should exist");
 
 		let entry =
 			pallet.storage_entries.get(loc.entry_index).expect("Storage entry with the entry index given should exist");
 
-		StorageEntry { prefix: &pallet.prefix, metadata: &entry }
+		StorageEntry { prefix: &pallet.prefix, metadata: entry }
 	}
 
 	/// In order to generate a lookup table to decode storage entries, we need to be able to

@@ -88,7 +88,7 @@ impl StorageDecoder {
 			StorageEntryType::Map { hashers, key, value } => {
 				// We'll consume some more data based on the hashers.
 				// First, get the type information that we need ready.
-				let key = metadata.types().resolve(key.id()).ok_or(StorageDecodeError::TypeNotFound(key.id()))?;
+				let key = metadata.types().resolve(key.id()).ok_or_else(|| StorageDecodeError::TypeNotFound(key.id()))?;
 				let keys = storage_map_key_to_type_id_vec(metadata, key)?;
 				if keys.len() != hashers.len() {
 					return Err(StorageDecodeError::KeysAndHashersDontLineUp {
@@ -141,7 +141,7 @@ impl StorageDecoder {
 					*bytes = &bytes[bytes_consumed..];
 					storage_keys.push(StorageKey {
 						bytes: Cow::Borrowed(hash_bytes),
-						hasher: hasher,
+						hasher,
 						ty: Cow::Borrowed(ty),
 					});
 				}
