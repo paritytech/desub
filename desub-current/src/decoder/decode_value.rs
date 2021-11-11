@@ -15,12 +15,12 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::value::{BitSequence, Composite, Primitive, Value, Variant};
+use crate::{Type, TypeId};
 use codec::{Compact, Decode};
 use scale_info::{
 	form::PortableForm, Field, PortableRegistry, TypeDefArray, TypeDefBitSequence, TypeDefCompact, TypeDefComposite,
 	TypeDefPrimitive, TypeDefSequence, TypeDefTuple, TypeDefVariant,
 };
-use crate::{ Type, TypeId };
 
 // This is used in several places below.
 type TypeDef = scale_info::TypeDef<PortableForm>;
@@ -60,7 +60,11 @@ pub fn decode_value(data: &mut &[u8], ty: &Type, types: &PortableRegistry) -> Re
 /// Decode data according to the [`TypeId`] provided.
 /// The provided pointer to the data slice will be moved forwards as needed
 /// depending on what was decoded.
-pub fn decode_value_by_id(data: &mut &[u8], ty_id: &TypeId, types: &PortableRegistry) -> Result<Value, DecodeValueError> {
+pub fn decode_value_by_id(
+	data: &mut &[u8],
+	ty_id: &TypeId,
+	types: &PortableRegistry,
+) -> Result<Value, DecodeValueError> {
 	let inner_ty = types.resolve(ty_id.id()).ok_or_else(|| DecodeValueError::TypeIdNotFound(ty_id.id()))?;
 	decode_value(data, inner_ty, types)
 }

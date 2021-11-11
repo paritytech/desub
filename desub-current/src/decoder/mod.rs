@@ -100,29 +100,24 @@ assert_eq!(extrinsic.call_data.pallet_name, "Auctions");
 assert_eq!(&*extrinsic.call_data.ty.name(), "bid");
 ```
 */
-mod decode_value;
 mod decode_storage;
+mod decode_value;
 mod extrinsic_bytes;
 
 use crate::metadata::Metadata;
 use crate::value::Value;
 use codec::{Compact, Decode};
 use extrinsic_bytes::{AllExtrinsicBytes, ExtrinsicBytesError};
+use serde::{Deserialize, Serialize};
 use sp_runtime::{AccountId32, MultiAddress, MultiSignature};
 use std::borrow::Cow;
-use serde::{Serialize, Deserialize};
 
 // Re-export the DecodeValueError here, which we expose in our global `DecodeError` enum.
 pub use decode_value::DecodeValueError;
 
 // Re-xport storage related types that are part of our public interface.
 pub use decode_storage::{
-	StorageDecodeError,
-	StorageDecoder,
-	StorageEntry,
-	StorageEntryDetails,
-	StorageHasher,
-	StorageKey
+	StorageDecodeError, StorageDecoder, StorageEntry, StorageEntryDetails, StorageHasher, StorageKey,
 };
 
 /// An enum of the possible errors that can be returned from attempting to decode bytes
@@ -155,7 +150,11 @@ pub fn decode_value(metadata: &Metadata, ty: &crate::Type, data: &mut &[u8]) -> 
 
 /// Decode a single [`Value`] from a piece of scale encoded data, given some metadata and the ID of the type that we
 /// are expecting it to decode into.
-pub fn decode_value_by_id(metadata: &Metadata, ty: &crate::TypeId, data: &mut &[u8]) -> Result<Value, DecodeValueError> {
+pub fn decode_value_by_id(
+	metadata: &Metadata,
+	ty: &crate::TypeId,
+	data: &mut &[u8],
+) -> Result<Value, DecodeValueError> {
 	decode_value::decode_value_by_id(data, ty, metadata.types())
 }
 
@@ -329,7 +328,10 @@ pub fn decode_signature<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<
 
 /// Decode the signed extensions part of a SCALE encoded extrinsic. Ordinarily, one should prefer to use [`decode_extrinsic`]
 /// directly to decode the entire extrinsic at once.
-pub fn decode_signed_extensions<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<Vec<(Cow<'a, str>, Value)>, DecodeError> {
+pub fn decode_signed_extensions<'a>(
+	metadata: &'a Metadata,
+	data: &mut &[u8],
+) -> Result<Vec<(Cow<'a, str>, Value)>, DecodeError> {
 	metadata
 		.extrinsic()
 		.signed_extensions()
@@ -344,7 +346,10 @@ pub fn decode_signed_extensions<'a>(metadata: &'a Metadata, data: &mut &[u8]) ->
 
 /// Decode the additional signed data. This is called as part of [`decode_signer_payload`], which you should prefer to use
 /// directly where possible, as it will decode the entire signer payload at once.
-pub fn decode_additional_signed<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<Vec<(Cow<'a, str>, Value)>, DecodeError> {
+pub fn decode_additional_signed<'a>(
+	metadata: &'a Metadata,
+	data: &mut &[u8],
+) -> Result<Vec<(Cow<'a, str>, Value)>, DecodeError> {
 	metadata
 		.extrinsic()
 		.signed_extensions()
@@ -356,7 +361,6 @@ pub fn decode_additional_signed<'a>(metadata: &'a Metadata, data: &mut &[u8]) ->
 		})
 		.collect()
 }
-
 
 /// Decoded call data and associated type information.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

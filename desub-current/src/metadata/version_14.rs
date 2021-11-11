@@ -62,15 +62,10 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, MetadataError> {
 		if let Some(storage_metadata) = pallet.storage {
 			pallet_storage.push(MetadataPalletStorage {
 				prefix: storage_metadata.prefix,
-				storage_entries: storage_metadata.entries.into()
+				storage_entries: storage_metadata.entries.into(),
 			});
 		}
 	}
 
-	Ok(Metadata {
-		pallet_calls_by_index,
-		pallet_storage: pallet_storage.into(),
-		extrinsic,
-		types: registry
-	})
+	Ok(Metadata { pallet_calls_by_index, pallet_storage: pallet_storage.into(), extrinsic, types: registry })
 }

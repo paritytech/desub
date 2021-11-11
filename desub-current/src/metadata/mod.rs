@@ -19,14 +19,14 @@ Decode SCALE encoded metadata from a substrate node into a format that
 we can pass to a [`crate::Decoder`].
 */
 
-mod version_14;
 mod readonly_array;
+mod version_14;
 
 use codec::Decode;
 use frame_metadata::{RuntimeMetadata, RuntimeMetadataPrefixed};
+use readonly_array::ReadonlyArray;
 use scale_info::{form::PortableForm, PortableRegistry};
 use std::collections::HashMap;
-use readonly_array::ReadonlyArray;
 
 // Some type aliases used below. `scale-info` is re-exported at the root,
 // so to avoid confusion we only publicly export all scale-info types from that
@@ -115,22 +115,19 @@ impl Metadata {
 	/// [`crate::decoder::StorageDecoder`] calls, and should always exist. It is a user error
 	/// to use a different [`Metadata`] instance for obtaining these locations from the instance
 	/// used to retrieve storage entry details from them.
-	pub (crate) fn storage_entry<'a>(&'a self, loc: StorageLocation) -> StorageEntry<'a> {
-		let pallet = self.pallet_storage
-			.get(loc.prefix_index)
-			.expect("Storage entry with the prefix index given should exist");
+	pub(crate) fn storage_entry<'a>(&'a self, loc: StorageLocation) -> StorageEntry<'a> {
+		let pallet =
+			self.pallet_storage.get(loc.prefix_index).expect("Storage entry with the prefix index given should exist");
 
-		let entry = pallet
-			.storage_entries
-			.get(loc.entry_index)
-			.expect("Storage entry with the entry index given should exist");
+		let entry =
+			pallet.storage_entries.get(loc.entry_index).expect("Storage entry with the entry index given should exist");
 
 		StorageEntry { prefix: &pallet.prefix, metadata: &entry }
 	}
 
 	/// In order to generate a lookup table to decode storage entries, we need to be able to
 	/// iterate over them.
-	pub (crate) fn storage_entries(&self) -> impl Iterator<Item=&MetadataPalletStorage> {
+	pub(crate) fn storage_entries(&self) -> impl Iterator<Item = &MetadataPalletStorage> {
 		self.pallet_storage.iter()
 	}
 
@@ -161,20 +158,20 @@ impl Metadata {
 }
 
 #[derive(Debug)]
-pub (crate) struct MetadataPalletStorage {
+pub(crate) struct MetadataPalletStorage {
 	/// The storage prefix (normally identical to the pallet name,
 	/// although they are distinct values in the metadata).
 	prefix: String,
 	/// Details for each storage entry, in a readonly array so
 	/// that we can rely on the indexes not changing.
-	storage_entries: ReadonlyArray<StorageEntryMetadata>
+	storage_entries: ReadonlyArray<StorageEntryMetadata>,
 }
 
 impl MetadataPalletStorage {
 	pub fn prefix(&self) -> &str {
 		&self.prefix
 	}
-	pub fn entries(&self) -> impl Iterator<Item=&StorageEntryMetadata> {
+	pub fn entries(&self) -> impl Iterator<Item = &StorageEntryMetadata> {
 		self.storage_entries.iter()
 	}
 }
@@ -224,13 +221,13 @@ impl MetadataExtrinsic {
 /// An opaque struct that can be used to obtain details for a specific
 /// storage entry via [`Metadata::storage_entry`]. Used internally by
 /// our storage decoder.
-#[derive(Debug,Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash)]
-pub (crate) struct StorageLocation {
-    pub prefix_index: usize,
-    pub entry_index: usize
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct StorageLocation {
+	pub prefix_index: usize,
+	pub entry_index: usize,
 }
 
-pub (crate) struct StorageEntry<'a> {
+pub(crate) struct StorageEntry<'a> {
 	pub prefix: &'a str,
-	pub metadata: &'a StorageEntryMetadata
+	pub metadata: &'a StorageEntryMetadata,
 }

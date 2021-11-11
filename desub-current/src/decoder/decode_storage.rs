@@ -1,16 +1,16 @@
-use std::collections::HashMap;
-use sp_core::twox_128;
-use crate::metadata::{ Metadata, StorageLocation };
-use crate::{ Type, TypeId };
 use super::Value;
-use std::borrow::Cow;
+use crate::metadata::{Metadata, StorageLocation};
+use crate::{Type, TypeId};
 use frame_metadata::v14::StorageEntryType;
+use sp_core::twox_128;
+use std::borrow::Cow;
+use std::collections::HashMap;
 
 /// This struct is capable of decoding SCALE encoded storage
 pub struct StorageDecoder {
 	/// We can find the prefix for a given storage entry if we
 	/// know the twox_128 hash of it:
-	entries_by_hashed_prefix: HashMap<[u8; 16], StorageEntries>
+	entries_by_hashed_prefix: HashMap<[u8; 16], StorageEntries>,
 }
 
 struct StorageEntries {
@@ -19,7 +19,7 @@ struct StorageEntries {
 	index: usize,
 	/// Within this pallet/prefix, we can find the sub-index of each storage entry
 	/// if we know the twox_128 hash of it:
-	entry_by_hashed_name: HashMap<[u8; 16], usize>
+	entry_by_hashed_name: HashMap<[u8; 16], usize>,
 }
 
 #[derive(thiserror::Error, Debug, Clone, PartialEq)]
@@ -40,7 +40,7 @@ pub enum StorageDecodeError {
 
 impl StorageDecoder {
 	/// Call [`super::decode_storage`] to construct a [`StorageDecoder`].
-	pub (super) fn generate_from_metadata(metadata: &Metadata) -> StorageDecoder {
+	pub(super) fn generate_from_metadata(metadata: &Metadata) -> StorageDecoder {
 		let entries_by_hashed_prefix = metadata
 			.storage_entries()
 			.enumerate()
@@ -63,12 +63,16 @@ impl StorageDecoder {
 
 	/// Decode the SCALE encoded bytes representing a storage entry lookup. These conceptually take the
 	/// form `twox_128(prefix) + twox_128(name) + rest`, where `rest` are hashed
-	pub fn decode_key<'m, 'b>(&self, metadata: &'m Metadata, bytes: &mut &'b [u8]) -> Result<StorageEntry<'m, 'b>, StorageDecodeError> {
+	pub fn decode_key<'m, 'b>(
+		&self,
+		metadata: &'m Metadata,
+		bytes: &mut &'b [u8],
+	) -> Result<StorageEntry<'m, 'b>, StorageDecodeError> {
 		let location = self.decode_prefix_and_name_to_location(bytes)?;
 		let storage_entry = metadata.storage_entry(location);
 
 		let prefix_str = storage_entry.prefix;
-		let name_str  = &*storage_entry.metadata.name;
+		let name_str = &*storage_entry.metadata.name;
 
 		match &storage_entry.metadata.ty {
 			StorageEntryType::Plain(ty) => {
@@ -78,20 +82,19 @@ impl StorageDecoder {
 					prefix: prefix_str.into(),
 					name: name_str.into(),
 					ty: *ty,
-					details: StorageEntryDetails::Plain
+					details: StorageEntryDetails::Plain,
 				})
-			},
-			StorageEntryType::Map{ hashers, key, value } => {
+			}
+			StorageEntryType::Map { hashers, key, value } => {
 				// We'll consume some more data based on the hashers.
 				// First, get the type information that we need ready.
-				let key = metadata.types().resolve(key.id())
-					.ok_or(StorageDecodeError::TypeNotFound(key.id()))?;
+				let key = metadata.types().resolve(key.id()).ok_or(StorageDecodeError::TypeNotFound(key.id()))?;
 				let keys = storage_map_key_to_type_id_vec(metadata, key)?;
 				if keys.len() != hashers.len() {
 					return Err(StorageDecodeError::KeysAndHashersDontLineUp {
 						num_keys: keys.len(),
-						num_hashers: hashers.len()
-					})
+						num_hashers: hashers.len(),
+					});
 				}
 
 				// Work through the hashers and type info we have to generate out output
@@ -102,16 +105,20 @@ impl StorageDecoder {
 
 					// How many bytes will the hashed bit consume?
 					let initial_hash_bytes = match hasher {
-						FrameStorageHasher::Blake2_128 | FrameStorageHasher::Twox128 | FrameStorageHasher::Blake2_128Concat => 16,
+						FrameStorageHasher::Blake2_128
+						| FrameStorageHasher::Twox128
+						| FrameStorageHasher::Blake2_128Concat => 16,
 						FrameStorageHasher::Blake2_256 | FrameStorageHasher::Twox256 => 32,
 						FrameStorageHasher::Twox64Concat => 8,
-						FrameStorageHasher::Identity => 0
+						FrameStorageHasher::Identity => 0,
 					};
 
 					// Is the SCALE encoded Value next up after the hash bit?
 					let is_value_next = match hasher {
-						FrameStorageHasher::Blake2_128Concat | FrameStorageHasher::Twox64Concat | FrameStorageHasher::Identity => true,
-						_other => false
+						FrameStorageHasher::Blake2_128Concat
+						| FrameStorageHasher::Twox64Concat
+						| FrameStorageHasher::Identity => true,
+						_other => false,
 					};
 
 					// Decode the value if so, and return the total bytes consumed so far and the resulting hasher.
@@ -135,7 +142,7 @@ impl StorageDecoder {
 					storage_keys.push(StorageKey {
 						bytes: Cow::Borrowed(hash_bytes),
 						hasher: hasher,
-						ty: Cow::Borrowed(ty)
+						ty: Cow::Borrowed(ty),
 					});
 				}
 
@@ -154,27 +161,20 @@ impl StorageDecoder {
 	// bytes.
 	fn decode_prefix_and_name_to_location(&self, data: &mut &[u8]) -> Result<StorageLocation, StorageDecodeError> {
 		if data.len() < 32 {
-			return Err(StorageDecodeError::NotEnoughBytesForPrefixAndName(data.len()))
+			return Err(StorageDecodeError::NotEnoughBytesForPrefixAndName(data.len()));
 		}
 		let prefix_hash = &data[..16];
 		let name_hash = &data[16..32];
 
-		let entries = self.entries_by_hashed_prefix
-			.get(prefix_hash)
-			.ok_or(StorageDecodeError::PrefixNotFound)?;
+		let entries = self.entries_by_hashed_prefix.get(prefix_hash).ok_or(StorageDecodeError::PrefixNotFound)?;
 
-		let entry_index = entries.entry_by_hashed_name
-			.get(name_hash)
-			.ok_or(StorageDecodeError::NameNotFound)?;
+		let entry_index = entries.entry_by_hashed_name.get(name_hash).ok_or(StorageDecodeError::NameNotFound)?;
 
 		// Successfully consumed the prefix and name bytes, so move our cursor.
 		// In the case of errors, we leave the data "unconsumed".
 		*data = &data[32..];
 
-		Ok(StorageLocation {
-			prefix_index: entries.index,
-			entry_index: *entry_index
-		})
+		Ok(StorageLocation { prefix_index: entries.index, entry_index: *entry_index })
 	}
 }
 
@@ -184,11 +184,15 @@ impl StorageDecoder {
 //
 // See https://github.com/paritytech/subxt/blob/793c945fbd2de022f523c39a84ee02609ba423a9/codegen/src/api/storage.rs#L105
 // for another example of this being handled in code.
-fn storage_map_key_to_type_id_vec<'a>(metadata: &'a Metadata, key: &'a Type) -> Result<Vec<&'a Type>, StorageDecodeError> {
+fn storage_map_key_to_type_id_vec<'a>(
+	metadata: &'a Metadata,
+	key: &'a Type,
+) -> Result<Vec<&'a Type>, StorageDecodeError> {
 	match key.type_def() {
 		// Multiple keys:
 		scale_info::TypeDef::Tuple(vals) => {
-			let types: Result<Vec<_>,_> = vals.fields()
+			let types: Result<Vec<_>, _> = vals
+				.fields()
 				.iter()
 				.map(|f| {
 					let id = f.id();
@@ -196,11 +200,9 @@ fn storage_map_key_to_type_id_vec<'a>(metadata: &'a Metadata, key: &'a Type) -> 
 				})
 				.collect();
 			types
-		},
-		// Single key:
-		_ => {
-			Ok(vec![key])
 		}
+		// Single key:
+		_ => Ok(vec![key]),
 	}
 }
 
@@ -208,34 +210,30 @@ pub struct StorageEntry<'m, 'b> {
 	pub prefix: Cow<'m, str>,
 	pub name: Cow<'m, str>,
 	pub ty: TypeId,
-	pub details: StorageEntryDetails<'m, 'b>
+	pub details: StorageEntryDetails<'m, 'b>,
 }
 
-impl <'m, 'b> StorageEntry<'m, 'b> {
-	pub fn into_owned(self) -> StorageEntry<'static,'static> {
+impl<'m, 'b> StorageEntry<'m, 'b> {
+	pub fn into_owned(self) -> StorageEntry<'static, 'static> {
 		StorageEntry {
 			prefix: Cow::Owned(self.prefix.into_owned()),
 			name: Cow::Owned(self.name.into_owned()),
 			ty: self.ty,
-			details: self.details.into_owned()
+			details: self.details.into_owned(),
 		}
 	}
 }
 
 pub enum StorageEntryDetails<'m, 'b> {
 	Plain,
-	Map(Vec<StorageKey<'m, 'b>>)
+	Map(Vec<StorageKey<'m, 'b>>),
 }
 
-impl <'m, 'b> StorageEntryDetails<'m, 'b> {
-	pub fn into_owned(self) -> StorageEntryDetails<'static,'static> {
+impl<'m, 'b> StorageEntryDetails<'m, 'b> {
+	pub fn into_owned(self) -> StorageEntryDetails<'static, 'static> {
 		match self {
 			Self::Plain => StorageEntryDetails::Plain,
-			Self::Map(keys)=> {
-				StorageEntryDetails::Map(
-					keys.into_iter().map(|k| k.into_owned()).collect()
-				)
-			}
+			Self::Map(keys) => StorageEntryDetails::Map(keys.into_iter().map(|k| k.into_owned()).collect()),
 		}
 	}
 }
@@ -246,8 +244,8 @@ pub struct StorageKey<'m, 'b> {
 	pub hasher: StorageHasher,
 }
 
-impl <'m, 'b> StorageKey<'m, 'b> {
-	pub fn into_owned(self) -> StorageKey<'static,'static> {
+impl<'m, 'b> StorageKey<'m, 'b> {
+	pub fn into_owned(self) -> StorageKey<'static, 'static> {
 		StorageKey {
 			bytes: Cow::Owned(self.bytes.into_owned()),
 			ty: Cow::Owned(self.ty.into_owned()),
@@ -255,7 +253,6 @@ impl <'m, 'b> StorageKey<'m, 'b> {
 		}
 	}
 }
-
 
 /// This is almost identical to [`frame_metadata::v14::StorageHasher`],
 /// except it also carries the decoded [`Value`] for those hasher types
@@ -277,17 +274,21 @@ impl StorageHasher {
 			frame_metadata::v14::StorageHasher::Blake2_256 => StorageHasher::Blake2_256,
 			frame_metadata::v14::StorageHasher::Twox128 => StorageHasher::Twox128,
 			frame_metadata::v14::StorageHasher::Twox256 => StorageHasher::Twox256,
-			frame_metadata::v14::StorageHasher::Identity |
-			frame_metadata::v14::StorageHasher::Blake2_128Concat |
-			frame_metadata::v14::StorageHasher::Twox64Concat => panic!("Cannot convert {:?} into a StorageHasher; needs Value", hasher),
+			frame_metadata::v14::StorageHasher::Identity
+			| frame_metadata::v14::StorageHasher::Blake2_128Concat
+			| frame_metadata::v14::StorageHasher::Twox64Concat => {
+				panic!("Cannot convert {:?} into a StorageHasher; needs Value", hasher)
+			}
 		}
 	}
 	fn expect_from_with_value(hasher: &frame_metadata::v14::StorageHasher, value: Value) -> Self {
 		match hasher {
-			frame_metadata::v14::StorageHasher::Blake2_128 |
-			frame_metadata::v14::StorageHasher::Blake2_256 |
-			frame_metadata::v14::StorageHasher::Twox128 |
-			frame_metadata::v14::StorageHasher::Twox256 => panic!("Cannot convert {:?} into a StorageHasher; no Value expected", hasher),
+			frame_metadata::v14::StorageHasher::Blake2_128
+			| frame_metadata::v14::StorageHasher::Blake2_256
+			| frame_metadata::v14::StorageHasher::Twox128
+			| frame_metadata::v14::StorageHasher::Twox256 => {
+				panic!("Cannot convert {:?} into a StorageHasher; no Value expected", hasher)
+			}
 			frame_metadata::v14::StorageHasher::Identity => StorageHasher::Identity(value),
 			frame_metadata::v14::StorageHasher::Blake2_128Concat => StorageHasher::Blake2_128Concat(value),
 			frame_metadata::v14::StorageHasher::Twox64Concat => StorageHasher::Twox64Concat(value),
