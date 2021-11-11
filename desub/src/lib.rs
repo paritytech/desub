@@ -20,7 +20,7 @@
 mod error;
 
 use codec::Decode;
-use desub_current::{decoder::Extrinsic, Decoder as TypeInfoDecoder, Metadata as DesubMetadata};
+use desub_current::{decoder::{ self, Extrinsic }, Metadata as DesubMetadata};
 use desub_legacy::{
 	decoder::{Decoder as LegacyDecoder, Metadata as LegacyDesubMetadata},
 	RustTypeMarker, TypeDetective,
@@ -60,7 +60,7 @@ impl TypeDetective for NoLegacyTypes {
 
 pub struct Decoder {
 	legacy_decoder: LegacyDecoder,
-	current_decoder: HashMap<SpecVersion, TypeInfoDecoder>,
+	current_metadata: HashMap<SpecVersion, DesubMetadata>,
 }
 
 impl Decoder {
@@ -69,7 +69,7 @@ impl Decoder {
 		let legacy_decoder = LegacyDecoder::new(PolkadotJsResolver::default(), chain);
 		let current_decoder = HashMap::new();
 
-		Self { legacy_decoder, current_decoder }
+		Self { legacy_decoder, current_metadata: current_decoder }
 	}
 
 	#[cfg(not(feature = "polkadot-js"))]
@@ -84,7 +84,7 @@ impl Decoder {
 	pub fn with_custom_types(types: impl TypeDetective + 'static, chain: Chain) -> Self {
 		let legacy_decoder = LegacyDecoder::new(types, chain);
 		let current_decoder = HashMap::new();
-		Self { legacy_decoder, current_decoder }
+		Self { legacy_decoder, current_metadata: current_decoder }
 	}
 
 	/// Register a runtime version with the decoder.
@@ -92,8 +92,7 @@ impl Decoder {
 		let metadata: RuntimeMetadataPrefixed = Decode::decode(&mut metadata)?;
 		if metadata.1.version() >= 14 {
 			let meta = DesubMetadata::from_runtime_metadata(metadata.1)?;
-			let decoder = TypeInfoDecoder::with_metadata(meta);
-			self.current_decoder.insert(version, decoder);
+			self.current_metadata.insert(version, meta);
 		} else {
 			self.legacy_decoder.register_version(version, LegacyDesubMetadata::from_runtime_metadata(metadata.1)?)?;
 		}
@@ -101,9 +100,9 @@ impl Decoder {
 	}
 
 	pub fn decode_extrinsics(&self, version: SpecVersion, mut data: &[u8]) -> Result<Value, Error> {
-		if self.current_decoder.contains_key(&version) {
-			let decoder = self.current_decoder.get(&version).expect("Checked if key is contained; qed");
-			match decoder.decode_extrinsics(&mut data) {
+		if self.current_metadata.contains_key(&version) {
+			let metadata = self.current_metadata.get(&version).expect("Checked if key is contained; qed");
+			match decoder::decode_extrinsics(metadata, &mut data) {
 				Ok(v) => Ok(serde_json::to_value(&v)?),
 				Err((ext, e)) => {
 					Err(Error::V14 { source: e, ext: ext.into_iter().map(Extrinsic::into_owned).collect() })
@@ -119,6 +118,6 @@ impl Decoder {
 	}
 
 	pub fn has_version(&self, version: &SpecVersion) -> bool {
-		self.current_decoder.contains_key(version) || self.legacy_decoder.has_version(version)
+		self.current_metadata.contains_key(version) || self.legacy_decoder.has_version(version)
 	}
 }

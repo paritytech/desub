@@ -14,13 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use desub_current::{decoder::SignedExtensionWithAdditional, value, Decoder, Metadata, Value};
+use desub_current::{decoder::{ self, SignedExtensionWithAdditional }, value, Metadata, Value};
 
 static V14_METADATA_POLKADOT_SCALE: &[u8] = include_bytes!("data/v14_metadata_polkadot.scale");
 
-fn decoder() -> Decoder {
-	let m = Metadata::from_bytes(V14_METADATA_POLKADOT_SCALE).expect("valid metadata");
-	Decoder::with_metadata(m)
+fn metadata() -> Metadata {
+	Metadata::from_bytes(V14_METADATA_POLKADOT_SCALE).expect("valid metadata")
 }
 
 fn to_bytes(hex_str: &str) -> Vec<u8> {
@@ -90,11 +89,11 @@ fn variant_value(name: &str, c: value::Composite) -> Value {
 
 #[test]
 fn balance_transfer_signed() {
-	let d = decoder();
+	let meta = metadata();
 
 	// Balances.transfer (amount: 12345)
 	let ext_bytes = &mut &*to_bytes("0x31028400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d016ada9b477ef454972200e098f1186d4a2aeee776f1f6a68609797f5ba052906ad2427bdca865442158d118e2dfc82226077e4dfdff975d005685bab66eefa38a150200000500001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07ce5c0");
-	let ext = d.decode_extrinsic(ext_bytes).expect("can decode extrinsic");
+	let ext = decoder::decode_extrinsic(&meta, ext_bytes).expect("can decode extrinsic");
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.call_data.pallet_name, "Balances");
@@ -105,11 +104,11 @@ fn balance_transfer_signed() {
 
 #[test]
 fn balance_transfer_all_signed() {
-	let d = decoder();
+	let meta = metadata();
 
 	// Balances.transfer_all (keepalive: false)
 	let ext_bytes = &mut &*to_bytes("0x2d028400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f0431ffe387134b4f84d92d3c3f1ac18c0f42237ad7dbd455bb0cf8a18efb1760528f052b2219ad1601d9a4719e1a446cf307bf6d7e9c56175bfe6e7bf8cbe81450304000504001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c00");
-	let ext = d.decode_extrinsic(ext_bytes).expect("can decode extrinsic");
+	let ext = decoder::decode_extrinsic(&meta, ext_bytes).expect("can decode extrinsic");
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.call_data.pallet_name, "Balances");
@@ -123,11 +122,11 @@ fn balance_transfer_all_signed() {
 /// b) One of the arguments is a compact-encoded wrapper struct, which caused a hiccup.
 #[test]
 fn auctions_bid_unsigned() {
-	let d = decoder();
+	let meta = metadata();
 
 	// Auctions.bid (Args: (1,), 2, 3, 4, 5, all compact encoded).
 	let ext_bytes = &mut &*to_bytes("0x04480104080c1014");
-	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
+	let ext = decoder::decode_unwrapped_extrinsic(&meta, ext_bytes).expect("can decode extrinsic");
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.call_data.pallet_name, "Auctions");
@@ -148,7 +147,7 @@ fn auctions_bid_unsigned() {
 
 #[test]
 fn auctions_bid_unsigned_excess_bytes_allowed() {
-	let d = decoder();
+	let meta = metadata();
 
 	// Auctions.bid (Args: (1,), 2, 3, 4, 5, all compact encoded).
 	let mut ext_bytes = to_bytes("0x04480104080c1014");
@@ -156,18 +155,18 @@ fn auctions_bid_unsigned_excess_bytes_allowed() {
 	ext_bytes.extend(b"extra bytes!");
 
 	let ext_bytes_cursor = &mut &*ext_bytes;
-	d.decode_unwrapped_extrinsic(ext_bytes_cursor).expect("can decode extrinsic");
+	decoder::decode_unwrapped_extrinsic(&meta, ext_bytes_cursor).expect("can decode extrinsic");
 
 	assert_eq!(ext_bytes_cursor, b"extra bytes!");
 }
 
 #[test]
 fn system_fill_block_unsigned() {
-	let d = decoder();
+	let meta = metadata();
 
 	// System.fill_block (Args: Perblock(1234)).
 	let ext_bytes = &mut &*to_bytes("0x040000d2040000");
-	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
+	let ext = decoder::decode_unwrapped_extrinsic(&meta, ext_bytes).expect("can decode extrinsic");
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.call_data.pallet_name, "System");
@@ -181,12 +180,12 @@ fn system_fill_block_unsigned() {
 /// as an argument to this call.
 #[test]
 fn technical_committee_execute_unsigned() {
-	let d = decoder();
+	let meta = metadata();
 
 	// TechnicalCommittee.execute (Args: Balances.transfer(Alice -> Bob, 12345), 500).
 	let ext_bytes =
 		&mut &*to_bytes("0x0410010500001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07ce5c0d107");
-	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
+	let ext = decoder::decode_unwrapped_extrinsic(&meta, ext_bytes).expect("can decode extrinsic");
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.call_data.pallet_name, "TechnicalCommittee");
@@ -208,11 +207,11 @@ fn technical_committee_execute_unsigned() {
 
 #[test]
 fn tips_report_awesome_unsigned() {
-	let d = decoder();
+	let meta = metadata();
 
 	// Tips.report_awesome (Args: b"This person rocks!", AccountId).
 	let ext_bytes = &mut &*to_bytes("0x042300485468697320706572736f6e20726f636b73211cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c");
-	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
+	let ext = decoder::decode_unwrapped_extrinsic(&meta, ext_bytes).expect("can decode extrinsic");
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.call_data.pallet_name, "Tips");
@@ -228,11 +227,11 @@ fn tips_report_awesome_unsigned() {
 // Named structs shouldn't be an issue; this extrinsic contains one.
 #[test]
 fn vesting_force_vested_transfer_unsigned() {
-	let d = decoder();
+	let meta = metadata();
 
 	// Vesting.force_vested_transfer (Args: AccountId, AccountId, { locked: 1u128, perBlock: 2u128, startingBlock: 3u32 }).
 	let ext_bytes = &mut &*to_bytes("0x04190300d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48010000000000000000000000000000000200000000000000000000000000000003000000");
-	let ext = d.decode_unwrapped_extrinsic(ext_bytes).expect("can decode extrinsic");
+	let ext = decoder::decode_unwrapped_extrinsic(&meta, ext_bytes).expect("can decode extrinsic");
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.call_data.pallet_name, "Vesting");
@@ -251,7 +250,7 @@ fn vesting_force_vested_transfer_unsigned() {
 
 #[test]
 fn can_decode_multiple_extrinsics_with_extra_bytes() {
-	let d = decoder();
+	let meta = metadata();
 
 	// the same extrinsic repeated 3 times:
 	let extrinsics_hex = "0x0C2004480104080c10142004480104080c10142004480104080c1014";
@@ -261,7 +260,7 @@ fn can_decode_multiple_extrinsics_with_extra_bytes() {
 	extrinsics_bytes.extend(b"extra bytes!");
 
 	let extrinsics_cursor = &mut &*extrinsics_bytes;
-	let extrinsics = d.decode_extrinsics(extrinsics_cursor).unwrap();
+	let extrinsics = decoder::decode_extrinsics(&meta, extrinsics_cursor).unwrap();
 
 	assert_eq!(extrinsics_cursor, b"extra bytes!");
 	assert_eq!(extrinsics.len(), 3);
@@ -270,10 +269,10 @@ fn can_decode_multiple_extrinsics_with_extra_bytes() {
 // We can decode the payload that we'd be getting signed, too.
 #[test]
 fn can_decode_signer_payload() {
-	let d = decoder();
+	let meta = metadata();
 	let signer_payload = &mut &*to_bytes("0x0706b9340000962300000800000091b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c31c81d421f68281950ad2901291603b5e49fc5c872f129e75433f4b55f07ca072");
 
-	let r = d.decode_signer_payload(signer_payload).expect("can decode signer payload");
+	let r = decoder::decode_signer_payload(&meta, signer_payload).expect("can decode signer payload");
 
 	assert_eq!(signer_payload.len(), 0);
 	assert_eq!(r.call_data.pallet_name, "Staking");
