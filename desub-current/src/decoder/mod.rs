@@ -90,7 +90,7 @@ pub fn decode_value_by_id(
 /// use hex;
 /// use desub_current::{
 ///     Metadata,
-/// 	decoder::{ self, StorageEntryType, StorageHasher },
+///     decoder::{ self, StorageEntryType, StorageHasher },
 ///     value::{ Value, Composite, Primitive },
 /// };
 /// use codec::Encode;
@@ -116,8 +116,8 @@ pub fn decode_value_by_id(
 /// assert_eq!(entry.name, "BlockHash");
 ///
 /// let keys = match entry.details {
-/// 	StorageEntryType::Plain => Vec::new(),
-/// 	StorageEntryType::Map(keys) => keys,
+///     StorageEntryType::Plain => Vec::new(),
+///     StorageEntryType::Map(keys) => keys,
 /// };
 ///
 /// // Because the hasher is Twox64Concat, we can see the decoded original map key:
@@ -128,14 +128,14 @@ pub fn decode_value_by_id(
 /// let bytes = [1u8; 32].encode();
 /// let val = decoder::decode_value_by_id(&metadata, &entry.ty, &mut &*bytes).unwrap();
 /// # assert_eq!(
-/// # 	val,
-/// # 	// The Type in this case is something like a newtype-wrapped [u8; 32]:
-/// # 	Value::Composite(Composite::Unnamed(vec![Value::Composite(Composite::Unnamed(vec![
-/// # 		Value::Primitive(
-/// # 			Primitive::U8(1)
-/// # 		);
-/// # 		32
-/// # 	]))]))
+/// #     val,
+/// #     // The Type in this case is something like a newtype-wrapped [u8; 32]:
+/// #     Value::Composite(Composite::Unnamed(vec![Value::Composite(Composite::Unnamed(vec![
+/// #         Value::Primitive(
+/// #             Primitive::U8(1)
+/// #         );
+/// #         32
+/// #     ]))]))
 /// # );
 /// ```
 pub fn decode_storage(metadata: &Metadata) -> StorageDecoder {
