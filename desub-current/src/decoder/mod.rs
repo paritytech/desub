@@ -90,7 +90,7 @@ pub fn decode_value_by_id(
 /// use hex;
 /// use desub_current::{
 ///     Metadata,
-///     decoder::{ self, StorageEntryType, StorageHasher },
+///     decoder::{ self, StorageHasher },
 ///     value::{ Value, Composite, Primitive },
 /// };
 /// use codec::Encode;
@@ -115,10 +115,7 @@ pub fn decode_value_by_id(
 /// assert_eq!(entry.prefix, "System");
 /// assert_eq!(entry.name, "BlockHash");
 ///
-/// let keys = match entry.details {
-///     StorageEntryType::Plain => Vec::new(),
-///     StorageEntryType::Map(keys) => keys,
-/// };
+/// let keys = entry.details.map_keys();
 ///
 /// // Because the hasher is Twox64Concat, we can see the decoded original map key:
 /// assert_eq!(keys.len(), 1);

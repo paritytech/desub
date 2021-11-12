@@ -16,7 +16,7 @@
 
 use codec::Encode;
 use desub_current::{
-	decoder::{self, StorageEntryType, StorageHasher},
+	decoder::{self, StorageHasher},
 	value::{Composite, Primitive},
 	Metadata, Value,
 };
@@ -77,10 +77,7 @@ fn democracy_blacklist() {
 	assert_eq!(entry.prefix, "Democracy");
 	assert_eq!(entry.name, "Blacklist");
 
-	let keys = match entry.details {
-		StorageEntryType::Plain => panic!("Should be a map"),
-		StorageEntryType::Map(keys) => keys,
-	};
+	let keys = entry.details.map_keys();
 
 	// Because the hasher is Identity, we can even see the decoded original map key:
 	assert_eq!(keys.len(), 1);
@@ -106,10 +103,7 @@ fn system_blockhash() {
 	assert_eq!(entry.prefix, "System");
 	assert_eq!(entry.name, "BlockHash");
 
-	let keys = match entry.details {
-		StorageEntryType::Plain => panic!("Should be a map"),
-		StorageEntryType::Map(keys) => keys,
-	};
+	let keys = entry.details.map_keys();
 
 	// Because the hasher is Twox64Concat, we can even see the decoded original map key:
 	assert_eq!(keys.len(), 1);
@@ -144,10 +138,7 @@ fn balances_account() {
 	assert_eq!(entry.prefix, "Balances");
 	assert_eq!(entry.name, "Account");
 
-	let keys = match entry.details {
-		StorageEntryType::Plain => panic!("Should be a map"),
-		StorageEntryType::Map(keys) => keys,
-	};
+	let keys = entry.details.map_keys();
 
 	let bobs_accountid = sp_keyring::AccountKeyring::Bob.to_account_id();
 	let bobs_value = account_id_to_value(&bobs_accountid);
@@ -170,10 +161,7 @@ fn imonline_authoredblocks() {
 	assert_eq!(entry.prefix, "ImOnline");
 	assert_eq!(entry.name, "AuthoredBlocks");
 
-	let keys = match entry.details {
-		StorageEntryType::Plain => panic!("Should be a map"),
-		StorageEntryType::Map(keys) => keys,
-	};
+	let keys = entry.details.map_keys();
 
 	let bobs_accountid = sp_keyring::AccountKeyring::Bob.to_account_id();
 	let bobs_value = account_id_to_value(&bobs_accountid);

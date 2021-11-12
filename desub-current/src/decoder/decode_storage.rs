@@ -253,6 +253,15 @@ impl<'m, 'b> StorageEntryType<'m, 'b> {
 			Self::Map(keys) => StorageEntryType::Map(keys.into_iter().map(|k| k.into_owned()).collect()),
 		}
 	}
+	/// Return the map keys associated with this storage entry, or
+	/// an empty list of keys if there are none (ie it's a "plain"
+	/// storage entry).
+	pub fn map_keys(&self) -> &[StorageMapKey<'m, 'b>] {
+		match self {
+			Self::Plain => &[],
+			Self::Map(keys) => &keys
+		}
+	}
 }
 
 /// Details about a specific map key that forms part of our storage key.
