@@ -259,7 +259,7 @@ impl<'m, 'b> StorageEntryType<'m, 'b> {
 	pub fn map_keys(&self) -> &[StorageMapKey<'m, 'b>] {
 		match self {
 			Self::Plain => &[],
-			Self::Map(keys) => keys
+			Self::Map(keys) => keys,
 		}
 	}
 }

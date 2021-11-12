@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
+use super::u8_map::U8Map;
 use super::{Metadata, MetadataCalls, MetadataError, MetadataExtrinsic, MetadataPalletCalls, MetadataPalletStorage};
 use frame_metadata::RuntimeMetadataV14;
-use super::u8_map::U8Map;
 
 /// Decode V14 metadata into our general Metadata struct
 pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, MetadataError> {

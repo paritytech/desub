@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-
 //! Given some [`Metadata`] obtained from a substrate node, this module exposes the functionality to
 //! decode various SCALE encoded values, such as extrinsics, that are compatible with that metadata.
 //!
