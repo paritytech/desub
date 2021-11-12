@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
+//! A crate to decode extrinsics, signer payloads and storage keys for substrate nodes using V14+ metadata.
+//! See [`decoder`] for more information.
+
 pub mod decoder;
 pub mod metadata;
 pub mod value;
