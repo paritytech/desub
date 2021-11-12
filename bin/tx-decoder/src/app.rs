@@ -16,10 +16,9 @@
 
 use crate::queries::*;
 
-use desub::{runtimes, Decoder, SpecVersion, Chain};
+use desub::{runtimes, Chain, Decoder, SpecVersion};
 
-
-use anyhow::{Error, Context};
+use anyhow::{Context, Error};
 use argh::FromArgs;
 use async_std::task;
 use futures::StreamExt;
@@ -36,7 +35,6 @@ use std::{
 		Arc,
 	},
 };
-
 
 #[derive(FromArgs, PartialEq, Debug)]
 /// Decode Extrinsics And Storage from Substrate Archive
@@ -118,7 +116,9 @@ impl<'a> AppState<'a> {
 				error_count += 1;
 			}
 			len += 1;
-			if let Some(p) = self.pb { p.inc(1) };
+			if let Some(p) = self.pb {
+				p.inc(1)
+			};
 		}
 		Ok((error_count, len))
 	}
@@ -158,15 +158,21 @@ impl<'a> AppState<'a> {
 	}
 
 	fn set_message(&self, msg: impl Into<Cow<'static, str>>) {
-		if let Some(p) = self.pb { p.set_message(msg) }
+		if let Some(p) = self.pb {
+			p.set_message(msg)
+		}
 	}
 
 	fn set_length(&self, len: u64) {
-		if let Some(p) = self.pb { p.set_length(len) }
+		if let Some(p) = self.pb {
+			p.set_length(len)
+		}
 	}
 
 	fn finish_and_clear(&self) {
-		if let Some(p) = self.pb { p.finish_and_clear() }
+		if let Some(p) = self.pb {
+			p.finish_and_clear()
+		}
 	}
 }
 
@@ -218,8 +224,12 @@ pub async fn app(app: App) -> Result<(), Error> {
 		let spec_versions = spec_versions(&mut conn).await?;
 		let now = std::time::Instant::now();
 		let count = total_block_count(&mut conn).await?;
-		if let Some(p) = &pb { p.set_message("decoding all blocks") };
-		if let Some(p) = &pb { p.set_length(count as u64) };
+		if let Some(p) = &pb {
+			p.set_message("decoding all blocks")
+		};
+		if let Some(p) = &pb {
+			p.set_length(count as u64)
+		};
 		let (error_count, length) = state.print_blocks(spec_versions, &mut errors)?;
 		state.finish_and_clear();
 		println!("Took {:?} to decode {} blocks with {} errors.", now.elapsed(), length, error_count);

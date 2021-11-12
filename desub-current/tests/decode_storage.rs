@@ -16,7 +16,7 @@
 
 use codec::Encode;
 use desub_current::{
-	decoder::{self, StorageEntryDetails, StorageHasher},
+	decoder::{self, StorageEntryType, StorageHasher},
 	value::{Composite, Primitive},
 	Metadata, Value,
 };
@@ -78,21 +78,18 @@ fn democracy_blacklist() {
 	assert_eq!(entry.name, "Blacklist");
 
 	let keys = match entry.details {
-		StorageEntryDetails::Plain => panic!("Should be a map"),
-		StorageEntryDetails::Map(keys) => keys,
+		StorageEntryType::Plain => panic!("Should be a map"),
+		StorageEntryType::Map(keys) => keys,
 	};
 
 	// Because the hasher is Identity, we can even see the decoded original map key:
 	assert_eq!(keys.len(), 1);
-	assert_eq!(keys[0].hasher, StorageHasher::Identity(
-		Value::Composite(Composite::Unnamed(vec![Value::Composite(Composite::Unnamed(vec![
-			Value::Primitive(
-				Primitive::U8(1)
-			);
-			32
-		]))]))
-    ));
-
+	assert_eq!(
+		keys[0].hasher,
+		StorageHasher::Identity(Value::Composite(Composite::Unnamed(vec![Value::Composite(Composite::Unnamed(
+			vec![Value::Primitive(Primitive::U8(1)); 32]
+		))])))
+	);
 }
 
 // A map storage entry with a Twox64Concat key.
@@ -110,8 +107,8 @@ fn system_blockhash() {
 	assert_eq!(entry.name, "BlockHash");
 
 	let keys = match entry.details {
-		StorageEntryDetails::Plain => panic!("Should be a map"),
-		StorageEntryDetails::Map(keys) => keys,
+		StorageEntryType::Plain => panic!("Should be a map"),
+		StorageEntryType::Map(keys) => keys,
 	};
 
 	// Because the hasher is Twox64Concat, we can even see the decoded original map key:
@@ -148,12 +145,12 @@ fn balances_account() {
 	assert_eq!(entry.name, "Account");
 
 	let keys = match entry.details {
-		StorageEntryDetails::Plain => panic!("Should be a map"),
-		StorageEntryDetails::Map(keys) => keys,
+		StorageEntryType::Plain => panic!("Should be a map"),
+		StorageEntryType::Map(keys) => keys,
 	};
 
 	let bobs_accountid = sp_keyring::AccountKeyring::Bob.to_account_id();
-    let bobs_value = account_id_to_value(&bobs_accountid);
+	let bobs_value = account_id_to_value(&bobs_accountid);
 
 	assert_eq!(keys.len(), 1);
 	assert_eq!(keys[0].hasher, StorageHasher::Blake2_128Concat(bobs_value));
@@ -174,12 +171,12 @@ fn imonline_authoredblocks() {
 	assert_eq!(entry.name, "AuthoredBlocks");
 
 	let keys = match entry.details {
-		StorageEntryDetails::Plain => panic!("Should be a map"),
-		StorageEntryDetails::Map(keys) => keys,
+		StorageEntryType::Plain => panic!("Should be a map"),
+		StorageEntryType::Map(keys) => keys,
 	};
 
 	let bobs_accountid = sp_keyring::AccountKeyring::Bob.to_account_id();
-    let bobs_value = account_id_to_value(&bobs_accountid);
+	let bobs_value = account_id_to_value(&bobs_accountid);
 
 	// Because the hashers are Twox64Concat, we can check the keys we provided:
 	assert_eq!(keys.len(), 2);

@@ -14,92 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-/*!
-Given some [`Metadata`] obtained from a substrate node, this module exposes the functionality to
-decode various SCALE encoded values, such as extrinsics, that are compatible with that metadata.
 
-# Examples
+//! Given some [`Metadata`] obtained from a substrate node, this module exposes the functionality to
+//! decode various SCALE encoded values, such as extrinsics, that are compatible with that metadata.
+//!
+//! See [`decode_extrinsics`], [`decode_extrinsic`], and [`decode_unwrapped_extrinsic`] for the most
+//! common extrinsic decoding needs.
+//!
+//! See [`decode_storage()`] and then the documentation on [`StorageDecoder`] to decode storage lookups.
 
-## Decoding a block of extrinsics
-
-Conceptually, a block of extrinsics is the SCALE encoded version of `Vec<Vec<u8>>`,
-where the inner bytes are the SCALE encoded bytes for a single unwrapped extrinsic.
-Use [`Decoder::decode_extrinsics`] to decode:
-
-```rust
-use hex;
-use desub_current::{ Metadata, decoder };
-
-let metadata_scale_encoded = include_bytes!("../../tests/data/v14_metadata_polkadot.scale");
-let metadata = Metadata::from_bytes(metadata_scale_encoded).unwrap();
-
-// the same extrinsic repeated 3 times:
-let extrinsics_hex = "0x0C2004480104080c10142004480104080c10142004480104080c1014";
-let extrinsics_bytes = hex::decode(extrinsics_hex.strip_prefix("0x").unwrap()).unwrap();
-let extrinsics_cursor = &mut &*extrinsics_bytes;
-
-let extrinsics = decoder::decode_extrinsics(&metadata, extrinsics_cursor).unwrap();
-
-assert_eq!(extrinsics_cursor.len(), 0);
-assert_eq!(extrinsics.len(), 3);
-```
-
-## Decoding a single extrinsic
-
-Conceptually, a single extrinsic looks like `Vec<u8>`; it's the actual extrinsic data,
-prefixed with the length of this extrinsic data. Use [`Decoder::decode_extrinsic`] to decode:
-
-```rust
-use hex;
-use desub_current::{ Metadata, decoder };
-
-let metadata_scale_encoded = include_bytes!("../../tests/data/v14_metadata_polkadot.scale");
-let metadata = Metadata::from_bytes(metadata_scale_encoded).unwrap();
-
-let extrinsic_hex = "0x2004480104080c1014";
-let extrinsic_bytes = hex::decode(extrinsic_hex.strip_prefix("0x").unwrap()).unwrap();
-let extrinsic_cursor = &mut &*extrinsic_bytes;
-
-let extrinsic = decoder::decode_extrinsic(&metadata, extrinsic_cursor).unwrap();
-
-assert_eq!(extrinsic_cursor.len(), 0);
-assert_eq!(extrinsic.call_data.pallet_name, "Auctions");
-assert_eq!(&*extrinsic.call_data.ty.name(), "bid");
-```
-
-## Decoding call data
-
-An "unwrapped" extrinsic is essentially the call data (that you can see by using the polkadot.js UI),
-prefixed with either `0x04` denoting the version (4) and no signature, or `0x84` to denote
-the version number and then some signature bytes. A normal extrinsic is also prefixed by a compact
-encoding of its length in bytes.
-
-So, to convert any call data into something that can be decoded as an unwrapped extrinsic, simply prepend
-`0x04` to the encode bytes, and use [`Decoder::decode_unwrapped_extrinsic`] to decode it:
-
-```rust
-use hex;
-use desub_current::{ Metadata, decoder };
-
-let metadata_scale_encoded = include_bytes!("../../tests/data/v14_metadata_polkadot.scale");
-let metadata = Metadata::from_bytes(metadata_scale_encoded).unwrap();
-
-let call_data_hex = "0x480104080c1014";
-// Prepend 04 to the call data hex to create a valid, unwrapped (no length prefix)
-// and unsigned extrinsic:
-let extrinsic_hex = "0x04480104080c1014";
-
-let extrinsic_bytes = hex::decode(extrinsic_hex.strip_prefix("0x").unwrap()).unwrap();
-let extrinsic_cursor = &mut &*extrinsic_bytes;
-
-// Decode the "unwrapped" (no length prefix) extrinsic like so:
-let extrinsic = decoder::decode_unwrapped_extrinsic(&metadata, extrinsic_cursor).unwrap();
-
-assert_eq!(extrinsic_cursor.len(), 0);
-assert_eq!(extrinsic.call_data.pallet_name, "Auctions");
-assert_eq!(&*extrinsic.call_data.ty.name(), "bid");
-```
-*/
 mod decode_storage;
 mod decode_value;
 mod extrinsic_bytes;
@@ -117,11 +40,11 @@ pub use decode_value::DecodeValueError;
 
 // Re-xport storage related types that are part of our public interface.
 pub use decode_storage::{
-	StorageDecodeError, StorageDecoder, StorageEntry, StorageEntryDetails, StorageHasher, StorageKey,
+	StorageDecodeError, StorageDecoder, StorageEntry, StorageEntryType, StorageHasher, StorageMapKey,
 };
 
 /// An enum of the possible errors that can be returned from attempting to decode bytes
-/// using the [`Decoder`] methods.
+/// using the functions in this module.
 #[derive(Clone, Debug, thiserror::Error)]
 pub enum DecodeError {
 	#[error("Failed to parse the provided vector of extrinsics: {0}")]
@@ -168,6 +91,26 @@ pub fn decode_storage(metadata: &Metadata) -> StorageDecoder {
 /// expected to be provided in a SCALE-encoded form equivalent to `Vec<(Compact<u32>,Extrinsic)>`; in other words, we
 /// start with a compact encoded count of how many extrinsics exist, and then each extrinsic is prefixed by
 /// a compact encoding of its byte length.
+///
+/// # Example
+///
+/// ```rust
+/// use hex;
+/// use desub_current::{ Metadata, decoder };
+///
+/// let metadata_scale_encoded = include_bytes!("../../tests/data/v14_metadata_polkadot.scale");
+/// let metadata = Metadata::from_bytes(metadata_scale_encoded).unwrap();
+///
+/// // the same extrinsic repeated 3 times:
+/// let extrinsics_hex = "0x0C2004480104080c10142004480104080c10142004480104080c1014";
+/// let extrinsics_bytes = hex::decode(extrinsics_hex.strip_prefix("0x").unwrap()).unwrap();
+/// let extrinsics_cursor = &mut &*extrinsics_bytes;
+///
+/// let extrinsics = decoder::decode_extrinsics(&metadata, extrinsics_cursor).unwrap();
+///
+/// assert_eq!(extrinsics_cursor.len(), 0);
+/// assert_eq!(extrinsics.len(), 3);
+/// ```
 pub fn decode_extrinsics<'a>(
 	metadata: &'a Metadata,
 	data: &mut &[u8],
@@ -212,8 +155,28 @@ pub fn decode_extrinsics<'a>(
 /// to be represented in terms of a compact encoded count of its length in bytes, and then the actual extrinsic
 /// information (the optional signature and call data).
 ///
-/// If your extrinsic is not prefixed by its byte length, use [`Decoder::decode_unwrapped_extrinsic`] to
+/// If your extrinsic is not prefixed by its byte length, use [`decode_unwrapped_extrinsic`] to
 /// decode it instead.
+///
+/// # Example
+///
+/// ```rust
+/// use hex;
+/// use desub_current::{ Metadata, decoder };
+///
+/// let metadata_scale_encoded = include_bytes!("../../tests/data/v14_metadata_polkadot.scale");
+/// let metadata = Metadata::from_bytes(metadata_scale_encoded).unwrap();
+///
+/// let extrinsic_hex = "0x2004480104080c1014";
+/// let extrinsic_bytes = hex::decode(extrinsic_hex.strip_prefix("0x").unwrap()).unwrap();
+/// let extrinsic_cursor = &mut &*extrinsic_bytes;
+///
+/// let extrinsic = decoder::decode_extrinsic(&metadata, extrinsic_cursor).unwrap();
+///
+/// assert_eq!(extrinsic_cursor.len(), 0);
+/// assert_eq!(extrinsic.call_data.pallet_name, "Auctions");
+/// assert_eq!(&*extrinsic.call_data.ty.name(), "bid");
+/// ```
 pub fn decode_extrinsic<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<Extrinsic<'a>, DecodeError> {
 	// Ignore the expected extrinsic length here at the moment, since `decode_unwrapped_extrinsic` will
 	// error accordingly if the wrong number of bytes are consumed.
@@ -222,9 +185,34 @@ pub fn decode_extrinsic<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<
 	decode_unwrapped_extrinsic(metadata, data)
 }
 
-/// Decode a SCALE encoded extrinsic against the metadata provided. Unlike [`Decoder::decode_extrinsic`], this
+/// Decode a SCALE encoded extrinsic against the metadata provided. Unlike [`decode_extrinsic`], this
 /// assumes that the bytes provided do *not* start with a compact encoded count of the extrinsic byte length
 /// (ie, the extrinsic has been "unwrapped" already, and here we deal directly with the signature and call data).
+///
+/// # Example
+///
+/// ```rust
+/// use hex;
+/// use desub_current::{ Metadata, decoder };
+///
+/// let metadata_scale_encoded = include_bytes!("../../tests/data/v14_metadata_polkadot.scale");
+/// let metadata = Metadata::from_bytes(metadata_scale_encoded).unwrap();
+///
+/// let call_data_hex = "0x480104080c1014";
+/// // Prepend 04 to the call data hex to create a valid, unwrapped (no length prefix)
+/// // and unsigned extrinsic:
+/// let extrinsic_hex = "0x04480104080c1014";
+///
+/// let extrinsic_bytes = hex::decode(extrinsic_hex.strip_prefix("0x").unwrap()).unwrap();
+/// let extrinsic_cursor = &mut &*extrinsic_bytes;
+///
+/// // Decode the "unwrapped" (no length prefix) extrinsic like so:
+/// let extrinsic = decoder::decode_unwrapped_extrinsic(&metadata, extrinsic_cursor).unwrap();
+///
+/// assert_eq!(extrinsic_cursor.len(), 0);
+/// assert_eq!(extrinsic.call_data.pallet_name, "Auctions");
+/// assert_eq!(&*extrinsic.call_data.ty.name(), "bid");
+/// ```
 pub fn decode_unwrapped_extrinsic<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<Extrinsic<'a>, DecodeError> {
 	if data.is_empty() {
 		return Err(DecodeError::EarlyEof("unwrapped extrinsic byte length should be > 0"));
@@ -272,6 +260,28 @@ pub fn decode_unwrapped_extrinsic<'a>(metadata: &'a Metadata, data: &mut &[u8]) 
 /// Decode SCALE encoded call data. Conceptually, this is expected to take the form of
 /// `(u8, u8, arguments)`, where the specific pallet call variant indexes are determined by
 /// the `u8`s, and then arguments according to the specific variant are expected to follow.
+///
+/// # Example
+///
+/// ```rust
+/// use hex;
+/// use desub_current::{ Metadata, decoder };
+///
+/// let metadata_scale_encoded = include_bytes!("../../tests/data/v14_metadata_polkadot.scale");
+/// let metadata = Metadata::from_bytes(metadata_scale_encoded).unwrap();
+///
+/// let call_data_hex = "0x480104080c1014";
+///
+/// let call_data_bytes = hex::decode(call_data_hex.strip_prefix("0x").unwrap()).unwrap();
+/// let call_data_cursor = &mut &*call_data_bytes;
+///
+/// // Decode the call data like so:
+/// let call_data = decoder::decode_call_data(&metadata, call_data_cursor).unwrap();
+///
+/// assert_eq!(call_data_cursor.len(), 0);
+/// assert_eq!(call_data.pallet_name, "Auctions");
+/// assert_eq!(&*call_data.ty.name(), "bid");
+/// ```
 pub fn decode_call_data<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<CallData<'a>, DecodeError> {
 	// Pluck out the u8's representing the pallet and call enum next.
 	if data.len() < 2 {
@@ -316,8 +326,9 @@ pub fn decode_signer_payload<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Re
 	Ok(SignerPayload { call_data, extensions })
 }
 
-/// Decode the signature part of a SCALE encoded extrinsic. Ordinarily, one should prefer to use [`decode_extrinsic`]
-/// directly to decode the entire extrinsic at once.
+/// Decode the signature part of a SCALE encoded extrinsic.
+///
+/// Ordinarily, one should prefer to use [`decode_extrinsic`] directly to decode the entire extrinsic at once.
 pub fn decode_signature<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<ExtrinsicSignature<'a>, DecodeError> {
 	let address = <MultiAddress<AccountId32, u32>>::decode(data)?;
 	let signature = MultiSignature::decode(data)?;
@@ -326,8 +337,9 @@ pub fn decode_signature<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<
 	Ok(ExtrinsicSignature { address, signature, extensions })
 }
 
-/// Decode the signed extensions part of a SCALE encoded extrinsic. Ordinarily, one should prefer to use [`decode_extrinsic`]
-/// directly to decode the entire extrinsic at once.
+/// Decode the signed extensions part of a SCALE encoded extrinsic.
+///
+/// Ordinarily, one should prefer to use [`decode_extrinsic`] directly to decode the entire extrinsic at once.
 pub fn decode_signed_extensions<'a>(
 	metadata: &'a Metadata,
 	data: &mut &[u8],
@@ -344,8 +356,9 @@ pub fn decode_signed_extensions<'a>(
 		.collect()
 }
 
-/// Decode the additional signed data. This is called as part of [`decode_signer_payload`], which you should prefer to use
-/// directly where possible, as it will decode the entire signer payload at once.
+/// Decode the additional signed data.
+///
+/// Ordinarily, one should prefer to use [`decode_signer_payload`], to decode the entire signer payload at once.
 pub fn decode_additional_signed<'a>(
 	metadata: &'a Metadata,
 	data: &mut &[u8],

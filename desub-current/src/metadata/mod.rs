@@ -14,10 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-/*!
-Decode SCALE encoded metadata from a substrate node into a format that
-we can pass to a [`crate::Decoder`].
-*/
+//! Decode SCALE encoded metadata from a substrate node into a format that
+//! we can make use of for decoding (see [`crate::decoder`]).
 
 mod readonly_array;
 mod version_14;
@@ -51,9 +49,8 @@ pub enum MetadataError {
 }
 
 /// This is a representation of the SCALE encoded metadata obtained from a substrate
-/// node. While not very useful on its own, It can be passed to [`crate::Decoder`]
-/// to allow that to decode extrinsics compatible with the substrate node that
-/// this was obtained from.
+/// node. While not very useful on its own, It can be passed to [`crate::decoder`] functions
+/// to decode encoded extrinsics and storage keys.
 #[derive(Debug)]
 pub struct Metadata {
 	/// Details about the extrinsic format.

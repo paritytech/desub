@@ -1,7 +1,7 @@
 use super::Value;
 use crate::metadata::{Metadata, StorageLocation};
 use crate::{Type, TypeId};
-use frame_metadata::v14::StorageEntryType;
+use frame_metadata::v14::StorageEntryType as FrameStorageEntryType;
 use serde::Serialize;
 use sp_core::twox_128;
 use std::borrow::Cow;
@@ -40,7 +40,7 @@ pub enum StorageDecodeError {
 }
 
 impl StorageDecoder {
-	/// Call [`super::decode_storage`] to construct a [`StorageDecoder`].
+	/// Call [`super::decode_storage()`] to construct a [`StorageDecoder`].
 	pub(super) fn generate_from_metadata(metadata: &Metadata) -> StorageDecoder {
 		let entries_by_hashed_prefix = metadata
 			.storage_entries()
@@ -63,30 +63,35 @@ impl StorageDecoder {
 	}
 
 	/// Decode the SCALE encoded bytes representing a storage entry lookup. These conceptually take the
-	/// form `twox_128(prefix) + twox_128(name) + rest`, where `rest` are hashed
+	/// form `twox_128(prefix) + twox_128(name) + rest`, where `rest` depends on the storage entry we're
+	/// keying into, and may be nothing at all for plain storage locations, or hashed keys to access maps.
 	pub fn decode_key<'m, 'b>(
 		&self,
 		metadata: &'m Metadata,
 		bytes: &mut &'b [u8],
 	) -> Result<StorageEntry<'m, 'b>, StorageDecodeError> {
+		// Step 1: reverse-lookup the hashed prefix+name part of the key, and get
+		// details about this storage location from our metadata.
 		let location = self.decode_prefix_and_name_to_location(bytes)?;
 		let storage_entry = metadata.storage_entry(location);
 
 		let prefix_str = storage_entry.prefix;
 		let name_str = &*storage_entry.metadata.name;
 
+		// Step 2: use the details held in metadata to infer what form the rest of
+		// the bytes should take, and decode accordingly.
 		match &storage_entry.metadata.ty {
-			StorageEntryType::Plain(ty) => {
+			FrameStorageEntryType::Plain(ty) => {
 				// No more work to do here; our storage entry is a plain prefix+name entry,
 				// so return the details of it:
 				Ok(StorageEntry {
 					prefix: prefix_str.into(),
 					name: name_str.into(),
 					ty: *ty,
-					details: StorageEntryDetails::Plain,
+					details: StorageEntryType::Plain,
 				})
 			}
-			StorageEntryType::Map { hashers, key, value } => {
+			FrameStorageEntryType::Map { hashers, key, value } => {
 				// We'll consume some more data based on the hashers.
 				// First, get the type information that we need ready.
 				let key =
@@ -141,14 +146,18 @@ impl StorageDecoder {
 					// Move the byte cursor forwards and push an entry to our storage keys:
 					let hash_bytes = &bytes[..bytes_consumed];
 					*bytes = &bytes[bytes_consumed..];
-					storage_keys.push(StorageKey { bytes: Cow::Borrowed(hash_bytes), hasher, ty: Cow::Borrowed(ty) });
+					storage_keys.push(StorageMapKey {
+						bytes: Cow::Borrowed(hash_bytes),
+						hasher,
+						ty: Cow::Borrowed(ty),
+					});
 				}
 
 				Ok(StorageEntry {
 					prefix: prefix_str.into(),
 					name: name_str.into(),
 					ty: *value,
-					details: StorageEntryDetails::Map(storage_keys),
+					details: StorageEntryType::Map(storage_keys),
 				})
 			}
 		}
@@ -165,7 +174,6 @@ impl StorageDecoder {
 		let name_hash = &data[16..32];
 
 		let entries = self.entries_by_hashed_prefix.get(prefix_hash).ok_or(StorageDecodeError::PrefixNotFound)?;
-
 		let entry_index = entries.entry_by_hashed_name.get(name_hash).ok_or(StorageDecodeError::NameNotFound)?;
 
 		// Successfully consumed the prefix and name bytes, so move our cursor.
@@ -204,12 +212,18 @@ fn storage_map_key_to_type_id_vec<'a>(
 	}
 }
 
+/// Details about the decoded storage key.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct StorageEntry<'m, 'b> {
+	/// The prefix (often identical to the pallet name) that the storage lives under
 	pub prefix: Cow<'m, str>,
+	/// The name of the storage entry.
 	pub name: Cow<'m, str>,
+	/// The type of the values accessed at this location.
 	pub ty: TypeId,
-	pub details: StorageEntryDetails<'m, 'b>,
+	/// Details about the storage entry (ie is it a map, which hashers are used, and
+	/// where applicable, what values were provided for the map keys).
+	pub details: StorageEntryType<'m, 'b>,
 }
 
 impl<'m, 'b> StorageEntry<'m, 'b> {
@@ -223,31 +237,39 @@ impl<'m, 'b> StorageEntry<'m, 'b> {
 	}
 }
 
+/// This is similar to [`frame_metadata::v14::StorageEntryType`], but also includes
+/// decoded values, and doesn't include the value type, which instead exists in the
+/// [`StorageEntry`] struct.
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub enum StorageEntryDetails<'m, 'b> {
+pub enum StorageEntryType<'m, 'b> {
 	Plain,
-	Map(Vec<StorageKey<'m, 'b>>),
+	Map(Vec<StorageMapKey<'m, 'b>>),
 }
 
-impl<'m, 'b> StorageEntryDetails<'m, 'b> {
-	pub fn into_owned(self) -> StorageEntryDetails<'static, 'static> {
+impl<'m, 'b> StorageEntryType<'m, 'b> {
+	pub fn into_owned(self) -> StorageEntryType<'static, 'static> {
 		match self {
-			Self::Plain => StorageEntryDetails::Plain,
-			Self::Map(keys) => StorageEntryDetails::Map(keys.into_iter().map(|k| k.into_owned()).collect()),
+			Self::Plain => StorageEntryType::Plain,
+			Self::Map(keys) => StorageEntryType::Map(keys.into_iter().map(|k| k.into_owned()).collect()),
 		}
 	}
 }
 
+/// Details about a specific map key that forms part of our storage key.
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct StorageKey<'m, 'b> {
+pub struct StorageMapKey<'m, 'b> {
+	/// The bytes in the provided storage key that correspond to this map key.
 	pub bytes: Cow<'b, [u8]>,
+	// The type of the values expected to be provided for this key.
 	pub ty: Cow<'m, Type>,
+	// The hasher used to hash values into this key. In some cases (Concat and Identity
+	// hashers), this also includes the actual value that was hashed.
 	pub hasher: StorageHasher,
 }
 
-impl<'m, 'b> StorageKey<'m, 'b> {
-	pub fn into_owned(self) -> StorageKey<'static, 'static> {
-		StorageKey {
+impl<'m, 'b> StorageMapKey<'m, 'b> {
+	pub fn into_owned(self) -> StorageMapKey<'static, 'static> {
+		StorageMapKey {
 			bytes: Cow::Owned(self.bytes.into_owned()),
 			ty: Cow::Owned(self.ty.into_owned()),
 			hasher: self.hasher,

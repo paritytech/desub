@@ -30,9 +30,9 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-	convert, CallArgMetadata, CallMetadata, Error, EventArg, ExtrinsicMetadata, Metadata, ModuleEventMetadata, ModuleMetadata,
-	StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as DesubStorageHasher, StorageMetadata,
-	StorageType,
+	convert, CallArgMetadata, CallMetadata, Error, EventArg, ExtrinsicMetadata, Metadata, ModuleEventMetadata,
+	ModuleMetadata, StorageEntryModifier as DesubStorageEntryModifier, StorageHasher as DesubStorageHasher,
+	StorageMetadata, StorageType,
 };
 use crate::{regex, RustTypeMarker};
 use frame_metadata::v11::{self, RuntimeMetadataV11, StorageEntryModifier, StorageEntryType, StorageHasher};

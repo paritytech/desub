@@ -26,9 +26,9 @@ use self::remote::*;
 use crate::{Error, SetField};
 use bitvec::order::Lsb0 as BitOrderLsb0;
 use primitives::crypto::{AccountId32, Ss58Codec};
+use runtime_primitives::MultiAddress;
 use serde::Serialize;
 use std::{convert::TryFrom, fmt};
-use runtime_primitives::MultiAddress;
 
 pub use self::data::Data;
 
@@ -144,7 +144,9 @@ impl fmt::Display for SubstrateType {
 			},
 			SubstrateType::GenericVote(v) => write!(f, "Aye={}, Conviction={}", v.aye, v.conviction.lock_periods()),
 			SubstrateType::Address(v) => match v {
-				runtime_primitives::MultiAddress::Id(ref i) => { write!(f, "Account::Id({})", i.to_ss58check()) }
+				runtime_primitives::MultiAddress::Id(ref i) => {
+					write!(f, "Account::Id({})", i.to_ss58check())
+				}
 				runtime_primitives::MultiAddress::Index(i) => write!(f, "Index: {:?}", i),
 				runtime_primitives::MultiAddress::Raw(bytes) => write!(f, "Raw: {:?}", bytes),
 				runtime_primitives::MultiAddress::Address32(ary) => write!(f, "Address32: {:?}", ary),
