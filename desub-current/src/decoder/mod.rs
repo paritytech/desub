@@ -350,7 +350,7 @@ pub fn decode_call_data<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<
 	};
 
 	// Decode each of the argument values in the extrinsic:
-	let arguments: Vec<_> = variant
+	let arguments = variant
 		.fields()
 		.iter()
 		.map(|field| {
@@ -358,7 +358,7 @@ pub fn decode_call_data<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<
 			let ty = metadata.types().resolve(type_id).ok_or(DecodeError::CannotFindType(type_id))?;
 			decode_value(metadata, ty, data).map_err(DecodeError::DecodeValueError)
 		})
-		.collect::<Result<_, _>>()?;
+		.collect::<Result<Vec<_>, _>>()?;
 
 	Ok(CallData { pallet_name: Cow::Borrowed(pallet_name), ty: Cow::Borrowed(variant), arguments })
 }
