@@ -83,6 +83,61 @@ pub fn decode_value_by_id(
 
 /// Generate a [`StorageDecoder`] struct which is capable of decoding SCALE encoded storage keys. It's advisable
 /// to cache this struct if you are decoding lots of storage entries, since it is non-trivial to create.
+///
+/// # Example
+///
+/// ```rust
+/// use hex;
+/// use desub_current::{
+///     Metadata,
+/// 	decoder::{ self, StorageEntryType, StorageHasher },
+///     value::{ Value, Composite, Primitive },
+/// };
+/// use codec::Encode;
+///
+/// // Get hold of the metadata (normally by making an RPC call
+/// // to the node you want to interact with):
+/// let metadata_scale_encoded = include_bytes!("../../tests/data/v14_metadata_polkadot.scale");
+/// let metadata = Metadata::from_bytes(metadata_scale_encoded).unwrap();
+///
+/// // With the help of our metadata, we can create a storage decoder:
+/// let storage_decoder = decoder::decode_storage(&metadata);
+///
+/// // Hex representing a lookup like `System.BlockHash(1000)`
+/// // (which contains values of type `[u8; 32]`):
+/// let storage_key_hex = "0x26aa394eea5630e07c48ae0c9558cef7a44704b568d21667356a5a050c118746b6ff6f7d467b87a9e8030000";
+/// let storage_key_bytes = hex::decode(storage_key_hex.strip_prefix("0x").unwrap()).unwrap();
+/// let storage_key_cursor = &mut &*storage_key_bytes;
+///
+/// // Now, decode our storage key into something meaningful:
+/// let entry = storage_decoder.decode_key(&metadata, storage_key_cursor).expect("can decode storage");
+/// assert!(storage_key_cursor.is_empty(), "No more bytes expected");
+/// assert_eq!(entry.prefix, "System");
+/// assert_eq!(entry.name, "BlockHash");
+///
+/// let keys = match entry.details {
+/// 	StorageEntryType::Plain => Vec::new(),
+/// 	StorageEntryType::Map(keys) => keys,
+/// };
+///
+/// // Because the hasher is Twox64Concat, we can see the decoded original map key:
+/// assert_eq!(keys.len(), 1);
+/// assert_eq!(keys[0].hasher, StorageHasher::Twox64Concat(Value::Primitive(Primitive::U32(1000))));
+///
+/// // We can also decode values at this storage location using the type info we get back:
+/// let bytes = [1u8; 32].encode();
+/// let val = decoder::decode_value_by_id(&metadata, &entry.ty, &mut &*bytes).unwrap();
+/// # assert_eq!(
+/// # 	val,
+/// # 	// The Type in this case is something like a newtype-wrapped [u8; 32]:
+/// # 	Value::Composite(Composite::Unnamed(vec![Value::Composite(Composite::Unnamed(vec![
+/// # 		Value::Primitive(
+/// # 			Primitive::U8(1)
+/// # 		);
+/// # 		32
+/// # 	]))]))
+/// # );
+/// ```
 pub fn decode_storage(metadata: &Metadata) -> StorageDecoder {
 	decode_storage::StorageDecoder::generate_from_metadata(metadata)
 }
