@@ -16,12 +16,12 @@
 
 use super::{Metadata, MetadataCalls, MetadataError, MetadataExtrinsic, MetadataPalletCalls, MetadataPalletStorage};
 use frame_metadata::RuntimeMetadataV14;
-use std::collections::HashMap;
+use super::u8_map::U8Map;
 
 /// Decode V14 metadata into our general Metadata struct
 pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, MetadataError> {
 	let registry = meta.types;
-	let mut pallet_calls_by_index = HashMap::new();
+	let mut pallet_calls_by_index = U8Map::new();
 	let mut pallet_storage = Vec::new();
 
 	// Gather some details about the extrinsic itself:

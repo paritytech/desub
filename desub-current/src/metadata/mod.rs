@@ -18,13 +18,14 @@
 //! we can make use of for decoding (see [`crate::decoder`]).
 
 mod readonly_array;
+mod u8_map;
 mod version_14;
 
 use codec::Decode;
 use frame_metadata::{RuntimeMetadata, RuntimeMetadataPrefixed};
 use readonly_array::ReadonlyArray;
 use scale_info::{form::PortableForm, PortableRegistry};
-use std::collections::HashMap;
+use u8_map::U8Map;
 
 // Some type aliases used below. `scale-info` is re-exported at the root,
 // so to avoid confusion we only publicly export all scale-info types from that
@@ -57,7 +58,7 @@ pub struct Metadata {
 	extrinsic: MetadataExtrinsic,
 	/// Hash pallet calls by index, since when decoding, we'll have the pallet/call
 	/// `u8`'s available to us to look them up by.
-	pallet_calls_by_index: HashMap<u8, MetadataPalletCalls>,
+	pallet_calls_by_index: U8Map<MetadataPalletCalls>,
 	/// Store storage entry information as a readonly array, allowing us to look up a
 	/// specific storage entry using a key like `(usize,usize)`. Since the order of
 	/// entries in this array is not guaranteed between metadata versions, it should
@@ -135,10 +136,10 @@ impl Metadata {
 		pallet: u8,
 		call: u8,
 	) -> Option<(&str, &scale_info::Variant<PortableForm>)> {
-		self.pallet_calls_by_index.get(&pallet).and_then(|p| {
+		self.pallet_calls_by_index.get(pallet).and_then(|p| {
 			p.calls.as_ref().and_then(|calls| {
 				let type_def_variant = self.get_variant(calls.calls_type_id)?;
-				let index = *calls.call_variant_indexes.get(&call)?;
+				let index = *calls.call_variant_indexes.get(call)?;
 				let variant = type_def_variant.variants().get(index)?;
 				Some((&*p.name, variant))
 			})
@@ -190,7 +191,7 @@ struct MetadataCalls {
 	/// This allows us to map a u8 enum index to the correct call variant
 	/// from the calls type, above. The variant contains information on the
 	/// fields and such that the call has.
-	call_variant_indexes: HashMap<u8, usize>,
+	call_variant_indexes: U8Map<usize>,
 }
 
 /// Information about the extrinsic format supported on the substrate node
