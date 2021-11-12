@@ -20,11 +20,19 @@ use desub_current::{
 	value::{Composite, Primitive},
 	Metadata, Value,
 };
+use sp_runtime::AccountId32;
 
 static V14_METADATA_POLKADOT_SCALE: &[u8] = include_bytes!("data/v14_metadata_polkadot.scale");
 
 fn metadata() -> Metadata {
 	Metadata::from_bytes(V14_METADATA_POLKADOT_SCALE).expect("valid metadata")
+}
+
+fn account_id_to_value(account_id: &AccountId32) -> Value {
+	let account_id_bytes: &[u8] = account_id.as_ref();
+	Value::Composite(Composite::Unnamed(vec![Value::Composite(Composite::Unnamed(
+		account_id_bytes.iter().map(|&b| Value::Primitive(Primitive::U8(b))).collect(),
+	))]))
 }
 
 macro_rules! bytes {
@@ -55,7 +63,39 @@ fn timestamp_now() {
 	assert_eq!(val, Value::Primitive(Primitive::U64(123)));
 }
 
-// A map storage entry with a simple key.
+// A simple map lookup with an Identity hash (ie just the key itself)
+#[test]
+fn democracy_blacklist() {
+	let meta = metadata();
+	let storage = decoder::decode_storage(&meta);
+
+	// Democracy.Blacklist([1u8; 32]: H256): ..
+	bytes!(storage_key = "0xf2794c22e353e9a839f12faab03a911bb7612c99e31defd01cd5a28e9967e2080101010101010101010101010101010101010101010101010101010101010101");
+
+	let entry = storage.decode_key(&meta, storage_key).expect("can decode storage");
+	assert!(storage_key.is_empty(), "No more bytes expected");
+	assert_eq!(entry.prefix, "Democracy");
+	assert_eq!(entry.name, "Blacklist");
+
+	let keys = match entry.details {
+		StorageEntryDetails::Plain => panic!("Should be a map"),
+		StorageEntryDetails::Map(keys) => keys,
+	};
+
+	// Because the hasher is Identity, we can even see the decoded original map key:
+	assert_eq!(keys.len(), 1);
+	assert_eq!(keys[0].hasher, StorageHasher::Identity(
+		Value::Composite(Composite::Unnamed(vec![Value::Composite(Composite::Unnamed(vec![
+			Value::Primitive(
+				Primitive::U8(1)
+			);
+			32
+		]))]))
+    ));
+
+}
+
+// A map storage entry with a Twox64Concat key.
 #[test]
 fn system_blockhash() {
 	let meta = metadata();
@@ -83,7 +123,7 @@ fn system_blockhash() {
 	let val = decoder::decode_value_by_id(&meta, &entry.ty, &mut &*bytes).unwrap();
 	assert_eq!(
 		val,
-		// The Type appears to be like a newtype-wrapped [u8; 32]:
+		// The Type appears to take the form of a newtype-wrapped [u8; 32]:
 		Value::Composite(Composite::Unnamed(vec![Value::Composite(Composite::Unnamed(vec![
 			Value::Primitive(
 				Primitive::U8(1)
@@ -93,7 +133,33 @@ fn system_blockhash() {
 	);
 }
 
-// A map storage entry with two keys.
+// A simple map lookup like above, but using a Blake2_128Concat key
+#[test]
+fn balances_account() {
+	let meta = metadata();
+	let storage = decoder::decode_storage(&meta);
+
+	// Balances.Account(BOB: AccountId32): PalletBalancesAccountData
+	bytes!(storage_key = "0xc2261276cc9d1f8598ea4b6a74b15c2fb99d880ec681799c0cf30e8886371da94f9aea1afa791265fae359272badc1cf8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48");
+
+	let entry = storage.decode_key(&meta, storage_key).expect("can decode storage");
+	assert!(storage_key.is_empty(), "No more bytes expected");
+	assert_eq!(entry.prefix, "Balances");
+	assert_eq!(entry.name, "Account");
+
+	let keys = match entry.details {
+		StorageEntryDetails::Plain => panic!("Should be a map"),
+		StorageEntryDetails::Map(keys) => keys,
+	};
+
+	let bobs_accountid = sp_keyring::AccountKeyring::Bob.to_account_id();
+    let bobs_value = account_id_to_value(&bobs_accountid);
+
+	assert_eq!(keys.len(), 1);
+	assert_eq!(keys[0].hasher, StorageHasher::Blake2_128Concat(bobs_value));
+}
+
+// A map storage entry keyed by a tuple of 2 Twox64Concat values.
 #[test]
 fn imonline_authoredblocks() {
 	let meta = metadata();
@@ -112,12 +178,8 @@ fn imonline_authoredblocks() {
 		StorageEntryDetails::Map(keys) => keys,
 	};
 
-	// A slightly tedious dance to convert an AccountId to a Value to compare:
 	let bobs_accountid = sp_keyring::AccountKeyring::Bob.to_account_id();
-	let bobs_accountid_bytes: &[u8] = bobs_accountid.as_ref();
-	let bobs_value = Value::Composite(Composite::Unnamed(vec![Value::Composite(Composite::Unnamed(
-		bobs_accountid_bytes.iter().map(|&b| Value::Primitive(Primitive::U8(b))).collect(),
-	))]));
+    let bobs_value = account_id_to_value(&bobs_accountid);
 
 	// Because the hashers are Twox64Concat, we can check the keys we provided:
 	assert_eq!(keys.len(), 2);
