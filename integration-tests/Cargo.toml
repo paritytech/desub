@@ -2,7 +2,7 @@
 name = "integration-tests"
 version = "0.1.0"
 authors = ["Andrew Plaza <andrew.plaza@parity.io>"]
-edition = "2018"
+edition = "2021"
 autotests = false
 repository = "https://github.com/paritytech/desub"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

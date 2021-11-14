@@ -2,7 +2,7 @@
 name = "desub-legacy"
 version = "0.0.1"
 authors = [ "Andrew Plaza <andrew.plaza@parity.io>" ]
-edition = "2018"
+edition = "2021"
 repository = "https://github.com/paritytech/desub"
 
 [dependencies]
