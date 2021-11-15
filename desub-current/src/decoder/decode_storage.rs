@@ -108,7 +108,7 @@ impl StorageDecoder {
 					);
 				}
 
-				// Work through the hashers and type info we have to generate out output
+				// Work through the hashers and type info we have to generate the output
 				// data, and consume bytes from the input cursor as we go.
 				let mut storage_keys = vec![];
 				for (idx, (hasher, ty)) in hashers.iter().zip(keys).enumerate() {
