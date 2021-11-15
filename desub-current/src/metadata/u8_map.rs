@@ -19,7 +19,7 @@ use std::iter::FromIterator;
 /// A map where the key is a `u8`. Allows for constant-time access
 /// with no hashing overhead.
 ///
-/// Note: This map can only store 255 entries;
+/// **Note:** This map can only store 255 entries;
 /// one slot is reserved for "item not found".
 #[derive(Debug, Clone)]
 pub struct U8Map<T> {
@@ -41,6 +41,11 @@ impl<V> U8Map<V> {
 
 	/// Insert a value at some location, and return the
 	/// value previously stored there if one exists.
+	///
+	/// # Panics
+	///
+	/// This map can only store 255 entries (as aone entry is reserved
+	/// for book keeping), and will panic on attempting to insert more.
 	pub fn insert(&mut self, key: u8, value: V) -> Option<V> {
 		let idx = self.indexes[key as usize];
 		if idx == u8::MAX {
@@ -54,7 +59,7 @@ impl<V> U8Map<V> {
 			None
 		} else {
 			// Existing entry found; replace it and return original.
-			let item = self.items.get_mut(idx as usize).expect("item should exist");
+			let item = self.items.get_mut(idx as usize).expect("item must exist if in indexes");
 			let old_value = std::mem::replace(item, value);
 			Some(old_value)
 		}
@@ -66,7 +71,7 @@ impl<V> U8Map<V> {
 		if idx == u8::MAX {
 			None
 		} else {
-			let item = self.items.get(idx as usize).expect("item should exist");
+			let item = self.items.get(idx as usize).expect("item must exist if in indexes");
 			Some(item)
 		}
 	}

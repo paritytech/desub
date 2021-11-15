@@ -27,12 +27,12 @@ struct StorageEntries {
 pub enum StorageDecodeError {
 	#[error("Not enough bytes in the input data to decode the storage prefix and name; got {0} bytes but expected 32")]
 	NotEnoughBytesForPrefixAndName(usize),
-	#[error("Expecting the same number of keys and hashers, but got {num_keys} keys and {num_hashers} hashers")]
-	KeysAndHashersDontLineUp { num_keys: usize, num_hashers: usize },
-	#[error("Type with id {0} expected in the metadata but not found")]
-	TypeNotFound(u32),
-	#[error("Couldn't decode the value associated with the hasher {0:?}: {1}")]
-	CouldNotDecodeHasherValue(frame_metadata::v14::StorageHasher, super::DecodeValueError),
+	#[error("Couldn't decode the value associated with the hasher for key {key} ({hasher:?}): {decode_error}")]
+	CouldNotDecodeHasherValue {
+		key: usize,
+		hasher: frame_metadata::v14::StorageHasher,
+		decode_error: super::DecodeValueError,
+	},
 	#[error("Couldn't find a storage entry corresponding to the prefix hash provided in the data")]
 	PrefixNotFound,
 	#[error("Couldn't find a storage entry corresponding to the name hash provided in the data")]
@@ -94,20 +94,24 @@ impl StorageDecoder {
 			FrameStorageEntryType::Map { hashers, key, value } => {
 				// We'll consume some more data based on the hashers.
 				// First, get the type information that we need ready.
-				let key =
-					metadata.types().resolve(key.id()).ok_or_else(|| StorageDecodeError::TypeNotFound(key.id()))?;
-				let keys = storage_map_key_to_type_id_vec(metadata, key)?;
+				let key = match metadata.types().resolve(key.id()) {
+					Some(key) => key,
+					None => {
+						panic!("Metadata inconsistency: type for storage lookup {}.{} not found", prefix_str, name_str)
+					}
+				};
+				let keys = storage_map_key_to_type_id_vec(metadata, key);
 				if keys.len() != hashers.len() {
-					return Err(StorageDecodeError::KeysAndHashersDontLineUp {
-						num_keys: keys.len(),
-						num_hashers: hashers.len(),
-					});
+					panic!(
+						"Metadata inconsistency: keys and hashers for storage lookup {}.{} don't line up",
+						prefix_str, name_str
+					);
 				}
 
 				// Work through the hashers and type info we have to generate out output
 				// data, and consume bytes from the input cursor as we go.
 				let mut storage_keys = vec![];
-				for (hasher, ty) in hashers.iter().zip(keys) {
+				for (idx, (hasher, ty)) in hashers.iter().zip(keys).enumerate() {
 					pub use frame_metadata::v14::StorageHasher as FrameStorageHasher;
 
 					// How many bytes will the hashed bit consume?
@@ -135,8 +139,13 @@ impl StorageDecoder {
 						// in one place below.
 						let value_bytes = &mut &bytes[initial_hash_bytes..];
 						let start_len = value_bytes.len();
-						let value = super::decode_value(metadata, ty, value_bytes)
-							.map_err(|e| StorageDecodeError::CouldNotDecodeHasherValue(hasher.clone(), e))?;
+						let value = super::decode_value(metadata, ty, value_bytes).map_err(|e| {
+							StorageDecodeError::CouldNotDecodeHasherValue {
+								key: idx,
+								hasher: hasher.clone(),
+								decode_error: e,
+							}
+						})?;
 						let value_len = start_len - value_bytes.len();
 						(StorageHasher::expect_from_with_value(hasher, value), initial_hash_bytes + value_len)
 					} else {
@@ -190,25 +199,22 @@ impl StorageDecoder {
 //
 // See https://github.com/paritytech/subxt/blob/793c945fbd2de022f523c39a84ee02609ba423a9/codegen/src/api/storage.rs#L105
 // for another example of this being handled in code.
-fn storage_map_key_to_type_id_vec<'a>(
-	metadata: &'a Metadata,
-	key: &'a Type,
-) -> Result<Vec<&'a Type>, StorageDecodeError> {
+fn storage_map_key_to_type_id_vec<'a>(metadata: &'a Metadata, key: &'a Type) -> Vec<&'a Type> {
 	match key.type_def() {
 		// Multiple keys:
-		scale_info::TypeDef::Tuple(vals) => {
-			let types: Result<Vec<_>, _> = vals
-				.fields()
-				.iter()
-				.map(|f| {
-					let id = f.id();
-					metadata.types().resolve(id).ok_or(StorageDecodeError::TypeNotFound(id))
-				})
-				.collect();
-			types
-		}
+		scale_info::TypeDef::Tuple(vals) => vals
+			.fields()
+			.iter()
+			.map(|f| {
+				let id = f.id();
+				match metadata.types().resolve(id) {
+					Some(ty) => ty,
+					None => panic!("Metadata inconsistency: type #{} in storage tuple {:?} not found", id, vals),
+				}
+			})
+			.collect(),
 		// Single key:
-		_ => Ok(vec![key]),
+		_ => vec![key],
 	}
 }
 
