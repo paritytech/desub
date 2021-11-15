@@ -17,11 +17,10 @@
 //! Common types between legacy and current desub versions.
 
 #![forbid(unsafe_code)]
-#[deny(unused)]
-
-use sp_runtime::{MultiAddress as SubstrateMultiAddress};
+use serde::{Deserialize, Serialize};
 use sp_core::crypto::AccountId32;
-use serde::{Serialize, Deserialize};
+#[deny(unused)]
+use sp_runtime::MultiAddress as SubstrateMultiAddress;
 
 /// Spec Version type defined in the runtime of a chain.
 pub type SpecVersion = u32;
@@ -42,4 +41,3 @@ pub enum RemoteAddress {
 	/// It's a 20 byte representation.
 	Address20([u8; 20]),
 }
-

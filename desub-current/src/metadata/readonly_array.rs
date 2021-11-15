@@ -14,21 +14,29 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-//! A crate to decode extrinsics, signer payloads and storage keys for substrate nodes using V14+ metadata.
-//! See [`decoder`] for more information.
+use std::ops::Deref;
 
-pub mod decoder;
-pub mod metadata;
-pub mod value;
+/// A wrapper that takes a `Vec<T>` and hands back a
+/// type from which you can only access a `&[T]`, to guarantee
+/// that it cannot be modified.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ReadonlyArray<T>(Box<[T]>);
 
-pub use metadata::Metadata;
-pub use value::Value;
+impl<T> ReadonlyArray<T> {
+	pub fn from_vec(vec: Vec<T>) -> ReadonlyArray<T> {
+		ReadonlyArray(vec.into_boxed_slice())
+	}
+}
 
-/// A re-export of the [`scale_info`] crate, since we delegate much of the type inspection to it.
-pub use scale_info;
+impl<T> From<Vec<T>> for ReadonlyArray<T> {
+	fn from(v: Vec<T>) -> Self {
+		ReadonlyArray::from_vec(v)
+	}
+}
 
-/// A re-export of [`scale_info::Type`] as used throughout this library.
-pub type Type = scale_info::Type<scale_info::form::PortableForm>;
-
-/// A re-export of the [`scale_info`] type ID as used throughout this library.
-pub type TypeId = <scale_info::form::PortableForm as scale_info::form::Form>::Type;
+impl<T> Deref for ReadonlyArray<T> {
+	type Target = [T];
+	fn deref(&self) -> &Self::Target {
+		&self.0
+	}
+}

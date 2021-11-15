@@ -34,7 +34,7 @@ pub use self::storage::{GenericStorage, StorageInfo, StorageKey, StorageKeyData,
 pub use self::metadata::test_suite;
 
 pub use self::metadata::{
-	CallMetadata, Metadata, Error as MetadataError, ModuleIndex, ModuleMetadata, StorageEntryModifier, StorageHasher,
+	CallMetadata, Error as MetadataError, Metadata, ModuleIndex, ModuleMetadata, StorageEntryModifier, StorageHasher,
 	StorageType,
 };
 pub use frame_metadata::v14::StorageEntryType;
@@ -44,9 +44,9 @@ use crate::{
 	substrate_types::{self, StructField, SubstrateType},
 	CommonTypes, RustTypeMarker, TypeDetective,
 };
-use desub_common::SpecVersion;
 use bitvec::order::Lsb0 as BitOrderLsb0;
 use codec::{Compact, CompactLen, Decode, Input};
+use desub_common::SpecVersion;
 use std::{
 	cell::RefCell,
 	collections::HashMap,
@@ -236,12 +236,12 @@ impl<'a> DecodeState<'a> {
 	}
 
 	/// Current value at cursor.
-	/// In other words: data[cursor]
+	/// In other words: data\[cursor\]
 	fn index(&self) -> u8 {
 		self.data[self.cursor()]
 	}
 
-	/// Current value at cursor (data[cursor]).
+	/// Current value at cursor (data\[cursor\]).
 	/// Increment the cursor by 1.
 	fn do_index(&self) -> u8 {
 		let number = self.data[self.cursor.load(Ordering::Relaxed)];
@@ -943,7 +943,7 @@ impl Decoder {
 	}
 }
 
-/// Decodes old address pre-refactor (https://github.com/paritytech/substrate/pull/7380)
+/// Decodes old address pre-refactor (<https://github.com/paritytech/substrate/pull/7380>)
 /// and converts it to a MultiAddress, where "old" here means anything before v0.8.26 or 26/2026/46 on polkadot/kusama/westend respectively.
 fn decode_old_address(state: &DecodeState) -> Result<substrate_types::Address, Error> {
 	/// Kept around for backwards-compatibility with old address struct

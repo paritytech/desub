@@ -605,7 +605,7 @@ impl<'de> IntoDeserializer<'de, Error> for Primitive {
 /// otherwise publically accessible), and then we implement a Deserializer that aligns
 /// with what the Deserialize impl for BitVec expects.
 ///
-/// See https://docs.rs/bitvec/0.20.2/src/bitvec/serdes.rs.html for the Serialize/Deserialize
+/// See <https://docs.rs/bitvec/0.20.2/src/bitvec/serdes.rs.html> for the Serialize/Deserialize
 /// impls we are aligning with.
 struct BitVecPieces {
 	head: u8,

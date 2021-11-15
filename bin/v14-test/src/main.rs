@@ -1,4 +1,4 @@
-use desub_current::{Decoder, Metadata};
+use desub_current::{decoder, Metadata};
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -21,8 +21,6 @@ fn main() -> Result<(), anyhow::Error> {
 
 	println!("Extrinsic version: {}", meta.extrinsic().version());
 
-	let decoder = Decoder::with_metadata(meta);
-
 	let ext = match opts.extrinsic.strip_prefix("0x") {
 		Some(ext) => ext,
 		None => anyhow::bail!("Extrinsic should start with 0x"),
@@ -33,7 +31,7 @@ fn main() -> Result<(), anyhow::Error> {
 		Err(e) => anyhow::bail!("Cannot decode hex string into bytes: {}", e),
 	};
 
-	let decoded = match decoder.decode_extrinsic(&mut &*bytes) {
+	let decoded = match decoder::decode_extrinsic(&meta, &mut &*bytes) {
 		Ok(decoded) => decoded,
 		Err(e) => anyhow::bail!("Cannot decode extrinsic: {}", e),
 	};

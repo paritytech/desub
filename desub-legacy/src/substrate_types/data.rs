@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Copy of this: https://substrate.dev/rustdocs/latest/pallet_identity/enum.Data.html
+//! Copy of this: <https://substrate.dev/rustdocs/latest/pallet_identity/enum.Data.html>
 //! For the purpose of Decoding the Data field.
 //! Because of the specificity/complexity of decoding:
 //!  - `BoundedVec` includes private tuple fields with no getters so Serde `remote` does not work
