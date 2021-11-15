@@ -70,17 +70,17 @@ impl Decoder {
 	#[cfg(feature = "polkadot-js")]
 	pub fn new(chain: Chain) -> Self {
 		let legacy_decoder = LegacyDecoder::new(PolkadotJsResolver::default(), chain);
-		let current_decoder = HashMap::new();
+		let current_metadata = HashMap::new();
 
-		Self { legacy_decoder, current_metadata: current_decoder }
+		Self { legacy_decoder, current_metadata }
 	}
 
 	#[cfg(not(feature = "polkadot-js"))]
 	pub fn new() -> Self {
 		let legacy_decoder = LegacyDecoder::new(NoLegacyTypes, Chain::Custom("none".to_string()));
-		let current_decoder = HashMap::new();
+		let current_metadata = HashMap::new();
 
-		Self { legacy_decoder, current_decoder }
+		Self { legacy_decoder, current_metadata }
 	}
 
 	/// Create a new general Decoder
