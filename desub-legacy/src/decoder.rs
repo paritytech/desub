@@ -284,7 +284,7 @@ impl<'a> DecodeState<'a> {
 		let value_at_cursor = &self.data[cursor];
 		let data_at_cursor = &self.data[cursor..];
 
-		log::debug!(
+		log::trace!(
 			"line: {}, module = {}, call = {:?}, cursor = {}, data[cursor] = {}, data[cursor..] = {:?}",
 			line,
 			module,
@@ -471,7 +471,6 @@ impl Decoder {
 			log::trace!("Extrinsic {}:{:?}", idx, extrinsic);
 			state.reset(extrinsic);
 			ext.push(self.decode_extrinsic(&mut state)?);
-			log::info!("Success! {}", serde_json::to_string_pretty(&ext).unwrap());
 		}
 
 		Ok(ext)
@@ -583,7 +582,7 @@ impl Decoder {
 				let index = state.do_index();
 				let variant = &v[index as usize];
 				let value = variant.value.as_ref().map(|v| self.decode_single(state, v, is_compact)).transpose()?;
-				log::debug!("Enum: {:?}", value);
+				log::trace!("Enum: {:?}", value);
 				SubstrateType::Enum(substrate_types::EnumField {
 					name: variant.name.clone(),
 					value: value.map(Box::new),
