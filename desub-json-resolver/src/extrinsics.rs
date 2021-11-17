@@ -20,7 +20,6 @@ use std::collections::HashMap;
 #[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq, Clone)]
 pub struct Extrinsics {
 	default: ModuleTypes,
-	#[serde(flatten)]
 	overrides: HashMap<String, Vec<TypeRange>>,
 }
 
@@ -50,17 +49,19 @@ mod tests {
         "default": {
             "Foo": "H256"
         },
-        "kusama": [
-            {
-                "minmax": [
-                    0,
-                    1006
-                ],
-                "types": {
-                    "Foo": "H512"
-                }
-            }
-        ]
+		"overrides": {
+			"kusama": [
+				{
+					"minmax": [
+						0,
+						1006
+					],
+					"types": {
+						"Foo": "H512"
+					}
+				}
+			]
+		}
     }
     "#;
 
