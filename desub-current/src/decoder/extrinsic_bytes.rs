@@ -131,7 +131,6 @@ pub struct ExtrinsicBytesError {
 /// this length.
 fn decode_compact_u32(mut data: &[u8]) -> Option<(usize, usize)> {
 	use codec::{Compact, CompactLen, Decode};
-	use std::convert::TryFrom;
 
 	let length = u32::from(Compact::<u32>::decode(&mut data).ok()?);
 	let prefix = Compact::<u32>::compact_len(&length);
