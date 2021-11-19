@@ -26,11 +26,11 @@ use frame_metadata::{RuntimeMetadata, RuntimeMetadataPrefixed};
 use readonly_array::ReadonlyArray;
 use scale_info::{form::PortableForm, PortableRegistry};
 use u8_map::U8Map;
+use crate::{ ScaleInfoTypeId, TypeId, Type };
 
 // Some type aliases used below. `scale-info` is re-exported at the root,
 // so to avoid confusion we only publicly export all scale-info types from that
 // one place.
-type TypeId = <scale_info::form::PortableForm as scale_info::form::Form>::Type;
 type TypeDefVariant = scale_info::TypeDefVariant<PortableForm>;
 type SignedExtensionMetadata = frame_metadata::SignedExtensionMetadata<PortableForm>;
 type StorageEntryMetadata = frame_metadata::v14::StorageEntryMetadata<scale_info::form::PortableForm>;
@@ -104,8 +104,13 @@ impl Metadata {
 		&self.extrinsic
 	}
 
+	/// Given a [`crate::TypeId`], return the corresponding type from the type registry, if possible.
+	pub fn resolve<Id: Into<TypeId>>(&self, id: Id) -> Option<&Type> {
+		self.types.resolve(id.into().id())
+	}
+
 	/// Return a reference to the [`scale_info`] type registry.
-	pub fn types(&self) -> &PortableRegistry {
+	pub(crate) fn types(&self) -> &PortableRegistry {
 		&self.types
 	}
 
@@ -147,7 +152,7 @@ impl Metadata {
 	}
 
 	/// A helper function to get hold of a Variant given a type ID, or None if it's not found.
-	fn get_variant(&self, ty: TypeId) -> Option<&TypeDefVariant> {
+	fn get_variant(&self, ty: ScaleInfoTypeId) -> Option<&TypeDefVariant> {
 		self.types.resolve(ty.id()).and_then(|ty| match ty.type_def() {
 			scale_info::TypeDef::Variant(variant) => Some(variant),
 			_ => None,
@@ -187,7 +192,7 @@ struct MetadataPalletCalls {
 struct MetadataCalls {
 	/// This allows us to find the type information corresponding to
 	/// the call in the [`PortableRegistry`]/
-	calls_type_id: TypeId,
+	calls_type_id: ScaleInfoTypeId,
 	/// This allows us to map a u8 enum index to the correct call variant
 	/// from the calls type, above. The variant contains information on the
 	/// fields and such that the call has.

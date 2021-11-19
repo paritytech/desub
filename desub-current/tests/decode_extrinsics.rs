@@ -16,7 +16,7 @@
 
 use desub_current::{
 	decoder::{self, SignedExtensionWithAdditional},
-	value, Metadata, Value,
+	value, Metadata, Value, ValueDef
 };
 
 static V14_METADATA_POLKADOT_SCALE: &[u8] = include_bytes!("data/v14_metadata_polkadot.scale");
@@ -30,36 +30,45 @@ fn to_bytes(hex_str: &str) -> Vec<u8> {
 	hex::decode(hex_str).expect("valid bytes from hex")
 }
 
-fn unnamed_value(x: Vec<Value>) -> Value {
-	Value::Composite(value::Composite::Unnamed(x))
+fn unnamed_value(x: Vec<Value<()>>) -> Value<()> {
+	Value::new(ValueDef::Composite(value::Composite::Unnamed(x)))
 }
 
-fn empty_value() -> Value {
+fn empty_value() -> Value<()> {
 	unnamed_value(vec![])
 }
 
-fn singleton_value(x: Value) -> Value {
+fn singleton_value(x: Value<()>) -> Value<()> {
 	unnamed_value(vec![x])
 }
 
-fn prim_u8_value(x: u8) -> Value {
-	Value::Primitive(value::Primitive::U8(x))
+fn prim_bool_value(b: bool) -> Value<()> {
+	Value::new(ValueDef::Primitive(value::Primitive::Bool(b)))
 }
 
-fn prim_u32_value(x: u32) -> Value {
-	Value::Primitive(value::Primitive::U32(x))
+fn prim_u8_value(x: u8) -> Value<()> {
+	Value::new(ValueDef::Primitive(value::Primitive::U8(x)))
 }
 
-fn prim_u128_value(x: u128) -> Value {
-	Value::Primitive(value::Primitive::U128(x))
+fn prim_u32_value(x: u32) -> Value<()> {
+	Value::new(ValueDef::Primitive(value::Primitive::U32(x)))
 }
 
-fn hash_value(xs: Vec<u8>) -> Value {
-	singleton_value(Value::Composite(value::Composite::Unnamed(xs.iter().map(|x| prim_u8_value(*x)).collect())))
+fn prim_u128_value(x: u128) -> Value<()> {
+	Value::new(ValueDef::Primitive(value::Primitive::U128(x)))
 }
 
-fn variant_value(name: &str, c: value::Composite) -> Value {
-	Value::Variant(value::Variant { name: name.to_string(), values: c })
+fn hash_value(xs: Vec<u8>) -> Value<()> {
+	singleton_value(Value::new(ValueDef::Composite(value::Composite::Unnamed(xs.iter().map(|x| prim_u8_value(*x)).collect()))))
+}
+
+fn variant_value(name: &str, c: value::Composite<()>) -> Value<()> {
+	Value::new(ValueDef::Variant(value::Variant { name: name.to_string(), values: c }))
+}
+
+fn assert_args_equal<T: Clone>(args: &[Value<T>], expected: Vec<Value<()>>) {
+	let args: Vec<_> = args.into_iter().map(|v| v.clone().without_context()).collect();
+	assert_eq!(&args, &expected);
 }
 
 // These tests are intended to roughly check that we can decode a range of "real" extrinsics into something
@@ -102,7 +111,7 @@ fn balance_transfer_signed() {
 	assert_eq!(ext.call_data.pallet_name, "Balances");
 	assert_eq!(&*ext.call_data.ty.name(), "transfer");
 	assert_eq!(ext.call_data.arguments.len(), 2);
-	assert_eq!(ext.call_data.arguments[1], prim_u128_value(12345));
+	assert_eq!(ext.call_data.arguments[1].clone().without_context(), prim_u128_value(12345));
 }
 
 #[test]
@@ -117,7 +126,7 @@ fn balance_transfer_all_signed() {
 	assert_eq!(ext.call_data.pallet_name, "Balances");
 	assert_eq!(&*ext.call_data.ty.name(), "transfer_all");
 	assert_eq!(ext.call_data.arguments.len(), 2);
-	assert_eq!(ext.call_data.arguments[1], Value::Primitive(value::Primitive::Bool(false)));
+	assert_eq!(ext.call_data.arguments[1].clone().without_context(), prim_bool_value(false));
 }
 
 /// This test is interesting because:
@@ -136,8 +145,8 @@ fn auctions_bid_unsigned() {
 	assert_eq!(&*ext.call_data.ty.name(), "bid");
 	assert_eq!(ext.call_data.arguments.len(), 5);
 
-	assert_eq!(
-		ext.call_data.arguments,
+	assert_args_equal(
+		&ext.call_data.arguments,
 		vec![
 			singleton_value(prim_u32_value(1)),
 			prim_u32_value(2),
@@ -176,7 +185,7 @@ fn system_fill_block_unsigned() {
 	assert_eq!(&*ext.call_data.ty.name(), "fill_block");
 	assert_eq!(ext.call_data.arguments.len(), 1);
 
-	assert_eq!(ext.call_data.arguments, vec![singleton_value(prim_u32_value(1234))]);
+	assert_args_equal(&ext.call_data.arguments, vec![singleton_value(prim_u32_value(1234))]);
 }
 
 /// This test is interesting because you provide a nested enum representing a call
@@ -198,14 +207,14 @@ fn technical_committee_execute_unsigned() {
 	// It's a bit hard matching the entire thing, so we just verify that the first arg looks like
 	// a variant representing a call to "Balances.transfer".
 	assert!(matches!(&ext.call_data.arguments[0],
-		Value::Variant(value::Variant {
+		Value { value: ValueDef::Variant(value::Variant {
 			name,
 			values: value::Composite::Unnamed(args)
-		})
+		}), .. }
 		if &*name == "Balances"
-		&& matches!(&args[0], Value::Variant(value::Variant { name, ..}) if &*name == "transfer")
+		&& matches!(&args[0], Value { value: ValueDef::Variant(value::Variant { name, ..}), .. } if &*name == "transfer")
 	));
-	assert_eq!(&ext.call_data.arguments[1], &prim_u32_value(500));
+	assert_eq!(ext.call_data.arguments[1].clone().without_context(), prim_u32_value(500));
 }
 
 #[test]
@@ -222,8 +231,8 @@ fn tips_report_awesome_unsigned() {
 	assert_eq!(ext.call_data.arguments.len(), 2);
 
 	assert_eq!(
-		&ext.call_data.arguments[0],
-		&Value::Composite(value::Composite::Unnamed("This person rocks!".bytes().map(prim_u8_value).collect()))
+		ext.call_data.arguments[0].clone().without_context(),
+		Value::new(ValueDef::Composite(value::Composite::Unnamed("This person rocks!".bytes().map(prim_u8_value).collect())))
 	);
 }
 
@@ -242,12 +251,12 @@ fn vesting_force_vested_transfer_unsigned() {
 	assert_eq!(ext.call_data.arguments.len(), 3);
 
 	assert_eq!(
-		&ext.call_data.arguments[2],
-		&Value::Composite(value::Composite::Named(vec![
+		ext.call_data.arguments[2].clone().without_context(),
+		Value::new(ValueDef::Composite(value::Composite::Named(vec![
 			("locked".into(), prim_u128_value(1)),
 			("per_block".into(), prim_u128_value(2)),
 			("starting_block".into(), prim_u32_value(3)),
-		]))
+		])))
 	);
 }
 
@@ -283,7 +292,7 @@ fn can_decode_signer_payload() {
 	assert_eq!(r.call_data.arguments, vec![]);
 
 	assert_eq!(
-		r.extensions,
+		r.without_context().extensions,
 		vec![
 			(
 				"CheckSpecVersion".into(),

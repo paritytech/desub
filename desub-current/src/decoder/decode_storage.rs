@@ -1,6 +1,6 @@
 use super::Value;
 use crate::metadata::{Metadata, StorageLocation};
-use crate::{Type, TypeId};
+use crate::{TypeId, ScaleInfoTypeId};
 use frame_metadata::v14::StorageEntryType as FrameStorageEntryType;
 use serde::Serialize;
 use sp_core::twox_128;
@@ -87,19 +87,13 @@ impl StorageDecoder {
 				Ok(StorageEntry {
 					prefix: prefix_str.into(),
 					name: name_str.into(),
-					ty: *ty,
+					ty: ty.into(),
 					details: StorageEntryType::Plain,
 				})
 			}
 			FrameStorageEntryType::Map { hashers, key, value } => {
 				// We'll consume some more data based on the hashers.
 				// First, get the type information that we need ready.
-				let key = match metadata.types().resolve(key.id()) {
-					Some(key) => key,
-					None => {
-						panic!("Metadata inconsistency: type for storage lookup {}.{} not found", prefix_str, name_str)
-					}
-				};
 				let keys = storage_map_key_to_type_id_vec(metadata, key);
 				if keys.len() != hashers.len() {
 					panic!(
@@ -139,7 +133,7 @@ impl StorageDecoder {
 						// in one place below.
 						let value_bytes = &mut &bytes[initial_hash_bytes..];
 						let start_len = value_bytes.len();
-						let value = super::decode_value(metadata, ty, value_bytes).map_err(|e| {
+						let value = super::decode_value_by_id(metadata, ty, value_bytes).map_err(|e| {
 							StorageDecodeError::CouldNotDecodeHasherValue {
 								key: idx,
 								hasher: hasher.clone(),
@@ -158,14 +152,14 @@ impl StorageDecoder {
 					storage_keys.push(StorageMapKey {
 						bytes: Cow::Borrowed(hash_bytes),
 						hasher,
-						ty: Cow::Borrowed(ty),
+						ty,
 					});
 				}
 
 				Ok(StorageEntry {
 					prefix: prefix_str.into(),
 					name: name_str.into(),
-					ty: *value,
+					ty: value.into(),
 					details: StorageEntryType::Map(storage_keys),
 				})
 			}
@@ -199,22 +193,21 @@ impl StorageDecoder {
 //
 // See https://github.com/paritytech/subxt/blob/793c945fbd2de022f523c39a84ee02609ba423a9/codegen/src/api/storage.rs#L105
 // for another example of this being handled in code.
-fn storage_map_key_to_type_id_vec<'a>(metadata: &'a Metadata, key: &'a Type) -> Vec<&'a Type> {
-	match key.type_def() {
+fn storage_map_key_to_type_id_vec<'a>(metadata: &'a Metadata, key: &ScaleInfoTypeId) -> Vec<TypeId> {
+	let ty = match metadata.resolve(key) {
+		Some(ty) => ty,
+		None => panic!("Metadata inconsistency: type #{} not found", key.id()),
+	};
+
+	match ty.type_def() {
 		// Multiple keys:
 		scale_info::TypeDef::Tuple(vals) => vals
 			.fields()
 			.iter()
-			.map(|f| {
-				let id = f.id();
-				match metadata.types().resolve(id) {
-					Some(ty) => ty,
-					None => panic!("Metadata inconsistency: type #{} in storage tuple {:?} not found", id, vals),
-				}
-			})
+			.map(|f| TypeId::from_u32(f.id()))
 			.collect(),
 		// Single key:
-		_ => vec![key],
+		_ => vec![key.into()],
 	}
 }
 
@@ -229,7 +222,7 @@ pub struct StorageEntry<'m, 'b> {
 	pub ty: TypeId,
 	/// Details about the storage entry (ie is it a map, which hashers are used, and
 	/// where applicable, what values were provided for the map keys).
-	pub details: StorageEntryType<'m, 'b>,
+	pub details: StorageEntryType<'b>,
 }
 
 impl<'m, 'b> StorageEntry<'m, 'b> {
@@ -247,13 +240,13 @@ impl<'m, 'b> StorageEntry<'m, 'b> {
 /// decoded values, and doesn't include the value type, which instead exists in the
 /// [`StorageEntry`] struct.
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub enum StorageEntryType<'m, 'b> {
+pub enum StorageEntryType<'b> {
 	Plain,
-	Map(Vec<StorageMapKey<'m, 'b>>),
+	Map(Vec<StorageMapKey<'b>>),
 }
 
-impl<'m, 'b> StorageEntryType<'m, 'b> {
-	pub fn into_owned(self) -> StorageEntryType<'static, 'static> {
+impl<'b> StorageEntryType<'b> {
+	pub fn into_owned(self) -> StorageEntryType<'static> {
 		match self {
 			Self::Plain => StorageEntryType::Plain,
 			Self::Map(keys) => StorageEntryType::Map(keys.into_iter().map(|k| k.into_owned()).collect()),
@@ -262,7 +255,7 @@ impl<'m, 'b> StorageEntryType<'m, 'b> {
 	/// Return the map keys associated with this storage entry, or
 	/// an empty list of keys if there are none (ie it's a "plain"
 	/// storage entry).
-	pub fn map_keys(&self) -> &[StorageMapKey<'m, 'b>] {
+	pub fn map_keys(&self) -> &[StorageMapKey<'b>] {
 		match self {
 			Self::Plain => &[],
 			Self::Map(keys) => keys,
@@ -272,21 +265,21 @@ impl<'m, 'b> StorageEntryType<'m, 'b> {
 
 /// Details about a specific map key that forms part of our storage key.
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct StorageMapKey<'m, 'b> {
+pub struct StorageMapKey<'b> {
 	/// The bytes in the provided storage key that correspond to this map key.
 	pub bytes: Cow<'b, [u8]>,
 	// The type of the values expected to be provided for this key.
-	pub ty: Cow<'m, Type>,
+	pub ty: TypeId,
 	// The hasher used to hash values into this key. In some cases (Concat and Identity
 	// hashers), this also includes the actual value that was hashed.
 	pub hasher: StorageHasher,
 }
 
-impl<'m, 'b> StorageMapKey<'m, 'b> {
-	pub fn into_owned(self) -> StorageMapKey<'static, 'static> {
+impl<'m, 'b> StorageMapKey<'b> {
+	pub fn into_owned(self) -> StorageMapKey<'static> {
 		StorageMapKey {
 			bytes: Cow::Owned(self.bytes.into_owned()),
-			ty: Cow::Owned(self.ty.into_owned()),
+			ty: self.ty,
 			hasher: self.hasher,
 		}
 	}
@@ -299,11 +292,11 @@ impl<'m, 'b> StorageMapKey<'m, 'b> {
 pub enum StorageHasher {
 	Blake2_128,
 	Blake2_256,
-	Blake2_128Concat(Value),
+	Blake2_128Concat(Value<TypeId>),
 	Twox128,
 	Twox256,
-	Twox64Concat(Value),
-	Identity(Value),
+	Twox64Concat(Value<TypeId>),
+	Identity(Value<TypeId>),
 }
 
 impl StorageHasher {
@@ -320,7 +313,7 @@ impl StorageHasher {
 			}
 		}
 	}
-	fn expect_from_with_value(hasher: &frame_metadata::v14::StorageHasher, value: Value) -> Self {
+	fn expect_from_with_value(hasher: &frame_metadata::v14::StorageHasher, value: Value<TypeId>) -> Self {
 		match hasher {
 			frame_metadata::v14::StorageHasher::Blake2_128
 			| frame_metadata::v14::StorageHasher::Blake2_256

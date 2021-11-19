@@ -29,25 +29,64 @@ use serde::Deserialize;
 use std::convert::From;
 use std::fmt::Debug;
 
-/// [`Value`] holds a representation of some value that has been decoded.
+/// [`Value`] holds a representation of some value that has been decoded, as well as some arbitrary context.
 ///
 /// Not all SCALE encoded types have an similar-named value; for instance, the values corresponding to
 /// sequence, array and composite types can all be represented with [`Composite`]. Only enough information
 /// is preserved here to construct a valid value for any type that we know about, and be able to verify
 /// that a given value is compatible with some type (see the [`scale_info`] crate), if we have both.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Value<T> {
+	/// The shape and associated values for this Value
+	pub value: ValueDef<T>,
+	/// Some additional arbitrary context that can be associated with a value.
+	pub context: T
+}
+
+impl Value<()> {
+	/// Create a new value without any context.
+	pub fn new(value: ValueDef<()>) -> Value<()> {
+		Value { value, context: () }
+	}
+}
+
+impl <T> Value<T> {
+	/// Create a new value with some associated context.
+	pub fn with_context(value: ValueDef<T>, context: T) -> Value<T> {
+		Value { value, context }
+	}
+	/// Remove the context.
+	pub fn without_context(self) -> Value<()> {
+		Value { value: self.value.without_context(), context: () }
+	}
+}
+
+/// The underlying shape of a given value.
 #[derive(Clone, PartialEq)]
-pub enum Value {
+pub enum ValueDef<T> {
 	/// A named or unnamed struct-like, array-like or tuple-like set of values.
-	Composite(Composite),
+	Composite(Composite<T>),
 	/// An enum variant.
-	Variant(Variant),
+	Variant(Variant<T>),
 	/// A sequence of bits (which is more compactly encoded using [`bitvec`])
 	BitSequence(BitSequence),
 	/// Any of the primitive values we can have.
 	Primitive(Primitive),
 }
 
-impl Debug for Value {
+impl <T> ValueDef<T> {
+	/// Remove the context.
+	pub fn without_context(self) -> ValueDef<()> {
+		match self {
+			ValueDef::Composite(val) => ValueDef::Composite(val.without_context()),
+			ValueDef::Variant(val) => ValueDef::Variant(val.without_context()),
+			ValueDef::BitSequence(val) => ValueDef::BitSequence(val),
+			ValueDef::Primitive(val) => ValueDef::Primitive(val),
+		}
+	}
+}
+
+impl <T: Debug> Debug for ValueDef<T> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
 			Self::Composite(val) => Debug::fmt(val, f),
@@ -62,23 +101,44 @@ impl Debug for Value {
 /// This is used to represent a range of composite values on their own, or
 /// as values for a specific [`Variant`].
 #[derive(Clone, PartialEq)]
-pub enum Composite {
+pub enum Composite<T> {
 	/// Eg `{ foo: 2, bar: false }`
-	Named(Vec<(String, Value)>),
+	Named(Vec<(String, Value<T>)>),
 	/// Eg `(2, false)`
-	Unnamed(Vec<Value>),
+	Unnamed(Vec<Value<T>>),
 }
 
-impl Composite {
-	fn len(&self) -> usize {
+impl <T> Composite<T> {
+	/// Return the number of values stored in this composite type.
+	pub fn len(&self) -> usize {
 		match self {
 			Composite::Named(values) => values.len(),
 			Composite::Unnamed(values) => values.len(),
 		}
 	}
+
+	/// Remove the context.
+	pub fn without_context(self) -> Composite<()> {
+		match self {
+			Composite::Named(values) => {
+				let vals = values
+					.into_iter()
+					.map(|(k,v)| (k, v.without_context()))
+					.collect();
+				Composite::Named(vals)
+			},
+			Composite::Unnamed(values) => {
+				let vals = values
+					.into_iter()
+					.map(|v| v.without_context())
+					.collect();
+				Composite::Unnamed(vals)
+			},
+		}
+	}
 }
 
-impl Debug for Composite {
+impl <T: Debug> Debug for Composite<T> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
 			Composite::Named(fields) => {
@@ -99,23 +159,33 @@ impl Debug for Composite {
 	}
 }
 
-impl From<Composite> for Value {
-	fn from(val: Composite) -> Self {
-		Value::Composite(val)
+impl <T> From<Composite<T>> for ValueDef<T> {
+	fn from(val: Composite<T>) -> Self {
+		ValueDef::Composite(val)
 	}
 }
 
 /// This represents the value of a specific variant from an enum, and contains
 /// the name of the variant, and the named/unnamed values associated with it.
 #[derive(Clone, PartialEq)]
-pub struct Variant {
+pub struct Variant<T> {
 	/// The name of the variant.
 	pub name: String,
 	/// Values for each of the named or unnamed fields associated with this variant.
-	pub values: Composite,
+	pub values: Composite<T>,
 }
 
-impl Debug for Variant {
+impl <T> Variant<T> {
+	/// Remove the context.
+	pub fn without_context(self) -> Variant<()> {
+		Variant {
+			name: self.name,
+			values: self.values.without_context()
+		}
+	}
+}
+
+impl <T: Debug> Debug for Variant<T> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.write_str(&self.name)?;
 		f.write_str(" ")?;
@@ -123,14 +193,14 @@ impl Debug for Variant {
 	}
 }
 
-impl From<Variant> for Value {
-	fn from(val: Variant) -> Self {
-		Value::Variant(val)
+impl <T> From<Variant<T>> for ValueDef<T> {
+	fn from(val: Variant<T>) -> Self {
+		ValueDef::Variant(val)
 	}
 }
 
 /// A "primitive" value (this includes strings).
-#[derive(Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Primitive {
 	Bool(bool),
 	Char(char),
@@ -149,34 +219,9 @@ pub enum Primitive {
 	I256([u8; 32]),
 }
 
-impl Debug for Primitive {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		match self {
-			Primitive::Bool(val) => Debug::fmt(val, f),
-			Primitive::Char(val) => Debug::fmt(val, f),
-			Primitive::Str(val) => Debug::fmt(val, f),
-			Primitive::U8(val) => Debug::fmt(val, f),
-			Primitive::U16(val) => Debug::fmt(val, f),
-			Primitive::U32(val) => Debug::fmt(val, f),
-			Primitive::U64(val) => Debug::fmt(val, f),
-			Primitive::U128(val) => Debug::fmt(val, f),
-			Primitive::I8(val) => Debug::fmt(val, f),
-			Primitive::I16(val) => Debug::fmt(val, f),
-			Primitive::I32(val) => Debug::fmt(val, f),
-			Primitive::I64(val) => Debug::fmt(val, f),
-			Primitive::I128(val) => Debug::fmt(val, f),
-			Primitive::U256(val) | Primitive::I256(val) => {
-				f.write_str("BigNum(")?;
-				Debug::fmt(val, f)?;
-				f.write_str(")")
-			}
-		}
-	}
-}
-
-impl From<Primitive> for Value {
+impl <T> From<Primitive> for ValueDef<T> {
 	fn from(val: Primitive) -> Self {
-		Value::Primitive(val)
+		ValueDef::Primitive(val)
 	}
 }
 
@@ -187,6 +232,6 @@ pub type BitSequence = BitVec<Lsb0, u8>;
 pub use deserializer::Error as DeserializeError;
 
 /// Attempt to deserialize a [`Value`] into some type that has [`serde::Deserialize`] implemented on it.
-pub fn from_value<'de, T: Deserialize<'de>>(value: Value) -> Result<T, DeserializeError> {
+pub fn from_value<'de, Ctx, T: Deserialize<'de>>(value: Value<Ctx>) -> Result<T, DeserializeError> {
 	T::deserialize(value)
 }

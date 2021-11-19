@@ -28,6 +28,7 @@ mod extrinsic_bytes;
 
 use crate::metadata::Metadata;
 use crate::value::Value;
+use crate::TypeId;
 use codec::{Compact, Decode};
 use extrinsic_bytes::{AllExtrinsicBytes, ExtrinsicBytesError};
 use serde::{Deserialize, Serialize};
@@ -37,7 +38,7 @@ use std::borrow::Cow;
 // Re-export the DecodeValueError here, which we expose in our global `DecodeError` enum.
 pub use decode_value::DecodeValueError;
 
-// Re-xport storage related types that are part of our public interface.
+// Re-export storage related types that are part of our public interface.
 pub use decode_storage::{
 	StorageDecodeError, StorageDecoder, StorageEntry, StorageEntryType, StorageHasher, StorageMapKey,
 };
@@ -64,19 +65,13 @@ pub enum DecodeError {
 	CannotFindType(u32),
 }
 
-/// Decode a single [`Value`] from a piece of scale encoded data, given some metadata and the type that we
-/// are expecting it to decode into.
-pub fn decode_value(metadata: &Metadata, ty: &crate::Type, data: &mut &[u8]) -> Result<Value, DecodeValueError> {
-	decode_value::decode_value(data, ty, metadata.types())
-}
-
 /// Decode a single [`Value`] from a piece of scale encoded data, given some metadata and the ID of the type that we
 /// are expecting it to decode into.
-pub fn decode_value_by_id(
-	metadata: &Metadata,
-	ty: &crate::TypeId,
+pub fn decode_value_by_id<'a, Id: Into<TypeId>>(
+	metadata: &'a Metadata,
+	ty: Id,
 	data: &mut &[u8],
-) -> Result<Value, DecodeValueError> {
+) -> Result<Value<TypeId>, DecodeValueError> {
 	decode_value::decode_value_by_id(data, ty, metadata.types())
 }
 
@@ -165,7 +160,7 @@ pub fn decode_storage(metadata: &Metadata) -> StorageDecoder {
 pub fn decode_extrinsics<'a>(
 	metadata: &'a Metadata,
 	data: &mut &[u8],
-) -> Result<Vec<Extrinsic<'a>>, (Vec<Extrinsic<'a>>, DecodeError)> {
+) -> Result<Vec<Extrinsic<'a, TypeId>>, (Vec<Extrinsic<'a, TypeId>>, DecodeError)> {
 	let extrinsic_bytes = AllExtrinsicBytes::new(*data).map_err(|e| (Vec::new(), e.into()))?;
 
 	log::trace!("Decoding {} Total Extrinsics.", extrinsic_bytes.len());
@@ -228,7 +223,7 @@ pub fn decode_extrinsics<'a>(
 /// assert_eq!(extrinsic.call_data.pallet_name, "Auctions");
 /// assert_eq!(&*extrinsic.call_data.ty.name(), "bid");
 /// ```
-pub fn decode_extrinsic<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<Extrinsic<'a>, DecodeError> {
+pub fn decode_extrinsic<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<Extrinsic<'a, TypeId>, DecodeError> {
 	// Ignore the expected extrinsic length here at the moment, since `decode_unwrapped_extrinsic` will
 	// error accordingly if the wrong number of bytes are consumed.
 	let _len = <Compact<u32>>::decode(data)?;
@@ -264,7 +259,7 @@ pub fn decode_extrinsic<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<
 /// assert_eq!(extrinsic.call_data.pallet_name, "Auctions");
 /// assert_eq!(&*extrinsic.call_data.ty.name(), "bid");
 /// ```
-pub fn decode_unwrapped_extrinsic<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<Extrinsic<'a>, DecodeError> {
+pub fn decode_unwrapped_extrinsic<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<Extrinsic<'a, TypeId>, DecodeError> {
 	if data.is_empty() {
 		return Err(DecodeError::EarlyEof("unwrapped extrinsic byte length should be > 0"));
 	}
@@ -333,7 +328,7 @@ pub fn decode_unwrapped_extrinsic<'a>(metadata: &'a Metadata, data: &mut &[u8]) 
 /// assert_eq!(call_data.pallet_name, "Auctions");
 /// assert_eq!(&*call_data.ty.name(), "bid");
 /// ```
-pub fn decode_call_data<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<CallData<'a>, DecodeError> {
+pub fn decode_call_data<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<CallData<'a, TypeId>, DecodeError> {
 	// Pluck out the u8's representing the pallet and call enum next.
 	if data.len() < 2 {
 		return Err(DecodeError::EarlyEof("expected at least 2 more bytes for the pallet/call index"));
@@ -353,9 +348,8 @@ pub fn decode_call_data<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<
 		.fields()
 		.iter()
 		.map(|field| {
-			let type_id = field.ty().id();
-			let ty = metadata.types().resolve(type_id).ok_or(DecodeError::CannotFindType(type_id))?;
-			decode_value(metadata, ty, data).map_err(DecodeError::DecodeValueError)
+			let id = field.ty().id();
+			decode_value_by_id(metadata, TypeId::from_u32(id), data).map_err(DecodeError::DecodeValueError)
 		})
 		.collect::<Result<Vec<_>, _>>()?;
 
@@ -364,7 +358,7 @@ pub fn decode_call_data<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<
 
 /// Decode the SCALE encoded data that, once signed, is used to construct a signed extrinsic. The encoded payload has the following shape:
 /// `(call_data, signed_extensions, additional_signed)`.
-pub fn decode_signer_payload<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<SignerPayload<'a>, DecodeError> {
+pub fn decode_signer_payload<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<SignerPayload<'a, TypeId>, DecodeError> {
 	let call_data = decode_call_data(metadata, data)?;
 	let signed_extensions = decode_signed_extensions(metadata, data)?;
 	let additional_signed = decode_additional_signed(metadata, data)?;
@@ -380,7 +374,7 @@ pub fn decode_signer_payload<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Re
 /// Decode the signature part of a SCALE encoded extrinsic.
 ///
 /// Ordinarily, one should prefer to use [`decode_extrinsic`] directly to decode the entire extrinsic at once.
-pub fn decode_signature<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<ExtrinsicSignature<'a>, DecodeError> {
+pub fn decode_signature<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<ExtrinsicSignature<'a, TypeId>, DecodeError> {
 	let address = <MultiAddress<AccountId32, u32>>::decode(data)?;
 	let signature = MultiSignature::decode(data)?;
 	let extensions = decode_signed_extensions(metadata, data)?;
@@ -394,7 +388,7 @@ pub fn decode_signature<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<
 pub fn decode_signed_extensions<'a>(
 	metadata: &'a Metadata,
 	data: &mut &[u8],
-) -> Result<Vec<(Cow<'a, str>, Value)>, DecodeError> {
+) -> Result<Vec<(Cow<'a, str>, Value<TypeId>)>, DecodeError> {
 	metadata
 		.extrinsic()
 		.signed_extensions()
@@ -413,7 +407,7 @@ pub fn decode_signed_extensions<'a>(
 pub fn decode_additional_signed<'a>(
 	metadata: &'a Metadata,
 	data: &mut &[u8],
-) -> Result<Vec<(Cow<'a, str>, Value)>, DecodeError> {
+) -> Result<Vec<(Cow<'a, str>, Value<TypeId>)>, DecodeError> {
 	metadata
 		.extrinsic()
 		.signed_extensions()
@@ -427,8 +421,13 @@ pub fn decode_additional_signed<'a>(
 }
 
 /// Decoded call data and associated type information.
+///
+/// **Note:** `T` represents some arbitrary context that lives with
+/// Values. We can serialize this for any value of `T`, but we can only
+/// deserialize when `T = ()`.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct CallData<'a> {
+#[serde(bound = "Value<T>: serde::de::DeserializeOwned")]
+pub struct CallData<'a, T> {
 	/// The name of the pallet
 	#[serde(borrow)]
 	pub pallet_name: Cow<'a, str>,
@@ -436,39 +435,62 @@ pub struct CallData<'a> {
 	/// of the call and information about each argument)
 	pub ty: Cow<'a, scale_info::Variant<scale_info::form::PortableForm>>,
 	/// The decoded argument data
-	pub arguments: Vec<Value>,
+	pub arguments: Vec<Value<T>>,
 }
 
-impl<'a> CallData<'a> {
-	pub fn into_owned(self) -> CallData<'static> {
+impl<'a, T> CallData<'a, T> {
+	pub fn into_owned(self) -> CallData<'static, T> {
 		CallData {
 			pallet_name: Cow::Owned(self.pallet_name.into_owned()),
 			ty: Cow::Owned(self.ty.into_owned()),
 			arguments: self.arguments,
 		}
 	}
+	pub fn without_context(self) -> CallData<'a, ()> {
+		CallData {
+			pallet_name: self.pallet_name,
+			ty: self.ty,
+			arguments: self.arguments.into_iter().map(|v| v.without_context()).collect()
+		}
+	}
 }
 
 /// The result of successfully decoding an extrinsic.
+///
+/// **Note:** `T` represents some arbitrary context that lives with
+/// Values. We can serialize this for any value of `T`, but we can only
+/// deserialize when `T = ()`.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct Extrinsic<'a> {
+#[serde(bound = "Value<T>: serde::de::DeserializeOwned")]
+pub struct Extrinsic<'a, T> {
 	/// Decoded call data and associated type information about the call.
 	#[serde(borrow)]
-	pub call_data: CallData<'a>,
+	pub call_data: CallData<'a, T>,
 	/// The signature and signed extensions (if any) associated with the extrinsic
 	#[serde(borrow)]
-	pub signature: Option<ExtrinsicSignature<'a>>,
+	pub signature: Option<ExtrinsicSignature<'a, T>>,
 }
 
-impl<'a> Extrinsic<'a> {
-	pub fn into_owned(self) -> Extrinsic<'static> {
+impl<'a, T> Extrinsic<'a, T> {
+	pub fn into_owned(self) -> Extrinsic<'static, T> {
 		Extrinsic { call_data: self.call_data.into_owned(), signature: self.signature.map(|s| s.into_owned()) }
+	}
+	pub fn without_context(self) -> Extrinsic<'a, ()> {
+		Extrinsic {
+			call_data: self.call_data.without_context(),
+			signature: self.signature.map(|s| s.without_context())
+		}
 	}
 }
 
 /// The signature information embedded in an extrinsic.
+///
+/// **Note:** `T` represents some arbitrary context that lives with
+/// Values. We can serialize this for any value of `T`, but we can only
+/// deserialize when `T = ()`.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct ExtrinsicSignature<'a> {
+#[serde(bound = "Value<T>: serde::de::DeserializeOwned")]
+pub struct ExtrinsicSignature<'a, T> {
 	/// Address the extrinsic is being sent from
 	#[serde(with = "desub_common::RemoteAddress")]
 	pub address: MultiAddress<AccountId32, u32>,
@@ -477,44 +499,76 @@ pub struct ExtrinsicSignature<'a> {
 	/// Signed extensions, which can vary by node. Here, we
 	/// return the name and value of each.
 	#[serde(borrow)]
-	pub extensions: Vec<(Cow<'a, str>, Value)>,
+	pub extensions: Vec<(Cow<'a, str>, Value<T>)>,
 }
 
-impl<'a> ExtrinsicSignature<'a> {
-	pub fn into_owned(self) -> ExtrinsicSignature<'static> {
+impl<'a, T> ExtrinsicSignature<'a, T> {
+	pub fn into_owned(self) -> ExtrinsicSignature<'static, T> {
 		ExtrinsicSignature {
 			address: self.address,
 			signature: self.signature,
 			extensions: self.extensions.into_iter().map(|(k, v)| (Cow::Owned(k.into_owned()), v)).collect(),
 		}
 	}
+	pub fn without_context(self) -> ExtrinsicSignature<'a, ()> {
+		ExtrinsicSignature {
+			address: self.address,
+			signature: self.signature,
+			extensions: self.extensions.into_iter().map(|(k,v)| (k, v.without_context())).collect()
+		}
+	}
 }
 
 /// The decoded signer payload.
+///
+/// **Note:** `T` represents some arbitrary context that lives with
+/// Values. We can serialize this for any value of `T`, but we can only
+/// deserialize when `T = ()`.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct SignerPayload<'a> {
+#[serde(bound = "Value<T>: serde::de::DeserializeOwned")]
+pub struct SignerPayload<'a, T> {
 	/// Decoded call data and associated type information about the call.
 	#[serde(borrow)]
-	pub call_data: CallData<'a>,
+	pub call_data: CallData<'a, T>,
 	/// Signed extensions as well as additional data to be signed. These
 	/// are packaged together in the metadata.
-	pub extensions: Vec<(Cow<'a, str>, SignedExtensionWithAdditional)>,
+	pub extensions: Vec<(Cow<'a, str>, SignedExtensionWithAdditional<T>)>,
 }
 
-impl<'a> SignerPayload<'a> {
-	pub fn into_owned(self) -> SignerPayload<'static> {
+impl<'a, T> SignerPayload<'a, T> {
+	pub fn into_owned(self) -> SignerPayload<'static, T> {
 		SignerPayload {
 			call_data: self.call_data.into_owned(),
 			extensions: self.extensions.into_iter().map(|(k, v)| (Cow::Owned(k.into_owned()), v)).collect(),
 		}
 	}
+	pub fn without_context(self) -> SignerPayload<'a, ()> {
+		SignerPayload {
+			call_data: self.call_data.without_context(),
+			extensions: self.extensions.into_iter().map(|(k,v)| (k, v.without_context())).collect()
+		}
+	}
 }
 
 /// The decoded signed extensions and additional data.
+///
+/// **Note:** `T` represents some arbitrary context that lives with
+/// Values. We can serialize this for any value of `T`, but we can only
+/// deserialize when `T = ()`.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct SignedExtensionWithAdditional {
+#[serde(bound = "Value<T>: serde::de::DeserializeOwned")]
+pub struct SignedExtensionWithAdditional<T> {
 	/// The signed extension value at this position
-	pub extension: Value,
+	pub extension: Value<T>,
 	/// The additional signed value at this position
-	pub additional: Value,
+	pub additional: Value<T>,
+}
+
+impl <T> SignedExtensionWithAdditional<T> {
+	pub fn without_context(self) -> SignedExtensionWithAdditional<()> {
+		SignedExtensionWithAdditional {
+			additional: self.additional.without_context(),
+			extension: self.extension.without_context()
+		}
+	}
 }
