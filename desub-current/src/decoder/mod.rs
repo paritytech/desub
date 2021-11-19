@@ -85,7 +85,7 @@ pub fn decode_value_by_id<'a, Id: Into<TypeId>>(
 /// use desub_current::{
 ///     Metadata,
 ///     decoder::{ self, StorageHasher },
-///     value::{ Value, Composite, Primitive },
+///     value::{ Value, ValueDef, Composite, Primitive },
 /// };
 /// use codec::Encode;
 ///
@@ -113,20 +113,24 @@ pub fn decode_value_by_id<'a, Id: Into<TypeId>>(
 ///
 /// // Because the hasher is Twox64Concat, we can see the decoded original map key:
 /// assert_eq!(keys.len(), 1);
-/// assert_eq!(keys[0].hasher, StorageHasher::Twox64Concat(Value::Primitive(Primitive::U32(1000))));
+/// if let StorageHasher::Twox64Concat(val) = keys[0].hasher.clone() {
+///     assert_eq!(val.without_context(), Value::new(ValueDef::Primitive(Primitive::U32(1000))))
+/// }
 ///
 /// // We can also decode values at this storage location using the type info we get back:
 /// let bytes = [1u8; 32].encode();
 /// let val = decoder::decode_value_by_id(&metadata, &entry.ty, &mut &*bytes).unwrap();
 /// # assert_eq!(
-/// #     val,
+/// #     val.without_context(),
 /// #     // The Type in this case is something like a newtype-wrapped [u8; 32]:
-/// #     Value::Composite(Composite::Unnamed(vec![Value::Composite(Composite::Unnamed(vec![
-/// #         Value::Primitive(
-/// #             Primitive::U8(1)
-/// #         );
-/// #         32
-/// #     ]))]))
+/// #     Value::new(ValueDef::Composite(Composite::Unnamed(vec![
+/// #         Value::new(ValueDef::Composite(Composite::Unnamed(vec![
+/// #             Value::new(ValueDef::Primitive(
+/// #                 Primitive::U8(1)
+/// #             ));
+/// #             32
+/// #         ])))
+/// #    ])))
 /// # );
 /// ```
 pub fn decode_storage(metadata: &Metadata) -> StorageDecoder {
