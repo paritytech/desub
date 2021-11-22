@@ -233,7 +233,7 @@ impl<'de> Visitor<'de> for CompositeVisitor {
 	where
 		E: serde::de::Error,
 	{
-		let byte_values = v.iter().map(|&b| Value::new(ValueDef::Primitive(Primitive::U8(b)))).collect();
+		let byte_values = v.iter().map(|&b| Value::u8(b)).collect();
 		Ok(Composite::Unnamed(byte_values))
 	}
 
@@ -454,19 +454,19 @@ mod test {
 
 	#[test]
 	fn deserialize_primitives_isomorphic() {
-		assert_value_isomorphic(ValueDef::Primitive(Primitive::U8(123)));
-		assert_value_isomorphic(ValueDef::Primitive(Primitive::U16(123)));
-		assert_value_isomorphic(ValueDef::Primitive(Primitive::U32(123)));
-		assert_value_isomorphic(ValueDef::Primitive(Primitive::U64(123)));
-		assert_value_isomorphic(ValueDef::Primitive(Primitive::U128(123)));
-		assert_value_isomorphic(ValueDef::Primitive(Primitive::I8(123)));
-		assert_value_isomorphic(ValueDef::Primitive(Primitive::I16(123)));
-		assert_value_isomorphic(ValueDef::Primitive(Primitive::I32(123)));
-		assert_value_isomorphic(ValueDef::Primitive(Primitive::I64(123)));
-		assert_value_isomorphic(ValueDef::Primitive(Primitive::I128(123)));
-		assert_value_isomorphic(ValueDef::Primitive(Primitive::Bool(true)));
-		assert_value_isomorphic(ValueDef::Primitive(Primitive::Char('a')));
-		assert_value_isomorphic(ValueDef::Primitive(Primitive::Str("Hello!".into())));
+		assert_value_isomorphic(Value::u8(123));
+		assert_value_isomorphic(Value::u16(123));
+		assert_value_isomorphic(Value::u32(123));
+		assert_value_isomorphic(Value::u64(123));
+		assert_value_isomorphic(Value::u128(123));
+		assert_value_isomorphic(Value::i8(123));
+		assert_value_isomorphic(Value::i16(123));
+		assert_value_isomorphic(Value::i32(123));
+		assert_value_isomorphic(Value::i64(123));
+		assert_value_isomorphic(Value::i128(123));
+		assert_value_isomorphic(Value::bool(true));
+		assert_value_isomorphic(Value::char('a'));
+		assert_value_isomorphic(Value::str("Hello!".into()));
 
 		// Alas, I256 and U256 are both a sequence of bytes, which could equally be represented
 		// by a composite sequence (as other sequences-of-things are). We could have a special case where
@@ -474,15 +474,15 @@ mod test {
 		// composite type as the sequence catch-all:
 		assert_value_to_value(
 			ValueDef::<()>::Primitive(Primitive::I256([1; 32])),
-			ValueDef::Composite(Composite::Unnamed(
-				vec![1; 32].into_iter().map(|b| Value::new(ValueDef::Primitive(Primitive::U8(b)))).collect(),
-			)),
+			Value::unnamed_composite(
+				vec![1; 32].into_iter().map(|b| Value::u8(b)).collect(),
+			),
 		);
 		assert_value_to_value(
 			ValueDef::<()>::Primitive(Primitive::U256([1; 32])),
-			ValueDef::Composite(Composite::Unnamed(
-				vec![1; 32].into_iter().map(|b| Value::new(ValueDef::Primitive(Primitive::U8(b)))).collect(),
-			)),
+			Value::unnamed_composite(
+				vec![1; 32].into_iter().map(|b| Value::u8(b)).collect(),
+			),
 		);
 
 		// .. that said; if you want a primitive value back, you can use that type directly to get it
@@ -511,60 +511,60 @@ mod test {
 
 		// We can also go from wrapped to unwrapped:
 
-		assert_value_to_value(ValueDef::<()>::Primitive(Primitive::U8(123)), Primitive::U8(123));
-		assert_value_to_value(ValueDef::<()>::Primitive(Primitive::U16(123)), Primitive::U16(123));
-		assert_value_to_value(ValueDef::<()>::Primitive(Primitive::U32(123)), Primitive::U32(123));
-		assert_value_to_value(ValueDef::<()>::Primitive(Primitive::U64(123)), Primitive::U64(123));
+		assert_value_to_value(Value::u8(123), Primitive::U8(123));
+		assert_value_to_value(Value::u16(123), Primitive::U16(123));
+		assert_value_to_value(Value::u32(123), Primitive::U32(123));
+		assert_value_to_value(Value::u64(123), Primitive::U64(123));
 
 		// Or vice versa:
 
-		assert_value_to_value(Primitive::U8(123), ValueDef::Primitive(Primitive::U8(123)));
-		assert_value_to_value(Primitive::U16(123), ValueDef::Primitive(Primitive::U16(123)));
-		assert_value_to_value(Primitive::U32(123), ValueDef::Primitive(Primitive::U32(123)));
-		assert_value_to_value(Primitive::U64(123), ValueDef::Primitive(Primitive::U64(123)));
+		assert_value_to_value(Primitive::U8(123), Value::u8(123));
+		assert_value_to_value(Primitive::U16(123), Value::u16(123));
+		assert_value_to_value(Primitive::U32(123), Value::u32(123));
+		assert_value_to_value(Primitive::U64(123), Value::u64(123));
 	}
 
 	#[test]
 	fn deserialize_composites_isomorphic() {
-		assert_value_isomorphic(ValueDef::Composite(Composite::Unnamed(vec![
-			Value::new(ValueDef::Primitive(Primitive::U64(123))),
-			Value::new(ValueDef::Primitive(Primitive::Bool(true))),
-		])));
-		assert_value_isomorphic(ValueDef::Composite(Composite::Unnamed(vec![])));
-		assert_value_isomorphic(ValueDef::Composite(Composite::Named(vec![
-			("a".into(), Value::new(ValueDef::Primitive(Primitive::U64(123)))),
-			("b".into(), Value::new(ValueDef::Primitive(Primitive::Bool(true)))),
-		])));
-		assert_value_isomorphic(ValueDef::Composite(Composite::Named(vec![
-			("a".into(), Value::new(ValueDef::Primitive(Primitive::U64(123)))),
+		assert_value_isomorphic(Value::unnamed_composite(vec![
+			Value::u64(123),
+			Value::bool(true),
+		]));
+		assert_value_isomorphic(Value::named_composite(vec![]));
+		assert_value_isomorphic(Value::named_composite(vec![
+			("a".into(), Value::u64(123)),
+			("b".into(), Value::bool(true)),
+		]));
+		assert_value_isomorphic(Value::named_composite(vec![
+			("a".into(), Value::u64(123)),
 			(
 				"b".into(),
-				Value::new(ValueDef::Composite(Composite::Named(vec![
-					("c".into(), Value::new(ValueDef::Primitive(Primitive::U128(123)))),
-					("d".into(), Value::new(ValueDef::Primitive(Primitive::Str("hell".into())))),
-				]))),
+				Value::named_composite(vec![
+					("c".into(), Value::u128(123)),
+					("d".into(), Value::str("hello".into())),
+				]),
 			),
-		])));
+		]));
 
 		// unwrapped:
 
 		assert_value_isomorphic(Composite::Unnamed(vec![
-			Value::new(ValueDef::Primitive(Primitive::U64(123))),
-			Value::new(ValueDef::Primitive(Primitive::Bool(true))),
+			Value::u64(123),
+			Value::bool(true),
 		]));
 		assert_value_isomorphic(Composite::Unnamed(vec![]));
 		assert_value_isomorphic(Composite::Named(vec![
-			("a".into(), Value::new(ValueDef::Primitive(Primitive::U64(123)))),
-			("b".into(), Value::new(ValueDef::Primitive(Primitive::Bool(true)))),
+			("a".into(), Value::u64(123)),
+			("b".into(), Value::bool(true)),
 		]));
 		assert_value_isomorphic(Composite::Named(vec![
-			("a".into(), Value::new(ValueDef::Primitive(Primitive::U64(123)))),
+			("a".into(), Value::u64(123)),
 			(
 				"b".into(),
-				Value::new(ValueDef::Composite(Composite::Named(vec![
-					("c".into(), Value::new(ValueDef::Primitive(Primitive::U128(123)))),
-					("d".into(), Value::new(ValueDef::Primitive(Primitive::Str("hell".into())))),
-				]))),
+				Value::named_composite(vec![
+					("c".into(), Value::u128(123)),
+					("d".into(), Value::str("hello".into())),
+				]),
 			),
 		]));
 	}
@@ -574,16 +574,16 @@ mod test {
 		assert_value_isomorphic(ValueDef::Variant(Variant {
 			name: "Foo".into(),
 			values: Composite::Unnamed(vec![
-				Value::new(ValueDef::Primitive(Primitive::U64(123))),
-				Value::new(ValueDef::Primitive(Primitive::Bool(true))),
+				Value::u64(123),
+				Value::bool(true),
 			]),
 		}));
 		assert_value_isomorphic(ValueDef::Variant(Variant { name: "Foo".into(), values: Composite::Unnamed(vec![]) }));
 		assert_value_isomorphic(ValueDef::Variant(Variant {
 			name: "Foo".into(),
 			values: Composite::Named(vec![
-				("a".into(), Value::new(ValueDef::Primitive(Primitive::U64(123)))),
-				("b".into(), Value::new(ValueDef::Primitive(Primitive::Bool(true)))),
+				("a".into(), Value::u64(123)),
+				("b".into(), Value::bool(true)),
 			]),
 		}));
 
@@ -592,16 +592,16 @@ mod test {
 		assert_value_isomorphic(Variant {
 			name: "Foo".into(),
 			values: Composite::Unnamed(vec![
-				Value::new(ValueDef::Primitive(Primitive::U64(123))),
-				Value::new(ValueDef::Primitive(Primitive::Bool(true))),
+				Value::u64(123),
+				Value::bool(true),
 			]),
 		});
 		assert_value_isomorphic(Variant { name: "Foo".into(), values: Composite::Unnamed(vec![]) });
 		assert_value_isomorphic(Variant {
 			name: "Foo".into(),
 			values: Composite::Named(vec![
-				("a".into(), Value::new(ValueDef::Primitive(Primitive::U64(123)))),
-				("b".into(), Value::new(ValueDef::Primitive(Primitive::Bool(true)))),
+				("a".into(), Value::u64(123)),
+				("b".into(), Value::bool(true)),
 			]),
 		});
 	}
@@ -614,20 +614,20 @@ mod test {
 
 		assert_value_to_value(
 			de.clone(),
-			ValueDef::Composite(Composite::Unnamed(vec![
-				Value::new(ValueDef::Primitive(Primitive::U8(1))),
-				Value::new(ValueDef::Primitive(Primitive::U8(2))),
-				Value::new(ValueDef::Primitive(Primitive::U8(3))),
-				Value::new(ValueDef::Primitive(Primitive::U8(4))),
-			])),
+			Value::unnamed_composite(vec![
+				Value::u8(1),
+				Value::u8(2),
+				Value::u8(3),
+				Value::u8(4),
+			]),
 		);
 		assert_value_to_value(
 			de,
 			Composite::Unnamed(vec![
-				Value::new(ValueDef::Primitive(Primitive::U8(1))),
-				Value::new(ValueDef::Primitive(Primitive::U8(2))),
-				Value::new(ValueDef::Primitive(Primitive::U8(3))),
-				Value::new(ValueDef::Primitive(Primitive::U8(4))),
+				Value::u8(1),
+				Value::u8(2),
+				Value::u8(3),
+				Value::u8(4),
 			]),
 		);
 	}
@@ -659,9 +659,9 @@ mod test {
 		let value = ValueDef::deserialize(de).expect("should deserialize OK");
 		if let ValueDef::Composite(Composite::Named(vals)) = value {
 			// These could come back in any order so we need to search for them:
-			assert!(vals.contains(&("a".into(), Value::new(ValueDef::Primitive(Primitive::I32(1))))));
-			assert!(vals.contains(&("b".into(), Value::new(ValueDef::Primitive(Primitive::I32(2))))));
-			assert!(vals.contains(&("c".into(), Value::new(ValueDef::Primitive(Primitive::I32(3))))));
+			assert!(vals.contains(&("a".into(), Value::i32(1))));
+			assert!(vals.contains(&("b".into(), Value::i32(2))));
+			assert!(vals.contains(&("c".into(), Value::i32(3))));
 		} else {
 			panic!("Map should deserialize into Composite::Named value but we have {:?}", value);
 		}
@@ -669,17 +669,17 @@ mod test {
 
 	#[test]
 	fn partially_deserialize_value() {
-		let value = Value::new(ValueDef::Composite(Composite::Named(vec![
-			("a".into(), Value::new(ValueDef::Primitive(Primitive::U64(123)))),
+		let value = Value::named_composite(vec![
+			("a".into(), Value::u64(123)),
 			(
 				"b".into(),
-				Value::new(ValueDef::Composite(Composite::Named(vec![
-					("c".into(), Value::new(ValueDef::Primitive(Primitive::U128(123)))),
-					("d".into(), Value::new(ValueDef::Primitive(Primitive::Str("hell".into())))),
-					("e".into(), Value::new(ValueDef::Composite(Composite::Unnamed(vec![])))),
-				]))),
+				Value::named_composite(vec![
+					("c".into(), Value::u128(123)),
+					("d".into(), Value::str("hello".into())),
+					("e".into(), Value::named_composite(vec![])),
+				]),
 			),
-		])));
+		]);
 
 		#[derive(Deserialize, Debug, PartialEq)]
 		struct Partial {
@@ -699,8 +699,8 @@ mod test {
 		assert_eq!(
 			partial,
 			Partial {
-				a: Value::new(ValueDef::Primitive(Primitive::U64(123))),
-				b: PartialB { c: 123, d: "hell".into(), e: Value::new(ValueDef::Composite(Composite::Unnamed(vec![]))) }
+				a: Value::u64(123),
+				b: PartialB { c: 123, d: "hello".into(), e: Value::named_composite(vec![]) }
 			}
 		)
 	}
@@ -718,9 +718,9 @@ mod test {
 			v.values,
 			Composite::Unnamed(vec![
 				// All JSON numbers deserialize to U64 or I64 or F64 as necessary:
-				Value::new(ValueDef::Primitive(Primitive::U64(1))),
-				Value::new(ValueDef::Primitive(Primitive::U64(2))),
-				Value::new(ValueDef::Primitive(Primitive::Bool(true))),
+				Value::u64(1),
+				Value::u64(2),
+				Value::bool(true),
 			])
 		)
 	}
@@ -738,9 +738,9 @@ mod test {
 			v.values,
 			Composite::Named(vec![
 				// All JSON numbers deserialize to U64 or I64 or F64 as necessary:
-				("a".into(), Value::new(ValueDef::Primitive(Primitive::U64(1)))),
-				("b".into(), Value::new(ValueDef::Primitive(Primitive::U64(2)))),
-				("c".into(), Value::new(ValueDef::Primitive(Primitive::Bool(true)))),
+				("a".into(), Value::u64(1)),
+				("b".into(), Value::u64(2)),
+				("c".into(), Value::bool(true)),
 			])
 		)
 	}

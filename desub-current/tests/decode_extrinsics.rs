@@ -30,40 +30,16 @@ fn to_bytes(hex_str: &str) -> Vec<u8> {
 	hex::decode(hex_str).expect("valid bytes from hex")
 }
 
-fn unnamed_value(x: Vec<Value<()>>) -> Value<()> {
-	Value::new(ValueDef::Composite(value::Composite::Unnamed(x)))
-}
-
 fn empty_value() -> Value<()> {
-	unnamed_value(vec![])
+	Value::unnamed_composite(vec![])
 }
 
 fn singleton_value(x: Value<()>) -> Value<()> {
-	unnamed_value(vec![x])
-}
-
-fn prim_bool_value(b: bool) -> Value<()> {
-	Value::new(ValueDef::Primitive(value::Primitive::Bool(b)))
-}
-
-fn prim_u8_value(x: u8) -> Value<()> {
-	Value::new(ValueDef::Primitive(value::Primitive::U8(x)))
-}
-
-fn prim_u32_value(x: u32) -> Value<()> {
-	Value::new(ValueDef::Primitive(value::Primitive::U32(x)))
-}
-
-fn prim_u128_value(x: u128) -> Value<()> {
-	Value::new(ValueDef::Primitive(value::Primitive::U128(x)))
+	Value::unnamed_composite(vec![x])
 }
 
 fn hash_value(xs: Vec<u8>) -> Value<()> {
-	singleton_value(Value::new(ValueDef::Composite(value::Composite::Unnamed(xs.iter().map(|x| prim_u8_value(*x)).collect()))))
-}
-
-fn variant_value(name: &str, c: value::Composite<()>) -> Value<()> {
-	Value::new(ValueDef::Variant(value::Variant { name: name.to_string(), values: c }))
+	singleton_value(Value::unnamed_composite(xs.iter().map(|x| Value::u8(*x)).collect()))
 }
 
 fn assert_args_equal<T: Clone>(args: &[Value<T>], expected: Vec<Value<()>>) {
@@ -111,7 +87,7 @@ fn balance_transfer_signed() {
 	assert_eq!(ext.call_data.pallet_name, "Balances");
 	assert_eq!(&*ext.call_data.ty.name(), "transfer");
 	assert_eq!(ext.call_data.arguments.len(), 2);
-	assert_eq!(ext.call_data.arguments[1].clone().without_context(), prim_u128_value(12345));
+	assert_eq!(ext.call_data.arguments[1].clone().without_context(), Value::u128(12345));
 }
 
 #[test]
@@ -126,7 +102,7 @@ fn balance_transfer_all_signed() {
 	assert_eq!(ext.call_data.pallet_name, "Balances");
 	assert_eq!(&*ext.call_data.ty.name(), "transfer_all");
 	assert_eq!(ext.call_data.arguments.len(), 2);
-	assert_eq!(ext.call_data.arguments[1].clone().without_context(), prim_bool_value(false));
+	assert_eq!(ext.call_data.arguments[1].clone().without_context(), Value::bool(false));
 }
 
 /// This test is interesting because:
@@ -148,11 +124,11 @@ fn auctions_bid_unsigned() {
 	assert_args_equal(
 		&ext.call_data.arguments,
 		vec![
-			singleton_value(prim_u32_value(1)),
-			prim_u32_value(2),
-			prim_u32_value(3),
-			prim_u32_value(4),
-			prim_u128_value(5),
+			singleton_value(Value::u32(1)),
+			Value::u32(2),
+			Value::u32(3),
+			Value::u32(4),
+			Value::u128(5),
 		]
 	);
 }
@@ -185,7 +161,7 @@ fn system_fill_block_unsigned() {
 	assert_eq!(&*ext.call_data.ty.name(), "fill_block");
 	assert_eq!(ext.call_data.arguments.len(), 1);
 
-	assert_args_equal(&ext.call_data.arguments, vec![singleton_value(prim_u32_value(1234))]);
+	assert_args_equal(&ext.call_data.arguments, vec![singleton_value(Value::u32(1234))]);
 }
 
 /// This test is interesting because you provide a nested enum representing a call
@@ -214,7 +190,7 @@ fn technical_committee_execute_unsigned() {
 		if &*name == "Balances"
 		&& matches!(&args[0], Value { value: ValueDef::Variant(value::Variant { name, ..}), .. } if &*name == "transfer")
 	));
-	assert_eq!(ext.call_data.arguments[1].clone().without_context(), prim_u32_value(500));
+	assert_eq!(ext.call_data.arguments[1].clone().without_context(), Value::u32(500));
 }
 
 #[test]
@@ -232,7 +208,7 @@ fn tips_report_awesome_unsigned() {
 
 	assert_eq!(
 		ext.call_data.arguments[0].clone().without_context(),
-		Value::new(ValueDef::Composite(value::Composite::Unnamed("This person rocks!".bytes().map(prim_u8_value).collect())))
+		Value::unnamed_composite("This person rocks!".bytes().map(Value::u8).collect())
 	);
 }
 
@@ -252,11 +228,11 @@ fn vesting_force_vested_transfer_unsigned() {
 
 	assert_eq!(
 		ext.call_data.arguments[2].clone().without_context(),
-		Value::new(ValueDef::Composite(value::Composite::Named(vec![
-			("locked".into(), prim_u128_value(1)),
-			("per_block".into(), prim_u128_value(2)),
-			("starting_block".into(), prim_u32_value(3)),
-		])))
+		Value::named_composite(vec![
+			("locked".into(), Value::u128(1)),
+			("per_block".into(), Value::u128(2)),
+			("starting_block".into(), Value::u32(3)),
+		])
 	);
 }
 
@@ -296,12 +272,12 @@ fn can_decode_signer_payload() {
 		(
 			"CheckSpecVersion",
 			empty_value(),
-			prim_u32_value(9110)
+			Value::u32(9110)
 		),
 		(
 			"CheckTxVersion",
 			empty_value(),
-			prim_u32_value(8)
+			Value::u32(8)
 		),
 		(
 			"CheckGenesis",
@@ -312,9 +288,9 @@ fn can_decode_signer_payload() {
 		),
 		(
 			"CheckMortality",
-			singleton_value(variant_value(
-				"Mortal185",
-				value::Composite::Unnamed(vec![prim_u8_value(52)])
+			singleton_value(Value::variant(
+				"Mortal185".to_string(),
+				value::Composite::Unnamed(vec![Value::u8(52)])
 			)),
 			hash_value(to_bytes(
 				"0x1c81d421f68281950ad2901291603b5e49fc5c872f129e75433f4b55f07ca072"
@@ -322,7 +298,7 @@ fn can_decode_signer_payload() {
 		),
 		(
 			"CheckNonce",
-			singleton_value(prim_u32_value(0)),
+			singleton_value(Value::u32(0)),
 			empty_value()
 		),
 		(
@@ -332,7 +308,7 @@ fn can_decode_signer_payload() {
 		),
 		(
 			"ChargeTransactionPayment",
-			singleton_value(prim_u128_value(0)),
+			singleton_value(Value::u128(0)),
 			empty_value()
 		),
 		(

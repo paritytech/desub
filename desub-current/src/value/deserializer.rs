@@ -1136,8 +1136,8 @@ mod test {
 
 		let val = ValueDef::Composite(Composite::Named(vec![
 			// Order shouldn't matter; match on names:
-			("b".into(), Value::new(ValueDef::Primitive(Primitive::Bool(true)))),
-			("a".into(), Value::new(ValueDef::Primitive(Primitive::U8(123)))),
+			("b".into(), Value::bool(true)),
+			("a".into(), Value::u8(123)),
 		]));
 
 		assert_eq!(Foo::deserialize(val), Ok(Foo { a: 123, b: true }))
@@ -1153,8 +1153,8 @@ mod test {
 
 		let val = Composite::Named(vec![
 			// Order shouldn't matter; match on names:
-			("b".into(), Value::new(ValueDef::Primitive(Primitive::Bool(true)))),
-			("a".into(), Value::new(ValueDef::Primitive(Primitive::U8(123)))),
+			("b".into(), Value::bool(true)),
+			("a".into(), Value::u8(123)),
 		]);
 
 		assert_eq!(Foo::deserialize(val), Ok(Foo { a: 123, b: true }))
@@ -1166,9 +1166,9 @@ mod test {
 		struct Foo(u8, bool, String);
 
 		let val = ValueDef::Composite(Composite::Unnamed(vec![
-			Value::new(ValueDef::Primitive(Primitive::U8(123))),
-			Value::new(ValueDef::Primitive(Primitive::Bool(true))),
-			Value::new(ValueDef::Primitive(Primitive::Str("hello".into()))),
+			Value::u8(123),
+			Value::bool(true),
+			Value::str("hello".into()),
 		]));
 
 		assert_eq!(Foo::deserialize(val), Ok(Foo(123, true, "hello".into())))
@@ -1180,9 +1180,9 @@ mod test {
 		struct Foo(u8, bool, String);
 
 		let val = Composite::Unnamed(vec![
-			Value::new(ValueDef::Primitive(Primitive::U8(123))),
-			Value::new(ValueDef::Primitive(Primitive::Bool(true))),
-			Value::new(ValueDef::Primitive(Primitive::Str("hello".into()))),
+			Value::u8(123),
+			Value::bool(true),
+			Value::str("hello".into()),
 		]);
 
 		assert_eq!(Foo::deserialize(val), Ok(Foo(123, true, "hello".into())))
@@ -1194,15 +1194,15 @@ mod test {
 		struct FooStr(String);
 		let val = ValueDef::<()>::Primitive(Primitive::Str("hello".into()));
 		assert_eq!(FooStr::deserialize(val), Ok(FooStr("hello".into())));
-		let val = Value::new(ValueDef::Primitive(Primitive::Str("hello".into())));
+		let val = Value::str("hello".into());
 		assert_eq!(FooStr::deserialize(val), Ok(FooStr("hello".into())));
 
 		#[derive(Deserialize, Debug, PartialEq)]
 		struct FooVecU8(Vec<u8>);
 		let val = ValueDef::Composite(Composite::Unnamed(vec![
-			Value::new(ValueDef::Primitive(Primitive::U8(1))),
-			Value::new(ValueDef::Primitive(Primitive::U8(2))),
-			Value::new(ValueDef::Primitive(Primitive::U8(3))),
+			Value::u8(1),
+			Value::u8(2),
+			Value::u8(3),
 		]));
 		assert_eq!(FooVecU8::deserialize(val), Ok(FooVecU8(vec![1, 2, 3])));
 
@@ -1215,9 +1215,9 @@ mod test {
 		let val = ValueDef::Variant(Variant {
 			name: "Foo".into(),
 			values: Composite::Unnamed(vec![
-				Value::new(ValueDef::Primitive(Primitive::U8(1))),
-				Value::new(ValueDef::Primitive(Primitive::U8(2))),
-				Value::new(ValueDef::Primitive(Primitive::U8(3))),
+				Value::u8(1),
+				Value::u8(2),
+				Value::u8(3),
 			]),
 		});
 		assert_eq!(FooVar::deserialize(val), Ok(FooVar(MyEnum::Foo(1, 2, 3))));
@@ -1233,9 +1233,9 @@ mod test {
 		#[derive(Deserialize, Debug, PartialEq)]
 		struct FooVecU8(Vec<u8>);
 		let val = Composite::Unnamed(vec![
-			Value::new(ValueDef::Primitive(Primitive::U8(1))),
-			Value::new(ValueDef::Primitive(Primitive::U8(2))),
-			Value::new(ValueDef::Primitive(Primitive::U8(3))),
+			Value::u8(1),
+			Value::u8(2),
+			Value::u8(3),
 		]);
 		assert_eq!(FooVecU8::deserialize(val), Ok(FooVecU8(vec![1, 2, 3])));
 
@@ -1248,9 +1248,9 @@ mod test {
 		let val = Variant {
 			name: "Foo".into(),
 			values: Composite::Unnamed(vec![
-				Value::new(ValueDef::Primitive(Primitive::U8(1))),
-				Value::new(ValueDef::Primitive(Primitive::U8(2))),
-				Value::new(ValueDef::Primitive(Primitive::U8(3))),
+				Value::u8(1),
+				Value::u8(2),
+				Value::u8(3),
 			]),
 		};
 		assert_eq!(FooVar::deserialize(val), Ok(FooVar(MyEnum::Foo(1, 2, 3))));
@@ -1259,16 +1259,16 @@ mod test {
 	#[test]
 	fn de_into_vec() {
 		let val = ValueDef::Composite(Composite::Unnamed(vec![
-			Value::new(ValueDef::Primitive(Primitive::U8(1))),
-			Value::new(ValueDef::Primitive(Primitive::U8(2))),
-			Value::new(ValueDef::Primitive(Primitive::U8(3))),
+			Value::u8(1),
+			Value::u8(2),
+			Value::u8(3),
 		]));
 		assert_eq!(<Vec<u8>>::deserialize(val), Ok(vec![1, 2, 3]));
 
 		let val = ValueDef::Composite(Composite::Unnamed(vec![
-			Value::new(ValueDef::Primitive(Primitive::Str("a".into()))),
-			Value::new(ValueDef::Primitive(Primitive::Str("b".into()))),
-			Value::new(ValueDef::Primitive(Primitive::Str("c".into()))),
+			Value::str("a".into()),
+			Value::str("b".into()),
+			Value::str("c".into()),
 		]));
 		assert_eq!(<Vec<String>>::deserialize(val), Ok(vec!["a".into(), "b".into(), "c".into()]));
 	}
@@ -1276,23 +1276,23 @@ mod test {
 	#[test]
 	fn de_unwrapped_into_vec() {
 		let val = Composite::Unnamed(vec![
-			Value::new(ValueDef::Primitive(Primitive::U8(1))),
-			Value::new(ValueDef::Primitive(Primitive::U8(2))),
-			Value::new(ValueDef::Primitive(Primitive::U8(3))),
+			Value::u8(1),
+			Value::u8(2),
+			Value::u8(3),
 		]);
 		assert_eq!(<Vec<u8>>::deserialize(val), Ok(vec![1, 2, 3]));
 
 		let val = Composite::Named(vec![
-			("a".into(), Value::new(ValueDef::Primitive(Primitive::U8(1)))),
-			("b".into(), Value::new(ValueDef::Primitive(Primitive::U8(2)))),
-			("c".into(), Value::new(ValueDef::Primitive(Primitive::U8(3)))),
+			("a".into(), Value::u8(1)),
+			("b".into(), Value::u8(2)),
+			("c".into(), Value::u8(3)),
 		]);
 		assert_eq!(<Vec<u8>>::deserialize(val), Ok(vec![1, 2, 3]));
 
 		let val = Composite::Unnamed(vec![
-			Value::new(ValueDef::Primitive(Primitive::Str("a".into()))),
-			Value::new(ValueDef::Primitive(Primitive::Str("b".into()))),
-			Value::new(ValueDef::Primitive(Primitive::Str("c".into()))),
+			Value::str("a".into()),
+			Value::str("b".into()),
+			Value::str("c".into()),
 		]);
 		assert_eq!(<Vec<String>>::deserialize(val), Ok(vec!["a".into(), "b".into(), "c".into()]));
 	}
@@ -1302,9 +1302,9 @@ mod test {
 		use std::collections::HashMap;
 
 		let val = ValueDef::Composite(Composite::Named(vec![
-			("a".into(), Value::new(ValueDef::Primitive(Primitive::U8(1)))),
-			("b".into(), Value::new(ValueDef::Primitive(Primitive::U8(2)))),
-			("c".into(), Value::new(ValueDef::Primitive(Primitive::U8(3)))),
+			("a".into(), Value::u8(1)),
+			("b".into(), Value::u8(2)),
+			("c".into(), Value::u8(3)),
 		]));
 		assert_eq!(
 			<HashMap<String, u8>>::deserialize(val),
@@ -1312,9 +1312,9 @@ mod test {
 		);
 
 		let val = ValueDef::Composite(Composite::Unnamed(vec![
-			Value::new(ValueDef::Primitive(Primitive::U8(1))),
-			Value::new(ValueDef::Primitive(Primitive::U8(2))),
-			Value::new(ValueDef::Primitive(Primitive::U8(3))),
+			Value::u8(1),
+			Value::u8(2),
+			Value::u8(3),
 		]));
 		<HashMap<String, u8>>::deserialize(val).expect_err("no names; can't be map");
 	}
@@ -1322,15 +1322,15 @@ mod test {
 	#[test]
 	fn de_into_tuple() {
 		let val = ValueDef::Composite(Composite::Unnamed(vec![
-			Value::new(ValueDef::Primitive(Primitive::Str("hello".into()))),
-			Value::new(ValueDef::Primitive(Primitive::Bool(true))),
+			Value::str("hello".into()),
+			Value::bool(true),
 		]));
 		assert_eq!(<(String, bool)>::deserialize(val), Ok(("hello".into(), true)));
 
 		// names will just be ignored:
 		let val = ValueDef::Composite(Composite::Named(vec![
-			("a".into(), Value::new(ValueDef::Primitive(Primitive::Str("hello".into())))),
-			("b".into(), Value::new(ValueDef::Primitive(Primitive::Bool(true)))),
+			("a".into(), Value::str("hello".into())),
+			("b".into(), Value::bool(true)),
 		]));
 		assert_eq!(<(String, bool)>::deserialize(val), Ok(("hello".into(), true)));
 
@@ -1338,8 +1338,8 @@ mod test {
 		let val = ValueDef::Variant(Variant {
 			name: "Foo".into(),
 			values: Composite::Unnamed(vec![
-				Value::new(ValueDef::Primitive(Primitive::Str("hello".into()))),
-				Value::new(ValueDef::Primitive(Primitive::Bool(true))),
+				Value::str("hello".into()),
+				Value::bool(true),
 			]),
 		});
 		assert_eq!(<(String, bool)>::deserialize(val), Ok(("hello".into(), true)));
@@ -1348,17 +1348,17 @@ mod test {
 		let val = ValueDef::Variant(Variant {
 			name: "Foo".into(),
 			values: Composite::Named(vec![
-				("a".into(), Value::new(ValueDef::Primitive(Primitive::Str("hello".into())))),
-				("b".into(), Value::new(ValueDef::Primitive(Primitive::Bool(true)))),
+				("a".into(), Value::str("hello".into())),
+				("b".into(), Value::bool(true)),
 			]),
 		});
 		assert_eq!(<(String, bool)>::deserialize(val), Ok(("hello".into(), true)));
 
 		// Wrong number of values should fail:
 		let val = ValueDef::Composite(Composite::Unnamed(vec![
-			Value::new(ValueDef::Primitive(Primitive::Str("hello".into()))),
-			Value::new(ValueDef::Primitive(Primitive::Bool(true))),
-			Value::new(ValueDef::Primitive(Primitive::U8(123))),
+			Value::str("hello".into()),
+			Value::bool(true),
+			Value::u8(123),
 		]));
 		<(String, bool)>::deserialize(val).expect_err("Wrong length, should err");
 	}
@@ -1366,23 +1366,23 @@ mod test {
 	#[test]
 	fn de_unwrapped_into_tuple() {
 		let val = Composite::Unnamed(vec![
-			Value::new(ValueDef::Primitive(Primitive::Str("hello".into()))),
-			Value::new(ValueDef::Primitive(Primitive::Bool(true))),
+			Value::str("hello".into()),
+			Value::bool(true),
 		]);
 		assert_eq!(<(String, bool)>::deserialize(val), Ok(("hello".into(), true)));
 
 		// names will just be ignored:
 		let val = Composite::Named(vec![
-			("a".into(), Value::new(ValueDef::Primitive(Primitive::Str("hello".into())))),
-			("b".into(), Value::new(ValueDef::Primitive(Primitive::Bool(true)))),
+			("a".into(), Value::str("hello".into())),
+			("b".into(), Value::bool(true)),
 		]);
 		assert_eq!(<(String, bool)>::deserialize(val), Ok(("hello".into(), true)));
 
 		// Wrong number of values should fail:
 		let val = Composite::Unnamed(vec![
-			Value::new(ValueDef::Primitive(Primitive::Str("hello".into()))),
-			Value::new(ValueDef::Primitive(Primitive::Bool(true))),
-			Value::new(ValueDef::Primitive(Primitive::U8(123))),
+			Value::str("hello".into()),
+			Value::bool(true),
+			Value::u8(123),
 		]);
 		<(String, bool)>::deserialize(val).expect_err("Wrong length, should err");
 	}
@@ -1391,10 +1391,10 @@ mod test {
 	fn de_bitvec() {
 		use bitvec::{bitvec, order::Lsb0};
 
-		let val = Value::new(ValueDef::BitSequence(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0]));
+		let val = Value::bit_sequence(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0]);
 		assert_eq!(BitSequence::deserialize(val), Ok(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0]));
 
-		let val = Value::new(ValueDef::BitSequence(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0]));
+		let val = Value::bit_sequence(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0]);
 		assert_eq!(
 			BitSequence::deserialize(val),
 			Ok(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0])
@@ -1411,9 +1411,9 @@ mod test {
 		let val = ValueDef::Variant(Variant {
 			name: "Foo".into(),
 			values: Composite::Unnamed(vec![
-				Value::new(ValueDef::Primitive(Primitive::Str("hello".into()))),
-				Value::new(ValueDef::Primitive(Primitive::Bool(true))),
-				Value::new(ValueDef::Primitive(Primitive::U8(123))),
+				Value::str("hello".into()),
+				Value::bool(true),
+				Value::u8(123),
 			]),
 		});
 		assert_eq!(MyEnum::deserialize(val), Ok(MyEnum::Foo("hello".into(), true, 123)));
@@ -1422,9 +1422,9 @@ mod test {
 		let val = ValueDef::Variant(Variant {
 			name: "Foo".into(),
 			values: Composite::Named(vec![
-				("a".into(), Value::new(ValueDef::Primitive(Primitive::Str("hello".into())))),
-				("b".into(), Value::new(ValueDef::Primitive(Primitive::Bool(true)))),
-				("c".into(), Value::new(ValueDef::Primitive(Primitive::U8(123)))),
+				("a".into(), Value::str("hello".into())),
+				("b".into(), Value::bool(true)),
+				("c".into(), Value::u8(123)),
 			]),
 		});
 		assert_eq!(MyEnum::deserialize(val), Ok(MyEnum::Foo("hello".into(), true, 123)));
@@ -1440,9 +1440,9 @@ mod test {
 		let val = Variant {
 			name: "Foo".into(),
 			values: Composite::Unnamed(vec![
-				Value::new(ValueDef::Primitive(Primitive::Str("hello".into()))),
-				Value::new(ValueDef::Primitive(Primitive::Bool(true))),
-				Value::new(ValueDef::Primitive(Primitive::U8(123))),
+				Value::str("hello".into()),
+				Value::bool(true),
+				Value::u8(123),
 			]),
 		};
 		assert_eq!(MyEnum::deserialize(val), Ok(MyEnum::Foo("hello".into(), true, 123)));
@@ -1451,9 +1451,9 @@ mod test {
 		let val = Variant {
 			name: "Foo".into(),
 			values: Composite::Named(vec![
-				("a".into(), Value::new(ValueDef::Primitive(Primitive::Str("hello".into())))),
-				("b".into(), Value::new(ValueDef::Primitive(Primitive::Bool(true)))),
-				("c".into(), Value::new(ValueDef::Primitive(Primitive::U8(123)))),
+				("a".into(), Value::str("hello".into())),
+				("b".into(), Value::bool(true)),
+				("c".into(), Value::u8(123)),
 			]),
 		};
 		assert_eq!(MyEnum::deserialize(val), Ok(MyEnum::Foo("hello".into(), true, 123)));
@@ -1471,9 +1471,9 @@ mod test {
 			name: "Foo".into(),
 			values: Composite::Named(vec![
 				// Deliberately out of order: names should ensure alignment:
-				("b".into(), Value::new(ValueDef::Primitive(Primitive::U8(123)))),
-				("a".into(), Value::new(ValueDef::Primitive(Primitive::Bool(true)))),
-				("hi".into(), Value::new(ValueDef::Primitive(Primitive::Str("hello".into())))),
+				("b".into(), Value::u8(123)),
+				("a".into(), Value::bool(true)),
+				("hi".into(), Value::str("hello".into())),
 			]),
 		});
 		assert_eq!(MyEnum::deserialize(val), Ok(MyEnum::Foo { hi: "hello".into(), a: true, b: 123 }));
@@ -1482,9 +1482,9 @@ mod test {
 		let val = ValueDef::Variant(Variant {
 			name: "Foo".into(),
 			values: Composite::Unnamed(vec![
-				Value::new(ValueDef::Primitive(Primitive::Str("hello".into()))),
-				Value::new(ValueDef::Primitive(Primitive::Bool(true))),
-				Value::new(ValueDef::Primitive(Primitive::U8(123))),
+				Value::str("hello".into()),
+				Value::bool(true),
+				Value::u8(123),
 			]),
 		});
 		assert_eq!(MyEnum::deserialize(val), Ok(MyEnum::Foo { hi: "hello".into(), a: true, b: 123 }));
@@ -1493,9 +1493,9 @@ mod test {
 		let val = ValueDef::Variant(Variant {
 			name: "Foo".into(),
 			values: Composite::Unnamed(vec![
-				Value::new(ValueDef::Primitive(Primitive::Bool(true))),
-				Value::new(ValueDef::Primitive(Primitive::U8(123))),
-				Value::new(ValueDef::Primitive(Primitive::Str("hello".into()))),
+				Value::bool(true),
+				Value::u8(123),
+				Value::str("hello".into()),
 			]),
 		});
 		MyEnum::deserialize(val).expect_err("Wrong order shouldn't work");
@@ -1504,10 +1504,10 @@ mod test {
 		let val = ValueDef::Variant(Variant {
 			name: "Foo".into(),
 			values: Composite::Named(vec![
-				("b".into(), Value::new(ValueDef::Primitive(Primitive::U8(123)))),
+				("b".into(), Value::u8(123)),
 				// Whoops; wrong name:
-				("c".into(), Value::new(ValueDef::Primitive(Primitive::Bool(true)))),
-				("hi".into(), Value::new(ValueDef::Primitive(Primitive::Str("hello".into())))),
+				("c".into(), Value::bool(true)),
+				("hi".into(), Value::str("hello".into())),
 			]),
 		});
 		MyEnum::deserialize(val).expect_err("Wrong names shouldn't work");
@@ -1516,11 +1516,11 @@ mod test {
 		let val = ValueDef::Variant(Variant {
 			name: "Foo".into(),
 			values: Composite::Named(vec![
-				("foo".into(), Value::new(ValueDef::Primitive(Primitive::U8(40)))),
-				("b".into(), Value::new(ValueDef::Primitive(Primitive::U8(123)))),
-				("a".into(), Value::new(ValueDef::Primitive(Primitive::Bool(true)))),
-				("bar".into(), Value::new(ValueDef::Primitive(Primitive::Bool(false)))),
-				("hi".into(), Value::new(ValueDef::Primitive(Primitive::Str("hello".into())))),
+				("foo".into(), Value::u8(40)),
+				("b".into(), Value::u8(123)),
+				("a".into(), Value::bool(true)),
+				("bar".into(), Value::bool(false)),
+				("hi".into(), Value::str("hello".into())),
 			]),
 		});
 		assert_eq!(MyEnum::deserialize(val), Ok(MyEnum::Foo { hi: "hello".into(), a: true, b: 123 }));
@@ -1528,7 +1528,7 @@ mod test {
 
 	#[test]
 	fn de_into_unit_variants() {
-		let val = Value::new(ValueDef::Variant(Variant { name: "Foo".into(), values: Composite::Named(vec![]) }));
+		let val = Value::variant("Foo".into(), Composite::Named(vec![]));
 		let unwrapped_val = Variant::<()> { name: "Foo".into(), values: Composite::Named(vec![]) };
 
 		#[derive(Deserialize, Debug, PartialEq)]

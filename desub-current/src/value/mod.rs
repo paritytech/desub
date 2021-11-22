@@ -44,9 +44,77 @@ pub struct Value<T> {
 }
 
 impl Value<()> {
-	/// Create a new value without any context.
-	pub fn new(value: ValueDef<()>) -> Value<()> {
-		Value { value, context: () }
+	/// Create a new named composite value without additional context.
+	pub fn named_composite(values: Vec<(String,Value<()>)>) -> Value<()> {
+		Value { value: ValueDef::Composite(Composite::Named(values)), context: () }
+	}
+	/// Create a new unnamed composite value without additional context.
+	pub fn unnamed_composite(values: Vec<Value<()>>) -> Value<()> {
+		Value { value: ValueDef::Composite(Composite::Unnamed(values)), context: () }
+	}
+	/// Create a new variant value without additional context.
+	pub fn variant(name: String, values: Composite<()>) -> Value<()> {
+		Value { value: ValueDef::Variant(Variant { name, values }), context: () }
+	}
+	/// Create a new bit sequence value without additional context.
+	pub fn bit_sequence(bitseq: BitSequence) -> Value<()> {
+		Value { value: ValueDef::BitSequence(bitseq), context: () }
+	}
+	/// Create a new primitive value without additional context.
+	pub fn primitive(primitive: Primitive) -> Value<()> {
+		Value { value: ValueDef::Primitive(primitive), context: () }
+	}
+	/// Create a new `bool` value without additional context.
+	pub fn bool(val: bool) -> Value<()> {
+		Value { value: ValueDef::Primitive(Primitive::Bool(val)), context: () }
+	}
+	/// Create a new `char` value without additional context.
+	pub fn char(val: char) -> Value<()> {
+		Value { value: ValueDef::Primitive(Primitive::Char(val)), context: () }
+	}
+	/// Create a new `str` value without additional context.
+	pub fn str(val: String) -> Value<()> {
+		Value { value: ValueDef::Primitive(Primitive::Str(val)), context: () }
+	}
+	/// Create a new `u8` value without additional context.
+	pub fn u8(val: u8) -> Value<()> {
+		Value { value: ValueDef::Primitive(Primitive::U8(val)), context: () }
+	}
+	/// Create a new `u16` value without additional context.
+	pub fn u16(val: u16) -> Value<()> {
+		Value { value: ValueDef::Primitive(Primitive::U16(val)), context: () }
+	}
+	/// Create a new `u32` value without additional context.
+	pub fn u32(val: u32) -> Value<()> {
+		Value { value: ValueDef::Primitive(Primitive::U32(val)), context: () }
+	}
+	/// Create a new `u64` value without additional context.
+	pub fn u64(val: u64) -> Value<()> {
+		Value { value: ValueDef::Primitive(Primitive::U64(val)), context: () }
+	}
+	/// Create a new `u128` value without additional context.
+	pub fn u128(val: u128) -> Value<()> {
+		Value { value: ValueDef::Primitive(Primitive::U128(val)), context: () }
+	}
+	/// Create a new `i8` value without additional context.
+	pub fn i8(val: i8) -> Value<()> {
+		Value { value: ValueDef::Primitive(Primitive::I8(val)), context: () }
+	}
+	/// Create a new `i16` value without additional context.
+	pub fn i16(val: i16) -> Value<()> {
+		Value { value: ValueDef::Primitive(Primitive::I16(val)), context: () }
+	}
+	/// Create a new `i32` value without additional context.
+	pub fn i32(val: i32) -> Value<()> {
+		Value { value: ValueDef::Primitive(Primitive::I32(val)), context: () }
+	}
+	/// Create a new `i64` value without additional context.
+	pub fn i64(val: i64) -> Value<()> {
+		Value { value: ValueDef::Primitive(Primitive::I64(val)), context: () }
+	}
+	/// Create a new `i128` value without additional context.
+	pub fn i128(val: i128) -> Value<()> {
+		Value { value: ValueDef::Primitive(Primitive::I128(val)), context: () }
 	}
 }
 

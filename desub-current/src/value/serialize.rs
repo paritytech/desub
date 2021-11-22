@@ -116,7 +116,7 @@ mod test {
 	use super::*;
 	use serde_json::json;
 
-	fn assert_value(value: ValueDef<()>, expected: serde_json::Value) {
+	fn assert_value(value: Value<()>, expected: serde_json::Value) {
 		let val = serde_json::to_value(&value).expect("can serialize to serde_json::Value");
 		assert_eq!(val, expected);
 	}
@@ -124,22 +124,22 @@ mod test {
 	#[test]
 	fn serialize_primitives() {
 		// a subset of the primitives to sanity check that they are unwrapped:
-		assert_value(ValueDef::Primitive(Primitive::U8(1)), json!(1));
-		assert_value(ValueDef::Primitive(Primitive::U16(1)), json!(1));
-		assert_value(ValueDef::Primitive(Primitive::U32(1)), json!(1));
-		assert_value(ValueDef::Primitive(Primitive::U64(1)), json!(1));
-		assert_value(ValueDef::Primitive(Primitive::Bool(true)), json!(true));
-		assert_value(ValueDef::Primitive(Primitive::Bool(false)), json!(false));
+		assert_value(Value::u8(1), json!(1));
+		assert_value(Value::u16(1), json!(1));
+		assert_value(Value::u32(1), json!(1));
+		assert_value(Value::u64(1), json!(1));
+		assert_value(Value::bool(true), json!(true));
+		assert_value(Value::bool(false), json!(false));
 	}
 
 	#[test]
 	fn serialize_composites() {
 		assert_value(
-			ValueDef::Composite(Composite::Named(vec![
-				("a".into(), Value::new(ValueDef::Primitive(Primitive::Bool(true)))),
-				("b".into(), Value::new(ValueDef::Primitive(Primitive::Str("hello".into())))),
-				("c".into(), Value::new(ValueDef::Primitive(Primitive::Char('c')))),
-			])),
+			Value::named_composite(vec![
+				("a".into(), Value::bool(true)),
+				("b".into(), Value::str("hello".into())),
+				("c".into(), Value::char('c')),
+			]),
 			json!({
 				"a": true,
 				"b": "hello",
@@ -147,11 +147,11 @@ mod test {
 			}),
 		);
 		assert_value(
-			ValueDef::Composite(Composite::Unnamed(vec![
-				Value::new(ValueDef::Primitive(Primitive::Bool(true))),
-				Value::new(ValueDef::Primitive(Primitive::Str("hello".into()))),
-				Value::new(ValueDef::Primitive(Primitive::Char('c'))),
-			])),
+			Value::unnamed_composite(vec![
+				Value::bool(true),
+				Value::str("hello".into()),
+				Value::char('c'),
+			]),
 			json!([true, "hello", 'c']),
 		)
 	}
@@ -159,14 +159,14 @@ mod test {
 	#[test]
 	fn serialize_variants() {
 		assert_value(
-			ValueDef::Variant(Variant {
-				name: "Foo".into(),
-				values: Composite::Named(vec![
-					("a".into(), Value::new(ValueDef::Primitive(Primitive::Bool(true)))),
-					("b".into(), Value::new(ValueDef::Primitive(Primitive::Str("hello".into())))),
-					("c".into(), Value::new(ValueDef::Primitive(Primitive::Char('c')))),
+			Value::variant(
+				"Foo".into(),
+				Composite::Named(vec![
+					("a".into(), Value::bool(true)),
+					("b".into(), Value::str("hello".into())),
+					("c".into(), Value::char('c')),
 				]),
-			}),
+			),
 			json!({
 				"name": "Foo",
 				"values": {
@@ -177,14 +177,14 @@ mod test {
 			}),
 		);
 		assert_value(
-			ValueDef::Variant(Variant {
-				name: "Bar".into(),
-				values: Composite::Unnamed(vec![
-					Value::new(ValueDef::Primitive(Primitive::Bool(true))),
-					Value::new(ValueDef::Primitive(Primitive::Str("hello".into()))),
-					Value::new(ValueDef::Primitive(Primitive::Char('c'))),
+			Value::variant(
+				"Bar".into(),
+				Composite::Unnamed(vec![
+					Value::bool(true),
+					Value::str("hello".into()),
+					Value::char('c'),
 				]),
-			}),
+			),
 			json!({
 				"name": "Bar",
 				"values": [
