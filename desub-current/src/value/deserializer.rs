@@ -96,212 +96,231 @@ impl<'de, T> Deserializer<'de> for Value<T> {
 	type Error = Error;
 
 	fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_any(visitor)
 	}
 
 	fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_bool(visitor)
 	}
 
 	fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_i8(visitor)
 	}
 
 	fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_i16(visitor)
 	}
 
 	fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_i32(visitor)
 	}
 
 	fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_i64(visitor)
 	}
 
-	fn deserialize_i128<V>(self, visitor:V) ->Result<V::Value,Self::Error>
-		where V:de::Visitor< 'de> {
+	fn deserialize_i128<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_i128(visitor)
 	}
 
 	fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_u8(visitor)
 	}
 
 	fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_u16(visitor)
 	}
 
 	fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_u32(visitor)
 	}
 
 	fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_u64(visitor)
 	}
 
-	fn deserialize_u128<V>(self, visitor:V) ->Result<V::Value,Self::Error>
-		where V:de::Visitor< 'de> {
+	fn deserialize_u128<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_u128(visitor)
 	}
 
 	fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_f32(visitor)
 	}
 
 	fn deserialize_f64<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_f64(visitor)
 	}
 
 	fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_char(visitor)
 	}
 
 	fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_str(visitor)
 	}
 
 	fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_string(visitor)
 	}
 
 	fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_bytes(visitor)
 	}
 
 	fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_byte_buf(visitor)
 	}
 
 	fn deserialize_option<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_option(visitor)
 	}
 
 	fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_unit(visitor)
 	}
 
-	fn deserialize_unit_struct<V>(
-			self,
-			name: &'static str,
-			visitor: V,
-		) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	fn deserialize_unit_struct<V>(self, name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_unit_struct(name, visitor)
 	}
 
-	fn deserialize_newtype_struct<V>(
-			self,
-			name: &'static str,
-			visitor: V,
-		) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	fn deserialize_newtype_struct<V>(self, name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_newtype_struct(name, visitor)
 	}
 
 	fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_seq(visitor)
 	}
 
 	fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_tuple(len, visitor)
 	}
 
-	fn deserialize_tuple_struct<V>(
-			self,
-			name: &'static str,
-			len: usize,
-			visitor: V,
-		) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	fn deserialize_tuple_struct<V>(self, name: &'static str, len: usize, visitor: V) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_tuple_struct(name, len, visitor)
 	}
 
 	fn deserialize_map<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_map(visitor)
 	}
 
 	fn deserialize_struct<V>(
-			self,
-			name: &'static str,
-			fields: &'static [&'static str],
-			visitor: V,
-		) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+		self,
+		name: &'static str,
+		fields: &'static [&'static str],
+		visitor: V,
+	) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_struct(name, fields, visitor)
 	}
 
 	fn deserialize_enum<V>(
-			self,
-			name: &'static str,
-			variants: &'static [&'static str],
-			visitor: V,
-		) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+		self,
+		name: &'static str,
+		variants: &'static [&'static str],
+		visitor: V,
+	) -> Result<V::Value, Self::Error>
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_enum(name, variants, visitor)
 	}
 
 	fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_identifier(visitor)
 	}
 
 	fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-		where
-			V: de::Visitor<'de> {
+	where
+		V: de::Visitor<'de>,
+	{
 		self.value.deserialize_ignored_any(visitor)
 	}
-
 }
 
 // Our ValueDef deserializer needs to handle BitSeq itself, but otherwise delegates to
@@ -1179,11 +1198,7 @@ mod test {
 		#[derive(Deserialize, Debug, PartialEq)]
 		struct Foo(u8, bool, String);
 
-		let val = Composite::Unnamed(vec![
-			Value::u8(123),
-			Value::bool(true),
-			Value::str("hello".into()),
-		]);
+		let val = Composite::Unnamed(vec![Value::u8(123), Value::bool(true), Value::str("hello".into())]);
 
 		assert_eq!(Foo::deserialize(val), Ok(Foo(123, true, "hello".into())))
 	}
@@ -1199,11 +1214,7 @@ mod test {
 
 		#[derive(Deserialize, Debug, PartialEq)]
 		struct FooVecU8(Vec<u8>);
-		let val = ValueDef::Composite(Composite::Unnamed(vec![
-			Value::u8(1),
-			Value::u8(2),
-			Value::u8(3),
-		]));
+		let val = ValueDef::Composite(Composite::Unnamed(vec![Value::u8(1), Value::u8(2), Value::u8(3)]));
 		assert_eq!(FooVecU8::deserialize(val), Ok(FooVecU8(vec![1, 2, 3])));
 
 		#[derive(Deserialize, Debug, PartialEq)]
@@ -1214,11 +1225,7 @@ mod test {
 		struct FooVar(MyEnum);
 		let val = ValueDef::Variant(Variant {
 			name: "Foo".into(),
-			values: Composite::Unnamed(vec![
-				Value::u8(1),
-				Value::u8(2),
-				Value::u8(3),
-			]),
+			values: Composite::Unnamed(vec![Value::u8(1), Value::u8(2), Value::u8(3)]),
 		});
 		assert_eq!(FooVar::deserialize(val), Ok(FooVar(MyEnum::Foo(1, 2, 3))));
 	}
@@ -1232,11 +1239,7 @@ mod test {
 
 		#[derive(Deserialize, Debug, PartialEq)]
 		struct FooVecU8(Vec<u8>);
-		let val = Composite::Unnamed(vec![
-			Value::u8(1),
-			Value::u8(2),
-			Value::u8(3),
-		]);
+		let val = Composite::Unnamed(vec![Value::u8(1), Value::u8(2), Value::u8(3)]);
 		assert_eq!(FooVecU8::deserialize(val), Ok(FooVecU8(vec![1, 2, 3])));
 
 		#[derive(Deserialize, Debug, PartialEq)]
@@ -1245,24 +1248,14 @@ mod test {
 		}
 		#[derive(Deserialize, Debug, PartialEq)]
 		struct FooVar(MyEnum);
-		let val = Variant {
-			name: "Foo".into(),
-			values: Composite::Unnamed(vec![
-				Value::u8(1),
-				Value::u8(2),
-				Value::u8(3),
-			]),
-		};
+		let val =
+			Variant { name: "Foo".into(), values: Composite::Unnamed(vec![Value::u8(1), Value::u8(2), Value::u8(3)]) };
 		assert_eq!(FooVar::deserialize(val), Ok(FooVar(MyEnum::Foo(1, 2, 3))));
 	}
 
 	#[test]
 	fn de_into_vec() {
-		let val = ValueDef::Composite(Composite::Unnamed(vec![
-			Value::u8(1),
-			Value::u8(2),
-			Value::u8(3),
-		]));
+		let val = ValueDef::Composite(Composite::Unnamed(vec![Value::u8(1), Value::u8(2), Value::u8(3)]));
 		assert_eq!(<Vec<u8>>::deserialize(val), Ok(vec![1, 2, 3]));
 
 		let val = ValueDef::Composite(Composite::Unnamed(vec![
@@ -1275,25 +1268,14 @@ mod test {
 
 	#[test]
 	fn de_unwrapped_into_vec() {
-		let val = Composite::Unnamed(vec![
-			Value::u8(1),
-			Value::u8(2),
-			Value::u8(3),
-		]);
+		let val = Composite::Unnamed(vec![Value::u8(1), Value::u8(2), Value::u8(3)]);
 		assert_eq!(<Vec<u8>>::deserialize(val), Ok(vec![1, 2, 3]));
 
-		let val = Composite::Named(vec![
-			("a".into(), Value::u8(1)),
-			("b".into(), Value::u8(2)),
-			("c".into(), Value::u8(3)),
-		]);
+		let val =
+			Composite::Named(vec![("a".into(), Value::u8(1)), ("b".into(), Value::u8(2)), ("c".into(), Value::u8(3))]);
 		assert_eq!(<Vec<u8>>::deserialize(val), Ok(vec![1, 2, 3]));
 
-		let val = Composite::Unnamed(vec![
-			Value::str("a".into()),
-			Value::str("b".into()),
-			Value::str("c".into()),
-		]);
+		let val = Composite::Unnamed(vec![Value::str("a".into()), Value::str("b".into()), Value::str("c".into())]);
 		assert_eq!(<Vec<String>>::deserialize(val), Ok(vec!["a".into(), "b".into(), "c".into()]));
 	}
 
@@ -1311,20 +1293,13 @@ mod test {
 			Ok(vec![("a".into(), 1), ("b".into(), 2), ("c".into(), 3)].into_iter().collect())
 		);
 
-		let val = ValueDef::Composite(Composite::Unnamed(vec![
-			Value::u8(1),
-			Value::u8(2),
-			Value::u8(3),
-		]));
+		let val = ValueDef::Composite(Composite::Unnamed(vec![Value::u8(1), Value::u8(2), Value::u8(3)]));
 		<HashMap<String, u8>>::deserialize(val).expect_err("no names; can't be map");
 	}
 
 	#[test]
 	fn de_into_tuple() {
-		let val = ValueDef::Composite(Composite::Unnamed(vec![
-			Value::str("hello".into()),
-			Value::bool(true),
-		]));
+		let val = ValueDef::Composite(Composite::Unnamed(vec![Value::str("hello".into()), Value::bool(true)]));
 		assert_eq!(<(String, bool)>::deserialize(val), Ok(("hello".into(), true)));
 
 		// names will just be ignored:
@@ -1337,20 +1312,14 @@ mod test {
 		// Enum variants are allowed! The variant name will be ignored:
 		let val = ValueDef::Variant(Variant {
 			name: "Foo".into(),
-			values: Composite::Unnamed(vec![
-				Value::str("hello".into()),
-				Value::bool(true),
-			]),
+			values: Composite::Unnamed(vec![Value::str("hello".into()), Value::bool(true)]),
 		});
 		assert_eq!(<(String, bool)>::deserialize(val), Ok(("hello".into(), true)));
 
 		// Enum variants with names values are allowed! The variant name will be ignored:
 		let val = ValueDef::Variant(Variant {
 			name: "Foo".into(),
-			values: Composite::Named(vec![
-				("a".into(), Value::str("hello".into())),
-				("b".into(), Value::bool(true)),
-			]),
+			values: Composite::Named(vec![("a".into(), Value::str("hello".into())), ("b".into(), Value::bool(true))]),
 		});
 		assert_eq!(<(String, bool)>::deserialize(val), Ok(("hello".into(), true)));
 
@@ -1365,25 +1334,15 @@ mod test {
 
 	#[test]
 	fn de_unwrapped_into_tuple() {
-		let val = Composite::Unnamed(vec![
-			Value::str("hello".into()),
-			Value::bool(true),
-		]);
+		let val = Composite::Unnamed(vec![Value::str("hello".into()), Value::bool(true)]);
 		assert_eq!(<(String, bool)>::deserialize(val), Ok(("hello".into(), true)));
 
 		// names will just be ignored:
-		let val = Composite::Named(vec![
-			("a".into(), Value::str("hello".into())),
-			("b".into(), Value::bool(true)),
-		]);
+		let val = Composite::Named(vec![("a".into(), Value::str("hello".into())), ("b".into(), Value::bool(true))]);
 		assert_eq!(<(String, bool)>::deserialize(val), Ok(("hello".into(), true)));
 
 		// Wrong number of values should fail:
-		let val = Composite::Unnamed(vec![
-			Value::str("hello".into()),
-			Value::bool(true),
-			Value::u8(123),
-		]);
+		let val = Composite::Unnamed(vec![Value::str("hello".into()), Value::bool(true), Value::u8(123)]);
 		<(String, bool)>::deserialize(val).expect_err("Wrong length, should err");
 	}
 
@@ -1410,11 +1369,7 @@ mod test {
 
 		let val = ValueDef::Variant(Variant {
 			name: "Foo".into(),
-			values: Composite::Unnamed(vec![
-				Value::str("hello".into()),
-				Value::bool(true),
-				Value::u8(123),
-			]),
+			values: Composite::Unnamed(vec![Value::str("hello".into()), Value::bool(true), Value::u8(123)]),
 		});
 		assert_eq!(MyEnum::deserialize(val), Ok(MyEnum::Foo("hello".into(), true, 123)));
 
@@ -1439,11 +1394,7 @@ mod test {
 
 		let val = Variant {
 			name: "Foo".into(),
-			values: Composite::Unnamed(vec![
-				Value::str("hello".into()),
-				Value::bool(true),
-				Value::u8(123),
-			]),
+			values: Composite::Unnamed(vec![Value::str("hello".into()), Value::bool(true), Value::u8(123)]),
 		};
 		assert_eq!(MyEnum::deserialize(val), Ok(MyEnum::Foo("hello".into(), true, 123)));
 
@@ -1481,22 +1432,14 @@ mod test {
 		// No names needed if order is OK:
 		let val = ValueDef::Variant(Variant {
 			name: "Foo".into(),
-			values: Composite::Unnamed(vec![
-				Value::str("hello".into()),
-				Value::bool(true),
-				Value::u8(123),
-			]),
+			values: Composite::Unnamed(vec![Value::str("hello".into()), Value::bool(true), Value::u8(123)]),
 		});
 		assert_eq!(MyEnum::deserialize(val), Ok(MyEnum::Foo { hi: "hello".into(), a: true, b: 123 }));
 
 		// Wrong order won't work if no names:
 		let val = ValueDef::Variant(Variant {
 			name: "Foo".into(),
-			values: Composite::Unnamed(vec![
-				Value::bool(true),
-				Value::u8(123),
-				Value::str("hello".into()),
-			]),
+			values: Composite::Unnamed(vec![Value::bool(true), Value::u8(123), Value::str("hello".into())]),
 		});
 		MyEnum::deserialize(val).expect_err("Wrong order shouldn't work");
 

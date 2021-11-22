@@ -18,34 +18,34 @@ use crate::ScaleInfoTypeId;
 
 /// This represents the ID of a type found in the metadata. A scale info type representation can
 /// be converted into this, and we get this back directly when decoding types into Values.
-#[derive(Copy,Clone,Debug,PartialEq,Eq,PartialOrd,Ord,Hash,serde::Serialize,serde::Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub struct TypeId(u32);
 
 impl TypeId {
-    /// Create a new `TypeId` from a `u32`.
-    pub(crate) fn from_u32(id: u32) -> TypeId {
-        TypeId(id)
-    }
-    /// Return the u32 ID expected by a PortableRegistry.
-    pub(crate) fn id(self) -> u32 {
-        self.0
-    }
+	/// Create a new `TypeId` from a `u32`.
+	pub(crate) fn from_u32(id: u32) -> TypeId {
+		TypeId(id)
+	}
+	/// Return the u32 ID expected by a PortableRegistry.
+	pub(crate) fn id(self) -> u32 {
+		self.0
+	}
 }
 
 impl From<ScaleInfoTypeId> for TypeId {
-    fn from(id: ScaleInfoTypeId) -> Self {
-        TypeId(id.id())
-    }
+	fn from(id: ScaleInfoTypeId) -> Self {
+		TypeId(id.id())
+	}
 }
 
 impl From<&ScaleInfoTypeId> for TypeId {
-    fn from(id: &ScaleInfoTypeId) -> Self {
-        TypeId(id.id())
-    }
+	fn from(id: &ScaleInfoTypeId) -> Self {
+		TypeId(id.id())
+	}
 }
 
 impl From<&TypeId> for TypeId {
-    fn from(id: &TypeId) -> Self {
-        *id
-    }
+	fn from(id: &TypeId) -> Self {
+		*id
+	}
 }

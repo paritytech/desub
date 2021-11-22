@@ -20,7 +20,7 @@ use serde::{
 	Serialize,
 };
 
-impl <T> Serialize for Value<T> {
+impl<T> Serialize for Value<T> {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
 		S: serde::Serializer,
@@ -29,7 +29,7 @@ impl <T> Serialize for Value<T> {
 	}
 }
 
-impl <T> Serialize for ValueDef<T> {
+impl<T> Serialize for ValueDef<T> {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
 		S: serde::Serializer,
@@ -43,7 +43,7 @@ impl <T> Serialize for ValueDef<T> {
 	}
 }
 
-impl <T> Serialize for Composite<T> {
+impl<T> Serialize for Composite<T> {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
 		S: serde::Serializer,
@@ -93,7 +93,7 @@ impl Serialize for Primitive {
 	}
 }
 
-impl <T> Serialize for Variant<T> {
+impl<T> Serialize for Variant<T> {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
 		S: serde::Serializer,
@@ -147,11 +147,7 @@ mod test {
 			}),
 		);
 		assert_value(
-			Value::unnamed_composite(vec![
-				Value::bool(true),
-				Value::str("hello".into()),
-				Value::char('c'),
-			]),
+			Value::unnamed_composite(vec![Value::bool(true), Value::str("hello".into()), Value::char('c')]),
 			json!([true, "hello", 'c']),
 		)
 	}
@@ -179,11 +175,7 @@ mod test {
 		assert_value(
 			Value::variant(
 				"Bar".into(),
-				Composite::Unnamed(vec![
-					Value::bool(true),
-					Value::str("hello".into()),
-					Value::char('c'),
-				]),
+				Composite::Unnamed(vec![Value::bool(true), Value::str("hello".into()), Value::char('c')]),
 			),
 			json!({
 				"name": "Bar",

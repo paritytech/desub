@@ -24,7 +24,7 @@ pub mod metadata;
 pub mod value;
 
 pub use metadata::Metadata;
-pub use value::{ Value, ValueDef };
+pub use value::{Value, ValueDef};
 
 pub use type_id::TypeId;
 

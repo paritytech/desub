@@ -1,6 +1,6 @@
 use super::Value;
 use crate::metadata::{Metadata, StorageLocation};
-use crate::{TypeId, ScaleInfoTypeId};
+use crate::{ScaleInfoTypeId, TypeId};
 use frame_metadata::v14::StorageEntryType as FrameStorageEntryType;
 use serde::Serialize;
 use sp_core::twox_128;
@@ -149,11 +149,7 @@ impl StorageDecoder {
 					// Move the byte cursor forwards and push an entry to our storage keys:
 					let hash_bytes = &bytes[..bytes_consumed];
 					*bytes = &bytes[bytes_consumed..];
-					storage_keys.push(StorageMapKey {
-						bytes: Cow::Borrowed(hash_bytes),
-						hasher,
-						ty,
-					});
+					storage_keys.push(StorageMapKey { bytes: Cow::Borrowed(hash_bytes), hasher, ty });
 				}
 
 				Ok(StorageEntry {
@@ -201,11 +197,7 @@ fn storage_map_key_to_type_id_vec(metadata: &Metadata, key: &ScaleInfoTypeId) ->
 
 	match ty.type_def() {
 		// Multiple keys:
-		scale_info::TypeDef::Tuple(vals) => vals
-			.fields()
-			.iter()
-			.map(|f| TypeId::from_u32(f.id()))
-			.collect(),
+		scale_info::TypeDef::Tuple(vals) => vals.fields().iter().map(|f| TypeId::from_u32(f.id())).collect(),
 		// Single key:
 		_ => vec![key.into()],
 	}
@@ -277,11 +269,7 @@ pub struct StorageMapKey<'b> {
 
 impl<'m, 'b> StorageMapKey<'b> {
 	pub fn into_owned(self) -> StorageMapKey<'static> {
-		StorageMapKey {
-			bytes: Cow::Owned(self.bytes.into_owned()),
-			ty: self.ty,
-			hasher: self.hasher,
-		}
+		StorageMapKey { bytes: Cow::Owned(self.bytes.into_owned()), ty: self.ty, hasher: self.hasher }
 	}
 }
 

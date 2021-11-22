@@ -181,7 +181,11 @@ fn decode_compact_value(
 	ty: &TypeDefCompact<PortableForm>,
 	types: &PortableRegistry,
 ) -> Result<ValueDef<TypeId>, DecodeValueError> {
-	fn decode_compact(data: &mut &[u8], inner: &Type, types: &PortableRegistry) -> Result<ValueDef<TypeId>, DecodeValueError> {
+	fn decode_compact(
+		data: &mut &[u8],
+		inner: &Type,
+		types: &PortableRegistry,
+	) -> Result<ValueDef<TypeId>, DecodeValueError> {
 		use TypeDefPrimitive::*;
 		let val = match inner.type_def() {
 			// It's obvious how to decode basic primitive unsigned types, since we have impls for them.
@@ -203,10 +207,7 @@ fn decode_compact_value(
 
 				// Decode this inner type via compact decoding. This can recurse, in case
 				// the inner type is also a 1-field composite type.
-				let inner_value = Value {
-					value: decode_compact(data, inner_ty, types)?,
-					context: field.ty().into()
-				};
+				let inner_value = Value { value: decode_compact(data, inner_ty, types)?, context: field.ty().into() };
 
 				// Wrap the inner type in a representation of this outer composite type.
 				let composite = match field.name() {
@@ -262,7 +263,7 @@ mod test {
 	/// successfully decodes the type to the expected value, based on the implicit SCALE type info that the type
 	/// carries
 	fn encode_decode_check<T: Encode + scale_info::TypeInfo + 'static>(val: T, exp: Value<()>) {
-		encode_decode_check_explicit_info::<T,_>(val, exp)
+		encode_decode_check_explicit_info::<T, _>(val, exp)
 	}
 
 	/// Given a value to encode, a type to decode it back into, and a representation of
@@ -285,7 +286,7 @@ mod test {
 	fn decode_primitives() {
 		encode_decode_check(true, Value::bool(true));
 		encode_decode_check(false, Value::bool(false));
-		encode_decode_check_explicit_info::<char,_>('a' as u32, Value::char('a'));
+		encode_decode_check_explicit_info::<char, _>('a' as u32, Value::char('a'));
 		encode_decode_check("hello", Value::str("hello".into()));
 		encode_decode_check(
 			"hello".to_string(), // String or &str (above) decode OK
@@ -375,37 +376,22 @@ mod test {
 			}
 		}
 
-		encode_decode_check(
-			Compact(MyWrapper(123)),
-			Value::unnamed_composite(vec![Value::u32(123)]),
-		);
+		encode_decode_check(Compact(MyWrapper(123)), Value::unnamed_composite(vec![Value::u32(123)]));
 	}
 
 	#[test]
 	fn decode_sequence_array_tuple_types() {
 		encode_decode_check(
 			vec![1i32, 2, 3],
-			Value::unnamed_composite(vec![
-				Value::i32(1),
-				Value::i32(2),
-				Value::i32(3),
-			]),
+			Value::unnamed_composite(vec![Value::i32(1), Value::i32(2), Value::i32(3)]),
 		);
 		encode_decode_check(
 			[1i32, 2, 3], //compile-time length known
-			Value::unnamed_composite(vec![
-				Value::i32(1),
-				Value::i32(2),
-				Value::i32(3),
-			]),
+			Value::unnamed_composite(vec![Value::i32(1), Value::i32(2), Value::i32(3)]),
 		);
 		encode_decode_check(
 			(1i32, true, 123456u128),
-			Value::unnamed_composite(vec![
-				Value::i32(1),
-				Value::bool(true),
-				Value::u128(123456),
-			]),
+			Value::unnamed_composite(vec![Value::i32(1), Value::bool(true), Value::u128(123456)]),
 		);
 	}
 
@@ -419,18 +405,17 @@ mod test {
 
 		encode_decode_check(
 			MyEnum::Foo(true),
-			Value::variant("Foo".to_string(),
-				Composite::Unnamed(vec![Value::bool(true)])
-			)
+			Value::variant("Foo".to_string(), Composite::Unnamed(vec![Value::bool(true)])),
 		);
 		encode_decode_check(
 			MyEnum::Bar { hi: "hello".to_string(), other: 123 },
-			Value::variant("Bar".to_string(),
-			Composite::Named(vec![
+			Value::variant(
+				"Bar".to_string(),
+				Composite::Named(vec![
 					("hi".to_string(), Value::str("hello".to_string())),
 					("other".to_string(), Value::u128(123)),
-				])
-			)
+				]),
+			),
 		);
 	}
 
@@ -451,11 +436,7 @@ mod test {
 			Value::unnamed_composite(vec![
 				Value::bool(true),
 				Value::str("James".to_string()),
-				Value::unnamed_composite(vec![
-					Value::u8(1),
-					Value::u8(2),
-					Value::u8(3),
-				]),
+				Value::unnamed_composite(vec![Value::u8(1), Value::u8(2), Value::u8(3)]),
 			]),
 		);
 		encode_decode_check(
@@ -463,15 +444,8 @@ mod test {
 			Value::named_composite(vec![
 				("is_valid".into(), Value::bool(true)),
 				("name".into(), Value::str("James".to_string())),
-				(
-					"bytes".into(),
-					Value::unnamed_composite(vec![
-						Value::u8(1),
-						Value::u8(2),
-						Value::u8(3),
-					]),
-				),
-			])
+				("bytes".into(), Value::unnamed_composite(vec![Value::u8(1), Value::u8(2), Value::u8(3)])),
+			]),
 		);
 	}
 

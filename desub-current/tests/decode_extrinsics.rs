@@ -16,7 +16,7 @@
 
 use desub_current::{
 	decoder::{self, SignedExtensionWithAdditional},
-	value, Metadata, Value, ValueDef
+	value, Metadata, Value, ValueDef,
 };
 
 static V14_METADATA_POLKADOT_SCALE: &[u8] = include_bytes!("data/v14_metadata_polkadot.scale");
@@ -123,13 +123,7 @@ fn auctions_bid_unsigned() {
 
 	assert_args_equal(
 		&ext.call_data.arguments,
-		vec![
-			singleton_value(Value::u32(1)),
-			Value::u32(2),
-			Value::u32(3),
-			Value::u32(4),
-			Value::u128(5),
-		]
+		vec![singleton_value(Value::u32(1)), Value::u32(2), Value::u32(3), Value::u32(4), Value::u128(5)],
 	);
 }
 
@@ -269,53 +263,22 @@ fn can_decode_signer_payload() {
 
 	// Expected tuples of name, extension, additional.
 	let expected = vec![
-		(
-			"CheckSpecVersion",
-			empty_value(),
-			Value::u32(9110)
-		),
-		(
-			"CheckTxVersion",
-			empty_value(),
-			Value::u32(8)
-		),
+		("CheckSpecVersion", empty_value(), Value::u32(9110)),
+		("CheckTxVersion", empty_value(), Value::u32(8)),
 		(
 			"CheckGenesis",
 			empty_value(),
-			hash_value(to_bytes(
-				"0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"
-			))
+			hash_value(to_bytes("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3")),
 		),
 		(
 			"CheckMortality",
-			singleton_value(Value::variant(
-				"Mortal185".to_string(),
-				value::Composite::Unnamed(vec![Value::u8(52)])
-			)),
-			hash_value(to_bytes(
-				"0x1c81d421f68281950ad2901291603b5e49fc5c872f129e75433f4b55f07ca072"
-			))
+			singleton_value(Value::variant("Mortal185".to_string(), value::Composite::Unnamed(vec![Value::u8(52)]))),
+			hash_value(to_bytes("0x1c81d421f68281950ad2901291603b5e49fc5c872f129e75433f4b55f07ca072")),
 		),
-		(
-			"CheckNonce",
-			singleton_value(Value::u32(0)),
-			empty_value()
-		),
-		(
-			"CheckWeight",
-			empty_value(),
-			empty_value()
-		),
-		(
-			"ChargeTransactionPayment",
-			singleton_value(Value::u128(0)),
-			empty_value()
-		),
-		(
-			"PrevalidateAttests",
-			empty_value(),
-			empty_value()
-		),
+		("CheckNonce", singleton_value(Value::u32(0)), empty_value()),
+		("CheckWeight", empty_value(), empty_value()),
+		("ChargeTransactionPayment", singleton_value(Value::u128(0)), empty_value()),
+		("PrevalidateAttests", empty_value(), empty_value()),
 	];
 
 	for (actual, expected) in r.extensions.into_iter().zip(expected) {

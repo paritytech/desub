@@ -17,7 +17,7 @@
 use codec::Encode;
 use desub_current::{
 	decoder::{self, StorageHasher},
-	Metadata, Value
+	Metadata, Value,
 };
 use sp_runtime::AccountId32;
 
@@ -29,11 +29,7 @@ fn metadata() -> Metadata {
 
 fn account_id_to_value(account_id: &AccountId32) -> Value<()> {
 	let account_id_bytes: &[u8] = account_id.as_ref();
-	Value::unnamed_composite(vec![
-		Value::unnamed_composite(
-			account_id_bytes.iter().map(|&b| Value::u8(b)).collect(),
-		)
-	])
+	Value::unnamed_composite(vec![Value::unnamed_composite(account_id_bytes.iter().map(|&b| Value::u8(b)).collect())])
 }
 
 macro_rules! assert_hasher_eq {
@@ -43,7 +39,7 @@ macro_rules! assert_hasher_eq {
 		} else {
 			panic!("Passed {:?}, but expected hasher {}", $actual, stringify!($hasher));
 		}
-	}
+	};
 }
 
 macro_rules! bytes {
@@ -92,12 +88,10 @@ fn democracy_blacklist() {
 
 	// Because the hasher is Identity, we can even see the decoded original map key:
 	assert_eq!(keys.len(), 1);
-	assert_hasher_eq!(keys[0].hasher, StorageHasher::Identity,
-		Value::unnamed_composite(vec![
-			Value::unnamed_composite(
-				vec![Value::u8(1); 32]
-			)
-		])
+	assert_hasher_eq!(
+		keys[0].hasher,
+		StorageHasher::Identity,
+		Value::unnamed_composite(vec![Value::unnamed_composite(vec![Value::u8(1); 32])])
 	);
 	assert!(matches!(keys[0].hasher, StorageHasher::Identity(..)));
 }
@@ -128,7 +122,7 @@ fn system_blockhash() {
 	assert_eq!(
 		val.without_context(),
 		// The Type appears to take the form of a newtype-wrapped [u8; 32]:
-		Value::unnamed_composite(vec![Value::unnamed_composite(vec![ Value::u8(1); 32 ])])
+		Value::unnamed_composite(vec![Value::unnamed_composite(vec![Value::u8(1); 32])])
 	);
 }
 

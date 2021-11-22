@@ -40,12 +40,12 @@ pub struct Value<T> {
 	/// The shape and associated values for this Value
 	pub value: ValueDef<T>,
 	/// Some additional arbitrary context that can be associated with a value.
-	pub context: T
+	pub context: T,
 }
 
 impl Value<()> {
 	/// Create a new named composite value without additional context.
-	pub fn named_composite(values: Vec<(String,Value<()>)>) -> Value<()> {
+	pub fn named_composite(values: Vec<(String, Value<()>)>) -> Value<()> {
 		Value { value: ValueDef::Composite(Composite::Named(values)), context: () }
 	}
 	/// Create a new unnamed composite value without additional context.
@@ -118,7 +118,7 @@ impl Value<()> {
 	}
 }
 
-impl <T> Value<T> {
+impl<T> Value<T> {
 	/// Create a new value with some associated context.
 	pub fn with_context(value: ValueDef<T>, context: T) -> Value<T> {
 		Value { value, context }
@@ -142,7 +142,7 @@ pub enum ValueDef<T> {
 	Primitive(Primitive),
 }
 
-impl <T> ValueDef<T> {
+impl<T> ValueDef<T> {
 	/// Remove the context.
 	pub fn without_context(self) -> ValueDef<()> {
 		match self {
@@ -154,7 +154,7 @@ impl <T> ValueDef<T> {
 	}
 }
 
-impl <T: Debug> Debug for ValueDef<T> {
+impl<T: Debug> Debug for ValueDef<T> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
 			Self::Composite(val) => Debug::fmt(val, f),
@@ -176,7 +176,7 @@ pub enum Composite<T> {
 	Unnamed(Vec<Value<T>>),
 }
 
-impl <T> Composite<T> {
+impl<T> Composite<T> {
 	/// Return the number of values stored in this composite type.
 	pub fn len(&self) -> usize {
 		match self {
@@ -197,24 +197,18 @@ impl <T> Composite<T> {
 	pub fn without_context(self) -> Composite<()> {
 		match self {
 			Composite::Named(values) => {
-				let vals = values
-					.into_iter()
-					.map(|(k,v)| (k, v.without_context()))
-					.collect();
+				let vals = values.into_iter().map(|(k, v)| (k, v.without_context())).collect();
 				Composite::Named(vals)
-			},
+			}
 			Composite::Unnamed(values) => {
-				let vals = values
-					.into_iter()
-					.map(|v| v.without_context())
-					.collect();
+				let vals = values.into_iter().map(|v| v.without_context()).collect();
 				Composite::Unnamed(vals)
-			},
+			}
 		}
 	}
 }
 
-impl <T: Debug> Debug for Composite<T> {
+impl<T: Debug> Debug for Composite<T> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
 			Composite::Named(fields) => {
@@ -235,7 +229,7 @@ impl <T: Debug> Debug for Composite<T> {
 	}
 }
 
-impl <T> From<Composite<T>> for ValueDef<T> {
+impl<T> From<Composite<T>> for ValueDef<T> {
 	fn from(val: Composite<T>) -> Self {
 		ValueDef::Composite(val)
 	}
@@ -251,17 +245,14 @@ pub struct Variant<T> {
 	pub values: Composite<T>,
 }
 
-impl <T> Variant<T> {
+impl<T> Variant<T> {
 	/// Remove the context.
 	pub fn without_context(self) -> Variant<()> {
-		Variant {
-			name: self.name,
-			values: self.values.without_context()
-		}
+		Variant { name: self.name, values: self.values.without_context() }
 	}
 }
 
-impl <T: Debug> Debug for Variant<T> {
+impl<T: Debug> Debug for Variant<T> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.write_str(&self.name)?;
 		f.write_str(" ")?;
@@ -269,7 +260,7 @@ impl <T: Debug> Debug for Variant<T> {
 	}
 }
 
-impl <T> From<Variant<T>> for ValueDef<T> {
+impl<T> From<Variant<T>> for ValueDef<T> {
 	fn from(val: Variant<T>) -> Self {
 		ValueDef::Variant(val)
 	}
@@ -295,7 +286,7 @@ pub enum Primitive {
 	I256([u8; 32]),
 }
 
-impl <T> From<Primitive> for ValueDef<T> {
+impl<T> From<Primitive> for ValueDef<T> {
 	fn from(val: Primitive) -> Self {
 		ValueDef::Primitive(val)
 	}
