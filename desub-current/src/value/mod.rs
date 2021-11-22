@@ -125,7 +125,15 @@ impl<T> Value<T> {
 	}
 	/// Remove the context.
 	pub fn without_context(self) -> Value<()> {
-		Value { value: self.value.without_context(), context: () }
+		self.map_context(|_| ())
+	}
+	/// Map the context to some different type.
+	pub fn map_context<F,U>(self, mut f: F) -> Value<U>
+	where F: Clone + FnMut(T) -> U {
+		Value {
+			context: f(self.context),
+			value: self.value.map_context(f)
+		}
 	}
 }
 
@@ -143,11 +151,12 @@ pub enum ValueDef<T> {
 }
 
 impl<T> ValueDef<T> {
-	/// Remove the context.
-	pub fn without_context(self) -> ValueDef<()> {
+	/// Map the context to some different type.
+	pub fn map_context<F,U>(self, f: F) -> ValueDef<U>
+	where F: Clone + FnMut(T) -> U {
 		match self {
-			ValueDef::Composite(val) => ValueDef::Composite(val.without_context()),
-			ValueDef::Variant(val) => ValueDef::Variant(val.without_context()),
+			ValueDef::Composite(val) => ValueDef::Composite(val.map_context(f)),
+			ValueDef::Variant(val) => ValueDef::Variant(val.map_context(f)),
 			ValueDef::BitSequence(val) => ValueDef::BitSequence(val),
 			ValueDef::Primitive(val) => ValueDef::Primitive(val),
 		}
@@ -193,15 +202,20 @@ impl<T> Composite<T> {
 		}
 	}
 
-	/// Remove the context.
-	pub fn without_context(self) -> Composite<()> {
+	/// Map the context to some different type.
+	pub fn map_context<F,U>(self, f: F) -> Composite<U>
+	where F: Clone + FnMut(T) -> U {
 		match self {
 			Composite::Named(values) => {
-				let vals = values.into_iter().map(|(k, v)| (k, v.without_context())).collect();
+				// Note: Optimally I'd pass `&mut f` into each iteration to avoid cloning,
+				// but this leads to a type recusion error because F becomes `&mut F`, which can
+				// (at type level) recurse here again and become `&mut &mut F` and so on. Since
+				// that's no good; just require `Clone` to avoid altering the type.
+				let vals = values.into_iter().map(move |(k, v)| (k, v.map_context(f.clone()))).collect();
 				Composite::Named(vals)
 			}
 			Composite::Unnamed(values) => {
-				let vals = values.into_iter().map(|v| v.without_context()).collect();
+				let vals = values.into_iter().map(move |v| v.map_context(f.clone())).collect();
 				Composite::Unnamed(vals)
 			}
 		}
@@ -246,9 +260,10 @@ pub struct Variant<T> {
 }
 
 impl<T> Variant<T> {
-	/// Remove the context.
-	pub fn without_context(self) -> Variant<()> {
-		Variant { name: self.name, values: self.values.without_context() }
+	/// Map the context to some different type.
+	pub fn map_context<F,U>(self, f: F) -> Variant<U>
+	where F: Clone + FnMut(T) -> U {
+		Variant { name: self.name, values: self.values.map_context(f) }
 	}
 }
 
