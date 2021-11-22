@@ -128,12 +128,11 @@ impl<T> Value<T> {
 		self.map_context(|_| ())
 	}
 	/// Map the context to some different type.
-	pub fn map_context<F,U>(self, mut f: F) -> Value<U>
-	where F: Clone + FnMut(T) -> U {
-		Value {
-			context: f(self.context),
-			value: self.value.map_context(f)
-		}
+	pub fn map_context<F, U>(self, mut f: F) -> Value<U>
+	where
+		F: Clone + FnMut(T) -> U,
+	{
+		Value { context: f(self.context), value: self.value.map_context(f) }
 	}
 }
 
@@ -152,8 +151,10 @@ pub enum ValueDef<T> {
 
 impl<T> ValueDef<T> {
 	/// Map the context to some different type.
-	pub fn map_context<F,U>(self, f: F) -> ValueDef<U>
-	where F: Clone + FnMut(T) -> U {
+	pub fn map_context<F, U>(self, f: F) -> ValueDef<U>
+	where
+		F: Clone + FnMut(T) -> U,
+	{
 		match self {
 			ValueDef::Composite(val) => ValueDef::Composite(val.map_context(f)),
 			ValueDef::Variant(val) => ValueDef::Variant(val.map_context(f)),
@@ -203,8 +204,10 @@ impl<T> Composite<T> {
 	}
 
 	/// Map the context to some different type.
-	pub fn map_context<F,U>(self, f: F) -> Composite<U>
-	where F: Clone + FnMut(T) -> U {
+	pub fn map_context<F, U>(self, f: F) -> Composite<U>
+	where
+		F: Clone + FnMut(T) -> U,
+	{
 		match self {
 			Composite::Named(values) => {
 				// Note: Optimally I'd pass `&mut f` into each iteration to avoid cloning,
@@ -261,8 +264,10 @@ pub struct Variant<T> {
 
 impl<T> Variant<T> {
 	/// Map the context to some different type.
-	pub fn map_context<F,U>(self, f: F) -> Variant<U>
-	where F: Clone + FnMut(T) -> U {
+	pub fn map_context<F, U>(self, f: F) -> Variant<U>
+	where
+		F: Clone + FnMut(T) -> U,
+	{
 		Variant { name: self.name, values: self.values.map_context(f) }
 	}
 }
