@@ -193,7 +193,7 @@ impl StorageDecoder {
 //
 // See https://github.com/paritytech/subxt/blob/793c945fbd2de022f523c39a84ee02609ba423a9/codegen/src/api/storage.rs#L105
 // for another example of this being handled in code.
-fn storage_map_key_to_type_id_vec<'a>(metadata: &'a Metadata, key: &ScaleInfoTypeId) -> Vec<TypeId> {
+fn storage_map_key_to_type_id_vec(metadata: &Metadata, key: &ScaleInfoTypeId) -> Vec<TypeId> {
 	let ty = match metadata.resolve(key) {
 		Some(ty) => ty,
 		None => panic!("Metadata inconsistency: type #{} not found", key.id()),

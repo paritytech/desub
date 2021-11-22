@@ -543,7 +543,7 @@ impl<'de, T> Deserializer<'de> for Composite<T> {
 		V: de::Visitor<'de>,
 	{
 		// 0 length composite types can be treated as the unit type:
-		if self.len() == 0 {
+		if self.is_empty() {
 			visitor.visit_unit()
 		} else {
 			Err(Error::from_str("Cannot deserialize non-empty Composite into a unit value"))

@@ -185,6 +185,14 @@ impl <T> Composite<T> {
 		}
 	}
 
+	/// Is the composite type empty?
+	pub fn is_empty(&self) -> bool {
+		match self {
+			Composite::Named(values) => values.is_empty(),
+			Composite::Unnamed(values) => values.is_empty(),
+		}
+	}
+
 	/// Remove the context.
 	pub fn without_context(self) -> Composite<()> {
 		match self {

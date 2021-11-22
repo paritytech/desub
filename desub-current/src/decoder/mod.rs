@@ -384,6 +384,7 @@ pub fn decode_signature<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<
 /// Decode the signed extensions part of a SCALE encoded extrinsic.
 ///
 /// Ordinarily, one should prefer to use [`decode_extrinsic`] directly to decode the entire extrinsic at once.
+#[allow(clippy::type_complexity)]
 pub fn decode_signed_extensions<'a>(
 	metadata: &'a Metadata,
 	data: &mut &[u8],
@@ -403,6 +404,7 @@ pub fn decode_signed_extensions<'a>(
 /// Decode the additional signed data.
 ///
 /// Ordinarily, one should prefer to use [`decode_signer_payload`], to decode the entire signer payload at once.
+#[allow(clippy::type_complexity)]
 pub fn decode_additional_signed<'a>(
 	metadata: &'a Metadata,
 	data: &mut &[u8],
