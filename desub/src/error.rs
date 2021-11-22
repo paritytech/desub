@@ -17,7 +17,6 @@
 use desub_current::{
 	decoder::{DecodeError, Extrinsic},
 	metadata::MetadataError,
-	TypeId
 };
 use desub_legacy::{decoder::metadata::Error as LegacyMetadataError, Error as LegacyError};
 use thiserror::Error;
@@ -28,7 +27,7 @@ pub enum Error {
 	V14 {
 		#[source]
 		source: DecodeError,
-		ext: Vec<Extrinsic<'static, TypeId>>,
+		ext: Vec<Extrinsic<'static>>,
 	},
 	#[error(transparent)]
 	Legacy(#[from] LegacyError),

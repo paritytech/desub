@@ -291,60 +291,63 @@ fn can_decode_signer_payload() {
 	assert_eq!(&*r.call_data.ty.name(), "chill");
 	assert_eq!(r.call_data.arguments, vec![]);
 
-	assert_eq!(
-		r.without_context().extensions,
-		vec![
-			(
-				"CheckSpecVersion".into(),
-				SignedExtensionWithAdditional { extension: empty_value(), additional: prim_u32_value(9110) }
-			),
-			(
-				"CheckTxVersion".into(),
-				SignedExtensionWithAdditional { extension: empty_value(), additional: prim_u32_value(8) }
-			),
-			(
-				"CheckGenesis".into(),
-				SignedExtensionWithAdditional {
-					extension: empty_value(),
-					additional: hash_value(to_bytes(
-						"0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"
-					))
-				}
-			),
-			(
-				"CheckMortality".into(),
-				SignedExtensionWithAdditional {
-					extension: singleton_value(variant_value(
-						"Mortal185",
-						value::Composite::Unnamed(vec![prim_u8_value(52)])
-					)),
-					additional: hash_value(to_bytes(
-						"0x1c81d421f68281950ad2901291603b5e49fc5c872f129e75433f4b55f07ca072"
-					))
-				}
-			),
-			(
-				"CheckNonce".into(),
-				SignedExtensionWithAdditional {
-					extension: singleton_value(prim_u32_value(0)),
-					additional: empty_value()
-				}
-			),
-			(
-				"CheckWeight".into(),
-				SignedExtensionWithAdditional { extension: empty_value(), additional: empty_value() }
-			),
-			(
-				"ChargeTransactionPayment".into(),
-				SignedExtensionWithAdditional {
-					extension: singleton_value(prim_u128_value(0)),
-					additional: empty_value()
-				}
-			),
-			(
-				"PrevalidateAttests".into(),
-				SignedExtensionWithAdditional { extension: empty_value(), additional: empty_value() }
-			),
-		],
-	);
+	// Expected tuples of name, extension, additional.
+	let expected = vec![
+		(
+			"CheckSpecVersion",
+			empty_value(),
+			prim_u32_value(9110)
+		),
+		(
+			"CheckTxVersion",
+			empty_value(),
+			prim_u32_value(8)
+		),
+		(
+			"CheckGenesis",
+			empty_value(),
+			hash_value(to_bytes(
+				"0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"
+			))
+		),
+		(
+			"CheckMortality",
+			singleton_value(variant_value(
+				"Mortal185",
+				value::Composite::Unnamed(vec![prim_u8_value(52)])
+			)),
+			hash_value(to_bytes(
+				"0x1c81d421f68281950ad2901291603b5e49fc5c872f129e75433f4b55f07ca072"
+			))
+		),
+		(
+			"CheckNonce",
+			singleton_value(prim_u32_value(0)),
+			empty_value()
+		),
+		(
+			"CheckWeight",
+			empty_value(),
+			empty_value()
+		),
+		(
+			"ChargeTransactionPayment",
+			singleton_value(prim_u128_value(0)),
+			empty_value()
+		),
+		(
+			"PrevalidateAttests",
+			empty_value(),
+			empty_value()
+		),
+	];
+
+	for (actual, expected) in r.extensions.into_iter().zip(expected) {
+		let (name, SignedExtensionWithAdditional { extension, additional }) = actual;
+		let (expected_name, expected_extension, expected_additional) = expected;
+
+		assert_eq!(&*name, expected_name);
+		assert_eq!(extension.without_context(), expected_extension);
+		assert_eq!(additional.without_context(), expected_additional);
+	}
 }
