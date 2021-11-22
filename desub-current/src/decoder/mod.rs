@@ -430,7 +430,7 @@ pub fn decode_additional_signed<'a>(
 /// Values. We can serialize this for any value of `T`, but we can only
 /// deserialize when `T = ()`.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(bound = "Value<T>: serde::de::DeserializeOwned")]
+#[serde(bound(deserialize = "Value<T>: serde::de::DeserializeOwned"))]
 pub struct CallData<'a, T> {
 	/// The name of the pallet
 	#[serde(borrow)]
@@ -465,7 +465,7 @@ impl<'a, T> CallData<'a, T> {
 /// Values. We can serialize this for any value of `T`, but we can only
 /// deserialize when `T = ()`.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(bound = "Value<T>: serde::de::DeserializeOwned")]
+#[serde(bound(deserialize = "Value<T>: serde::de::DeserializeOwned"))]
 pub struct Extrinsic<'a, T> {
 	/// Decoded call data and associated type information about the call.
 	#[serde(borrow)]
@@ -493,7 +493,7 @@ impl<'a, T> Extrinsic<'a, T> {
 /// Values. We can serialize this for any value of `T`, but we can only
 /// deserialize when `T = ()`.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(bound = "Value<T>: serde::de::DeserializeOwned")]
+#[serde(bound(deserialize = "Value<T>: serde::de::DeserializeOwned"))]
 pub struct ExtrinsicSignature<'a, T> {
 	/// Address the extrinsic is being sent from
 	#[serde(with = "desub_common::RemoteAddress")]
@@ -529,7 +529,7 @@ impl<'a, T> ExtrinsicSignature<'a, T> {
 /// Values. We can serialize this for any value of `T`, but we can only
 /// deserialize when `T = ()`.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(bound = "Value<T>: serde::de::DeserializeOwned")]
+#[serde(bound(deserialize = "Value<T>: serde::de::DeserializeOwned"))]
 pub struct SignerPayload<'a, T> {
 	/// Decoded call data and associated type information about the call.
 	#[serde(borrow)]
@@ -560,7 +560,7 @@ impl<'a, T> SignerPayload<'a, T> {
 /// Values. We can serialize this for any value of `T`, but we can only
 /// deserialize when `T = ()`.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(bound = "Value<T>: serde::de::DeserializeOwned")]
+#[serde(bound(deserialize = "Value<T>: serde::de::DeserializeOwned"))]
 pub struct SignedExtensionWithAdditional<T> {
 	/// The signed extension value at this position
 	pub extension: Value<T>,
