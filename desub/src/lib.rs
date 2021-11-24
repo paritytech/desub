@@ -18,6 +18,7 @@
 #![forbid(unsafe_code)]
 #[deny(unused)]
 mod error;
+mod types;
 
 use codec::Decode;
 use desub_current::{
@@ -29,7 +30,6 @@ use desub_legacy::{
 	RustTypeMarker, TypeDetective,
 };
 use frame_metadata::RuntimeMetadataPrefixed;
-use serde_json::Value;
 use std::collections::HashMap;
 
 #[cfg(feature = "polkadot-js")]
@@ -40,6 +40,7 @@ pub use desub_common::SpecVersion;
 #[cfg(feature = "polkadot-js")]
 pub use desub_json_resolver::runtimes;
 pub use desub_legacy::decoder::Chain;
+use types::LegacyOrCurrentExtrinsic;
 
 /// Struct That implements TypeDetective but refuses to resolve anything
 /// that is not of metadata v14+.
@@ -102,11 +103,11 @@ impl Decoder {
 		Ok(())
 	}
 
-	pub fn decode_extrinsics(&self, version: SpecVersion, mut data: &[u8]) -> Result<Value, Error> {
+	pub fn decode_extrinsics(&self, version: SpecVersion, mut data: &[u8]) -> Result<Vec<LegacyOrCurrentExtrinsic>, Error> {
 		if self.current_metadata.contains_key(&version) {
 			let metadata = self.current_metadata.get(&version).expect("Checked if key is contained; qed");
 			match decoder::decode_extrinsics(metadata, &mut data) {
-				Ok(v) => Ok(serde_json::to_value(&v)?),
+				Ok(v) => Ok(v.into_iter().map(|e| e.into_owned()).map(LegacyOrCurrentExtrinsic::Current).collect()),
 				Err((ext, e)) => {
 					Err(Error::V14 { source: e, ext: ext.into_iter().map(Extrinsic::into_owned).collect() })
 				}
@@ -116,7 +117,7 @@ impl Decoder {
 				return Err(Error::SpecVersionNotFound(version));
 			}
 			let ext = self.legacy_decoder.decode_extrinsics(version, data)?;
-			Ok(serde_json::to_value(&ext)?)
+			Ok(ext.into_iter().map(LegacyOrCurrentExtrinsic::Legacy).collect())
 		}
 	}
 

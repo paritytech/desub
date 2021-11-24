@@ -800,7 +800,7 @@ dependencies = [
  "desub-legacy",
  "frame-metadata 14.2.0 (git+https://github.com/paritytech/frame-metadata?branch=insipx-aj-docs-rebase)",
  "parity-scale-codec",
- "serde_json",
+ "serde",
  "thiserror",
 ]
 
