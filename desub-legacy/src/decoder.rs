@@ -482,7 +482,6 @@ impl Decoder {
 
 		state.load_module()?;
 		let types = self.decode_call(state)?;
-		log::debug!("Finished cursor length={}", state.cursor());
 		let call = state.call.borrow().as_ref().map(|c| c.name()).unwrap_or_else(|| "unknown".into());
 		Ok(GenericExtrinsic::new(signature, types, call, state.module_name().into()))
 	}
