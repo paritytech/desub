@@ -19,7 +19,7 @@ use desub_current::decoder::Extrinsic;
 use desub_legacy::decoder::GenericExtrinsic;
 
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug, PartialEq)]
 pub enum LegacyOrCurrent<L, C> {
 	Legacy(L),
 	Current(C)
