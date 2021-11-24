@@ -13,7 +13,7 @@ desub-current = { path = "../desub-current/" }
 desub-json-resolver = { path = "../desub-json-resolver/", optional = true }
 
 thiserror = "1.0.30"
-frame-metadata = "14.2"
+frame-metadata = { git = "https://github.com/paritytech/frame-metadata", branch = "insipx-aj-docs-rebase" }
 codec = { version = "2.3.1", package = "parity-scale-codec" }
 serde_json = { version = "1.0", features = ["preserve_order", "arbitrary_precision"] }
 
