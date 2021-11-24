@@ -18,7 +18,7 @@
 #![forbid(unsafe_code)]
 #[deny(unused)]
 mod error;
-mod types;
+pub mod types;
 
 use codec::Decode;
 use desub_current::{
