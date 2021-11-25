@@ -90,157 +90,48 @@ impl ser::Error for Error {
 	}
 }
 
+/// Spit out the simple deserialize methods to avoid loads of repetition.
+macro_rules! deserialize_x {
+	($fn_name:ident) => {
+		fn $fn_name<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+		where
+			V: de::Visitor<'de>,
+		{
+			self.value.$fn_name(visitor)
+		}
+	}
+}
+
 // Our Value type has some context, which we ignore, and some definition, whose deserializer
 // impl we forward to.
 impl<'de, T> Deserializer<'de> for Value<T> {
 	type Error = Error;
 
-	fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_any(visitor)
-	}
-
-	fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_bool(visitor)
-	}
-
-	fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_i8(visitor)
-	}
-
-	fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_i16(visitor)
-	}
-
-	fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_i32(visitor)
-	}
-
-	fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_i64(visitor)
-	}
-
-	fn deserialize_i128<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_i128(visitor)
-	}
-
-	fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_u8(visitor)
-	}
-
-	fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_u16(visitor)
-	}
-
-	fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_u32(visitor)
-	}
-
-	fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_u64(visitor)
-	}
-
-	fn deserialize_u128<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_u128(visitor)
-	}
-
-	fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_f32(visitor)
-	}
-
-	fn deserialize_f64<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_f64(visitor)
-	}
-
-	fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_char(visitor)
-	}
-
-	fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_str(visitor)
-	}
-
-	fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_string(visitor)
-	}
-
-	fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_bytes(visitor)
-	}
-
-	fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_byte_buf(visitor)
-	}
-
-	fn deserialize_option<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_option(visitor)
-	}
-
-	fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_unit(visitor)
-	}
+	deserialize_x!(deserialize_any);
+	deserialize_x!(deserialize_bool);
+	deserialize_x!(deserialize_i8);
+	deserialize_x!(deserialize_i16);
+	deserialize_x!(deserialize_i32);
+	deserialize_x!(deserialize_i64);
+	deserialize_x!(deserialize_i128);
+	deserialize_x!(deserialize_u8);
+	deserialize_x!(deserialize_u16);
+	deserialize_x!(deserialize_u32);
+	deserialize_x!(deserialize_u64);
+	deserialize_x!(deserialize_u128);
+	deserialize_x!(deserialize_f32);
+	deserialize_x!(deserialize_f64);
+	deserialize_x!(deserialize_char);
+	deserialize_x!(deserialize_str);
+	deserialize_x!(deserialize_string);
+	deserialize_x!(deserialize_bytes);
+	deserialize_x!(deserialize_byte_buf);
+	deserialize_x!(deserialize_option);
+	deserialize_x!(deserialize_unit);
+	deserialize_x!(deserialize_seq);
+	deserialize_x!(deserialize_map);
+	deserialize_x!(deserialize_identifier);
+	deserialize_x!(deserialize_ignored_any);
 
 	fn deserialize_unit_struct<V>(self, name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
 	where
@@ -256,13 +147,6 @@ impl<'de, T> Deserializer<'de> for Value<T> {
 		self.value.deserialize_newtype_struct(name, visitor)
 	}
 
-	fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_seq(visitor)
-	}
-
 	fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
 	where
 		V: de::Visitor<'de>,
@@ -275,13 +159,6 @@ impl<'de, T> Deserializer<'de> for Value<T> {
 		V: de::Visitor<'de>,
 	{
 		self.value.deserialize_tuple_struct(name, len, visitor)
-	}
-
-	fn deserialize_map<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_map(visitor)
 	}
 
 	fn deserialize_struct<V>(
@@ -306,20 +183,6 @@ impl<'de, T> Deserializer<'de> for Value<T> {
 		V: de::Visitor<'de>,
 	{
 		self.value.deserialize_enum(name, variants, visitor)
-	}
-
-	fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_identifier(visitor)
-	}
-
-	fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-	where
-		V: de::Visitor<'de>,
-	{
-		self.value.deserialize_ignored_any(visitor)
 	}
 }
 
