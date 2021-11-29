@@ -40,5 +40,3 @@ jobs:
           name: Release ${{ steps.changelog_reader.outputs.version }}
           body_path: ${{ github.sha }}-BODY.txt
           draft: true
-          files: |
-            ./release/*.tar.gz
