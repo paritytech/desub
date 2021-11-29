@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{Composite, Primitive, Value, Variant};
+use super::{Composite, Primitive, Value, ValueDef, Variant};
 use serde::{
 	self,
 	de::{Error, Visitor},
@@ -38,12 +38,22 @@ only part of our input into a struct, say, and leave the rest as [`Value`] types
 to do with them.
 */
 
-impl<'de> Deserialize<'de> for Value {
+impl<'de> Deserialize<'de> for Value<()> {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where
 		D: serde::Deserializer<'de>,
 	{
-		deserializer.deserialize_any(ValueVisitor)
+		let value = deserializer.deserialize_any(ValueDefVisitor)?;
+		Ok(Value { value, context: () })
+	}
+}
+
+impl<'de> Deserialize<'de> for ValueDef<()> {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: serde::Deserializer<'de>,
+	{
+		deserializer.deserialize_any(ValueDefVisitor)
 	}
 }
 
@@ -56,7 +66,7 @@ impl<'de> Deserialize<'de> for Primitive {
 	}
 }
 
-impl<'de> Deserialize<'de> for Composite {
+impl<'de> Deserialize<'de> for Composite<()> {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where
 		D: serde::Deserializer<'de>,
@@ -65,7 +75,7 @@ impl<'de> Deserialize<'de> for Composite {
 	}
 }
 
-impl<'de> Deserialize<'de> for Variant {
+impl<'de> Deserialize<'de> for Variant<()> {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where
 		D: serde::Deserializer<'de>,
@@ -76,6 +86,17 @@ impl<'de> Deserialize<'de> for Variant {
 
 struct PrimitiveVisitor;
 
+macro_rules! visit_prim {
+	($name:ident $ty:ident $variant:ident) => {
+		fn $name<E>(self, v: $ty) -> Result<Self::Value, E>
+		where
+			E: serde::de::Error,
+		{
+			Ok(Primitive::$variant(v))
+		}
+	}
+}
+
 impl<'de> Visitor<'de> for PrimitiveVisitor {
 	type Value = Primitive;
 
@@ -83,89 +104,18 @@ impl<'de> Visitor<'de> for PrimitiveVisitor {
 		formatter.write_str("a type that can be decoded into a Primitive value")
 	}
 
-	fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		Ok(Primitive::Bool(v))
-	}
-
-	fn visit_i8<E>(self, v: i8) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		Ok(Primitive::I8(v))
-	}
-
-	fn visit_i16<E>(self, v: i16) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		Ok(Primitive::I16(v))
-	}
-
-	fn visit_i32<E>(self, v: i32) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		Ok(Primitive::I32(v))
-	}
-
-	fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		Ok(Primitive::I64(v))
-	}
-
-	fn visit_i128<E>(self, v: i128) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		Ok(Primitive::I128(v))
-	}
-
-	fn visit_u8<E>(self, v: u8) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		Ok(Primitive::U8(v))
-	}
-
-	fn visit_u16<E>(self, v: u16) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		Ok(Primitive::U16(v))
-	}
-
-	fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		Ok(Primitive::U32(v))
-	}
-
-	fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		Ok(Primitive::U64(v))
-	}
-
-	fn visit_u128<E>(self, v: u128) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		Ok(Primitive::U128(v))
-	}
-
-	fn visit_char<E>(self, v: char) -> Result<Self::Value, E>
-	where
-		E: serde::de::Error,
-	{
-		Ok(Primitive::Char(v))
-	}
+	visit_prim!(visit_bool bool Bool);
+	visit_prim!(visit_i8 i8 I8);
+	visit_prim!(visit_i16 i16 I16);
+	visit_prim!(visit_i32 i32 I32);
+	visit_prim!(visit_i64 i64 I64);
+	visit_prim!(visit_i128 i128 I128);
+	visit_prim!(visit_u8 u8 U8);
+	visit_prim!(visit_u16 u16 U16);
+	visit_prim!(visit_u32 u32 U32);
+	visit_prim!(visit_u64 u64 U64);
+	visit_prim!(visit_u128 u128 U128);
+	visit_prim!(visit_char char Char);
 
 	fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
 	where
@@ -213,7 +163,7 @@ impl<'de> Visitor<'de> for PrimitiveVisitor {
 struct CompositeVisitor;
 
 impl<'de> Visitor<'de> for CompositeVisitor {
-	type Value = Composite;
+	type Value = Composite<()>;
 
 	fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
 		formatter.write_str("a type that can be decoded into a Composite value")
@@ -223,7 +173,7 @@ impl<'de> Visitor<'de> for CompositeVisitor {
 	where
 		E: serde::de::Error,
 	{
-		let byte_values = v.iter().map(|&b| Value::Primitive(Primitive::U8(b))).collect();
+		let byte_values = v.iter().map(|&b| Value::u8(b)).collect();
 		Ok(Composite::Unnamed(byte_values))
 	}
 
@@ -281,7 +231,7 @@ impl<'de> Visitor<'de> for CompositeVisitor {
 struct VariantVisitor;
 
 impl<'de> Visitor<'de> for VariantVisitor {
-	type Value = Variant;
+	type Value = Variant<()>;
 
 	fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
 		formatter.write_str("a type that can be decoded into an enum Variant")
@@ -333,7 +283,7 @@ impl<'de> Visitor<'de> for VariantVisitor {
 	}
 }
 
-struct ValueVisitor;
+struct ValueDefVisitor;
 
 // It gets repetitive writing out the visitor impls to delegate to the Value subtypes;
 // this helper makes that a little easier:
@@ -351,15 +301,15 @@ macro_rules! delegate_visitor_fn {
 	}
 }
 
-impl<'de> Visitor<'de> for ValueVisitor {
-	type Value = Value;
+impl<'de> Visitor<'de> for ValueDefVisitor {
+	type Value = ValueDef<()>;
 
 	fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
 		formatter.write_str("a type that can be decoded into a Value")
 	}
 
 	delegate_visitor_fn!(
-		PrimitiveVisitor Value::Primitive,
+		PrimitiveVisitor ValueDef::Primitive,
 		visit_bool(bool)
 		visit_i8(i8)
 		visit_i16(i16)
@@ -377,7 +327,7 @@ impl<'de> Visitor<'de> for ValueVisitor {
 	);
 
 	delegate_visitor_fn!(
-		CompositeVisitor Value::Composite,
+		CompositeVisitor ValueDef::Composite,
 		visit_none()
 		visit_unit()
 		visit_bytes(&[u8])
@@ -387,35 +337,35 @@ impl<'de> Visitor<'de> for ValueVisitor {
 	where
 		D: serde::Deserializer<'de>,
 	{
-		Value::deserialize(deserializer)
+		ValueDef::deserialize(deserializer)
 	}
 
 	fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
 	where
 		D: serde::Deserializer<'de>,
 	{
-		Value::deserialize(deserializer)
+		ValueDef::deserialize(deserializer)
 	}
 
 	fn visit_seq<A>(self, seq: A) -> Result<Self::Value, A::Error>
 	where
 		A: serde::de::SeqAccess<'de>,
 	{
-		CompositeVisitor.visit_seq(seq).map(Value::Composite)
+		CompositeVisitor.visit_seq(seq).map(ValueDef::Composite)
 	}
 
 	fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
 	where
 		A: serde::de::MapAccess<'de>,
 	{
-		CompositeVisitor.visit_map(map).map(Value::Composite)
+		CompositeVisitor.visit_map(map).map(ValueDef::Composite)
 	}
 
 	fn visit_enum<A>(self, data: A) -> Result<Self::Value, A::Error>
 	where
 		A: serde::de::EnumAccess<'de>,
 	{
-		VariantVisitor.visit_enum(data).map(Value::Variant)
+		VariantVisitor.visit_enum(data).map(ValueDef::Variant)
 	}
 }
 
@@ -444,42 +394,38 @@ mod test {
 
 	#[test]
 	fn deserialize_primitives_isomorphic() {
-		assert_value_isomorphic(Value::Primitive(Primitive::U8(123)));
-		assert_value_isomorphic(Value::Primitive(Primitive::U16(123)));
-		assert_value_isomorphic(Value::Primitive(Primitive::U32(123)));
-		assert_value_isomorphic(Value::Primitive(Primitive::U64(123)));
-		assert_value_isomorphic(Value::Primitive(Primitive::U128(123)));
-		assert_value_isomorphic(Value::Primitive(Primitive::I8(123)));
-		assert_value_isomorphic(Value::Primitive(Primitive::I16(123)));
-		assert_value_isomorphic(Value::Primitive(Primitive::I32(123)));
-		assert_value_isomorphic(Value::Primitive(Primitive::I64(123)));
-		assert_value_isomorphic(Value::Primitive(Primitive::I128(123)));
-		assert_value_isomorphic(Value::Primitive(Primitive::Bool(true)));
-		assert_value_isomorphic(Value::Primitive(Primitive::Char('a')));
-		assert_value_isomorphic(Value::Primitive(Primitive::Str("Hello!".into())));
+		assert_value_isomorphic(Value::u8(123));
+		assert_value_isomorphic(Value::u16(123));
+		assert_value_isomorphic(Value::u32(123));
+		assert_value_isomorphic(Value::u64(123));
+		assert_value_isomorphic(Value::u128(123));
+		assert_value_isomorphic(Value::i8(123));
+		assert_value_isomorphic(Value::i16(123));
+		assert_value_isomorphic(Value::i32(123));
+		assert_value_isomorphic(Value::i64(123));
+		assert_value_isomorphic(Value::i128(123));
+		assert_value_isomorphic(Value::bool(true));
+		assert_value_isomorphic(Value::char('a'));
+		assert_value_isomorphic(Value::str("Hello!".into()));
 
 		// Alas, I256 and U256 are both a sequence of bytes, which could equally be represented
 		// by a composite sequence (as other sequences-of-things are). We could have a special case where
 		// precisely 32 u8's is deserialized to one of U256 or I256, but for now we use our more general
 		// composite type as the sequence catch-all:
 		assert_value_to_value(
-			Value::Primitive(Primitive::I256([1; 32])),
-			Value::Composite(Composite::Unnamed(
-				vec![1; 32].into_iter().map(|b| Value::Primitive(Primitive::U8(b))).collect(),
-			)),
+			ValueDef::<()>::Primitive(Primitive::I256([1; 32])),
+			Value::unnamed_composite(vec![1; 32].into_iter().map(|b| Value::u8(b)).collect()),
 		);
 		assert_value_to_value(
-			Value::Primitive(Primitive::U256([1; 32])),
-			Value::Composite(Composite::Unnamed(
-				vec![1; 32].into_iter().map(|b| Value::Primitive(Primitive::U8(b))).collect(),
-			)),
+			ValueDef::<()>::Primitive(Primitive::U256([1; 32])),
+			Value::unnamed_composite(vec![1; 32].into_iter().map(|b| Value::u8(b)).collect()),
 		);
 
 		// .. that said; if you want a primitive value back, you can use that type directly to get it
 		// (as long as we are given exactly 32 bytes):
 
-		assert_value_to_value(Value::Primitive(Primitive::I256([1; 32])), Primitive::U256([1; 32]));
-		assert_value_to_value(Value::Primitive(Primitive::U256([1; 32])), Primitive::U256([1; 32]));
+		assert_value_to_value(ValueDef::<()>::Primitive(Primitive::I256([1; 32])), Primitive::U256([1; 32]));
+		assert_value_to_value(ValueDef::<()>::Primitive(Primitive::U256([1; 32])), Primitive::U256([1; 32]));
 
 		// Unwrapped versions also work:
 
@@ -501,98 +447,71 @@ mod test {
 
 		// We can also go from wrapped to unwrapped:
 
-		assert_value_to_value(Value::Primitive(Primitive::U8(123)), Primitive::U8(123));
-		assert_value_to_value(Value::Primitive(Primitive::U16(123)), Primitive::U16(123));
-		assert_value_to_value(Value::Primitive(Primitive::U32(123)), Primitive::U32(123));
-		assert_value_to_value(Value::Primitive(Primitive::U64(123)), Primitive::U64(123));
+		assert_value_to_value(Value::u8(123), Primitive::U8(123));
+		assert_value_to_value(Value::u16(123), Primitive::U16(123));
+		assert_value_to_value(Value::u32(123), Primitive::U32(123));
+		assert_value_to_value(Value::u64(123), Primitive::U64(123));
 
 		// Or vice versa:
 
-		assert_value_to_value(Primitive::U8(123), Value::Primitive(Primitive::U8(123)));
-		assert_value_to_value(Primitive::U16(123), Value::Primitive(Primitive::U16(123)));
-		assert_value_to_value(Primitive::U32(123), Value::Primitive(Primitive::U32(123)));
-		assert_value_to_value(Primitive::U64(123), Value::Primitive(Primitive::U64(123)));
+		assert_value_to_value(Primitive::U8(123), Value::u8(123));
+		assert_value_to_value(Primitive::U16(123), Value::u16(123));
+		assert_value_to_value(Primitive::U32(123), Value::u32(123));
+		assert_value_to_value(Primitive::U64(123), Value::u64(123));
 	}
 
 	#[test]
 	fn deserialize_composites_isomorphic() {
-		assert_value_isomorphic(Value::Composite(Composite::Unnamed(vec![
-			Value::Primitive(Primitive::U64(123)),
-			Value::Primitive(Primitive::Bool(true)),
-		])));
-		assert_value_isomorphic(Value::Composite(Composite::Unnamed(vec![])));
-		assert_value_isomorphic(Value::Composite(Composite::Named(vec![
-			("a".into(), Value::Primitive(Primitive::U64(123))),
-			("b".into(), Value::Primitive(Primitive::Bool(true))),
-		])));
-		assert_value_isomorphic(Value::Composite(Composite::Named(vec![
-			("a".into(), Value::Primitive(Primitive::U64(123))),
+		assert_value_isomorphic(Value::unnamed_composite(vec![Value::u64(123), Value::bool(true)]));
+		assert_value_isomorphic(Value::named_composite(vec![]));
+		assert_value_isomorphic(Value::named_composite(vec![
+			("a".into(), Value::u64(123)),
+			("b".into(), Value::bool(true)),
+		]));
+		assert_value_isomorphic(Value::named_composite(vec![
+			("a".into(), Value::u64(123)),
 			(
 				"b".into(),
-				Value::Composite(Composite::Named(vec![
-					("c".into(), Value::Primitive(Primitive::U128(123))),
-					("d".into(), Value::Primitive(Primitive::Str("hell".into()))),
-				])),
+				Value::named_composite(vec![("c".into(), Value::u128(123)), ("d".into(), Value::str("hello".into()))]),
 			),
-		])));
+		]));
 
 		// unwrapped:
 
-		assert_value_isomorphic(Composite::Unnamed(vec![
-			Value::Primitive(Primitive::U64(123)),
-			Value::Primitive(Primitive::Bool(true)),
-		]));
+		assert_value_isomorphic(Composite::Unnamed(vec![Value::u64(123), Value::bool(true)]));
 		assert_value_isomorphic(Composite::Unnamed(vec![]));
+		assert_value_isomorphic(Composite::Named(vec![("a".into(), Value::u64(123)), ("b".into(), Value::bool(true))]));
 		assert_value_isomorphic(Composite::Named(vec![
-			("a".into(), Value::Primitive(Primitive::U64(123))),
-			("b".into(), Value::Primitive(Primitive::Bool(true))),
-		]));
-		assert_value_isomorphic(Composite::Named(vec![
-			("a".into(), Value::Primitive(Primitive::U64(123))),
+			("a".into(), Value::u64(123)),
 			(
 				"b".into(),
-				Value::Composite(Composite::Named(vec![
-					("c".into(), Value::Primitive(Primitive::U128(123))),
-					("d".into(), Value::Primitive(Primitive::Str("hell".into()))),
-				])),
+				Value::named_composite(vec![("c".into(), Value::u128(123)), ("d".into(), Value::str("hello".into()))]),
 			),
 		]));
 	}
 
 	#[test]
 	fn deserialize_variants_isomorphic() {
-		assert_value_isomorphic(Value::Variant(Variant {
+		assert_value_isomorphic(ValueDef::Variant(Variant {
 			name: "Foo".into(),
-			values: Composite::Unnamed(vec![
-				Value::Primitive(Primitive::U64(123)),
-				Value::Primitive(Primitive::Bool(true)),
-			]),
+			values: Composite::Unnamed(vec![Value::u64(123), Value::bool(true)]),
 		}));
-		assert_value_isomorphic(Value::Variant(Variant { name: "Foo".into(), values: Composite::Unnamed(vec![]) }));
-		assert_value_isomorphic(Value::Variant(Variant {
+		assert_value_isomorphic(ValueDef::Variant(Variant { name: "Foo".into(), values: Composite::Unnamed(vec![]) }));
+		assert_value_isomorphic(ValueDef::Variant(Variant {
 			name: "Foo".into(),
-			values: Composite::Named(vec![
-				("a".into(), Value::Primitive(Primitive::U64(123))),
-				("b".into(), Value::Primitive(Primitive::Bool(true))),
-			]),
+			values: Composite::Named(vec![("a".into(), Value::u64(123)), ("b".into(), Value::bool(true))]),
 		}));
 
 		// unwrapped work as well:
 
 		assert_value_isomorphic(Variant {
 			name: "Foo".into(),
-			values: Composite::Unnamed(vec![
-				Value::Primitive(Primitive::U64(123)),
-				Value::Primitive(Primitive::Bool(true)),
-			]),
+			values: Composite::Unnamed(vec![Value::u64(123), Value::bool(true)]),
 		});
 		assert_value_isomorphic(Variant { name: "Foo".into(), values: Composite::Unnamed(vec![]) });
 		assert_value_isomorphic(Variant {
 			name: "Foo".into(),
-			values: Composite::Named(vec![
-				("a".into(), Value::Primitive(Primitive::U64(123))),
-				("b".into(), Value::Primitive(Primitive::Bool(true))),
-			]),
+			values: Composite::Named(vec![("a".into(), Value::u64(123)), ("b".into(), Value::bool(true))]),
 		});
 	}
 
@@ -604,22 +523,9 @@ mod test {
 
 		assert_value_to_value(
 			de.clone(),
-			Value::Composite(Composite::Unnamed(vec![
-				Value::Primitive(Primitive::U8(1)),
-				Value::Primitive(Primitive::U8(2)),
-				Value::Primitive(Primitive::U8(3)),
-				Value::Primitive(Primitive::U8(4)),
-			])),
+			Value::unnamed_composite(vec![Value::u8(1), Value::u8(2), Value::u8(3), Value::u8(4)]),
 		);
-		assert_value_to_value(
-			de,
-			Composite::Unnamed(vec![
-				Value::Primitive(Primitive::U8(1)),
-				Value::Primitive(Primitive::U8(2)),
-				Value::Primitive(Primitive::U8(3)),
-				Value::Primitive(Primitive::U8(4)),
-			]),
-		);
+		assert_value_to_value(de, Composite::Unnamed(vec![Value::u8(1), Value::u8(2), Value::u8(3), Value::u8(4)]));
 	}
 
 	#[test]
@@ -646,12 +552,12 @@ mod test {
 
 		let de: MapDeserializer<_, DeserializeError> = map.into_deserializer();
 
-		let value = Value::deserialize(de).expect("should deserialize OK");
-		if let Value::Composite(Composite::Named(vals)) = value {
+		let value = ValueDef::deserialize(de).expect("should deserialize OK");
+		if let ValueDef::Composite(Composite::Named(vals)) = value {
 			// These could come back in any order so we need to search for them:
-			assert!(vals.contains(&("a".into(), Value::Primitive(Primitive::I32(1)))));
-			assert!(vals.contains(&("b".into(), Value::Primitive(Primitive::I32(2)))));
-			assert!(vals.contains(&("c".into(), Value::Primitive(Primitive::I32(3)))));
+			assert!(vals.contains(&("a".into(), Value::i32(1))));
+			assert!(vals.contains(&("b".into(), Value::i32(2))));
+			assert!(vals.contains(&("c".into(), Value::i32(3))));
 		} else {
 			panic!("Map should deserialize into Composite::Named value but we have {:?}", value);
 		}
@@ -659,21 +565,21 @@ mod test {
 
 	#[test]
 	fn partially_deserialize_value() {
-		let value = Value::Composite(Composite::Named(vec![
-			("a".into(), Value::Primitive(Primitive::U64(123))),
+		let value = Value::named_composite(vec![
+			("a".into(), Value::u64(123)),
 			(
 				"b".into(),
-				Value::Composite(Composite::Named(vec![
-					("c".into(), Value::Primitive(Primitive::U128(123))),
-					("d".into(), Value::Primitive(Primitive::Str("hell".into()))),
-					("e".into(), Value::Composite(Composite::Unnamed(vec![]))),
-				])),
+				Value::named_composite(vec![
+					("c".into(), Value::u128(123)),
+					("d".into(), Value::str("hello".into())),
+					("e".into(), Value::named_composite(vec![])),
+				]),
 			),
-		]));
+		]);
 
 		#[derive(Deserialize, Debug, PartialEq)]
 		struct Partial {
-			a: Value,
+			a: Value<()>,
 			b: PartialB,
 		}
 
@@ -681,7 +587,7 @@ mod test {
 		struct PartialB {
 			c: u128,
 			d: String,
-			e: Value,
+			e: Value<()>,
 		}
 
 		let partial: Partial = crate::value::from_value(value).expect("should work");
@@ -689,15 +595,15 @@ mod test {
 		assert_eq!(
 			partial,
 			Partial {
-				a: Value::Primitive(Primitive::U64(123)),
-				b: PartialB { c: 123, d: "hell".into(), e: Value::Composite(Composite::Unnamed(vec![])) }
+				a: Value::u64(123),
+				b: PartialB { c: 123, d: "hello".into(), e: Value::named_composite(vec![]) }
 			}
 		)
 	}
 
 	#[test]
 	fn deserialize_well_formed_map_to_unnamed_variant() {
-		let v: Variant = Variant::deserialize(serde_json::json!({
+		let v: Variant<()> = Variant::deserialize(serde_json::json!({
 			"name": "Hello",
 			"values": [1, 2, true]
 		}))
@@ -708,16 +614,16 @@ mod test {
 			v.values,
 			Composite::Unnamed(vec![
 				// All JSON numbers deserialize to U64 or I64 or F64 as necessary:
-				Value::Primitive(Primitive::U64(1)),
-				Value::Primitive(Primitive::U64(2)),
-				Value::Primitive(Primitive::Bool(true)),
+				Value::u64(1),
+				Value::u64(2),
+				Value::bool(true),
 			])
 		)
 	}
 
 	#[test]
 	fn deserialize_well_formed_map_to_named_variant() {
-		let v: Variant = Variant::deserialize(serde_json::json!({
+		let v: Variant<()> = Variant::deserialize(serde_json::json!({
 			"name": "Hello",
 			"values": { "a": 1, "b": 2, "c": true }
 		}))
@@ -728,9 +634,9 @@ mod test {
 			v.values,
 			Composite::Named(vec![
 				// All JSON numbers deserialize to U64 or I64 or F64 as necessary:
-				("a".into(), Value::Primitive(Primitive::U64(1))),
-				("b".into(), Value::Primitive(Primitive::U64(2))),
-				("c".into(), Value::Primitive(Primitive::Bool(true))),
+				("a".into(), Value::u64(1)),
+				("b".into(), Value::u64(2)),
+				("c".into(), Value::bool(true)),
 			])
 		)
 	}

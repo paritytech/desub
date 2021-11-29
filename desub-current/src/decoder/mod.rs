@@ -28,16 +28,17 @@ mod extrinsic_bytes;
 
 use crate::metadata::Metadata;
 use crate::value::Value;
+use crate::TypeId;
 use codec::{Compact, Decode};
 use extrinsic_bytes::{AllExtrinsicBytes, ExtrinsicBytesError};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sp_runtime::{AccountId32, MultiAddress, MultiSignature};
 use std::borrow::Cow;
 
 // Re-export the DecodeValueError here, which we expose in our global `DecodeError` enum.
 pub use decode_value::DecodeValueError;
 
-// Re-xport storage related types that are part of our public interface.
+// Re-export storage related types that are part of our public interface.
 pub use decode_storage::{
 	StorageDecodeError, StorageDecoder, StorageEntry, StorageEntryType, StorageHasher, StorageMapKey,
 };
@@ -64,19 +65,13 @@ pub enum DecodeError {
 	CannotFindType(u32),
 }
 
-/// Decode a single [`Value`] from a piece of scale encoded data, given some metadata and the type that we
-/// are expecting it to decode into.
-pub fn decode_value(metadata: &Metadata, ty: &crate::Type, data: &mut &[u8]) -> Result<Value, DecodeValueError> {
-	decode_value::decode_value(data, ty, metadata.types())
-}
-
 /// Decode a single [`Value`] from a piece of scale encoded data, given some metadata and the ID of the type that we
 /// are expecting it to decode into.
-pub fn decode_value_by_id(
-	metadata: &Metadata,
-	ty: &crate::TypeId,
+pub fn decode_value_by_id<'a, Id: Into<TypeId>>(
+	metadata: &'a Metadata,
+	ty: Id,
 	data: &mut &[u8],
-) -> Result<Value, DecodeValueError> {
+) -> Result<Value<TypeId>, DecodeValueError> {
 	decode_value::decode_value_by_id(data, ty, metadata.types())
 }
 
@@ -90,7 +85,7 @@ pub fn decode_value_by_id(
 /// use desub_current::{
 ///     Metadata,
 ///     decoder::{ self, StorageHasher },
-///     value::{ Value, Composite, Primitive },
+///     value::{ Value, ValueDef, Composite, Primitive },
 /// };
 /// use codec::Encode;
 ///
@@ -118,20 +113,19 @@ pub fn decode_value_by_id(
 ///
 /// // Because the hasher is Twox64Concat, we can see the decoded original map key:
 /// assert_eq!(keys.len(), 1);
-/// assert_eq!(keys[0].hasher, StorageHasher::Twox64Concat(Value::Primitive(Primitive::U32(1000))));
+/// if let StorageHasher::Twox64Concat(val) = keys[0].hasher.clone() {
+///     assert_eq!(val.without_context(), Value::u32(1000))
+/// }
 ///
 /// // We can also decode values at this storage location using the type info we get back:
 /// let bytes = [1u8; 32].encode();
 /// let val = decoder::decode_value_by_id(&metadata, &entry.ty, &mut &*bytes).unwrap();
 /// # assert_eq!(
-/// #     val,
+/// #     val.without_context(),
 /// #     // The Type in this case is something like a newtype-wrapped [u8; 32]:
-/// #     Value::Composite(Composite::Unnamed(vec![Value::Composite(Composite::Unnamed(vec![
-/// #         Value::Primitive(
-/// #             Primitive::U8(1)
-/// #         );
-/// #         32
-/// #     ]))]))
+/// #     Value::unnamed_composite(vec![
+/// #         Value::unnamed_composite(vec![Value::u8(1); 32])
+/// #     ])
 /// # );
 /// ```
 pub fn decode_storage(metadata: &Metadata) -> StorageDecoder {
@@ -353,9 +347,8 @@ pub fn decode_call_data<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<
 		.fields()
 		.iter()
 		.map(|field| {
-			let type_id = field.ty().id();
-			let ty = metadata.types().resolve(type_id).ok_or(DecodeError::CannotFindType(type_id))?;
-			decode_value(metadata, ty, data).map_err(DecodeError::DecodeValueError)
+			let id = field.ty().id();
+			decode_value_by_id(metadata, TypeId::from_u32(id), data).map_err(DecodeError::DecodeValueError)
 		})
 		.collect::<Result<Vec<_>, _>>()?;
 
@@ -391,10 +384,11 @@ pub fn decode_signature<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<
 /// Decode the signed extensions part of a SCALE encoded extrinsic.
 ///
 /// Ordinarily, one should prefer to use [`decode_extrinsic`] directly to decode the entire extrinsic at once.
+#[allow(clippy::type_complexity)]
 pub fn decode_signed_extensions<'a>(
 	metadata: &'a Metadata,
 	data: &mut &[u8],
-) -> Result<Vec<(Cow<'a, str>, Value)>, DecodeError> {
+) -> Result<Vec<(Cow<'a, str>, Value<TypeId>)>, DecodeError> {
 	metadata
 		.extrinsic()
 		.signed_extensions()
@@ -410,10 +404,11 @@ pub fn decode_signed_extensions<'a>(
 /// Decode the additional signed data.
 ///
 /// Ordinarily, one should prefer to use [`decode_signer_payload`], to decode the entire signer payload at once.
+#[allow(clippy::type_complexity)]
 pub fn decode_additional_signed<'a>(
 	metadata: &'a Metadata,
 	data: &mut &[u8],
-) -> Result<Vec<(Cow<'a, str>, Value)>, DecodeError> {
+) -> Result<Vec<(Cow<'a, str>, Value<TypeId>)>, DecodeError> {
 	metadata
 		.extrinsic()
 		.signed_extensions()
@@ -427,7 +422,7 @@ pub fn decode_additional_signed<'a>(
 }
 
 /// Decoded call data and associated type information.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Debug, Clone, PartialEq)]
 pub struct CallData<'a> {
 	/// The name of the pallet
 	#[serde(borrow)]
@@ -436,7 +431,7 @@ pub struct CallData<'a> {
 	/// of the call and information about each argument)
 	pub ty: Cow<'a, scale_info::Variant<scale_info::form::PortableForm>>,
 	/// The decoded argument data
-	pub arguments: Vec<Value>,
+	pub arguments: Vec<Value<TypeId>>,
 }
 
 impl<'a> CallData<'a> {
@@ -450,7 +445,7 @@ impl<'a> CallData<'a> {
 }
 
 /// The result of successfully decoding an extrinsic.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Debug, Clone, PartialEq)]
 pub struct Extrinsic<'a> {
 	/// Decoded call data and associated type information about the call.
 	#[serde(borrow)]
@@ -467,7 +462,7 @@ impl<'a> Extrinsic<'a> {
 }
 
 /// The signature information embedded in an extrinsic.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Debug, Clone, PartialEq)]
 pub struct ExtrinsicSignature<'a> {
 	/// Address the extrinsic is being sent from
 	#[serde(with = "desub_common::RemoteAddress")]
@@ -477,7 +472,7 @@ pub struct ExtrinsicSignature<'a> {
 	/// Signed extensions, which can vary by node. Here, we
 	/// return the name and value of each.
 	#[serde(borrow)]
-	pub extensions: Vec<(Cow<'a, str>, Value)>,
+	pub extensions: Vec<(Cow<'a, str>, Value<TypeId>)>,
 }
 
 impl<'a> ExtrinsicSignature<'a> {
@@ -491,7 +486,7 @@ impl<'a> ExtrinsicSignature<'a> {
 }
 
 /// The decoded signer payload.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Debug, Clone, PartialEq)]
 pub struct SignerPayload<'a> {
 	/// Decoded call data and associated type information about the call.
 	#[serde(borrow)]
@@ -511,10 +506,10 @@ impl<'a> SignerPayload<'a> {
 }
 
 /// The decoded signed extensions and additional data.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Debug, Clone, PartialEq)]
 pub struct SignedExtensionWithAdditional {
 	/// The signed extension value at this position
-	pub extension: Value,
+	pub extension: Value<TypeId>,
 	/// The additional signed value at this position
-	pub additional: Value,
+	pub additional: Value<TypeId>,
 }

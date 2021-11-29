@@ -17,7 +17,6 @@
 use codec::Encode;
 use desub_current::{
 	decoder::{self, StorageHasher},
-	value::{Composite, Primitive},
 	Metadata, Value,
 };
 use sp_runtime::AccountId32;
@@ -28,11 +27,19 @@ fn metadata() -> Metadata {
 	Metadata::from_bytes(V14_METADATA_POLKADOT_SCALE).expect("valid metadata")
 }
 
-fn account_id_to_value(account_id: &AccountId32) -> Value {
+fn account_id_to_value(account_id: &AccountId32) -> Value<()> {
 	let account_id_bytes: &[u8] = account_id.as_ref();
-	Value::Composite(Composite::Unnamed(vec![Value::Composite(Composite::Unnamed(
-		account_id_bytes.iter().map(|&b| Value::Primitive(Primitive::U8(b))).collect(),
-	))]))
+	Value::unnamed_composite(vec![Value::unnamed_composite(account_id_bytes.iter().map(|&b| Value::u8(b)).collect())])
+}
+
+macro_rules! assert_hasher_eq {
+	($actual:expr, $hasher:path, $value:expr) => {
+		if let $hasher(val) = &$actual {
+			assert_eq!(val.clone().without_context(), $value);
+		} else {
+			panic!("Passed {:?}, but expected hasher {}", $actual, stringify!($hasher));
+		}
+	};
 }
 
 macro_rules! bytes {
@@ -60,7 +67,7 @@ fn timestamp_now() {
 	// We can decode values at this location, now:
 	let bytes = 123u64.encode();
 	let val = decoder::decode_value_by_id(&meta, &entry.ty, &mut &*bytes).unwrap();
-	assert_eq!(val, Value::Primitive(Primitive::U64(123)));
+	assert_eq!(val.without_context(), Value::u64(123));
 }
 
 // A simple map lookup with an Identity hash (ie just the key itself)
@@ -81,12 +88,12 @@ fn democracy_blacklist() {
 
 	// Because the hasher is Identity, we can even see the decoded original map key:
 	assert_eq!(keys.len(), 1);
-	assert_eq!(
+	assert_hasher_eq!(
 		keys[0].hasher,
-		StorageHasher::Identity(Value::Composite(Composite::Unnamed(vec![Value::Composite(Composite::Unnamed(
-			vec![Value::Primitive(Primitive::U8(1)); 32]
-		))])))
+		StorageHasher::Identity,
+		Value::unnamed_composite(vec![Value::unnamed_composite(vec![Value::u8(1); 32])])
 	);
+	assert!(matches!(keys[0].hasher, StorageHasher::Identity(..)));
 }
 
 // A map storage entry with a Twox64Concat key.
@@ -107,20 +114,15 @@ fn system_blockhash() {
 
 	// Because the hasher is Twox64Concat, we can even see the decoded original map key:
 	assert_eq!(keys.len(), 1);
-	assert_eq!(keys[0].hasher, StorageHasher::Twox64Concat(Value::Primitive(Primitive::U32(1000))));
+	assert_hasher_eq!(keys[0].hasher, StorageHasher::Twox64Concat, Value::u32(1000));
 
 	// We can decode values at this location:
 	let bytes = [1u8; 32].encode();
 	let val = decoder::decode_value_by_id(&meta, &entry.ty, &mut &*bytes).unwrap();
 	assert_eq!(
-		val,
+		val.without_context(),
 		// The Type appears to take the form of a newtype-wrapped [u8; 32]:
-		Value::Composite(Composite::Unnamed(vec![Value::Composite(Composite::Unnamed(vec![
-			Value::Primitive(
-				Primitive::U8(1)
-			);
-			32
-		]))]))
+		Value::unnamed_composite(vec![Value::unnamed_composite(vec![Value::u8(1); 32])])
 	);
 }
 
@@ -144,7 +146,7 @@ fn balances_account() {
 	let bobs_value = account_id_to_value(&bobs_accountid);
 
 	assert_eq!(keys.len(), 1);
-	assert_eq!(keys[0].hasher, StorageHasher::Blake2_128Concat(bobs_value));
+	assert_hasher_eq!(keys[0].hasher, StorageHasher::Blake2_128Concat, bobs_value);
 }
 
 // A map storage entry keyed by a tuple of 2 Twox64Concat values.
@@ -168,11 +170,11 @@ fn imonline_authoredblocks() {
 
 	// Because the hashers are Twox64Concat, we can check the keys we provided:
 	assert_eq!(keys.len(), 2);
-	assert_eq!(keys[0].hasher, StorageHasher::Twox64Concat(Value::Primitive(Primitive::U32(1234))));
-	assert_eq!(keys[1].hasher, StorageHasher::Twox64Concat(bobs_value));
+	assert_hasher_eq!(keys[0].hasher, StorageHasher::Twox64Concat, Value::u32(1234));
+	assert_hasher_eq!(keys[1].hasher, StorageHasher::Twox64Concat, bobs_value);
 
 	// We can decode values at this location:
 	let bytes = 5678u32.encode();
 	let val = decoder::decode_value_by_id(&meta, &entry.ty, &mut &*bytes).unwrap();
-	assert_eq!(val, Value::Primitive(Primitive::U32(5678)));
+	assert_eq!(val.without_context(), Value::u32(5678));
 }

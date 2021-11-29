@@ -16,7 +16,7 @@
 
 use desub_current::{
 	decoder::{self, SignedExtensionWithAdditional},
-	value, Metadata, Value,
+	value, Metadata, Value, ValueDef,
 };
 
 static V14_METADATA_POLKADOT_SCALE: &[u8] = include_bytes!("data/v14_metadata_polkadot.scale");
@@ -30,36 +30,21 @@ fn to_bytes(hex_str: &str) -> Vec<u8> {
 	hex::decode(hex_str).expect("valid bytes from hex")
 }
 
-fn unnamed_value(x: Vec<Value>) -> Value {
-	Value::Composite(value::Composite::Unnamed(x))
+fn empty_value() -> Value<()> {
+	Value::unnamed_composite(vec![])
 }
 
-fn empty_value() -> Value {
-	unnamed_value(vec![])
+fn singleton_value(x: Value<()>) -> Value<()> {
+	Value::unnamed_composite(vec![x])
 }
 
-fn singleton_value(x: Value) -> Value {
-	unnamed_value(vec![x])
+fn hash_value(xs: Vec<u8>) -> Value<()> {
+	singleton_value(Value::unnamed_composite(xs.iter().map(|x| Value::u8(*x)).collect()))
 }
 
-fn prim_u8_value(x: u8) -> Value {
-	Value::Primitive(value::Primitive::U8(x))
-}
-
-fn prim_u32_value(x: u32) -> Value {
-	Value::Primitive(value::Primitive::U32(x))
-}
-
-fn prim_u128_value(x: u128) -> Value {
-	Value::Primitive(value::Primitive::U128(x))
-}
-
-fn hash_value(xs: Vec<u8>) -> Value {
-	singleton_value(Value::Composite(value::Composite::Unnamed(xs.iter().map(|x| prim_u8_value(*x)).collect())))
-}
-
-fn variant_value(name: &str, c: value::Composite) -> Value {
-	Value::Variant(value::Variant { name: name.to_string(), values: c })
+fn assert_args_equal<T: Clone>(args: &[Value<T>], expected: Vec<Value<()>>) {
+	let args: Vec<_> = args.into_iter().map(|v| v.clone().without_context()).collect();
+	assert_eq!(&args, &expected);
 }
 
 // These tests are intended to roughly check that we can decode a range of "real" extrinsics into something
@@ -102,7 +87,7 @@ fn balance_transfer_signed() {
 	assert_eq!(ext.call_data.pallet_name, "Balances");
 	assert_eq!(&*ext.call_data.ty.name(), "transfer");
 	assert_eq!(ext.call_data.arguments.len(), 2);
-	assert_eq!(ext.call_data.arguments[1], prim_u128_value(12345));
+	assert_eq!(ext.call_data.arguments[1].clone().without_context(), Value::u128(12345));
 }
 
 #[test]
@@ -117,7 +102,7 @@ fn balance_transfer_all_signed() {
 	assert_eq!(ext.call_data.pallet_name, "Balances");
 	assert_eq!(&*ext.call_data.ty.name(), "transfer_all");
 	assert_eq!(ext.call_data.arguments.len(), 2);
-	assert_eq!(ext.call_data.arguments[1], Value::Primitive(value::Primitive::Bool(false)));
+	assert_eq!(ext.call_data.arguments[1].clone().without_context(), Value::bool(false));
 }
 
 /// This test is interesting because:
@@ -136,15 +121,9 @@ fn auctions_bid_unsigned() {
 	assert_eq!(&*ext.call_data.ty.name(), "bid");
 	assert_eq!(ext.call_data.arguments.len(), 5);
 
-	assert_eq!(
-		ext.call_data.arguments,
-		vec![
-			singleton_value(prim_u32_value(1)),
-			prim_u32_value(2),
-			prim_u32_value(3),
-			prim_u32_value(4),
-			prim_u128_value(5),
-		]
+	assert_args_equal(
+		&ext.call_data.arguments,
+		vec![singleton_value(Value::u32(1)), Value::u32(2), Value::u32(3), Value::u32(4), Value::u128(5)],
 	);
 }
 
@@ -176,7 +155,7 @@ fn system_fill_block_unsigned() {
 	assert_eq!(&*ext.call_data.ty.name(), "fill_block");
 	assert_eq!(ext.call_data.arguments.len(), 1);
 
-	assert_eq!(ext.call_data.arguments, vec![singleton_value(prim_u32_value(1234))]);
+	assert_args_equal(&ext.call_data.arguments, vec![singleton_value(Value::u32(1234))]);
 }
 
 /// This test is interesting because you provide a nested enum representing a call
@@ -198,14 +177,14 @@ fn technical_committee_execute_unsigned() {
 	// It's a bit hard matching the entire thing, so we just verify that the first arg looks like
 	// a variant representing a call to "Balances.transfer".
 	assert!(matches!(&ext.call_data.arguments[0],
-		Value::Variant(value::Variant {
+		Value { value: ValueDef::Variant(value::Variant {
 			name,
 			values: value::Composite::Unnamed(args)
-		})
+		}), .. }
 		if &*name == "Balances"
-		&& matches!(&args[0], Value::Variant(value::Variant { name, ..}) if &*name == "transfer")
+		&& matches!(&args[0], Value { value: ValueDef::Variant(value::Variant { name, ..}), .. } if &*name == "transfer")
 	));
-	assert_eq!(&ext.call_data.arguments[1], &prim_u32_value(500));
+	assert_eq!(ext.call_data.arguments[1].clone().without_context(), Value::u32(500));
 }
 
 #[test]
@@ -222,8 +201,8 @@ fn tips_report_awesome_unsigned() {
 	assert_eq!(ext.call_data.arguments.len(), 2);
 
 	assert_eq!(
-		&ext.call_data.arguments[0],
-		&Value::Composite(value::Composite::Unnamed("This person rocks!".bytes().map(prim_u8_value).collect()))
+		ext.call_data.arguments[0].clone().without_context(),
+		Value::unnamed_composite("This person rocks!".bytes().map(Value::u8).collect())
 	);
 }
 
@@ -242,12 +221,12 @@ fn vesting_force_vested_transfer_unsigned() {
 	assert_eq!(ext.call_data.arguments.len(), 3);
 
 	assert_eq!(
-		&ext.call_data.arguments[2],
-		&Value::Composite(value::Composite::Named(vec![
-			("locked".into(), prim_u128_value(1)),
-			("per_block".into(), prim_u128_value(2)),
-			("starting_block".into(), prim_u32_value(3)),
-		]))
+		ext.call_data.arguments[2].clone().without_context(),
+		Value::named_composite(vec![
+			("locked".into(), Value::u128(1)),
+			("per_block".into(), Value::u128(2)),
+			("starting_block".into(), Value::u32(3)),
+		])
 	);
 }
 
@@ -282,60 +261,32 @@ fn can_decode_signer_payload() {
 	assert_eq!(&*r.call_data.ty.name(), "chill");
 	assert_eq!(r.call_data.arguments, vec![]);
 
-	assert_eq!(
-		r.extensions,
-		vec![
-			(
-				"CheckSpecVersion".into(),
-				SignedExtensionWithAdditional { extension: empty_value(), additional: prim_u32_value(9110) }
-			),
-			(
-				"CheckTxVersion".into(),
-				SignedExtensionWithAdditional { extension: empty_value(), additional: prim_u32_value(8) }
-			),
-			(
-				"CheckGenesis".into(),
-				SignedExtensionWithAdditional {
-					extension: empty_value(),
-					additional: hash_value(to_bytes(
-						"0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"
-					))
-				}
-			),
-			(
-				"CheckMortality".into(),
-				SignedExtensionWithAdditional {
-					extension: singleton_value(variant_value(
-						"Mortal185",
-						value::Composite::Unnamed(vec![prim_u8_value(52)])
-					)),
-					additional: hash_value(to_bytes(
-						"0x1c81d421f68281950ad2901291603b5e49fc5c872f129e75433f4b55f07ca072"
-					))
-				}
-			),
-			(
-				"CheckNonce".into(),
-				SignedExtensionWithAdditional {
-					extension: singleton_value(prim_u32_value(0)),
-					additional: empty_value()
-				}
-			),
-			(
-				"CheckWeight".into(),
-				SignedExtensionWithAdditional { extension: empty_value(), additional: empty_value() }
-			),
-			(
-				"ChargeTransactionPayment".into(),
-				SignedExtensionWithAdditional {
-					extension: singleton_value(prim_u128_value(0)),
-					additional: empty_value()
-				}
-			),
-			(
-				"PrevalidateAttests".into(),
-				SignedExtensionWithAdditional { extension: empty_value(), additional: empty_value() }
-			),
-		],
-	);
+	// Expected tuples of name, extension, additional.
+	let expected = vec![
+		("CheckSpecVersion", empty_value(), Value::u32(9110)),
+		("CheckTxVersion", empty_value(), Value::u32(8)),
+		(
+			"CheckGenesis",
+			empty_value(),
+			hash_value(to_bytes("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3")),
+		),
+		(
+			"CheckMortality",
+			singleton_value(Value::variant("Mortal185".to_string(), value::Composite::Unnamed(vec![Value::u8(52)]))),
+			hash_value(to_bytes("0x1c81d421f68281950ad2901291603b5e49fc5c872f129e75433f4b55f07ca072")),
+		),
+		("CheckNonce", singleton_value(Value::u32(0)), empty_value()),
+		("CheckWeight", empty_value(), empty_value()),
+		("ChargeTransactionPayment", singleton_value(Value::u128(0)), empty_value()),
+		("PrevalidateAttests", empty_value(), empty_value()),
+	];
+
+	for (actual, expected) in r.extensions.into_iter().zip(expected) {
+		let (name, SignedExtensionWithAdditional { extension, additional }) = actual;
+		let (expected_name, expected_extension, expected_additional) = expected;
+
+		assert_eq!(&*name, expected_name);
+		assert_eq!(extension.without_context(), expected_extension);
+		assert_eq!(additional.without_context(), expected_additional);
+	}
 }

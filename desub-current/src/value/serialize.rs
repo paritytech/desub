@@ -14,27 +14,36 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{Composite, Primitive, Value, Variant};
+use super::{Composite, Primitive, Value, ValueDef, Variant};
 use serde::{
 	ser::{SerializeMap, SerializeSeq},
 	Serialize,
 };
 
-impl Serialize for Value {
+impl<T> Serialize for Value<T> {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: serde::Serializer,
+	{
+		self.value.serialize(serializer)
+	}
+}
+
+impl<T> Serialize for ValueDef<T> {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
 		S: serde::Serializer,
 	{
 		match self {
-			Value::Composite(val) => val.serialize(serializer),
-			Value::Variant(val) => val.serialize(serializer),
-			Value::BitSequence(val) => val.serialize(serializer),
-			Value::Primitive(val) => val.serialize(serializer),
+			ValueDef::Composite(val) => val.serialize(serializer),
+			ValueDef::Variant(val) => val.serialize(serializer),
+			ValueDef::BitSequence(val) => val.serialize(serializer),
+			ValueDef::Primitive(val) => val.serialize(serializer),
 		}
 	}
 }
 
-impl Serialize for Composite {
+impl<T> Serialize for Composite<T> {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
 		S: serde::Serializer,
@@ -84,7 +93,7 @@ impl Serialize for Primitive {
 	}
 }
 
-impl Serialize for Variant {
+impl<T> Serialize for Variant<T> {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
 		S: serde::Serializer,
@@ -107,7 +116,7 @@ mod test {
 	use super::*;
 	use serde_json::json;
 
-	fn assert_value(value: Value, expected: serde_json::Value) {
+	fn assert_value(value: Value<()>, expected: serde_json::Value) {
 		let val = serde_json::to_value(&value).expect("can serialize to serde_json::Value");
 		assert_eq!(val, expected);
 	}
@@ -115,22 +124,22 @@ mod test {
 	#[test]
 	fn serialize_primitives() {
 		// a subset of the primitives to sanity check that they are unwrapped:
-		assert_value(Value::Primitive(Primitive::U8(1)), json!(1));
-		assert_value(Value::Primitive(Primitive::U16(1)), json!(1));
-		assert_value(Value::Primitive(Primitive::U32(1)), json!(1));
-		assert_value(Value::Primitive(Primitive::U64(1)), json!(1));
-		assert_value(Value::Primitive(Primitive::Bool(true)), json!(true));
-		assert_value(Value::Primitive(Primitive::Bool(false)), json!(false));
+		assert_value(Value::u8(1), json!(1));
+		assert_value(Value::u16(1), json!(1));
+		assert_value(Value::u32(1), json!(1));
+		assert_value(Value::u64(1), json!(1));
+		assert_value(Value::bool(true), json!(true));
+		assert_value(Value::bool(false), json!(false));
 	}
 
 	#[test]
 	fn serialize_composites() {
 		assert_value(
-			Value::Composite(Composite::Named(vec![
-				("a".into(), Value::Primitive(Primitive::Bool(true))),
-				("b".into(), Value::Primitive(Primitive::Str("hello".into()))),
-				("c".into(), Value::Primitive(Primitive::Char('c'))),
-			])),
+			Value::named_composite(vec![
+				("a".into(), Value::bool(true)),
+				("b".into(), Value::str("hello".into())),
+				("c".into(), Value::char('c')),
+			]),
 			json!({
 				"a": true,
 				"b": "hello",
@@ -138,11 +147,7 @@ mod test {
 			}),
 		);
 		assert_value(
-			Value::Composite(Composite::Unnamed(vec![
-				Value::Primitive(Primitive::Bool(true)),
-				Value::Primitive(Primitive::Str("hello".into())),
-				Value::Primitive(Primitive::Char('c')),
-			])),
+			Value::unnamed_composite(vec![Value::bool(true), Value::str("hello".into()), Value::char('c')]),
 			json!([true, "hello", 'c']),
 		)
 	}
@@ -150,14 +155,14 @@ mod test {
 	#[test]
 	fn serialize_variants() {
 		assert_value(
-			Value::Variant(Variant {
-				name: "Foo".into(),
-				values: Composite::Named(vec![
-					("a".into(), Value::Primitive(Primitive::Bool(true))),
-					("b".into(), Value::Primitive(Primitive::Str("hello".into()))),
-					("c".into(), Value::Primitive(Primitive::Char('c'))),
+			Value::variant(
+				"Foo".into(),
+				Composite::Named(vec![
+					("a".into(), Value::bool(true)),
+					("b".into(), Value::str("hello".into())),
+					("c".into(), Value::char('c')),
 				]),
-			}),
+			),
 			json!({
 				"name": "Foo",
 				"values": {
@@ -168,14 +173,10 @@ mod test {
 			}),
 		);
 		assert_value(
-			Value::Variant(Variant {
-				name: "Bar".into(),
-				values: Composite::Unnamed(vec![
-					Value::Primitive(Primitive::Bool(true)),
-					Value::Primitive(Primitive::Str("hello".into())),
-					Value::Primitive(Primitive::Char('c')),
-				]),
-			}),
+			Value::variant(
+				"Bar".into(),
+				Composite::Unnamed(vec![Value::bool(true), Value::str("hello".into()), Value::char('c')]),
+			),
 			json!({
 				"name": "Bar",
 				"values": [
