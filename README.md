@@ -46,6 +46,6 @@ git push --tags origin master
 - Once tags are pushed, a github workflow will start that will draft a release. You should be able to find the workflow
 running under `Actions` in the github repository.
 	- NOTE: If something goes wrong it is OK. Delete the tag from the repo, re-create the tag locally and re-push. The workflow will run whenever a tag with the correct form is pushed. If more changes need to be made to the repo that will require another PR.
-- Once workflow finishes, make changes to the resulting draft release if necessary, and hit `publish`.
+- Once the workflow finishes, make changes to the resulting draft release if necessary, and hit `publish`.
 - Once published on github, publish each crate that has changed to `crates.io`. Refer to
   [this](https://doc.rust-lang.org/cargo/reference/publishing.html) for how to publish to crates.io.
