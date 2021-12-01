@@ -1,6 +1,12 @@
 [package]
 name = "desub-current"
 version = "0.1.0"
+authors = ["Parity Technologies <admin@parity.io>"]
+license = "GPL-3.0"
+homepage = "https://substrate.dev"
+repository = "https://github.com/paritytech/desub/"
+description = "Decode Substrate with Backwards-Compatible Metadata"
+readme = "README.md"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -8,8 +14,8 @@ edition = "2021"
 [dependencies]
 log = "0.4"
 thiserror = "1.0.30"
-sp_core = { package = "sp-core",  git = "https://github.com/paritytech/substrate", branch = "master" }
-sp_runtime = { package = "sp-runtime", git = "https://github.com/paritytech/substrate", branch = "master" }
+sp_core = { package = "sp-core",  git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
+sp_runtime = { package = "sp-runtime", git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
 frame-metadata = { version = "14.2", features = ["v14", "std", "scale-info"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
@@ -22,4 +28,4 @@ desub-common = { path = "../desub-common" }
 
 [dev-dependencies]
 serde_json = "1"
-sp_keyring = { package = "sp-keyring",  git = "https://github.com/paritytech/substrate", branch = "master" }
+sp_keyring = { package = "sp-keyring",  git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }

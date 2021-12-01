@@ -1,9 +1,13 @@
 [package]
 name = "desub-json-resolver"
 version = "0.0.1"
-authors = [ "Andrew Plaza <andrew.plaza@parity.io>" ]
+authors = ["Parity Technologies <admin@parity.io>"]
+license = "GPL-3.0"
+homepage = "https://substrate.dev"
+repository = "https://github.com/paritytech/desub/"
+description = "Decode Substrate with Backwards-Compatible Metadata"
+readme = "README.md"
 edition = "2021"
-repository = "https://github.com/paritytech/desub"
 
 
 [dependencies]

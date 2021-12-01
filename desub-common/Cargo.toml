@@ -1,13 +1,19 @@
 [package]
 name = "desub-common"
 version = "0.1.0"
+authors = ["Parity Technologies <admin@parity.io>"]
+license = "GPL-3.0"
+homepage = "https://substrate.dev"
+repository = "https://github.com/paritytech/desub/"
+description = "Decode Substrate with Backwards-Compatible Metadata"
+readme = "README.md"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sp-runtime = { package = "sp-runtime",  git = "https://github.com/paritytech/substrate", branch = "master" }
-sp-core = { package = "sp-core",  git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-runtime = { package = "sp-runtime",  git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
+sp-core = { package = "sp-core",  git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
 serde = { version = "1", features = [ "derive" ] }
 
 
