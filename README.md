@@ -36,7 +36,7 @@ Currently Supported Metadata Versions (From Kusama CC1):
 - note `upgrade-blocks` present [here](https://github.com/polkadot-js/api/tree/master/packages/types-known/src/upgrades) and modify the hard-coded upgrade blocks as necessary in the desub `runtimes.rs` file.
 - Take note of PR's that have been merged since the last release.
 	- look over CHANGELOG. Make sure to include any PR's that were missed in the `Unreleased` section.
-	- Move changes in `Unreleased` section to a new section corresponding to the version being released, making sure to keep the `Ureleased` header.
+	- Move changes in `Unreleased` section to a new section corresponding to the version being released, making sure to keep the `Unreleased` header.
 - make a PR with these changes
 - once PR is merged, push a tag in the form `vX.X.X` (E.G `v0.1.0`)
 ```bash
