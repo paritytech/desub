@@ -1,0 +1,42 @@
+name: Publish draft release
+on:
+  push:
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+*
+
+jobs:
+  deploy:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+
+      - name: Get Desub changelog
+        id: changelog_reader
+        uses: mindsers/changelog-reader-action@v2
+        with:
+          validation_depth: 2
+          path: ./CHANGELOG.md
+          version: ${{ steps.tag_name.outputs.current_version }}
+
+      - name: Generate release notes
+        run: |
+            cat<<'EOF' > ${{ github.sha }}-BODY.txt
+            # Desub ${{ steps.changelog_reader.outputs.version }}
+            ${{ steps.changelog_reader.outputs.changes }}
+            EOF
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.changelog_reader.outputs.version }}
+          name: Release ${{ steps.changelog_reader.outputs.version }}
+          body_path: ${{ github.sha }}-BODY.txt
+          draft: true

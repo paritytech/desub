@@ -1,11 +1,14 @@
 [package]
 name = "integration-tests"
 version = "0.1.0"
-authors = ["Andrew Plaza <andrew.plaza@parity.io>"]
+authors = ["Parity Technologies <admin@parity.io>"]
+license = "GPL-3.0"
+homepage = "https://substrate.dev"
+repository = "https://github.com/paritytech/desub/"
+description = "Decode Substrate with Backwards-Compatible Metadata"
+readme = "README.md"
 edition = "2021"
 autotests = false
-repository = "https://github.com/paritytech/desub"
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dev-dependencies]
 desub-legacy = { path = "../desub-legacy" }
@@ -13,9 +16,9 @@ desub-json-resolver = { path = "../desub-json-resolver" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 codec = { version = "2", package = "parity-scale-codec" }
-primitives = { package = "sp-core",  git = "https://github.com/paritytech/substrate", branch = "master" }
-frame-system = { git = "https://github.com/paritytech/substrate", branch = "master" }
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "master" }
+primitives = { package = "sp-core",  git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
+frame-system = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
+pallet-balances = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
 pretty_env_logger = "0.4"
 log = "0.4"
 hex = "0.4"

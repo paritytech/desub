@@ -1,9 +1,13 @@
 [package]
 name = "desub-legacy"
-version = "0.0.1"
-authors = [ "Andrew Plaza <andrew.plaza@parity.io>" ]
+version = "0.1.0"
+authors = ["Parity Technologies <admin@parity.io>"]
+license = "GPL-3.0"
+homepage = "https://substrate.dev"
+repository = "https://github.com/paritytech/desub/"
+description = "Decode Substrate with Backwards-Compatible Metadata"
+readme = "README.md"
 edition = "2021"
-repository = "https://github.com/paritytech/desub"
 
 [dependencies]
 log = "0.4"
@@ -19,13 +23,13 @@ bitvec = { version = "0.20.2", features = ["serde", "alloc"] }
 
 desub-common = { path = "../desub-common/" }
 
-pallet-democracy = { package = "pallet-democracy", git = "https://github.com/paritytech/substrate", branch = "master" }
-primitives = { package = "sp-core",  git = "https://github.com/paritytech/substrate", branch = "master" }
-runtime-primitives = { package = "sp-runtime", git = "https://github.com/paritytech/substrate", branch = "master" }
+pallet-democracy = { package = "pallet-democracy", git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
+primitives = { package = "sp-core",  git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
+runtime-primitives = { package = "sp-runtime", git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
 frame-metadata = { version = "14.2", features = ["legacy"] }
 
 [dev-dependencies]
-runtime-version = { package = "sp-version", git = "https://github.com/paritytech/substrate", branch = "master" }
+runtime-version = { package = "sp-version", git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
 pretty_env_logger = "0.4"
 hex = "0.4"
 

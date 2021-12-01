@@ -1,6 +1,12 @@
 [package]
 name = "desub"
 version = "0.1.0"
+authors = ["Parity Technologies <admin@parity.io>"]
+license = "GPL-3.0"
+homepage = "https://substrate.dev"
+repository = "https://github.com/paritytech/desub/"
+description = "Decode Substrate with Backwards-Compatible Metadata"
+readme = "README.md"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
