@@ -40,7 +40,7 @@ pub use frame_metadata::{decode_different::DecodeDifferent, RuntimeMetadata, Run
 use super::storage::{StorageInfo, StorageLookupTable};
 use crate::RustTypeMarker;
 use codec::{Decode, Encode, EncodeAsRef, HasCompact};
-use primitives::{storage::StorageKey, twox_128};
+use sp_core::{storage::StorageKey, twox_128};
 use serde::{Deserialize, Serialize};
 
 use std::{
@@ -462,12 +462,12 @@ impl<K: Encode, V: Decode + Clone> StorageMap<K, V> {
 		let mut bytes = self.prefix.clone();
 		bytes.extend(key.encode());
 		let hash = match self.hasher {
-			StorageHasher::Blake2_128 => primitives::blake2_128(&bytes).to_vec(),
-			StorageHasher::Blake2_256 => primitives::blake2_256(&bytes).to_vec(),
-			StorageHasher::Blake2_128Concat => primitives::blake2_128(&bytes).to_vec(),
-			StorageHasher::Twox128 => primitives::twox_128(&bytes).to_vec(),
-			StorageHasher::Twox256 => primitives::twox_256(&bytes).to_vec(),
-			StorageHasher::Twox64Concat => primitives::twox_64(&bytes).to_vec(),
+			StorageHasher::Blake2_128 => sp_core::blake2_128(&bytes).to_vec(),
+			StorageHasher::Blake2_256 => sp_core::blake2_256(&bytes).to_vec(),
+			StorageHasher::Blake2_128Concat => sp_core::blake2_128(&bytes).to_vec(),
+			StorageHasher::Twox128 => sp_core::twox_128(&bytes).to_vec(),
+			StorageHasher::Twox256 => sp_core::twox_256(&bytes).to_vec(),
+			StorageHasher::Twox64Concat => sp_core::twox_64(&bytes).to_vec(),
 			// TODO figure out which substrate hash function is the 'identity' function
 			StorageHasher::Identity => panic!("Unkown Hash"),
 		};

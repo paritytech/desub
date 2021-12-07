@@ -5,7 +5,7 @@ use desub_legacy::{
 	decoder::{Chain, Decoder, Metadata},
 	SubstrateType,
 };
-use primitives::twox_128;
+use sp_core::twox_128;
 
 /// T::BlockNumber in meta V11 Block 1768321
 fn get_plain_value() -> (Vec<u8>, Option<Vec<u8>>) {
