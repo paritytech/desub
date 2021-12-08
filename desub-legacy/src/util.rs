@@ -14,7 +14,7 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{Error, SubstrateType};
-use primitives::crypto::Ss58Codec;
+use sp_core::crypto::Ss58Codec;
 use serde::{
 	ser::{self, SerializeSeq},
 	Serializer,
@@ -58,18 +58,18 @@ pub fn as_substrate_address<S: Serializer>(ty: &SubstrateType, serializer: S) ->
 			for (i, b) in bytes.into_iter().enumerate() {
 				addr[i] = b;
 			}
-			let addr = primitives::crypto::AccountId32::from(addr).to_ss58check();
+			let addr = sp_core::crypto::AccountId32::from(addr).to_ss58check();
 			serializer.serialize_str(&addr)
 		}
 		SubstrateType::Address(v) => match v {
-			runtime_primitives::MultiAddress::Id(ref i) => {
+			sp_runtime::MultiAddress::Id(ref i) => {
 				let addr = i.to_ss58check();
 				serializer.serialize_str(&addr)
 			}
-			runtime_primitives::MultiAddress::Index(i) => serializer.serialize_str(&format!("{}", i)),
-			runtime_primitives::MultiAddress::Raw(bytes) => serializer.serialize_str(&format!("{:?}", bytes)),
-			runtime_primitives::MultiAddress::Address32(ary) => serializer.serialize_str(&format!("{:?}", ary)),
-			runtime_primitives::MultiAddress::Address20(ary) => serializer.serialize_str(&format!("{:?}", ary)),
+			sp_runtime::MultiAddress::Index(i) => serializer.serialize_str(&format!("{}", i)),
+			sp_runtime::MultiAddress::Raw(bytes) => serializer.serialize_str(&format!("{:?}", bytes)),
+			sp_runtime::MultiAddress::Address32(ary) => serializer.serialize_str(&format!("{:?}", ary)),
+			sp_runtime::MultiAddress::Address20(ary) => serializer.serialize_str(&format!("{:?}", ary)),
 		},
 		_ => Err(ser::Error::custom(format!("Could not format {:?} as Ss58 Address", ty))),
 	}

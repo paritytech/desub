@@ -895,16 +895,16 @@ impl Decoder {
 			}
 			"Era" => {
 				log::trace!("ERA DATA: {:X?}", &state.data[state.cursor()]);
-				let val: runtime_primitives::generic::Era = state.decode()?;
+				let val: sp_runtime::generic::Era = state.decode()?;
 				log::trace!("Resolved Era: {:?}", val);
 				Ok(Some(SubstrateType::Era(val)))
 			}
 			"H256" => {
-				let val: primitives::H256 = state.decode()?;
+				let val: sp_core::H256 = state.decode()?;
 				Ok(Some(SubstrateType::H256(val)))
 			}
 			"H512" => {
-				let val: primitives::H512 = state.decode()?;
+				let val: sp_core::H512 = state.decode()?;
 				log::trace!("H512: {}", hex::encode(val.as_bytes()));
 				Ok(Some(SubstrateType::H512(val)))
 			}

@@ -12,8 +12,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sp-runtime = { package = "sp-runtime",  git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
-sp-core = { package = "sp-core",  git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
 serde = { version = "1", features = [ "derive" ] }
 
-
+sp-runtime = {git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
+sp-core = {git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }

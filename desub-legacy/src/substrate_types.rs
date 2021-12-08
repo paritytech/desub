@@ -25,8 +25,8 @@ mod remote;
 use self::remote::*;
 use crate::{Error, SetField};
 use bitvec::order::Lsb0 as BitOrderLsb0;
-use primitives::crypto::{AccountId32, Ss58Codec};
-use runtime_primitives::MultiAddress;
+use sp_core::crypto::{AccountId32, Ss58Codec};
+use sp_runtime::MultiAddress;
 use serde::Serialize;
 use std::{convert::TryFrom, fmt};
 
@@ -42,9 +42,9 @@ pub type Conviction = pallet_democracy::Conviction;
 #[serde(untagged)]
 pub enum SubstrateType {
 	/// 512-bit hash type
-	H512(primitives::H512),
+	H512(sp_core::H512),
 	/// 256-bit hash type
-	H256(primitives::H256),
+	H256(sp_core::H256),
 
 	/// BitVec type
 	BitVec(bitvec::vec::BitVec<BitOrderLsb0, u8>),
@@ -52,7 +52,7 @@ pub enum SubstrateType {
 	/// Recursive Call Type
 	Call(Vec<(String, SubstrateType)>),
 	/// Era
-	Era(runtime_primitives::generic::Era),
+	Era(sp_runtime::generic::Era),
 
 	/// Vote
 	#[serde(with = "RemoteVote")]
@@ -139,18 +139,18 @@ impl fmt::Display for SubstrateType {
 				Ok(())
 			}
 			SubstrateType::Era(v) => match v {
-				runtime_primitives::generic::Era::Mortal(s, e) => write!(f, " Era {}..{}", s, e),
-				runtime_primitives::generic::Era::Immortal => write!(f, " Immortal Era"),
+				sp_runtime::generic::Era::Mortal(s, e) => write!(f, " Era {}..{}", s, e),
+				sp_runtime::generic::Era::Immortal => write!(f, " Immortal Era"),
 			},
 			SubstrateType::GenericVote(v) => write!(f, "Aye={}, Conviction={}", v.aye, v.conviction.lock_periods()),
 			SubstrateType::Address(v) => match v {
-				runtime_primitives::MultiAddress::Id(ref i) => {
+				sp_runtime::MultiAddress::Id(ref i) => {
 					write!(f, "Account::Id({})", i.to_ss58check())
 				}
-				runtime_primitives::MultiAddress::Index(i) => write!(f, "Index: {:?}", i),
-				runtime_primitives::MultiAddress::Raw(bytes) => write!(f, "Raw: {:?}", bytes),
-				runtime_primitives::MultiAddress::Address32(ary) => write!(f, "Address32: {:?}", ary),
-				runtime_primitives::MultiAddress::Address20(ary) => write!(f, "Address20: {:?}", ary),
+				sp_runtime::MultiAddress::Index(i) => write!(f, "Index: {:?}", i),
+				sp_runtime::MultiAddress::Raw(bytes) => write!(f, "Raw: {:?}", bytes),
+				sp_runtime::MultiAddress::Address32(ary) => write!(f, "Address32: {:?}", ary),
+				sp_runtime::MultiAddress::Address20(ary) => write!(f, "Address20: {:?}", ary),
 			},
 			SubstrateType::Data(d) => write!(f, "{:?}", d),
 			SubstrateType::SignedExtra(v) => write!(f, "{}", v),

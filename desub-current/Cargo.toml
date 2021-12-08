@@ -14,8 +14,6 @@ edition = "2021"
 [dependencies]
 log = "0.4"
 thiserror = "1.0.30"
-sp_core = { package = "sp-core",  git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
-sp_runtime = { package = "sp-runtime", git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
 frame-metadata = { version = "14.2", features = ["v14", "std", "scale-info"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
@@ -25,6 +23,9 @@ derive_more = "0.99.16"
 scale-info = { version = "1.0.0", features = ["bit-vec", "derive"] }
 bitvec = { version = "0.20.2", features = ["serde", "alloc"] }
 desub-common = { path = "../desub-common" }
+
+sp-core = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
+sp-runtime = {git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
 
 [dev-dependencies]
 serde_json = "1"

@@ -20,16 +20,15 @@ derive_more = "0.99.3"
 dyn-clone = "1.0"
 hex = "0.4"
 bitvec = { version = "0.20.2", features = ["serde", "alloc"] }
+frame-metadata = { version = "14.2", features = ["legacy"] }
 
 desub-common = { path = "../desub-common/" }
 
-pallet-democracy = { package = "pallet-democracy", git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
-primitives = { package = "sp-core",  git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
-runtime-primitives = { package = "sp-runtime", git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
-frame-metadata = { version = "14.2", features = ["legacy"] }
+sp-core = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
+pallet-democracy = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
 
 [dev-dependencies]
 runtime-version = { package = "sp-version", git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
 pretty_env_logger = "0.4"
 hex = "0.4"
-

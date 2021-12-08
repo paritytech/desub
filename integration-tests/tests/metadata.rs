@@ -1,6 +1,6 @@
 use crate::runtime_metadata::*;
 use desub_legacy::decoder::Metadata;
-use primitives::twox_128;
+use sp_core::twox_128;
 
 #[test]
 fn should_create_metadata_v9() {

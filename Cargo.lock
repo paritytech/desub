@@ -843,7 +843,7 @@ dependencies = [
 
 [[package]]
 name = "desub-legacy"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "bitvec",
  "derive_more",
