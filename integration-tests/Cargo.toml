@@ -24,7 +24,7 @@ hex = "0.4"
 paste = "1.0.3"
 anyhow = "1"
 
-sp-core = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
+sp-core = "4.0.0"
 
 [[test]]
 name = "integration-tests"

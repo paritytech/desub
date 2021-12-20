@@ -14,5 +14,5 @@ edition = "2021"
 [dependencies]
 serde = { version = "1", features = [ "derive" ] }
 
-sp-runtime = {git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
-sp-core = {git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
+sp-runtime = "4.0.0"
+sp-core = "4.0.0"

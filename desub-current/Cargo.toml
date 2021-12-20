@@ -24,8 +24,8 @@ scale-info = { version = "1.0.0", features = ["bit-vec", "derive"] }
 bitvec = { version = "0.20.2", features = ["serde", "alloc"] }
 desub-common = { path = "../desub-common" }
 
-sp-core = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
-sp-runtime = {git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
+sp-core = "4.0.0"
+sp-runtime = "4.0.0"
 
 [dev-dependencies]
 serde_json = "1"

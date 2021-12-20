@@ -16,7 +16,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{Conviction, Vote};
+use super::pallet_democracy::{Conviction, Vote};
 
 #[derive(Serialize, Deserialize)]
 #[serde(remote = "Vote")]
