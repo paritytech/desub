@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use runtime_version::RuntimeVersion;
+use sp_version::RuntimeVersion;
 use std::borrow::Cow;
 
 pub fn mock_runtime(num: u32) -> RuntimeVersion {

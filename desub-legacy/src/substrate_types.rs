@@ -33,8 +33,90 @@ use std::{convert::TryFrom, fmt};
 pub use self::data::Data;
 
 pub type Address = MultiAddress<AccountId32, u32>;
-pub type Vote = pallet_democracy::Vote;
-pub type Conviction = pallet_democracy::Conviction;
+
+/// Stripped down version of https://docs.substrate.io/rustdocs/latest/pallet_democracy
+/// Remove when/if the real pallet_democracy is published.
+pub mod pallet_democracy {
+	use sp_runtime::RuntimeDebug;
+	use codec::{Decode, Input};
+	/// Static copy of https://docs.substrate.io/rustdocs/latest/pallet_democracy/struct.Vote.html
+	#[derive(Copy, Clone, Eq, PartialEq, Default, RuntimeDebug)]
+	pub struct Vote {
+		pub aye: bool,
+		pub conviction: Conviction,
+	}
+
+	impl Decode for Vote {
+		fn decode<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
+			let b = input.read_byte()?;
+			Ok(Vote {
+				aye: (b & 0b1000_0000) == 0b1000_0000,
+				conviction: Conviction::try_from(b & 0b0111_1111)
+					.map_err(|_| codec::Error::from("Invalid conviction"))?,
+			})
+		}
+	}
+
+	/// Static copy of https://docs.substrate.io/rustdocs/latest/pallet_democracy/enum.Conviction.html
+	#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, RuntimeDebug)]
+	pub enum Conviction {
+		/// 0.1x votes, unlocked.
+		None,
+		/// 1x votes, locked for an enactment period following a successful vote.
+		Locked1x,
+		/// 2x votes, locked for 2x enactment periods following a successful vote.
+		Locked2x,
+		/// 3x votes, locked for 4x...
+		Locked3x,
+		/// 4x votes, locked for 8x...
+		Locked4x,
+		/// 5x votes, locked for 16x...
+		Locked5x,
+		/// 6x votes, locked for 32x...
+		Locked6x,
+	}
+
+	impl Default for Conviction {
+		fn default() -> Self {
+			Conviction::None
+		}
+	}
+
+	impl Conviction {
+		/// The amount of time (in number of periods) that our conviction implies a successful voter's
+		/// balance should be locked for.
+		pub fn lock_periods(self) -> u32 {
+			match self {
+				Conviction::None => 0,
+				Conviction::Locked1x => 1,
+				Conviction::Locked2x => 2,
+				Conviction::Locked3x => 4,
+				Conviction::Locked4x => 8,
+				Conviction::Locked5x => 16,
+				Conviction::Locked6x => 32,
+			}
+		}
+	}
+
+	impl TryFrom<u8> for Conviction {
+		type Error = ();
+		fn try_from(i: u8) -> Result<Conviction, ()> {
+			Ok(match i {
+				0 => Conviction::None,
+				1 => Conviction::Locked1x,
+				2 => Conviction::Locked2x,
+				3 => Conviction::Locked3x,
+				4 => Conviction::Locked4x,
+				5 => Conviction::Locked5x,
+				6 => Conviction::Locked6x,
+				_ => return Err(()),
+			})
+		}
+	}
+}
+
+
+
 /// A 'stateful' version of [RustTypeMarker](enum.RustTypeMarker.html).
 /// 'Std' variant is not here like in RustTypeMarker.
 /// Instead common types are just apart of the enum

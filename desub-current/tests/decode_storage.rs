@@ -19,7 +19,6 @@ use desub_current::{
 	decoder::{self, StorageHasher},
 	Metadata, Value,
 };
-use sp_runtime::AccountId32;
 
 static V14_METADATA_POLKADOT_SCALE: &[u8] = include_bytes!("data/v14_metadata_polkadot.scale");
 
@@ -27,9 +26,8 @@ fn metadata() -> Metadata {
 	Metadata::from_bytes(V14_METADATA_POLKADOT_SCALE).expect("valid metadata")
 }
 
-fn account_id_to_value(account_id: &AccountId32) -> Value<()> {
-	let account_id_bytes: &[u8] = account_id.as_ref();
-	Value::unnamed_composite(vec![Value::unnamed_composite(account_id_bytes.iter().map(|&b| Value::u8(b)).collect())])
+fn account_id_to_value<A: AsRef<[u8]>>(account_id_bytes: A) -> Value<()> {
+	Value::unnamed_composite(vec![Value::unnamed_composite(account_id_bytes.as_ref().iter().map(|&b| Value::u8(b)).collect())])
 }
 
 macro_rules! assert_hasher_eq {

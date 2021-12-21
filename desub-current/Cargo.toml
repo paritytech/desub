@@ -6,7 +6,6 @@ license = "GPL-3.0"
 homepage = "https://substrate.dev"
 repository = "https://github.com/paritytech/desub/"
 description = "Decode Substrate with Backwards-Compatible Metadata"
-readme = "README.md"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -22,10 +21,10 @@ hex = "0.4.3"
 derive_more = "0.99.16"
 scale-info = { version = "1.0.0", features = ["bit-vec", "derive"] }
 bitvec = { version = "0.20.2", features = ["serde", "alloc"] }
-desub-common = { path = "../desub-common" }
+desub-common = { version = "0.1.0", path = "../desub-common" }
 
-sp-core = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
-sp-runtime = {git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
+sp-core = "4.0.0"
+sp-runtime = "4.0.0"
 
 [dev-dependencies]
 serde_json = "1"
