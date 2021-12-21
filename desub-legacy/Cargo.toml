@@ -22,7 +22,7 @@ hex = "0.4"
 bitvec = { version = "0.20.2", features = ["serde", "alloc"] }
 frame-metadata = { version = "14.2", features = ["legacy"] }
 
-desub-common = { path = "../desub-common/" }
+desub-common = { version = "0.1.0", path = "../desub-common/" }
 
 sp-core = "4.0.0"
 sp-runtime = "4.0.0"
