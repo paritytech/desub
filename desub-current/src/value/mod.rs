@@ -49,7 +49,7 @@ macro_rules! value_prim_method {
 		pub fn $name(val: $name) -> Value<()> {
 			Value { value: ValueDef::Primitive(Primitive::$variant(val)), context: () }
 		}
-	}
+	};
 }
 
 impl Value<()> {
@@ -287,7 +287,7 @@ impl<T> From<Primitive> for ValueDef<T> {
 }
 
 /// A sequence of bits.
-pub type BitSequence = BitVec<Lsb0, u8>;
+pub type BitSequence = BitVec<u8, Lsb0>;
 
 /// An opaque error that is returned if we cannot deserialize the [`Value`] type.
 pub use deserializer::Error as DeserializeError;
