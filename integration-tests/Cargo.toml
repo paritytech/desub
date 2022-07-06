@@ -13,18 +13,18 @@ autotests = false
 [dev-dependencies]
 desub-legacy = { path = "../desub-legacy" }
 desub-json-resolver = { path = "../desub-json-resolver" }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = { version = "1.0", features = ["preserve_order"] }
-codec = { version = "2", package = "parity-scale-codec" }
-frame-system = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
-pallet-balances = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
-pretty_env_logger = "0.4"
-log = "0.4"
-hex = "0.4"
-paste = "1.0.3"
-anyhow = "1"
+serde = { version = "1.0.138", features = ["derive"] }
+serde_json = { version = "1.0.82", features = ["preserve_order"] }
+codec = { version = "3.1.5", package = "parity-scale-codec" }
+frame-system = { git = "https://github.com/paritytech/substrate", tag = "monthly-2022-07" }
+pallet-balances = { git = "https://github.com/paritytech/substrate", tag = "monthly-2022-07" }
+pretty_env_logger = "0.4.0"
+log = "0.4.17"
+hex = "0.4.3"
+paste = "1.0.7"
+anyhow = "1.0.58"
 
-sp-core = "4.0.0"
+sp-core = "6.0.0"
 
 [[test]]
 name = "integration-tests"

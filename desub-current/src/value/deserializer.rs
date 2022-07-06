@@ -27,7 +27,7 @@ This module implements the Deserializer trait on our Value enum
 ===============================================================
 
 Deserializing using Serde is a bit weird to wrap your head around at first (at least, it was for me).
-I'd def recommend checking out the serde book, and inparticular https://serde.rs/impl-deserializer.html,
+I'd def recommend checking out the serde book, and in particular https://serde.rs/impl-deserializer.html,
 but here's a very quick explainer on how things work:
 
 We have a `Deserialize` trait (commonly automatically implemented via `#[derive(Deserialize)]`). This trait
@@ -707,6 +707,7 @@ struct BitVecPieces {
 	head: u8,
 	bits: u64,
 	data: Vec<u8>,
+	order: u8,
 	// Track which field we're currently deserializing:
 	current_field: Option<Field>,
 }
@@ -716,6 +717,7 @@ enum Field {
 	Head,
 	Bits,
 	Data,
+	Order
 }
 
 impl<'de> Deserializer<'de> for BitVecPieces {
@@ -761,11 +763,18 @@ impl<'de> SeqAccess<'de> for BitVecPieces {
 				self.current_field = None;
 				res
 			}
+			Some(Field::Order) => {
+				let res = seed.deserialize(self.order.into_deserializer()).map(Some);
+				self.current_field = Some(Field::Order);
+				res
+			}
 			None => Ok(None),
 		}
 	}
 }
-
+fn string_to_static_str(s: String) -> &'static str {
+    Box::leak(s.into_boxed_str())
+}
 impl BitVecPieces {
 	fn new(bit_vec: BitSequence) -> Result<BitVecPieces, Error> {
 		// Step 1. "Serialize" the bitvec into this struct. Essentially,
@@ -775,6 +784,7 @@ impl BitVecPieces {
 			head: Option<u8>,
 			bits: Option<u64>,
 			data: Vec<u8>,
+			order: Option<u8>,
 			current_field: Option<Field>,
 		}
 
@@ -793,11 +803,14 @@ impl BitVecPieces {
 					"head" => {
 						self.current_field = Some(Field::Head);
 					}
-					"bits" => {
+					"width" => {
 						self.current_field = Some(Field::Bits);
 					}
 					"data" => {
 						self.current_field = Some(Field::Data);
+					}
+					"order" => {
+						self.current_field = Some(Field::Order);
 					}
 					_ => {
 						return Err(Error::from_string(format!(
@@ -862,6 +875,10 @@ impl BitVecPieces {
 						self.head = Some(v);
 						Ok(())
 					}
+					Some(Field::Order) => {
+						self.order = Some(v);
+						Ok(())
+					}
 					Some(Field::Data) => {
 						self.data.push(v);
 						Ok(())
@@ -886,62 +903,70 @@ impl BitVecPieces {
 			// All of the below are never expected to be called when serializing a BitVec,
 			// so we just return an error since we'd have no idea what to do!
 			fn serialize_bool(self, _v: bool) -> Result<Self::Ok, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("bool is an unsupported BitVec serialization method"))
 			}
 			fn serialize_i8(self, _v: i8) -> Result<Self::Ok, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("i8 is an unsupported BitVec serialization method"))
 			}
 			fn serialize_i16(self, _v: i16) -> Result<Self::Ok, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("i16 is an unsupported BitVec serialization method"))
 			}
 			fn serialize_i32(self, _v: i32) -> Result<Self::Ok, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("i32 is an unsupported BitVec serialization method"))
 			}
 			fn serialize_i64(self, _v: i64) -> Result<Self::Ok, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("i64 is an unsupported BitVec serialization method"))
 			}
 			fn serialize_u16(self, _v: u16) -> Result<Self::Ok, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("u16 Unsupported BitVec serialization method"))
 			}
 			fn serialize_u32(self, _v: u32) -> Result<Self::Ok, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("u32 Unsupported BitVec serialization method"))
 			}
 			fn serialize_f32(self, _v: f32) -> Result<Self::Ok, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("f32 Unsupported BitVec serialization method"))
 			}
 			fn serialize_f64(self, _v: f64) -> Result<Self::Ok, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("f64 Unsupported BitVec serialization method"))
 			}
 			fn serialize_char(self, _v: char) -> Result<Self::Ok, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("char Unsupported BitVec serialization method"))
 			}
-			fn serialize_str(self, _v: &str) -> Result<Self::Ok, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+			fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
+				match (self.current_field, v) {
+					(Some(Field::Order), "bitvec::order::Lsb0") => {
+						self.order = Some(1);
+						Ok(())
+					}
+					_ => Err(Error::from_str(string_to_static_str(format!("&str Unsupported BitVec serialization method for '{}'", v)))),
+				}
+				
+				
 			}
 			fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("&[u8] Unsupported BitVec serialization method"))
 			}
 			fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("none Unsupported BitVec serialization method"))
 			}
 			fn serialize_some<T: Serialize + ?Sized>(self, _: &T) -> Result<Self::Ok, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("some Unsupported BitVec serialization method"))
 			}
 			fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("unit Unsupported BitVec serialization method"))
 			}
 			fn serialize_unit_struct(self, _: &'static str) -> Result<Self::Ok, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("unit struct Unsupported BitVec serialization method"))
 			}
 			fn serialize_unit_variant(self, _: &'static str, _: u32, _: &'static str) -> Result<Self::Ok, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("unit variant Unsupported BitVec serialization method"))
 			}
 			fn serialize_newtype_struct<T: ?Sized + Serialize>(
 				self,
 				_: &'static str,
 				_: &T,
 			) -> Result<Self::Ok, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("newtype struct Unsupported BitVec serialization method"))
 			}
 			fn serialize_newtype_variant<T: ?Sized + Serialize>(
 				self,
@@ -950,17 +975,17 @@ impl BitVecPieces {
 				_: &'static str,
 				_: &T,
 			) -> Result<Self::Ok, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("newtype variant Unsupported BitVec serialization method"))
 			}
 			fn serialize_tuple(self, _: usize) -> Result<Self::SerializeTuple, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("tuple Unsupported BitVec serialization method"))
 			}
 			fn serialize_tuple_struct(
 				self,
 				_: &'static str,
 				_: usize,
 			) -> Result<Self::SerializeTupleStruct, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("tuple struct Unsupported BitVec serialization method"))
 			}
 			fn serialize_tuple_variant(
 				self,
@@ -969,10 +994,10 @@ impl BitVecPieces {
 				_: &'static str,
 				_: usize,
 			) -> Result<Self::SerializeTupleVariant, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("tuple variant Unsupported BitVec serialization method"))
 			}
 			fn serialize_map(self, _: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("map Unsupported BitVec serialization method"))
 			}
 			fn serialize_struct_variant(
 				self,
@@ -981,18 +1006,18 @@ impl BitVecPieces {
 				_: &'static str,
 				_: usize,
 			) -> Result<Self::SerializeStructVariant, Self::Error> {
-				Err(Error::from_str("Unsupported BitVec serialization method"))
+				Err(Error::from_str("struct variant Unsupported BitVec serialization method"))
 			}
 		}
 
 		// Serialize the BitVec based on our above serializer: this basically
 		// extracts the data out of it that we'll need for deserialization.
-		let mut se = BitVecSerializer { head: None, bits: None, data: Vec::new(), current_field: None };
+		let mut se = BitVecSerializer { head: None, bits: None, data: Vec::new(), order: None, current_field: None };
 		bit_vec.serialize(&mut se)?;
 
 		match se {
-			BitVecSerializer { data, bits: Some(bits), head: Some(head), .. } => {
-				Ok(BitVecPieces { data, bits, head, current_field: Some(Field::Head) })
+			BitVecSerializer { data, bits: Some(bits), head: Some(head), order: Some(order), .. } => {
+				Ok(BitVecPieces { data, bits, head, order, current_field: Some(Field::Head) })
 			}
 			_ => Err(Error::from_str("Could not gather together the BitVec pieces required during serialization")),
 		}
@@ -1213,13 +1238,13 @@ mod test {
 	fn de_bitvec() {
 		use bitvec::{bitvec, order::Lsb0};
 
-		let val = Value::bit_sequence(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0]);
-		assert_eq!(BitSequence::deserialize(val), Ok(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0]));
+		let val = Value::bit_sequence(bitvec![u8, Lsb0; 0, 1, 1, 0, 1, 0, 1, 0]);
+		assert_eq!(BitSequence::deserialize(val), Ok(bitvec![u8, Lsb0; 0, 1, 1, 0, 1, 0, 1, 0]));
 
-		let val = Value::bit_sequence(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0]);
+		let val = Value::bit_sequence(bitvec![u8, Lsb0; 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0]);
 		assert_eq!(
 			BitSequence::deserialize(val),
-			Ok(bitvec![Lsb0, u8; 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0])
+			Ok(bitvec![u8, Lsb0; 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0])
 		);
 	}
 

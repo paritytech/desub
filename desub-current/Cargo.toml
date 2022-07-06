@@ -11,21 +11,21 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-log = "0.4"
-thiserror = "1.0.30"
-frame-metadata = { version = "14.2", features = ["v14", "std", "scale-info"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1", features = ["preserve_order"] }
-codec = { version = "2", package = "parity-scale-codec", features = ["bit-vec"] }
+log = "0.4.17"
+thiserror = "1.0.31"
+frame-metadata = { version = "15.0.0", features = ["v14", "std", "scale-info"] }
+serde = { version = "1.0.138", features = ["derive"] }
+serde_json = { version = "1.0.82", features = ["preserve_order"] }
+codec = { version = "3.1.5", package = "parity-scale-codec", features = ["bit-vec"] }
 hex = "0.4.3"
-derive_more = "0.99.16"
-scale-info = { version = "1.0.0", features = ["bit-vec", "derive"] }
-bitvec = { version = "0.20.2", features = ["serde", "alloc"] }
+derive_more = "0.99.17"
+scale-info = { version = "2.1.2", features = ["bit-vec", "derive"] }
+bitvec = { version = "1.0.0", features = ["serde", "alloc"] }
 desub-common = { version = "0.1.0", path = "../desub-common" }
 
-sp-core = "4.0.0"
-sp-runtime = "4.0.0"
+sp-core = "6.0.0"
+sp-runtime = "6.0.0"
 
 [dev-dependencies]
-serde_json = "1"
-sp_keyring = { package = "sp-keyring",  git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
+serde_json = "1.0.82"
+sp_keyring = { package = "sp-keyring",  git = "https://github.com/paritytech/substrate", tag = "monthly-2022-07" }
