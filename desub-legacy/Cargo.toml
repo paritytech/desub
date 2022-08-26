@@ -9,24 +9,22 @@ description = "Decode Substrate with Backwards-Compatible Metadata"
 edition = "2021"
 
 [dependencies]
-log = "0.4"
+log = "0.4.17"
 thiserror = "1.0.30"
-codec = { version = "2", package = "parity-scale-codec", features = ["bit-vec"] }
+codec = { version = "3.0", package = "parity-scale-codec", features = ["bit-vec"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 onig = { version = "5.0", default-features = false }
 derive_more = "0.99.3"
 dyn-clone = "1.0"
 hex = "0.4"
-bitvec = { version = "0.20.2", features = ["serde", "alloc"] }
-frame-metadata = { version = "14.2", features = ["legacy"] }
-
+bitvec = { version = "1.0", features = ["serde", "alloc"] }
+frame-metadata = { version = "15.0", features = ["legacy"] }
 desub-common = { version = "0.1.0", path = "../desub-common/" }
-
-sp-core = "4.0.0"
-sp-runtime = "4.0.0"
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24-1" }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24-1" }
 
 [dev-dependencies]
-sp-version = "4.0.0"
+sp-version = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24-1" }
 pretty_env_logger = "0.4"
 hex = "0.4"
