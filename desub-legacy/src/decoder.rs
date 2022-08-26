@@ -41,7 +41,7 @@ pub use frame_metadata::v14::StorageEntryType;
 
 use crate::{
 	error::Error,
-	substrate_types::{self, StructField, SubstrateType, pallet_democracy},
+	substrate_types::{self, pallet_democracy, StructField, SubstrateType},
 	CommonTypes, RustTypeMarker, TypeDetective,
 };
 use bitvec::order::Lsb0 as BitOrderLsb0;
@@ -482,7 +482,6 @@ impl Decoder {
 
 		state.load_module()?;
 		let types = self.decode_call(state)?;
-		log::debug!("Finished cursor length={}", state.cursor());
 		let call = state.call.borrow().as_ref().map(|c| c.name()).unwrap_or_else(|| "unknown".into());
 		Ok(GenericExtrinsic::new(signature, types, call, state.module_name().into()))
 	}

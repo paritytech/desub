@@ -132,7 +132,7 @@ impl<'a> AppState<'a> {
 				Err(e)
 			}
 			Ok(d) => {
-				log::info!("Block {} Decoded Succesfully. {}", block.block_num, &d);
+				log::info!("Block {} Decoded Succesfully. {:?}", block.block_num, &d);
 				Ok(())
 			}
 		}

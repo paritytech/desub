@@ -94,7 +94,7 @@ macro_rules! visit_prim {
 		{
 			Ok(Primitive::$variant(v))
 		}
-	}
+	};
 }
 
 impl<'de> Visitor<'de> for PrimitiveVisitor {

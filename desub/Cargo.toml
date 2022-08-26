@@ -20,7 +20,7 @@ desub-json-resolver = { version = "0.0.1", path = "../desub-json-resolver/", opt
 thiserror = "1.0.30"
 frame-metadata = "14.2"
 codec = { version = "2.3.1", package = "parity-scale-codec" }
-serde_json = { version = "1.0", features = ["preserve_order", "arbitrary_precision"] }
+serde = { version = "1", features = ["derive"] }
 
 [features]
 polkadot-js = ["desub-json-resolver", "desub-json-resolver/polkadot", "frame-metadata/legacy" ]

@@ -40,8 +40,8 @@ pub use frame_metadata::{decode_different::DecodeDifferent, RuntimeMetadata, Run
 use super::storage::{StorageInfo, StorageLookupTable};
 use crate::RustTypeMarker;
 use codec::{Decode, Encode, EncodeAsRef, HasCompact};
-use sp_core::{storage::StorageKey, twox_128};
 use serde::{Deserialize, Serialize};
+use sp_core::{storage::StorageKey, twox_128};
 
 use std::{
 	collections::{HashMap, HashSet},

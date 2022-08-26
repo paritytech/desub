@@ -39,6 +39,4 @@ pub enum Error {
 	LegacyMetadataError(#[from] LegacyMetadataError),
 	#[error("Spec Version {0} not registered with decoder")]
 	SpecVersionNotFound(u32),
-	#[error(transparent)]
-	Serialization(#[from] serde_json::Error),
 }

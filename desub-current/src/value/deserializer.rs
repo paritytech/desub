@@ -99,7 +99,7 @@ macro_rules! deserialize_x {
 		{
 			self.value.$fn_name(visitor)
 		}
-	}
+	};
 }
 
 // Our Value type has some context, which we ignore, and some definition, whose deserializer

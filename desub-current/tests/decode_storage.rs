@@ -27,7 +27,9 @@ fn metadata() -> Metadata {
 }
 
 fn account_id_to_value<A: AsRef<[u8]>>(account_id_bytes: A) -> Value<()> {
-	Value::unnamed_composite(vec![Value::unnamed_composite(account_id_bytes.as_ref().iter().map(|&b| Value::u8(b)).collect())])
+	Value::unnamed_composite(vec![Value::unnamed_composite(
+		account_id_bytes.as_ref().iter().map(|&b| Value::u8(b)).collect(),
+	)])
 }
 
 macro_rules! assert_hasher_eq {
