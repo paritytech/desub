@@ -20,7 +20,7 @@ jobs:
 
       - name: Get Desub changelog
         id: changelog_reader
-        uses: mindsers/changelog-reader-action@17b72bf66059b7ac310abdc0b511948903e85ea5 # v2.1.1
+        uses: mindsers/changelog-reader-action@17b72bf66059b7ac310abdc0b511948903e85ea5 # v2.2.0
         with:
           validation_depth: 2
           path: ./CHANGELOG.md
