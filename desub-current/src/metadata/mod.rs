@@ -63,9 +63,9 @@ pub struct Metadata {
 	/// specific storage entry using a key like `(usize,usize)`. Since the order of
 	/// entries in this array is not guaranteed between metadata versions, it should
 	/// not be exposed.
-	pallet_storage: ReadonlyArray<MetadataPalletStorage>,
+	pub pallet_storage: ReadonlyArray<MetadataPalletStorage>,
 	/// Type information lives inside this.
-	types: PortableRegistry,
+	pub types: PortableRegistry,
 }
 
 impl Metadata {
@@ -104,6 +104,10 @@ impl Metadata {
 		&self.extrinsic
 	}
 
+	pub fn get_types(&self) -> &PortableRegistry {
+		&self.types
+	}
+
 	/// Given a [`crate::TypeId`], return the corresponding type from the type registry, if possible.
 	pub fn resolve<Id: Into<TypeId>>(&self, id: Id) -> Option<&Type> {
 		self.types.resolve(id.into().id())
@@ -126,6 +130,10 @@ impl Metadata {
 			pallet.storage_entries.get(loc.entry_index).expect("Storage entry with the entry index given should exist");
 
 		StorageEntry { prefix: &pallet.prefix, metadata: entry }
+	}
+
+	pub fn get_storage_entries(&self) -> impl Iterator<Item = &MetadataPalletStorage> {
+		self.pallet_storage.iter()
 	}
 
 	/// In order to generate a lookup table to decode storage entries, we need to be able to
@@ -161,7 +169,7 @@ impl Metadata {
 }
 
 #[derive(Debug)]
-pub(crate) struct MetadataPalletStorage {
+pub struct MetadataPalletStorage {
 	/// The storage prefix (normally identical to the pallet name,
 	/// although they are distinct values in the metadata).
 	prefix: String,

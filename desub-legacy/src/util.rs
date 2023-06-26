@@ -14,11 +14,11 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{Error, SubstrateType};
-use sp_core::crypto::Ss58Codec;
 use serde::{
 	ser::{self, SerializeSeq},
 	Serializer,
 };
+use sp_core::crypto::Ss58Codec;
 use std::convert::TryFrom;
 
 // Utility function to serialize from slice/vec to hex

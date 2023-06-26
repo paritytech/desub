@@ -49,7 +49,7 @@ macro_rules! value_prim_method {
 		pub fn $name(val: $name) -> Value<()> {
 			Value { value: ValueDef::Primitive(Primitive::$variant(val)), context: () }
 		}
-	}
+	};
 }
 
 impl Value<()> {

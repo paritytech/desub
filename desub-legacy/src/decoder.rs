@@ -41,7 +41,7 @@ pub use frame_metadata::v14::StorageEntryType;
 
 use crate::{
 	error::Error,
-	substrate_types::{self, StructField, SubstrateType, pallet_democracy},
+	substrate_types::{self, pallet_democracy, StructField, SubstrateType},
 	CommonTypes, RustTypeMarker, TypeDetective,
 };
 use bitvec::order::Lsb0 as BitOrderLsb0;

@@ -25,9 +25,9 @@ mod remote;
 use self::remote::*;
 use crate::{Error, SetField};
 use bitvec::order::Lsb0 as BitOrderLsb0;
+use serde::Serialize;
 use sp_core::crypto::{AccountId32, Ss58Codec};
 use sp_runtime::MultiAddress;
-use serde::Serialize;
 use std::{convert::TryFrom, fmt};
 
 pub use self::data::Data;
@@ -37,8 +37,8 @@ pub type Address = MultiAddress<AccountId32, u32>;
 /// Stripped down version of https://docs.substrate.io/rustdocs/latest/pallet_democracy
 /// Remove when/if the real pallet_democracy is published.
 pub mod pallet_democracy {
-	use sp_runtime::RuntimeDebug;
 	use codec::{Decode, Input};
+	use sp_runtime::RuntimeDebug;
 	/// Static copy of https://docs.substrate.io/rustdocs/latest/pallet_democracy/struct.Vote.html
 	#[derive(Copy, Clone, Eq, PartialEq, Default, RuntimeDebug)]
 	pub struct Vote {
@@ -114,8 +114,6 @@ pub mod pallet_democracy {
 		}
 	}
 }
-
-
 
 /// A 'stateful' version of [RustTypeMarker](enum.RustTypeMarker.html).
 /// 'Std' variant is not here like in RustTypeMarker.
