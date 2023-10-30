@@ -34,13 +34,13 @@ impl TypeId {
 
 impl From<ScaleInfoTypeId> for TypeId {
 	fn from(id: ScaleInfoTypeId) -> Self {
-		TypeId(id.id())
+		TypeId(id.id)
 	}
 }
 
 impl From<&ScaleInfoTypeId> for TypeId {
 	fn from(id: &ScaleInfoTypeId) -> Self {
-		TypeId(id.id())
+		TypeId(id.id)
 	}
 }
 

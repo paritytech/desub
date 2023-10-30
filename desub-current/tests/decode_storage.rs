@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use codec::Encode;
+use parity_scale_codec::Encode;
 use desub_current::{
 	decoder::{self, StorageHasher},
 	Metadata, Value,

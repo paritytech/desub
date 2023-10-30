@@ -32,7 +32,7 @@ pub enum Error {
 	#[error(transparent)]
 	Legacy(#[from] LegacyError),
 	#[error(transparent)]
-	Codec(#[from] codec::Error),
+	Codec(#[from] parity_scale_codec::Error),
 	#[error(transparent)]
 	MetadataError(#[from] MetadataError),
 	#[error(transparent)]

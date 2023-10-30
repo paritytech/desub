@@ -1,5 +1,5 @@
 use crate::decoder::MetadataError;
-use codec::Error as CodecError;
+use parity_scale_codec::Error as CodecError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]

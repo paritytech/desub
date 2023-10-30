@@ -45,7 +45,7 @@ use crate::{
 	CommonTypes, RustTypeMarker, TypeDetective,
 };
 use bitvec::order::Lsb0 as BitOrderLsb0;
-use codec::{Compact, CompactLen, Decode, Input};
+use parity_scale_codec::{Compact, CompactLen, Decode, Input};
 use desub_common::SpecVersion;
 use std::{
 	cell::RefCell,
@@ -859,7 +859,7 @@ impl Decoder {
 			}
 			"BitVec" => {
 				log::trace!("Decoding BitVec");
-				let bit_vec: bitvec::vec::BitVec<BitOrderLsb0, u8> = state.decode()?;
+				let bit_vec: bitvec::vec::BitVec<u8, BitOrderLsb0> = state.decode()?;
 				Ok(Some(SubstrateType::BitVec(bit_vec)))
 			}
 			"Call" | "GenericCall" => {
@@ -996,7 +996,7 @@ mod tests {
 		substrate_types::{EnumField, StructField},
 		test_suite, EnumField as RustEnumField,
 	};
-	use codec::Encode;
+	use parity_scale_codec::Encode;
 
 	#[derive(Debug, Clone)]
 	struct GenericTypes;

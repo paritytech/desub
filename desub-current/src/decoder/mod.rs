@@ -29,7 +29,7 @@ mod extrinsic_bytes;
 use crate::metadata::Metadata;
 use crate::value::Value;
 use crate::TypeId;
-use codec::{Compact, Decode};
+use parity_scale_codec::{Compact, Decode};
 use extrinsic_bytes::{AllExtrinsicBytes, ExtrinsicBytesError};
 use serde::Serialize;
 use sp_runtime::{AccountId32, MultiAddress, MultiSignature};
@@ -50,7 +50,7 @@ pub enum DecodeError {
 	#[error("Failed to parse the provided vector of extrinsics: {0}")]
 	UnexpectedExtrinsicsShape(#[from] ExtrinsicBytesError),
 	#[error("Failed to decode: {0}")]
-	CodecError(#[from] codec::Error),
+	CodecError(#[from] parity_scale_codec::Error),
 	#[error("Failed to decode type: {0}")]
 	DecodeValueError(#[from] DecodeValueError),
 	#[error("Failed to decode: expected more data")]
@@ -87,7 +87,7 @@ pub fn decode_value_by_id<'a, Id: Into<TypeId>>(
 ///     decoder::{ self, StorageHasher },
 ///     value::{ Value, ValueDef, Composite, Primitive },
 /// };
-/// use codec::Encode;
+/// use parity_scale_codec::Encode;
 ///
 /// // Get hold of the metadata (normally by making an RPC call
 /// // to the node you want to interact with):
@@ -344,10 +344,10 @@ pub fn decode_call_data<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<
 
 	// Decode each of the argument values in the extrinsic:
 	let arguments = variant
-		.fields()
+		.fields
 		.iter()
 		.map(|field| {
-			let id = field.ty().id();
+			let id = field.ty.id;
 			decode_value_by_id(metadata, TypeId::from_u32(id), data).map_err(DecodeError::DecodeValueError)
 		})
 		.collect::<Result<Vec<_>, _>>()?;

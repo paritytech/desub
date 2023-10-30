@@ -22,7 +22,7 @@ mod u8_map;
 mod version_14;
 
 use crate::{ScaleInfoTypeId, Type, TypeId};
-use codec::Decode;
+use parity_scale_codec::Decode;
 use frame_metadata::{RuntimeMetadata, RuntimeMetadataPrefixed};
 use readonly_array::ReadonlyArray;
 use scale_info::{form::PortableForm, PortableRegistry};
@@ -32,7 +32,7 @@ use u8_map::U8Map;
 // so to avoid confusion we only publicly export all scale-info types from that
 // one place.
 type TypeDefVariant = scale_info::TypeDefVariant<PortableForm>;
-type SignedExtensionMetadata = frame_metadata::SignedExtensionMetadata<PortableForm>;
+type SignedExtensionMetadata = frame_metadata::v14::SignedExtensionMetadata<PortableForm>;
 type StorageEntryMetadata = frame_metadata::v14::StorageEntryMetadata<scale_info::form::PortableForm>;
 
 /// An enum of the possible errors that can be returned from attempting to construct
@@ -42,7 +42,7 @@ pub enum MetadataError {
 	#[error("metadata version {0} is not supported")]
 	UnsupportedVersion(u32),
 	#[error("{0}")]
-	CodecError(#[from] codec::Error),
+	CodecError(#[from] parity_scale_codec::Error),
 	#[error("unexpected type; expecting a Variant type, but got {got}")]
 	ExpectedVariantType { got: String },
 	#[error("could not find type with ID {0}")]
@@ -145,7 +145,7 @@ impl Metadata {
 			p.calls.as_ref().and_then(|calls| {
 				let type_def_variant = self.get_variant(calls.calls_type_id)?;
 				let index = *calls.call_variant_indexes.get(call)?;
-				let variant = type_def_variant.variants().get(index)?;
+				let variant = type_def_variant.variants.get(index)?;
 				Some((&*p.name, variant))
 			})
 		})
@@ -153,7 +153,7 @@ impl Metadata {
 
 	/// A helper function to get hold of a Variant given a type ID, or None if it's not found.
 	fn get_variant(&self, ty: ScaleInfoTypeId) -> Option<&TypeDefVariant> {
-		self.types.resolve(ty.id()).and_then(|ty| match ty.type_def() {
+		self.types.resolve(ty.id).and_then(|ty| match &ty.type_def {
 			scale_info::TypeDef::Variant(variant) => Some(variant),
 			_ => None,
 		})

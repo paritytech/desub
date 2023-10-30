@@ -192,12 +192,12 @@ impl StorageDecoder {
 fn storage_map_key_to_type_id_vec(metadata: &Metadata, key: &ScaleInfoTypeId) -> Vec<TypeId> {
 	let ty = match metadata.resolve(key) {
 		Some(ty) => ty,
-		None => panic!("Metadata inconsistency: type #{} not found", key.id()),
+		None => panic!("Metadata inconsistency: type #{} not found", key.id),
 	};
 
-	match ty.type_def() {
+	match &ty.type_def {
 		// Multiple keys:
-		scale_info::TypeDef::Tuple(vals) => vals.fields().iter().map(|f| TypeId::from_u32(f.id())).collect(),
+		scale_info::TypeDef::Tuple(vals) => vals.fields.iter().map(|f| TypeId::from_u32(f.id)).collect(),
 		// Single key:
 		_ => vec![key.into()],
 	}

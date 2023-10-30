@@ -38,7 +38,7 @@ pub type Address = MultiAddress<AccountId32, u32>;
 /// Remove when/if the real pallet_democracy is published.
 pub mod pallet_democracy {
 	use sp_runtime::RuntimeDebug;
-	use codec::{Decode, Input};
+	use parity_scale_codec::{Decode, Input};
 	/// Static copy of https://docs.substrate.io/rustdocs/latest/pallet_democracy/struct.Vote.html
 	#[derive(Copy, Clone, Eq, PartialEq, Default, RuntimeDebug)]
 	pub struct Vote {
@@ -47,12 +47,12 @@ pub mod pallet_democracy {
 	}
 
 	impl Decode for Vote {
-		fn decode<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
+		fn decode<I: Input>(input: &mut I) -> Result<Self, parity_scale_codec::Error> {
 			let b = input.read_byte()?;
 			Ok(Vote {
 				aye: (b & 0b1000_0000) == 0b1000_0000,
 				conviction: Conviction::try_from(b & 0b0111_1111)
-					.map_err(|_| codec::Error::from("Invalid conviction"))?,
+					.map_err(|_| parity_scale_codec::Error::from("Invalid conviction"))?,
 			})
 		}
 	}
@@ -129,7 +129,7 @@ pub enum SubstrateType {
 	H256(sp_core::H256),
 
 	/// BitVec type
-	BitVec(bitvec::vec::BitVec<BitOrderLsb0, u8>),
+	BitVec(bitvec::vec::BitVec<u8, BitOrderLsb0>),
 
 	/// Recursive Call Type
 	Call(Vec<(String, SubstrateType)>),

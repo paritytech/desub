@@ -21,7 +21,7 @@
 //!  - `Data` has a special way of encoding/decoding
 //! Data impl is copied over and must be maintaned against substrate master.
 
-use codec::{Decode, Encode};
+use parity_scale_codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use std::iter::once;
 
@@ -50,7 +50,7 @@ pub enum Data {
 }
 
 impl Decode for Data {
-	fn decode<I: codec::Input>(input: &mut I) -> Result<Self, codec::Error> {
+	fn decode<I: parity_scale_codec::Input>(input: &mut I) -> Result<Self, parity_scale_codec::Error> {
 		let b = input.read_byte()?;
 		Ok(match b {
 			0 => Data::None,
@@ -63,7 +63,7 @@ impl Decode for Data {
 			35 => Data::Sha256(<[u8; 32]>::decode(input)?),
 			36 => Data::Keccak256(<[u8; 32]>::decode(input)?),
 			37 => Data::ShaThree256(<[u8; 32]>::decode(input)?),
-			_ => return Err(codec::Error::from("invalid leading byte")),
+			_ => return Err(parity_scale_codec::Error::from("invalid leading byte")),
 		})
 	}
 }
@@ -85,7 +85,7 @@ impl Encode for Data {
 		}
 	}
 }
-impl codec::EncodeLike for Data {}
+impl parity_scale_codec::EncodeLike for Data {}
 
 impl Default for Data {
 	fn default() -> Self {

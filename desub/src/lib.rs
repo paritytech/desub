@@ -19,7 +19,7 @@
 #[deny(unused)]
 mod error;
 
-use codec::Decode;
+use parity_scale_codec::Decode;
 use desub_current::{
 	decoder::{self, Extrinsic},
 	Metadata as DesubMetadata,

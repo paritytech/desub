@@ -16,7 +16,7 @@
 
 use super::u8_map::U8Map;
 use super::{Metadata, MetadataCalls, MetadataError, MetadataExtrinsic, MetadataPalletCalls, MetadataPalletStorage};
-use frame_metadata::RuntimeMetadataV14;
+use frame_metadata::v14::RuntimeMetadataV14;
 
 /// Decode V14 metadata into our general Metadata struct
 pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, MetadataError> {
@@ -37,11 +37,11 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, MetadataError> {
 				// Get the type representing the variant of available calls:
 				let calls_type_id = call_md.ty;
 				let calls_type = registry
-					.resolve(calls_type_id.id())
-					.ok_or_else(|| MetadataError::TypeNotFound(calls_type_id.id()))?;
+					.resolve(calls_type_id.id)
+					.ok_or_else(|| MetadataError::TypeNotFound(calls_type_id.id))?;
 
 				// Expect that type to be a variant:
-				let calls_type_def = calls_type.type_def();
+				let calls_type_def = &calls_type.type_def;
 				let calls_variant = match calls_type_def {
 					scale_info::TypeDef::Variant(variant) => variant,
 					_ => {
@@ -51,7 +51,7 @@ pub fn decode(meta: RuntimeMetadataV14) -> Result<Metadata, MetadataError> {
 
 				// Store the mapping from u8 index to variant slice index for quicker decode lookup:
 				let call_variant_indexes =
-					calls_variant.variants().iter().enumerate().map(|(idx, v)| (v.index(), idx)).collect();
+					calls_variant.variants.iter().enumerate().map(|(idx, v)| (v.index, idx)).collect();
 
 				Ok(MetadataCalls { calls_type_id, call_variant_indexes })
 			})

@@ -85,7 +85,7 @@ fn balance_transfer_signed() {
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.call_data.pallet_name, "Balances");
-	assert_eq!(&*ext.call_data.ty.name(), "transfer");
+	assert_eq!(&*ext.call_data.ty.name, "transfer");
 	assert_eq!(ext.call_data.arguments.len(), 2);
 	assert_eq!(ext.call_data.arguments[1].clone().without_context(), Value::u128(12345));
 }
@@ -100,7 +100,7 @@ fn balance_transfer_all_signed() {
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.call_data.pallet_name, "Balances");
-	assert_eq!(&*ext.call_data.ty.name(), "transfer_all");
+	assert_eq!(&*ext.call_data.ty.name, "transfer_all");
 	assert_eq!(ext.call_data.arguments.len(), 2);
 	assert_eq!(ext.call_data.arguments[1].clone().without_context(), Value::bool(false));
 }
@@ -118,7 +118,7 @@ fn auctions_bid_unsigned() {
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.call_data.pallet_name, "Auctions");
-	assert_eq!(&*ext.call_data.ty.name(), "bid");
+	assert_eq!(&*ext.call_data.ty.name, "bid");
 	assert_eq!(ext.call_data.arguments.len(), 5);
 
 	assert_args_equal(
@@ -152,7 +152,7 @@ fn system_fill_block_unsigned() {
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.call_data.pallet_name, "System");
-	assert_eq!(&*ext.call_data.ty.name(), "fill_block");
+	assert_eq!(&*ext.call_data.ty.name, "fill_block");
 	assert_eq!(ext.call_data.arguments.len(), 1);
 
 	assert_args_equal(&ext.call_data.arguments, vec![singleton_value(Value::u32(1234))]);
@@ -171,7 +171,7 @@ fn technical_committee_execute_unsigned() {
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.call_data.pallet_name, "TechnicalCommittee");
-	assert_eq!(&*ext.call_data.ty.name(), "execute");
+	assert_eq!(&*ext.call_data.ty.name, "execute");
 	assert_eq!(ext.call_data.arguments.len(), 2);
 
 	// It's a bit hard matching the entire thing, so we just verify that the first arg looks like
@@ -197,7 +197,7 @@ fn tips_report_awesome_unsigned() {
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.call_data.pallet_name, "Tips");
-	assert_eq!(&*ext.call_data.ty.name(), "report_awesome");
+	assert_eq!(&*ext.call_data.ty.name, "report_awesome");
 	assert_eq!(ext.call_data.arguments.len(), 2);
 
 	assert_eq!(
@@ -217,7 +217,7 @@ fn vesting_force_vested_transfer_unsigned() {
 
 	assert!(ext_bytes.is_empty(), "No more bytes expected");
 	assert_eq!(ext.call_data.pallet_name, "Vesting");
-	assert_eq!(&*ext.call_data.ty.name(), "force_vested_transfer");
+	assert_eq!(&*ext.call_data.ty.name, "force_vested_transfer");
 	assert_eq!(ext.call_data.arguments.len(), 3);
 
 	assert_eq!(
@@ -258,7 +258,7 @@ fn can_decode_signer_payload() {
 
 	assert_eq!(signer_payload.len(), 0);
 	assert_eq!(r.call_data.pallet_name, "Staking");
-	assert_eq!(&*r.call_data.ty.name(), "chill");
+	assert_eq!(&*r.call_data.ty.name, "chill");
 	assert_eq!(r.call_data.arguments, vec![]);
 
 	// Expected tuples of name, extension, additional.
