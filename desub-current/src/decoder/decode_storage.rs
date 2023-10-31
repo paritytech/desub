@@ -23,7 +23,7 @@ struct StorageEntries {
 	entry_by_hashed_name: HashMap<[u8; 16], usize>,
 }
 
-#[derive(thiserror::Error, Debug, Clone, PartialEq)]
+#[derive(thiserror::Error, Debug)]
 pub enum StorageDecodeError {
 	#[error("Not enough bytes in the input data to decode the storage prefix and name; got {0} bytes but expected 32")]
 	NotEnoughBytesForPrefixAndName(usize),
@@ -87,7 +87,7 @@ impl StorageDecoder {
 				Ok(StorageEntry {
 					prefix: prefix_str.into(),
 					name: name_str.into(),
-					ty: ty.into(),
+					ty: ty.id,
 					details: StorageEntryType::Plain,
 				})
 			}
@@ -155,7 +155,7 @@ impl StorageDecoder {
 				Ok(StorageEntry {
 					prefix: prefix_str.into(),
 					name: name_str.into(),
-					ty: value.into(),
+					ty: value.id,
 					details: StorageEntryType::Map(storage_keys),
 				})
 			}
@@ -190,16 +190,17 @@ impl StorageDecoder {
 // See https://github.com/paritytech/subxt/blob/793c945fbd2de022f523c39a84ee02609ba423a9/codegen/src/api/storage.rs#L105
 // for another example of this being handled in code.
 fn storage_map_key_to_type_id_vec(metadata: &Metadata, key: &ScaleInfoTypeId) -> Vec<TypeId> {
-	let ty = match metadata.resolve(key) {
+	let ty_id = key.id;
+	let ty = match metadata.resolve(ty_id) {
 		Some(ty) => ty,
-		None => panic!("Metadata inconsistency: type #{} not found", key.id),
+		None => panic!("Metadata inconsistency: type #{} not found", ty_id),
 	};
 
 	match &ty.type_def {
 		// Multiple keys:
-		scale_info::TypeDef::Tuple(vals) => vals.fields.iter().map(|f| TypeId::from_u32(f.id)).collect(),
+		scale_info::TypeDef::Tuple(vals) => vals.fields.iter().map(|f| f.id).collect(),
 		// Single key:
-		_ => vec![key.into()],
+		_ => vec![ty_id],
 	}
 }
 

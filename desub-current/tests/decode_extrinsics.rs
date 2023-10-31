@@ -16,8 +16,9 @@
 
 use desub_current::{
 	decoder::{self, SignedExtensionWithAdditional},
-	value, Metadata, Value, ValueDef,
+	Metadata, Value, ValueDef
 };
+use scale_value::{Composite, Variant};
 
 static V14_METADATA_POLKADOT_SCALE: &[u8] = include_bytes!("data/v14_metadata_polkadot.scale");
 
@@ -39,11 +40,11 @@ fn singleton_value(x: Value<()>) -> Value<()> {
 }
 
 fn hash_value(xs: Vec<u8>) -> Value<()> {
-	singleton_value(Value::unnamed_composite(xs.iter().map(|x| Value::u8(*x)).collect()))
+	singleton_value(Value::from_bytes(&xs))
 }
 
 fn assert_args_equal<T: Clone>(args: &[Value<T>], expected: Vec<Value<()>>) {
-	let args: Vec<_> = args.into_iter().map(|v| v.clone().without_context()).collect();
+	let args: Vec<_> = args.into_iter().map(|v| v.clone().remove_context()).collect();
 	assert_eq!(&args, &expected);
 }
 
@@ -87,7 +88,7 @@ fn balance_transfer_signed() {
 	assert_eq!(ext.call_data.pallet_name, "Balances");
 	assert_eq!(&*ext.call_data.ty.name, "transfer");
 	assert_eq!(ext.call_data.arguments.len(), 2);
-	assert_eq!(ext.call_data.arguments[1].clone().without_context(), Value::u128(12345));
+	assert_eq!(ext.call_data.arguments[1].clone().remove_context(), Value::u128(12345));
 }
 
 #[test]
@@ -102,7 +103,7 @@ fn balance_transfer_all_signed() {
 	assert_eq!(ext.call_data.pallet_name, "Balances");
 	assert_eq!(&*ext.call_data.ty.name, "transfer_all");
 	assert_eq!(ext.call_data.arguments.len(), 2);
-	assert_eq!(ext.call_data.arguments[1].clone().without_context(), Value::bool(false));
+	assert_eq!(ext.call_data.arguments[1].clone().remove_context(), Value::bool(false));
 }
 
 /// This test is interesting because:
@@ -123,7 +124,7 @@ fn auctions_bid_unsigned() {
 
 	assert_args_equal(
 		&ext.call_data.arguments,
-		vec![singleton_value(Value::u32(1)), Value::u32(2), Value::u32(3), Value::u32(4), Value::u128(5)],
+		vec![singleton_value(Value::u128(1)), Value::u128(2), Value::u128(3), Value::u128(4), Value::u128(5)],
 	);
 }
 
@@ -155,7 +156,7 @@ fn system_fill_block_unsigned() {
 	assert_eq!(&*ext.call_data.ty.name, "fill_block");
 	assert_eq!(ext.call_data.arguments.len(), 1);
 
-	assert_args_equal(&ext.call_data.arguments, vec![singleton_value(Value::u32(1234))]);
+	assert_args_equal(&ext.call_data.arguments, vec![singleton_value(Value::u128(1234))]);
 }
 
 /// This test is interesting because you provide a nested enum representing a call
@@ -177,14 +178,14 @@ fn technical_committee_execute_unsigned() {
 	// It's a bit hard matching the entire thing, so we just verify that the first arg looks like
 	// a variant representing a call to "Balances.transfer".
 	assert!(matches!(&ext.call_data.arguments[0],
-		Value { value: ValueDef::Variant(value::Variant {
+		Value { value: ValueDef::Variant(Variant {
 			name,
-			values: value::Composite::Unnamed(args)
+			values: Composite::Unnamed(args)
 		}), .. }
 		if &*name == "Balances"
-		&& matches!(&args[0], Value { value: ValueDef::Variant(value::Variant { name, ..}), .. } if &*name == "transfer")
+		&& matches!(&args[0], Value { value: ValueDef::Variant(Variant { name, ..}), .. } if &*name == "transfer")
 	));
-	assert_eq!(ext.call_data.arguments[1].clone().without_context(), Value::u32(500));
+	assert_eq!(ext.call_data.arguments[1].clone().remove_context(), Value::u128(500));
 }
 
 #[test]
@@ -201,8 +202,8 @@ fn tips_report_awesome_unsigned() {
 	assert_eq!(ext.call_data.arguments.len(), 2);
 
 	assert_eq!(
-		ext.call_data.arguments[0].clone().without_context(),
-		Value::unnamed_composite("This person rocks!".bytes().map(Value::u8).collect())
+		ext.call_data.arguments[0].clone().remove_context(),
+		Value::from_bytes("This person rocks!")
 	);
 }
 
@@ -221,11 +222,11 @@ fn vesting_force_vested_transfer_unsigned() {
 	assert_eq!(ext.call_data.arguments.len(), 3);
 
 	assert_eq!(
-		ext.call_data.arguments[2].clone().without_context(),
+		ext.call_data.arguments[2].clone().remove_context(),
 		Value::named_composite(vec![
-			("locked".into(), Value::u128(1)),
-			("per_block".into(), Value::u128(2)),
-			("starting_block".into(), Value::u32(3)),
+			("locked", Value::u128(1)),
+			("per_block", Value::u128(2)),
+			("starting_block", Value::u128(3)),
 		])
 	);
 }
@@ -263,8 +264,8 @@ fn can_decode_signer_payload() {
 
 	// Expected tuples of name, extension, additional.
 	let expected = vec![
-		("CheckSpecVersion", empty_value(), Value::u32(9110)),
-		("CheckTxVersion", empty_value(), Value::u32(8)),
+		("CheckSpecVersion", empty_value(), Value::u128(9110)),
+		("CheckTxVersion", empty_value(), Value::u128(8)),
 		(
 			"CheckGenesis",
 			empty_value(),
@@ -272,10 +273,10 @@ fn can_decode_signer_payload() {
 		),
 		(
 			"CheckMortality",
-			singleton_value(Value::variant("Mortal185".to_string(), value::Composite::Unnamed(vec![Value::u8(52)]))),
+			singleton_value(Value::variant("Mortal185", Composite::Unnamed(vec![Value::u128(52)]))),
 			hash_value(to_bytes("0x1c81d421f68281950ad2901291603b5e49fc5c872f129e75433f4b55f07ca072")),
 		),
-		("CheckNonce", singleton_value(Value::u32(0)), empty_value()),
+		("CheckNonce", singleton_value(Value::u128(0)), empty_value()),
 		("CheckWeight", empty_value(), empty_value()),
 		("ChargeTransactionPayment", singleton_value(Value::u128(0)), empty_value()),
 		("PrevalidateAttests", empty_value(), empty_value()),
@@ -286,7 +287,7 @@ fn can_decode_signer_payload() {
 		let (expected_name, expected_extension, expected_additional) = expected;
 
 		assert_eq!(&*name, expected_name);
-		assert_eq!(extension.without_context(), expected_extension);
-		assert_eq!(additional.without_context(), expected_additional);
+		assert_eq!(extension.remove_context(), expected_extension);
+		assert_eq!(additional.remove_context(), expected_additional);
 	}
 }

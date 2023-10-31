@@ -106,7 +106,7 @@ impl Metadata {
 
 	/// Given a [`crate::TypeId`], return the corresponding type from the type registry, if possible.
 	pub fn resolve<Id: Into<TypeId>>(&self, id: Id) -> Option<&Type> {
-		self.types.resolve(id.into().id())
+		self.types.resolve(id.into())
 	}
 
 	/// Return a reference to the [`scale_info`] type registry.

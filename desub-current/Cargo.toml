@@ -23,6 +23,8 @@ derive_more = "0.99.16"
 scale-info = { workspace = true, features = ["bit-vec", "derive"] }
 bitvec = { workspace = true, features = ["serde", "alloc"] }
 desub-common = { version = "0.1.0", path = "../desub-common" }
+scale-value = { workspace = true }
+scale-decode = { workspace = true }
 
 sp-core = { workspace = true }
 sp-runtime = { workspace = true }
