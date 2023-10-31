@@ -12,7 +12,7 @@ rust-version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serde = { version = "1", features = [ "derive" ] }
+serde = { workspace = true, features = [ "derive" ] }
 
 sp-runtime = { workspace = true }
 sp-core = { workspace = true }

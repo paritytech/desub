@@ -23,17 +23,36 @@ rust-version = "1.70.0"
 edition = "2021"
 
 [workspace.dependencies]
+anyhow = "1"
 parity-scale-codec = "3.6.5"
 scale-info = "2.10.0"
 scale-value = "0.12.0"
 scale-decode = "0.9"
 frame-metadata = "16"
 bitvec = "1"
+serde = "1"
+serde_json = "1"
+derive_more = "0.99"
+thiserror = "1"
+hex = "0.4"
+log = "0.4"
+pretty_env_logger = "0.4"
+paste = "1.0.3"
+dyn-clone = "1.0"
+onig = { version = "6", default-features = false }
+phf = "0.11"
+syn = "2"
+clap = "4.4.7"
 
 sp-core = "24.0.0"
 sp-runtime = "27.0.0"
 sp-version = "25.0.0"
 sp-keyring = "27.0.0"
-
 pallet-balances = "24.0.0"
 frame-system = "24.0.0"
+
+desub = { version = "0.1.0", default-features = false, path = "./desub" }
+desub-common = { version = "0.1.0", default-features = false, path = "./desub-common" }
+desub-current = { version = "0.1.0", default-features = false, path = "./desub-current" }
+desub-json-resolver = { version = "0.1.0", default-features = false, path = "./desub-json-resolver" }
+desub-legacy = { version = "0.1.0", default-features = false, path = "./desub-legacy" }

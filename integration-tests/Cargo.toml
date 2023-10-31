@@ -12,17 +12,17 @@ autotests = false
 publish = false
 
 [dev-dependencies]
-desub-legacy = { path = "../desub-legacy" }
-desub-json-resolver = { path = "../desub-json-resolver" }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = { version = "1.0", features = ["preserve_order"] }
+desub-legacy = { workspace = true }
+desub-json-resolver = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["preserve_order"] }
 parity-scale-codec = { workspace = true }
 pallet-balances = { workspace = true }
-pretty_env_logger = "0.4"
-log = "0.4"
-hex = "0.4"
-paste = "1.0.3"
-anyhow = "1"
+pretty_env_logger = { workspace = true }
+log = { workspace = true }
+hex = { workspace = true }
+paste = { workspace = true }
+anyhow = { workspace = true }
 frame-system = { workspace = true }
 sp-core = { workspace = true }
 

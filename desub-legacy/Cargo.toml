@@ -10,24 +10,22 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-log = "0.4"
-thiserror = "1.0.30"
+log = { workspace = true }
+thiserror = { workspace = true }
 parity-scale-codec = { workspace = true, features = ["bit-vec"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1", features = ["preserve_order"] }
-onig = { version = "6", default-features = false }
-derive_more = "0.99.3"
-dyn-clone = "1.0"
-hex = "0.4"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["preserve_order"] }
+onig = { workspace = true, default-features = false }
+derive_more = { workspace = true }
+dyn-clone = { workspace = true }
+hex = { workspace = true }
 bitvec = { workspace = true, features = ["serde", "alloc"] }
 frame-metadata = { workspace = true, features = ["legacy"] }
-
-desub-common = { version = "0.1.0", path = "../desub-common/" }
+desub-common = { workspace = true }
 
 sp-core = { workspace = true }
 sp-runtime = { workspace = true }
 
 [dev-dependencies]
 sp-version = { workspace = true }
-pretty_env_logger = "0.4"
-hex = "0.4"
+pretty_env_logger = { workspace = true }

@@ -12,17 +12,17 @@ rust-version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-log = "0.4"
-thiserror = "1.0.30"
+log = { workspace = true }
+thiserror = { workspace = true }
 frame-metadata = { workspace = true, features = ["std", "scale-info"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1", features = ["preserve_order"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["preserve_order"] }
 parity-scale-codec = { workspace = true, features = ["bit-vec"] }
-hex = "0.4.3"
-derive_more = "0.99.16"
+hex = { workspace = true }
+derive_more = { workspace = true }
 scale-info = { workspace = true, features = ["bit-vec", "derive"] }
 bitvec = { workspace = true, features = ["serde", "alloc"] }
-desub-common = { version = "0.1.0", path = "../desub-common" }
+desub-common = { workspace = true }
 scale-value = { workspace = true }
 scale-decode = { workspace = true }
 
@@ -30,5 +30,4 @@ sp-core = { workspace = true }
 sp-runtime = { workspace = true }
 
 [dev-dependencies]
-serde_json = "1"
 sp-keyring = { workspace = true }
