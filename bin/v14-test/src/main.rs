@@ -1,6 +1,6 @@
+use clap::Parser;
 use desub_current::{decoder, Metadata};
 use std::path::PathBuf;
-use clap::Parser;
 
 #[derive(Debug, Parser)]
 struct Opts {
