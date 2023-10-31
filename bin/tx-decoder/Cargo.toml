@@ -18,6 +18,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 log = { workspace = true }
 
+# These are only used here, so aren't part of the workspace deps (this binary might go away):
 async-std = { version = "1.10.0", features = [ "attributes" ] }
 async-stream = "0.3.2"
 sqlx = { version = "0.5", features = [ "runtime-async-std-rustls", "postgres", "offline" ]}
