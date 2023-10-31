@@ -27,10 +27,10 @@ mod extrinsic_bytes;
 
 use crate::metadata::Metadata;
 use crate::TypeId;
+use extrinsic_bytes::{AllExtrinsicBytes, ExtrinsicBytesError};
+use parity_scale_codec::{Compact, Decode};
 use scale_decode::DecodeAsType;
 use scale_value::Value;
-use parity_scale_codec::{Compact, Decode};
-use extrinsic_bytes::{AllExtrinsicBytes, ExtrinsicBytesError};
 use serde::Serialize;
 use sp_runtime::{AccountId32, MultiAddress, MultiSignature};
 use std::borrow::Cow;
@@ -67,8 +67,8 @@ pub enum DecodeError {
 
 /// Decode a single [`Value`] from a piece of scale encoded data, given some metadata and the ID of the type that we
 /// are expecting it to decode into.
-pub fn decode_value_by_id<'a, Id: Into<TypeId>>(
-	metadata: &'a Metadata,
+pub fn decode_value_by_id<Id: Into<TypeId>>(
+	metadata: &Metadata,
 	ty: Id,
 	data: &mut &[u8],
 ) -> Result<Value<TypeId>, DecodeValueError> {
@@ -158,7 +158,7 @@ pub fn decode_extrinsics<'a>(
 	metadata: &'a Metadata,
 	data: &mut &[u8],
 ) -> Result<Vec<Extrinsic<'a>>, (Vec<Extrinsic<'a>>, DecodeError)> {
-	let extrinsic_bytes = AllExtrinsicBytes::new(*data).map_err(|e| (Vec::new(), e.into()))?;
+	let extrinsic_bytes = AllExtrinsicBytes::new(data).map_err(|e| (Vec::new(), e.into()))?;
 
 	log::trace!("Decoding {} Total Extrinsics.", extrinsic_bytes.len());
 

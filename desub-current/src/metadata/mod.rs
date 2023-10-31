@@ -22,8 +22,8 @@ mod u8_map;
 mod version_14;
 
 use crate::{ScaleInfoTypeId, Type, TypeId};
-use parity_scale_codec::Decode;
 use frame_metadata::{RuntimeMetadata, RuntimeMetadataPrefixed};
+use parity_scale_codec::Decode;
 use readonly_array::ReadonlyArray;
 use scale_info::{form::PortableForm, PortableRegistry};
 use u8_map::U8Map;

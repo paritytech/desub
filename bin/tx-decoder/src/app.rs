@@ -105,13 +105,13 @@ impl<'a> AppState<'a> {
 		let upgrade_block = get_upgrade_block(&self.app.network, version.try_into()?);
 		let mut len = 0;
 		let mut error_count = 0;
-		let decoder = self.decoder.read();
 		while let Some(Ok(block)) = blocks.next().await {
 			let version = if upgrade_block == Some(block.block_num.try_into()?) && upgrade_block != Some(0) {
 				previous.expect("Upgrade block must have previous version; qed")
 			} else {
 				version
 			};
+			let decoder = self.decoder.read();
 			if Self::decode(&decoder, block, version.try_into()?, errors).is_err() {
 				error_count += 1;
 			}
@@ -142,16 +142,15 @@ impl<'a> AppState<'a> {
 	/// returns the previous spec version.
 	async fn register_metadata(&self, conn: &mut PgConnection, version: SpecVersion) -> Result<Option<u32>, Error> {
 		let (past, present) = past_and_present_version(conn, version.try_into()?).await?;
-		let mut decoder = self.decoder.write();
-		if !decoder.has_version(&present) {
+		if !self.decoder.read().has_version(&present) {
 			let meta = metadata(conn, present.try_into()?).await?;
-			decoder.register_version(present, &meta)?;
+			self.decoder.write().register_version(present, &meta)?;
 		}
 
 		if let Some(p) = past {
-			if !decoder.has_version(&p) {
+			if !self.decoder.read().has_version(&p) {
 				let meta = metadata(conn, p.try_into()?).await?;
-				decoder.register_version(p, &meta)?;
+				self.decoder.write().register_version(p, &meta)?;
 			}
 		}
 		Ok(past)

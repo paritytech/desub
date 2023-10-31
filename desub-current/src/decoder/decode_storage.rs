@@ -268,7 +268,7 @@ pub struct StorageMapKey<'b> {
 	pub hasher: StorageHasher,
 }
 
-impl<'m, 'b> StorageMapKey<'b> {
+impl<'b> StorageMapKey<'b> {
 	pub fn into_owned(self) -> StorageMapKey<'static> {
 		StorageMapKey { bytes: Cow::Owned(self.bytes.into_owned()), ty: self.ty, hasher: self.hasher }
 	}

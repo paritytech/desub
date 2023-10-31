@@ -26,6 +26,6 @@ pub fn mock_runtime(num: u32) -> RuntimeVersion {
 		impl_version: num,
 		apis: Cow::from(Vec::new()),
 		transaction_version: 24,
-		state_version: 0
+		state_version: 0,
 	}
 }

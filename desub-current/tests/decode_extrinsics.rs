@@ -16,7 +16,7 @@
 
 use desub_current::{
 	decoder::{self, SignedExtensionWithAdditional},
-	Metadata, Value, ValueDef
+	Metadata, Value, ValueDef,
 };
 use scale_value::{Composite, Variant};
 
@@ -40,11 +40,11 @@ fn singleton_value(x: Value<()>) -> Value<()> {
 }
 
 fn hash_value(xs: Vec<u8>) -> Value<()> {
-	singleton_value(Value::from_bytes(&xs))
+	singleton_value(Value::from_bytes(xs))
 }
 
 fn assert_args_equal<T: Clone>(args: &[Value<T>], expected: Vec<Value<()>>) {
-	let args: Vec<_> = args.into_iter().map(|v| v.clone().remove_context()).collect();
+	let args: Vec<_> = args.iter().map(|v| v.clone().remove_context()).collect();
 	assert_eq!(&args, &expected);
 }
 
@@ -182,8 +182,8 @@ fn technical_committee_execute_unsigned() {
 			name,
 			values: Composite::Unnamed(args)
 		}), .. }
-		if &*name == "Balances"
-		&& matches!(&args[0], Value { value: ValueDef::Variant(Variant { name, ..}), .. } if &*name == "transfer")
+		if name == "Balances"
+		&& matches!(&args[0], Value { value: ValueDef::Variant(Variant { name, ..}), .. } if name == "transfer")
 	));
 	assert_eq!(ext.call_data.arguments[1].clone().remove_context(), Value::u128(500));
 }
@@ -201,10 +201,7 @@ fn tips_report_awesome_unsigned() {
 	assert_eq!(&*ext.call_data.ty.name, "report_awesome");
 	assert_eq!(ext.call_data.arguments.len(), 2);
 
-	assert_eq!(
-		ext.call_data.arguments[0].clone().remove_context(),
-		Value::from_bytes("This person rocks!")
-	);
+	assert_eq!(ext.call_data.arguments[0].clone().remove_context(), Value::from_bytes("This person rocks!"));
 }
 
 // Named structs shouldn't be an issue; this extrinsic contains one.

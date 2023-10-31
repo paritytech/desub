@@ -14,11 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use parity_scale_codec::Encode;
 use desub_current::{
 	decoder::{self, StorageHasher},
 	Metadata, Value,
 };
+use parity_scale_codec::Encode;
 
 static V14_METADATA_POLKADOT_SCALE: &[u8] = include_bytes!("data/v14_metadata_polkadot.scale");
 
@@ -141,7 +141,7 @@ fn balances_account() {
 	let keys = entry.details.map_keys();
 
 	let bobs_accountid = sp_keyring::AccountKeyring::Bob.to_account_id();
-	let bobs_value = account_id_to_value(&bobs_accountid);
+	let bobs_value = account_id_to_value(bobs_accountid);
 
 	assert_eq!(keys.len(), 1);
 	assert_hasher_eq!(keys[0].hasher, StorageHasher::Blake2_128Concat, bobs_value);
@@ -164,7 +164,7 @@ fn imonline_authoredblocks() {
 	let keys = entry.details.map_keys();
 
 	let bobs_accountid = sp_keyring::AccountKeyring::Bob.to_account_id();
-	let bobs_value = account_id_to_value(&bobs_accountid);
+	let bobs_value = account_id_to_value(bobs_accountid);
 
 	// Because the hashers are Twox64Concat, we can check the keys we provided:
 	assert_eq!(keys.len(), 2);
