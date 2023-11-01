@@ -1,31 +1,33 @@
 [package]
 name = "desub-current"
-version = "0.1.0"
-authors = ["Parity Technologies <admin@parity.io>"]
-license = "GPL-3.0"
-homepage = "https://substrate.dev"
-repository = "https://github.com/paritytech/desub/"
-description = "Decode Substrate with Backwards-Compatible Metadata"
-edition = "2021"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+description.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-log = "0.4"
-thiserror = "1.0.30"
-frame-metadata = { version = "14.2", features = ["v14", "std", "scale-info"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1", features = ["preserve_order"] }
-codec = { version = "2", package = "parity-scale-codec", features = ["bit-vec"] }
-hex = "0.4.3"
-derive_more = "0.99.16"
-scale-info = { version = "1.0.0", features = ["bit-vec", "derive"] }
-bitvec = { version = "0.20.2", features = ["serde", "alloc"] }
-desub-common = { version = "0.1.0", path = "../desub-common" }
+log = { workspace = true }
+thiserror = { workspace = true }
+frame-metadata = { workspace = true, features = ["std", "scale-info"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["preserve_order"] }
+parity-scale-codec = { workspace = true, features = ["bit-vec"] }
+hex = { workspace = true }
+derive_more = { workspace = true }
+scale-info = { workspace = true, features = ["bit-vec", "derive"] }
+bitvec = { workspace = true, features = ["serde", "alloc"] }
+desub-common = { workspace = true }
+scale-value = { workspace = true }
+scale-decode = { workspace = true }
 
-sp-core = "4.0.0"
-sp-runtime = "4.0.0"
+sp-core = { workspace = true }
+sp-runtime = { workspace = true }
 
 [dev-dependencies]
-serde_json = "1"
-sp_keyring = { package = "sp-keyring",  git = "https://github.com/paritytech/substrate", tag = "monthly-2021-12" }
+sp-keyring = { workspace = true }

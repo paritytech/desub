@@ -49,7 +49,7 @@ impl Modules {
 
 	/// Iterate over all the types in each module
 	pub fn iter_types(&self) -> impl Iterator<Item = (&String, &RustTypeMarker)> {
-		self.modules.values().map(|v| v.types.iter()).flatten()
+		self.modules.values().flat_map(|v| v.types.iter())
 	}
 }
 
@@ -75,8 +75,8 @@ impl ModuleTypes {
 	pub fn merge(&self, other: &ModuleTypes) -> ModuleTypes {
 		let (mut types, mut fallbacks) = (self.types.clone(), self.fallbacks.clone());
 		let other = other.clone();
-		types.extend(other.types.into_iter());
-		fallbacks.extend(other.fallbacks.into_iter());
+		types.extend(other.types);
+		fallbacks.extend(other.fallbacks);
 
 		ModuleTypes { types, fallbacks }
 	}

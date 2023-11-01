@@ -25,9 +25,9 @@ mod remote;
 use self::remote::*;
 use crate::{Error, SetField};
 use bitvec::order::Lsb0 as BitOrderLsb0;
+use serde::Serialize;
 use sp_core::crypto::{AccountId32, Ss58Codec};
 use sp_runtime::MultiAddress;
-use serde::Serialize;
 use std::{convert::TryFrom, fmt};
 
 pub use self::data::Data;
@@ -37,8 +37,8 @@ pub type Address = MultiAddress<AccountId32, u32>;
 /// Stripped down version of https://docs.substrate.io/rustdocs/latest/pallet_democracy
 /// Remove when/if the real pallet_democracy is published.
 pub mod pallet_democracy {
+	use parity_scale_codec::{Decode, Input};
 	use sp_runtime::RuntimeDebug;
-	use codec::{Decode, Input};
 	/// Static copy of https://docs.substrate.io/rustdocs/latest/pallet_democracy/struct.Vote.html
 	#[derive(Copy, Clone, Eq, PartialEq, Default, RuntimeDebug)]
 	pub struct Vote {
@@ -47,20 +47,21 @@ pub mod pallet_democracy {
 	}
 
 	impl Decode for Vote {
-		fn decode<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
+		fn decode<I: Input>(input: &mut I) -> Result<Self, parity_scale_codec::Error> {
 			let b = input.read_byte()?;
 			Ok(Vote {
 				aye: (b & 0b1000_0000) == 0b1000_0000,
 				conviction: Conviction::try_from(b & 0b0111_1111)
-					.map_err(|_| codec::Error::from("Invalid conviction"))?,
+					.map_err(|_| parity_scale_codec::Error::from("Invalid conviction"))?,
 			})
 		}
 	}
 
 	/// Static copy of https://docs.substrate.io/rustdocs/latest/pallet_democracy/enum.Conviction.html
-	#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, RuntimeDebug)]
+	#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, RuntimeDebug, Default)]
 	pub enum Conviction {
 		/// 0.1x votes, unlocked.
+		#[default]
 		None,
 		/// 1x votes, locked for an enactment period following a successful vote.
 		Locked1x,
@@ -74,12 +75,6 @@ pub mod pallet_democracy {
 		Locked5x,
 		/// 6x votes, locked for 32x...
 		Locked6x,
-	}
-
-	impl Default for Conviction {
-		fn default() -> Self {
-			Conviction::None
-		}
 	}
 
 	impl Conviction {
@@ -115,8 +110,6 @@ pub mod pallet_democracy {
 	}
 }
 
-
-
 /// A 'stateful' version of [RustTypeMarker](enum.RustTypeMarker.html).
 /// 'Std' variant is not here like in RustTypeMarker.
 /// Instead common types are just apart of the enum
@@ -129,7 +122,7 @@ pub enum SubstrateType {
 	H256(sp_core::H256),
 
 	/// BitVec type
-	BitVec(bitvec::vec::BitVec<BitOrderLsb0, u8>),
+	BitVec(bitvec::vec::BitVec<u8, BitOrderLsb0>),
 
 	/// Recursive Call Type
 	Call(Vec<(String, SubstrateType)>),

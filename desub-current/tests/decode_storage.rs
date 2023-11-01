@@ -14,11 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use codec::Encode;
 use desub_current::{
 	decoder::{self, StorageHasher},
 	Metadata, Value,
 };
+use parity_scale_codec::Encode;
 
 static V14_METADATA_POLKADOT_SCALE: &[u8] = include_bytes!("data/v14_metadata_polkadot.scale");
 
@@ -27,13 +27,13 @@ fn metadata() -> Metadata {
 }
 
 fn account_id_to_value<A: AsRef<[u8]>>(account_id_bytes: A) -> Value<()> {
-	Value::unnamed_composite(vec![Value::unnamed_composite(account_id_bytes.as_ref().iter().map(|&b| Value::u8(b)).collect())])
+	Value::unnamed_composite(vec![Value::from_bytes(account_id_bytes)])
 }
 
 macro_rules! assert_hasher_eq {
 	($actual:expr, $hasher:path, $value:expr) => {
 		if let $hasher(val) = &$actual {
-			assert_eq!(val.clone().without_context(), $value);
+			assert_eq!(val.clone().remove_context(), $value);
 		} else {
 			panic!("Passed {:?}, but expected hasher {}", $actual, stringify!($hasher));
 		}
@@ -64,8 +64,8 @@ fn timestamp_now() {
 
 	// We can decode values at this location, now:
 	let bytes = 123u64.encode();
-	let val = decoder::decode_value_by_id(&meta, &entry.ty, &mut &*bytes).unwrap();
-	assert_eq!(val.without_context(), Value::u64(123));
+	let val = decoder::decode_value_by_id(&meta, entry.ty, &mut &*bytes).unwrap();
+	assert_eq!(val.remove_context(), Value::u128(123));
 }
 
 // A simple map lookup with an Identity hash (ie just the key itself)
@@ -89,7 +89,7 @@ fn democracy_blacklist() {
 	assert_hasher_eq!(
 		keys[0].hasher,
 		StorageHasher::Identity,
-		Value::unnamed_composite(vec![Value::unnamed_composite(vec![Value::u8(1); 32])])
+		Value::unnamed_composite(vec![Value::unnamed_composite(vec![Value::u128(1); 32])])
 	);
 	assert!(matches!(keys[0].hasher, StorageHasher::Identity(..)));
 }
@@ -112,15 +112,15 @@ fn system_blockhash() {
 
 	// Because the hasher is Twox64Concat, we can even see the decoded original map key:
 	assert_eq!(keys.len(), 1);
-	assert_hasher_eq!(keys[0].hasher, StorageHasher::Twox64Concat, Value::u32(1000));
+	assert_hasher_eq!(keys[0].hasher, StorageHasher::Twox64Concat, Value::u128(1000));
 
 	// We can decode values at this location:
 	let bytes = [1u8; 32].encode();
-	let val = decoder::decode_value_by_id(&meta, &entry.ty, &mut &*bytes).unwrap();
+	let val = decoder::decode_value_by_id(&meta, entry.ty, &mut &*bytes).unwrap();
 	assert_eq!(
-		val.without_context(),
+		val.remove_context(),
 		// The Type appears to take the form of a newtype-wrapped [u8; 32]:
-		Value::unnamed_composite(vec![Value::unnamed_composite(vec![Value::u8(1); 32])])
+		Value::unnamed_composite(vec![Value::unnamed_composite(vec![Value::u128(1); 32])])
 	);
 }
 
@@ -141,7 +141,7 @@ fn balances_account() {
 	let keys = entry.details.map_keys();
 
 	let bobs_accountid = sp_keyring::AccountKeyring::Bob.to_account_id();
-	let bobs_value = account_id_to_value(&bobs_accountid);
+	let bobs_value = account_id_to_value(bobs_accountid);
 
 	assert_eq!(keys.len(), 1);
 	assert_hasher_eq!(keys[0].hasher, StorageHasher::Blake2_128Concat, bobs_value);
@@ -164,15 +164,15 @@ fn imonline_authoredblocks() {
 	let keys = entry.details.map_keys();
 
 	let bobs_accountid = sp_keyring::AccountKeyring::Bob.to_account_id();
-	let bobs_value = account_id_to_value(&bobs_accountid);
+	let bobs_value = account_id_to_value(bobs_accountid);
 
 	// Because the hashers are Twox64Concat, we can check the keys we provided:
 	assert_eq!(keys.len(), 2);
-	assert_hasher_eq!(keys[0].hasher, StorageHasher::Twox64Concat, Value::u32(1234));
+	assert_hasher_eq!(keys[0].hasher, StorageHasher::Twox64Concat, Value::u128(1234));
 	assert_hasher_eq!(keys[1].hasher, StorageHasher::Twox64Concat, bobs_value);
 
 	// We can decode values at this location:
 	let bytes = 5678u32.encode();
-	let val = decoder::decode_value_by_id(&meta, &entry.ty, &mut &*bytes).unwrap();
-	assert_eq!(val.without_context(), Value::u32(5678));
+	let val = decoder::decode_value_by_id(&meta, entry.ty, &mut &*bytes).unwrap();
+	assert_eq!(val.remove_context(), Value::u128(5678));
 }

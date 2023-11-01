@@ -1,32 +1,31 @@
 [package]
 name = "desub-legacy"
-version = "0.1.0"
-authors = ["Parity Technologies <admin@parity.io>"]
-license = "GPL-3.0"
-homepage = "https://substrate.dev"
-repository = "https://github.com/paritytech/desub/"
-description = "Decode Substrate with Backwards-Compatible Metadata"
-edition = "2021"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+description.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
 [dependencies]
-log = "0.4"
-thiserror = "1.0.30"
-codec = { version = "2", package = "parity-scale-codec", features = ["bit-vec"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1", features = ["preserve_order"] }
-onig = { version = "5.0", default-features = false }
-derive_more = "0.99.3"
-dyn-clone = "1.0"
-hex = "0.4"
-bitvec = { version = "0.20.2", features = ["serde", "alloc"] }
-frame-metadata = { version = "14.2", features = ["legacy"] }
+log = { workspace = true }
+thiserror = { workspace = true }
+parity-scale-codec = { workspace = true, features = ["bit-vec"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["preserve_order"] }
+onig = { workspace = true, default-features = false }
+derive_more = { workspace = true }
+dyn-clone = { workspace = true }
+hex = { workspace = true }
+bitvec = { workspace = true, features = ["serde", "alloc"] }
+frame-metadata = { workspace = true, features = ["legacy"] }
+desub-common = { workspace = true }
 
-desub-common = { version = "0.1.0", path = "../desub-common/" }
-
-sp-core = "4.0.0"
-sp-runtime = "4.0.0"
+sp-core = { workspace = true }
+sp-runtime = { workspace = true }
 
 [dev-dependencies]
-sp-version = "4.0.0"
-pretty_env_logger = "0.4"
-hex = "0.4"
+sp-version = { workspace = true }
+pretty_env_logger = { workspace = true }

@@ -1,10 +1,10 @@
 use crate::runtime_metadata::*;
 use anyhow::Result;
-use codec::Encode;
 use desub_legacy::{
 	decoder::{Chain, Decoder, Metadata},
 	SubstrateType,
 };
+use parity_scale_codec::Encode;
 use sp_core::twox_128;
 
 /// T::BlockNumber in meta V11 Block 1768321

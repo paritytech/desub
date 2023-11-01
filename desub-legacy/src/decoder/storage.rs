@@ -54,7 +54,7 @@ impl StorageLookupTable {
 
 	pub fn meta_for_key(&self, key: &[u8]) -> Option<&StorageInfo> {
 		let key = self.table.keys().find(|&k| &key[..k.len()] == k.as_slice());
-		key.map(|k| self.lookup(k)).flatten()
+		key.and_then(|k| self.lookup(k))
 	}
 
 	pub fn extra_key_data<'a>(&self, key: &'a [u8]) -> Option<&'a [u8]> {

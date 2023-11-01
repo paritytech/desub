@@ -17,16 +17,14 @@
 //! A crate to decode extrinsics, signer payloads and storage keys for substrate nodes using V14+ metadata.
 //! See [`decoder`] for more information.
 
-mod type_id;
-
 pub mod decoder;
 pub mod metadata;
-pub mod value;
 
 pub use metadata::Metadata;
-pub use value::{Value, ValueDef};
+pub use scale_value::{Value, ValueDef};
 
-pub use type_id::TypeId;
+/// An ID that represents a type in a [`scale_info::PortableRegistry`].
+pub type TypeId = u32;
 
 /// A re-export of the [`scale_info`] crate, since we delegate much of the type inspection to it.
 pub use scale_info;

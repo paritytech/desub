@@ -39,9 +39,9 @@ pub use frame_metadata::{decode_different::DecodeDifferent, RuntimeMetadata, Run
 
 use super::storage::{StorageInfo, StorageLookupTable};
 use crate::RustTypeMarker;
-use codec::{Decode, Encode, EncodeAsRef, HasCompact};
-use sp_core::{storage::StorageKey, twox_128};
+use parity_scale_codec::{Decode, Encode, EncodeAsRef, HasCompact};
 use serde::{Deserialize, Serialize};
+use sp_core::{storage::StorageKey, twox_128};
 
 use std::{
 	collections::{HashMap, HashSet},
@@ -83,7 +83,7 @@ pub enum Error {
 	#[error("MapValueType Error")]
 	MapValueTypeError,
 	#[error(transparent)]
-	Decode(#[from] codec::Error),
+	Decode(#[from] parity_scale_codec::Error),
 	#[error("Metadata Version {0} not supported")]
 	NotSupported(u32),
 	#[error("Expected Decoded")]
@@ -229,7 +229,7 @@ impl<'a> Metadata {
 	}
 
 	fn generate_key<S: AsRef<str>>(prefix: S) -> Vec<u8> {
-		prefix.as_ref().split_ascii_whitespace().map(|s| twox_128(s.as_bytes()).to_vec()).flatten().collect()
+		prefix.as_ref().split_ascii_whitespace().flat_map(|s| twox_128(s.as_bytes()).to_vec()).collect()
 	}
 
 	/// print out a detailed but human readable description of the module

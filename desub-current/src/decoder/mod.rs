@@ -23,20 +23,20 @@
 //! See [`decode_storage()`] and then the documentation on [`StorageDecoder`] to decode storage lookups.
 
 mod decode_storage;
-mod decode_value;
 mod extrinsic_bytes;
 
 use crate::metadata::Metadata;
-use crate::value::Value;
 use crate::TypeId;
-use codec::{Compact, Decode};
 use extrinsic_bytes::{AllExtrinsicBytes, ExtrinsicBytesError};
+use parity_scale_codec::{Compact, Decode};
+use scale_decode::DecodeAsType;
+use scale_value::Value;
 use serde::Serialize;
 use sp_runtime::{AccountId32, MultiAddress, MultiSignature};
 use std::borrow::Cow;
 
 // Re-export the DecodeValueError here, which we expose in our global `DecodeError` enum.
-pub use decode_value::DecodeValueError;
+pub use scale_decode::Error as DecodeValueError;
 
 // Re-export storage related types that are part of our public interface.
 pub use decode_storage::{
@@ -45,12 +45,12 @@ pub use decode_storage::{
 
 /// An enum of the possible errors that can be returned from attempting to decode bytes
 /// using the functions in this module.
-#[derive(Clone, Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum DecodeError {
 	#[error("Failed to parse the provided vector of extrinsics: {0}")]
 	UnexpectedExtrinsicsShape(#[from] ExtrinsicBytesError),
 	#[error("Failed to decode: {0}")]
-	CodecError(#[from] codec::Error),
+	CodecError(#[from] parity_scale_codec::Error),
 	#[error("Failed to decode type: {0}")]
 	DecodeValueError(#[from] DecodeValueError),
 	#[error("Failed to decode: expected more data")]
@@ -67,12 +67,12 @@ pub enum DecodeError {
 
 /// Decode a single [`Value`] from a piece of scale encoded data, given some metadata and the ID of the type that we
 /// are expecting it to decode into.
-pub fn decode_value_by_id<'a, Id: Into<TypeId>>(
-	metadata: &'a Metadata,
+pub fn decode_value_by_id<Id: Into<TypeId>>(
+	metadata: &Metadata,
 	ty: Id,
 	data: &mut &[u8],
 ) -> Result<Value<TypeId>, DecodeValueError> {
-	decode_value::decode_value_by_id(data, ty, metadata.types())
+	Value::decode_as_type(data, ty.into(), metadata.types())
 }
 
 /// Generate a [`StorageDecoder`] struct which is capable of decoding SCALE encoded storage keys. It's advisable
@@ -85,9 +85,9 @@ pub fn decode_value_by_id<'a, Id: Into<TypeId>>(
 /// use desub_current::{
 ///     Metadata,
 ///     decoder::{ self, StorageHasher },
-///     value::{ Value, ValueDef, Composite, Primitive },
 /// };
-/// use codec::Encode;
+/// use scale_value::{ Value, ValueDef, Composite, Primitive };
+/// use parity_scale_codec::Encode;
 ///
 /// // Get hold of the metadata (normally by making an RPC call
 /// // to the node you want to interact with):
@@ -114,18 +114,16 @@ pub fn decode_value_by_id<'a, Id: Into<TypeId>>(
 /// // Because the hasher is Twox64Concat, we can see the decoded original map key:
 /// assert_eq!(keys.len(), 1);
 /// if let StorageHasher::Twox64Concat(val) = keys[0].hasher.clone() {
-///     assert_eq!(val.without_context(), Value::u32(1000))
+///     assert_eq!(val.remove_context(), Value::u128(1000))
 /// }
 ///
 /// // We can also decode values at this storage location using the type info we get back:
 /// let bytes = [1u8; 32].encode();
-/// let val = decoder::decode_value_by_id(&metadata, &entry.ty, &mut &*bytes).unwrap();
+/// let val = decoder::decode_value_by_id(&metadata, entry.ty, &mut &*bytes).unwrap();
 /// # assert_eq!(
-/// #     val.without_context(),
+/// #     val.remove_context(),
 /// #     // The Type in this case is something like a newtype-wrapped [u8; 32]:
-/// #     Value::unnamed_composite(vec![
-/// #         Value::unnamed_composite(vec![Value::u8(1); 32])
-/// #     ])
+/// #     Value::unnamed_composite(vec![Value::from_bytes(vec![1u8; 32])])
 /// # );
 /// ```
 pub fn decode_storage(metadata: &Metadata) -> StorageDecoder {
@@ -160,7 +158,7 @@ pub fn decode_extrinsics<'a>(
 	metadata: &'a Metadata,
 	data: &mut &[u8],
 ) -> Result<Vec<Extrinsic<'a>>, (Vec<Extrinsic<'a>>, DecodeError)> {
-	let extrinsic_bytes = AllExtrinsicBytes::new(*data).map_err(|e| (Vec::new(), e.into()))?;
+	let extrinsic_bytes = AllExtrinsicBytes::new(data).map_err(|e| (Vec::new(), e.into()))?;
 
 	log::trace!("Decoding {} Total Extrinsics.", extrinsic_bytes.len());
 
@@ -344,11 +342,11 @@ pub fn decode_call_data<'a>(metadata: &'a Metadata, data: &mut &[u8]) -> Result<
 
 	// Decode each of the argument values in the extrinsic:
 	let arguments = variant
-		.fields()
+		.fields
 		.iter()
 		.map(|field| {
-			let id = field.ty().id();
-			decode_value_by_id(metadata, TypeId::from_u32(id), data).map_err(DecodeError::DecodeValueError)
+			let id = field.ty.id;
+			decode_value_by_id(metadata, id, data).map_err(DecodeError::DecodeValueError)
 		})
 		.collect::<Result<Vec<_>, _>>()?;
 
@@ -394,7 +392,7 @@ pub fn decode_signed_extensions<'a>(
 		.signed_extensions()
 		.iter()
 		.map(|ext| {
-			let val = decode_value_by_id(metadata, &ext.ty, data)?;
+			let val = decode_value_by_id(metadata, ext.ty.id, data)?;
 			let name = Cow::Borrowed(&*ext.identifier);
 			Ok((name, val))
 		})
@@ -414,7 +412,7 @@ pub fn decode_additional_signed<'a>(
 		.signed_extensions()
 		.iter()
 		.map(|ext| {
-			let val = decode_value_by_id(metadata, &ext.additional_signed, data)?;
+			let val = decode_value_by_id(metadata, ext.additional_signed.id, data)?;
 			let name = Cow::Borrowed(&*ext.identifier);
 			Ok((name, val))
 		})

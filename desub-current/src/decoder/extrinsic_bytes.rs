@@ -130,7 +130,7 @@ pub struct ExtrinsicBytesError {
 /// return a tuple of the length of the vector, and the number of input bytes used to represent
 /// this length.
 fn decode_compact_u32(mut data: &[u8]) -> Option<(usize, usize)> {
-	use codec::{Compact, CompactLen, Decode};
+	use parity_scale_codec::{Compact, CompactLen, Decode};
 
 	let length = u32::from(Compact::<u32>::decode(&mut data).ok()?);
 	let prefix = Compact::<u32>::compact_len(&length);
@@ -142,7 +142,7 @@ fn decode_compact_u32(mut data: &[u8]) -> Option<(usize, usize)> {
 mod test {
 
 	use super::*;
-	use codec::{Compact, Encode};
+	use parity_scale_codec::{Compact, Encode};
 
 	fn iter_result_to_bytes<E>(res: Option<Result<ExtrinsicBytes<'_>, E>>) -> Option<Result<&[u8], E>> {
 		res.map(|r| r.map(|e| e.bytes()))

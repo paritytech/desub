@@ -19,7 +19,6 @@
 #[deny(unused)]
 mod error;
 
-use codec::Decode;
 use desub_current::{
 	decoder::{self, Extrinsic},
 	Metadata as DesubMetadata,
@@ -29,6 +28,7 @@ use desub_legacy::{
 	RustTypeMarker, TypeDetective,
 };
 use frame_metadata::RuntimeMetadataPrefixed;
+use parity_scale_codec::Decode;
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -106,7 +106,7 @@ impl Decoder {
 		if self.current_metadata.contains_key(&version) {
 			let metadata = self.current_metadata.get(&version).expect("Checked if key is contained; qed");
 			match decoder::decode_extrinsics(metadata, &mut data) {
-				Ok(v) => Ok(serde_json::to_value(&v)?),
+				Ok(v) => Ok(serde_json::to_value(v)?),
 				Err((ext, e)) => {
 					Err(Error::V14 { source: e, ext: ext.into_iter().map(Extrinsic::into_owned).collect() })
 				}

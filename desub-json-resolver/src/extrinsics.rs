@@ -33,7 +33,7 @@ impl Extrinsics {
 	}
 
 	pub fn get(&self, ty: &str, spec: u32, chain: &str) -> Option<&desub_legacy::RustTypeMarker> {
-		if let Some(ty) = self.get_chain_types(chain, spec).map(|c| c.get(ty)).flatten() {
+		if let Some(ty) = self.get_chain_types(chain, spec).and_then(|c| c.get(ty)) {
 			Some(ty)
 		} else {
 			self.default.get(ty)

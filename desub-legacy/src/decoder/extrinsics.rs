@@ -62,7 +62,7 @@ impl fmt::Display for GenericExtrinsic {
 		if let Some(v) = &self.signature {
 			s.push_str(&format!("{}", v));
 		} else {
-			s.push_str(&"None".to_string());
+			s.push_str("None");
 		}
 		s.push('\n');
 		s.push_str("CALL");

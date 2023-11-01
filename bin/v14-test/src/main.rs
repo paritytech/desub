@@ -1,18 +1,17 @@
+use clap::Parser;
 use desub_current::{decoder, Metadata};
 use std::path::PathBuf;
-use structopt::StructOpt;
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Parser)]
 struct Opts {
 	/// SCALE encoded V14 metadata blob
-	#[structopt(parse(from_os_str))]
 	metadata: PathBuf,
 	/// Extrinsic hash in the form 0x1a2b3c
 	extrinsic: String,
 }
 
 fn main() -> Result<(), anyhow::Error> {
-	let opts = Opts::from_args();
+	let opts = Opts::parse();
 	pretty_env_logger::init();
 
 	let metadata_bytes = std::fs::read(opts.metadata)?;
