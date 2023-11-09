@@ -11,17 +11,21 @@ rust-version.workspace = true
 
 [features]
 
-polkadot-js = ["desub-json-resolver", "desub-json-resolver/polkadot", "frame-metadata/legacy" ]
+polkadot-js = [
+    "desub-json-resolver",
+    "desub-json-resolver/default-definitions",
+    "frame-metadata/legacy"
+]
 
 [dependencies]
 
 desub-legacy = { workspace = true }
 desub-common = { workspace = true}
 desub-current = { workspace = true }
-desub-json-resolver = { workspace = true, optional = true }
+desub-json-resolver = { workspace = true, optional = true, default-features = true }
 
 thiserror = { workspace = true }
-frame-metadata = { workspace = true }
+frame-metadata = { workspace = true, features = ["legacy"] }
 parity-scale-codec = { workspace = true }
 serde_json = { workspace = true, features = ["preserve_order", "arbitrary_precision"] }
 
