@@ -1,6 +1,7 @@
 [workspace]
 members = [
 	"bin/tx-decoder",
+	"bin/archive-demo",
 	"bin/v14-test",
 	"desub",
 	"desub-current",

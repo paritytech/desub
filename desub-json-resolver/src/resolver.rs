@@ -17,7 +17,7 @@
 use crate::{Extrinsics, Modules, Overrides, Result};
 use desub_legacy::{regex, RustTypeMarker, TypeDetective};
 
-#[cfg(feature = "default_definitions")]
+#[cfg(feature = "default-definitions")]
 mod default {
 	pub const DEFINITIONS: &str = include_str!("./definitions/definitions.json");
 	pub const OVERRIDES: &str = include_str!("./definitions/overrides.json");
@@ -31,6 +31,10 @@ pub struct Builder {
 }
 
 impl Builder {
+	pub fn new(mods: Modules, extrinsics: Extrinsics, overrides: Overrides) -> Self {
+		Self { mods, overrides, extrinsics }
+	}
+
 	pub fn modules(mut self, modules: Modules) -> Self {
 		self.mods = modules;
 		self
@@ -66,16 +70,7 @@ impl Builder {
 	}
 }
 
-// we need a way to construct the builder when
-// not using default features
-#[cfg(not(feature = "default_definitions"))]
-impl Builder {
-	fn new(modules: Modules, extrinsics: Extrinsics, overrides: Overrides) -> Self {
-		Self { mods, overrides, extrinsics }
-	}
-}
-
-#[cfg(feature = "default_definitions")]
+#[cfg(feature = "default-definitions")]
 impl Default for Builder {
 	fn default() -> Self {
 		Self {
@@ -85,7 +80,7 @@ impl Default for Builder {
 		}
 	}
 }
-#[cfg(feature = "default_definitions")]
+#[cfg(feature = "default-definitions")]
 impl Default for TypeResolver {
 	fn default() -> Self {
 		Builder::default().build()
@@ -101,6 +96,7 @@ pub struct TypeResolver {
 
 impl TypeResolver {
 	/// Build the builder for `TypeResolver`
+	#[cfg(feature = "default-definitions")]
 	pub fn builder() -> Builder {
 		Builder::default()
 	}

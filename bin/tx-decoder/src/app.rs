@@ -142,13 +142,13 @@ impl<'a> AppState<'a> {
 	/// returns the previous spec version.
 	async fn register_metadata(&self, conn: &mut PgConnection, version: SpecVersion) -> Result<Option<u32>, Error> {
 		let (past, present) = past_and_present_version(conn, version.try_into()?).await?;
-		if !self.decoder.read().has_version(&present) {
+		if !self.decoder.read().has_version(present) {
 			let meta = metadata(conn, present.try_into()?).await?;
 			self.decoder.write().register_version(present, &meta)?;
 		}
 
 		if let Some(p) = past {
-			if !self.decoder.read().has_version(&p) {
+			if !self.decoder.read().has_version(p) {
 				let meta = metadata(conn, p.try_into()?).await?;
 				self.decoder.write().register_version(p, &meta)?;
 			}

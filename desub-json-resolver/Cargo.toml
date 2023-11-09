@@ -18,9 +18,8 @@ log = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["preserve_order"] }
 syn = { workspace = true, features = ["parsing", "derive"] }
-phf = { workspace = true, features = [ "macros" ] }
+phf = { workspace = true, features = ["macros"] }
 
 [features]
-default = ["default_definitions"]
-polkadot = []
-default_definitions = []
+default = ["default-definitions"]
+default-definitions = []

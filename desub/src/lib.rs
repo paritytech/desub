@@ -120,7 +120,7 @@ impl Decoder {
 		}
 	}
 
-	pub fn has_version(&self, version: &SpecVersion) -> bool {
-		self.current_metadata.contains_key(version) || self.legacy_decoder.has_version(version)
+	pub fn has_version(&self, version: SpecVersion) -> bool {
+		self.current_metadata.contains_key(&version) || self.legacy_decoder.has_version(&version)
 	}
 }

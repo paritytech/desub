@@ -12,21 +12,21 @@ rust-version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-desub = { workspace = true, features = [ "polkadot-js" ] }
+desub = { workspace = true, features = ["polkadot-js"] }
 anyhow = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 log = { workspace = true }
 
 # These are only used here, so aren't part of the workspace deps (this binary might go away):
-async-std = { version = "1.10.0", features = [ "attributes" ] }
+async-std = { version = "1.10.0", features = ["attributes"] }
 async-stream = "0.3.2"
-sqlx = { version = "0.5", features = [ "runtime-async-std-rustls", "postgres", "offline" ]}
+sqlx = { version = "0.5", features = ["runtime-async-std-rustls", "postgres", "offline"]}
 futures = "0.3.17"
 argh = "0.1.6"
-fern = { version = "0.6.0", features = [ "colored" ] }
+fern = { version = "0.6.0", features = ["colored"] }
 colored = "2.0.0"
-indicatif = { version = "0.16.2", features = [ "rayon" ] }
+indicatif = { version = "0.16.2", features = ["rayon"] }
 rayon = "1.5.1"
 parking_lot = "0.11.2"
 num_cpus = "1.13.0"

@@ -465,7 +465,7 @@ impl Decoder {
 		let (length, prefix) = Self::scale_length(data)?;
 		let meta = self.versions.get(&spec).ok_or(Error::MissingSpec(spec))?;
 		log::trace!("Decoding {} Total Extrinsics. CALLS: {:#?}", length, meta.modules_by_call_index);
-
+		log::trace!("Extrinsics bytes: {data:?}");
 		let mut state = DecodeState::new(None, None, meta, prefix, spec, data);
 		for (idx, extrinsic) in ChunkedExtrinsic::new(&data[prefix..]).enumerate() {
 			log::trace!("Extrinsic {}:{:?}", idx, extrinsic);

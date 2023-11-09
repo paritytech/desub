@@ -1,0 +1,19 @@
+[package]
+name = "archive-demo"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+description.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+clap = { workspace = true, features = ["derive"] }
+desub = { workspace = true, features = ["polkadot-js"] }
+anyhow = { workspace = true }
+hex = { workspace = true }
+subxt = "0.32.1"
+tokio = { version = "1.33.0", features = ["full"] }
+pretty_env_logger = { workspace = true }
