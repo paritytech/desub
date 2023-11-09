@@ -18,11 +18,11 @@ async fn main() -> Result<(), anyhow::Error> {
 	let rpc_client = RpcClient::from_url("wss://rpc.polkadot.io").await?;
 	let methods = LegacyRpcMethods::<PolkadotConfig>::new(rpc_client.clone());
 
-	let mut bn = 1;
+	let mut block_number = 1;
 	let mut decoder = Decoder::new(Chain::Polkadot);
 
 	loop {
-		let hash = methods.chain_get_block_hash(Some(NumberOrHex::Number(bn))).await?.unwrap();
+		let hash = methods.chain_get_block_hash(Some(NumberOrHex::Number(block_number))).await?.unwrap();
 		let runtime_version = methods.state_get_runtime_version(Some(hash)).await?;
 		let spec_version = runtime_version.spec_version;
 		let block = methods.chain_get_block(Some(hash)).await?.unwrap();
@@ -35,11 +35,13 @@ async fn main() -> Result<(), anyhow::Error> {
 			decoder.register_version(spec_version, &md.0)?;
 		}
 
-		println!("# Decoding exts for block {bn}");
+		println!("# Decoding exts for block {block_number}");
 		let decoded_exts = decoder.decode_extrinsics(spec_version, &ext_bytes)?;
 
 		println!("{decoded_exts}");
-		bn += 10_000;
+
+		// We'll decode every 10_000th block, just to make sure we span some spec versions.
+		block_number += 10_000;
 	}
 }
 
