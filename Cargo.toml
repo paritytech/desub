@@ -1,0 +1,21 @@
+[workspace]
+members = [
+	"desub-decode"
+]
+
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+authors = ["Parity Technologies <admin@parity.io>"]
+license = "Apache-2.0"
+repository = "https://github.com/paritytech/desub"
+homepage = "https://github.com/paritytech/desub"
+description = "Decode substrate bytes, extrinsics and storage items"
+rust-version = "1.70.0"
+edition = "2021"
+
+[workspace.dependencies]
+scale-decode = "0.9"
+
+desub-decode = { version = "0.1.0", default-features = false, path = "./desub-decode" }

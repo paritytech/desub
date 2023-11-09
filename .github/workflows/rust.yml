@@ -1,0 +1,205 @@
+name: Rust
+
+on:
+  push:
+    # Run jobs when commits are pushed to
+    # main:
+    branches:
+      - main
+  pull_request:
+    # Run jobs for any external PR that wants
+    # to merge to main, too:
+    branches:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Cargo check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v1.3.0
+
+      - name: Check all features
+        uses: actions-rs/cargo@v1.0.3
+        with:
+          command: check
+          args: --all-targets --all-features --workspace
+
+      - name: Check no features
+        uses: actions-rs/cargo@v1.0.3
+        with:
+          command: check
+          args: --all-targets --no-default-features --workspace
+
+  wasm:
+    name: Check WASM compatibility
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          override: true
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v1.3.0
+
+      - name: Check all features
+        uses: actions-rs/cargo@v1.0.3
+        with:
+          command: check
+          args: --all-targets --all-features --target wasm32-unknown-unknown
+
+  fmt:
+    name: Cargo fmt
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+            profile: minimal
+            toolchain: stable
+            override: true
+            components: rustfmt
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v1.3.0
+
+      - name: Cargo fmt
+        uses: actions-rs/cargo@v1.0.3
+        with:
+          command: fmt
+          args: --all -- --check
+
+  docs:
+    name: Check documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v1.3.0
+
+      - name: Check internal documentation links
+        run: RUSTDOCFLAGS="--deny rustdoc::broken_intra_doc_links" cargo doc -vv --workspace --no-deps --document-private-items
+
+  tests:
+    name: Cargo test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v1.3.0
+
+      - name: Cargo test
+        uses: actions-rs/cargo@v1.0.3
+        with:
+          command: test
+          args: --all-targets --workspace
+
+      - name: Cargo test docs
+        uses: actions-rs/cargo@v1.0.3
+        with:
+          command: test
+          args: --doc --workspace
+
+      - name: Cargo test examples
+        uses: actions-rs/cargo@v1.0.3
+        with:
+          command: test
+          args: --examples --workspace
+
+      - name: Run tests with no_std in conjunction with other features
+        run: |
+          cargo test --no-default-features --features from-string
+          cargo test --no-default-features --features parser-ss58
+          cargo test --no-default-features --features serde
+
+  clippy:
+    name: Cargo clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+            profile: minimal
+            toolchain: stable
+            components: clippy
+            override: true
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v1.3.0
+
+      - name: Run clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-targets -- -D warnings
+
+  no_std:
+    name: Check no_std build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: aarch64-unknown-none
+          override: true
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v1.3.0
+
+      - name: Check no_std build
+        uses: actions-rs/cargo@v1.0.3
+        with:
+          command: check
+          # The aarch64-unknown-none doesn't support `std`, so this
+          # will fail if the crate is not fully no_std compatible.
+          args: --target aarch64-unknown-none --no-default-features --features serde,from-string,parser-ss58
