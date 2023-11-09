@@ -22,15 +22,18 @@ async fn main() -> Result<(), anyhow::Error> {
 	let mut decoder = Decoder::new(Chain::Polkadot);
 
 	loop {
+		// Fetch the extrinsics and spec version, which we need for decoding:
 		let hash = methods.chain_get_block_hash(Some(NumberOrHex::Number(block_number))).await?.unwrap();
 		let runtime_version = methods.state_get_runtime_version(Some(hash)).await?;
 		let spec_version = runtime_version.spec_version;
 		let block = methods.chain_get_block(Some(hash)).await?.unwrap();
 
+		// Mangle the extrinsics into the correct byte format from the RPC call which returns a Vec:
 		let ext_bytes = make_extrinsic_bytes(block.block.extrinsics);
 
 		if !decoder.has_version(spec_version) {
 			// download the relevant metadata bytes, since the decoder doesn't have it yet.
+			println!("# Downloading metadata for spec version {spec_version}");
 			let md: Bytes = rpc_client.request("state_getMetadata", rpc_params![hash]).await?;
 			decoder.register_version(spec_version, &md.0)?;
 		}
