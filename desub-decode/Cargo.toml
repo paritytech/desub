@@ -15,7 +15,7 @@ default = ["current", "legacy"]
 # Enable support for decoding types from scale-info PortableRegistry's,
 # which are present in the newer metadata versions (V14+) provided with
 # more recent runtimes.
-current = ["dep:scale-info", "scale-bits?/scale-info"]
+current = ["dep:scale-info", "scale-bits/scale-info"]
 
 # Enable support for decoding types used in older runtimes which rely
 # on type mappings to understand how to decode bytes.
@@ -27,3 +27,7 @@ scale-decode = { workspace = true }
 scale-bits = { workspace = true }
 derive_more = { workspace = true }
 codec = { workspace = true }
+
+[dev-dependencies]
+scale-info = { workspace = true, features = ["derive"] }
+bitvec = { workspace = true }

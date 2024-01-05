@@ -13,9 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::visitor::{
-    Array, BitSequence, Composite, DecodeAsTypeResult, DecodeError, Sequence, Str, Tuple, TypeId,
-    Variant, Visitor,
+use crate::visitor::{ Visitor, DecodeAsTypeResult };
+use crate::error::Error as DecodeError;
+use crate::visitor_types::{
+    Array, BitSequence, Composite, Sequence, Str, Tuple,
+    Variant,
 };
 use crate::Field;
 use codec::{self, Decode};

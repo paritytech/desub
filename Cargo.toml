@@ -16,6 +16,7 @@ rust-version = "1.70.0"
 edition = "2021"
 
 [workspace.dependencies]
+bitvec = { version = "1.0.1", default-features = false }
 scale-decode = "0.9"
 scale-info = "2.10"
 scale-bits = { version = "0.4.0", default-features = false }
